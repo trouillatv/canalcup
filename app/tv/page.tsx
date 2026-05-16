@@ -5,17 +5,33 @@ import { flagEmoji, toNCDate, toNCTime } from "@/lib/utils";
 import { QrCode } from "lucide-react";
 import type { Match, LeaderboardRow, MorningBrief, RevivezPost } from "@/lib/supabase/types";
 
-type Slide = "classement" | "match" | "matinale" | "revivez";
+type Slide = "classement" | "match" | "standings" | "matinale" | "revivez";
 
 const SLIDE_DURATION = 12000;
 const REFRESH_INTERVAL = 30000;
-const SLIDES: Slide[] = ["classement", "match", "matinale", "revivez"];
+const SLIDES: Slide[] = ["classement", "match", "standings", "matinale", "revivez"];
+
+interface StandingRow {
+  team_name_fr: string;
+  team_flag: string;
+  rank: number;
+  played: number;
+  won: number;
+  draw: number;
+  lost: number;
+  goals_for: number;
+  goals_against: number;
+  goal_diff: number;
+  points: number;
+  group_name: string;
+}
 
 interface TVData {
   matches: Match[];
   leaderboard: LeaderboardRow[];
   brief: MorningBrief;
   revivezPosts: RevivezPost[];
+  standings?: StandingRow[];
 }
 
 function SlideClassement({ leaderboard }: { leaderboard: LeaderboardRow[] }) {
@@ -86,6 +102,55 @@ function SlideMatch({ matches }: { matches: Match[] }) {
       {match.is_match_of_week && (
         <div className="mt-12 canal-badge text-xl px-6 py-2">⭐ Match de la semaine</div>
       )}
+    </div>
+  );
+}
+
+function SlideStandings({ standings }: { standings: StandingRow[] }) {
+  // Show top 2 teams from each group (first 4 groups max on screen)
+  const byGroup: Record<string, StandingRow[]> = {};
+  for (const row of standings) {
+    if (!byGroup[row.group_name]) byGroup[row.group_name] = [];
+    byGroup[row.group_name].push(row);
+  }
+  const groups = Object.entries(byGroup)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(0, 4);
+
+  if (groups.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-canal-gray-muted text-2xl">Classement disponible dès le début du tournoi</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full justify-center px-12 py-8">
+      <div className="mb-6">
+        <p className="text-canal-yellow font-black text-2xl uppercase tracking-widest mb-2">⚽ Classement FIFA WC 2026</p>
+        <div className="h-1 w-32 bg-canal-yellow" />
+      </div>
+      <div className="grid grid-cols-2 gap-8">
+        {groups.map(([groupName, rows]) => {
+          const sorted = [...rows].sort((a, b) => b.points - a.points || b.goal_diff - a.goal_diff);
+          return (
+            <div key={groupName}>
+              <p className="text-canal-yellow font-black text-lg mb-3 uppercase">{groupName}</p>
+              <div className="space-y-2">
+                {sorted.slice(0, 4).map((row, i) => (
+                  <div key={row.team_name_fr} className={`flex items-center gap-3 ${i < 2 ? "text-white" : "text-canal-gray-muted"}`}>
+                    <span className="w-5 text-center font-bold text-lg">{i + 1}</span>
+                    <span className="text-2xl">{row.team_flag}</span>
+                    <span className={`flex-1 text-xl ${i < 2 ? "font-bold" : ""}`}>{row.team_name_fr}</span>
+                    <span className="font-black text-2xl text-canal-yellow">{row.points}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -190,6 +255,7 @@ export default function TVPage() {
           <>
             {slide === "classement" && <SlideClassement leaderboard={data.leaderboard} />}
             {slide === "match" && <SlideMatch matches={data.matches} />}
+            {slide === "standings" && <SlideStandings standings={data.standings ?? []} />}
             {slide === "matinale" && <SlideMatinale brief={data.brief} />}
             {slide === "revivez" && <SlideRevivez posts={data.revivezPosts} />}
           </>

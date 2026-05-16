@@ -96,3 +96,32 @@ const FR_TO_EN: Record<string, string> = Object.fromEntries(
 export function toEnglish(frenchName: string): string {
   return FR_TO_EN[frenchName] ?? frenchName;
 }
+
+// Country flag emojis keyed by English name
+export const FLAGS: Record<string, string> = {
+  USA: "🇺🇸", "United States": "🇺🇸", Canada: "🇨🇦", Mexico: "🇲🇽",
+  Brazil: "🇧🇷", Argentina: "🇦🇷", Uruguay: "🇺🇾", Colombia: "🇨🇴",
+  Ecuador: "🇪🇨", Paraguay: "🇵🇾", Peru: "🇵🇪", Chile: "🇨🇱",
+  Venezuela: "🇻🇪", Bolivia: "🇧🇴", Jamaica: "🇯🇲", Haiti: "🇭🇹",
+  Panama: "🇵🇦", "Costa Rica": "🇨🇷", Honduras: "🇭🇳", "El Salvador": "🇸🇻",
+  "Trinidad and Tobago": "🇹🇹", Cuba: "🇨🇺", "Curaçao": "🇨🇼",
+  France: "🇫🇷", Spain: "🇪🇸", Germany: "🇩🇪", England: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+  Portugal: "🇵🇹", Netherlands: "🇳🇱", Belgium: "🇧🇪", Italy: "🇮🇹",
+  Switzerland: "🇨🇭", Croatia: "🇭🇷", Denmark: "🇩🇰", Sweden: "🇸🇪",
+  Norway: "🇳🇴", Poland: "🇵🇱", Serbia: "🇷🇸", Ukraine: "🇺🇦",
+  Scotland: "🏴󠁧󠁢󠁳󠁣󠁴󠁿", Wales: "🏴󠁧󠁢󠁷󠁬󠁳󠁿", "Czech Republic": "🇨🇿",
+  Slovakia: "🇸🇰", Hungary: "🇭🇺", Romania: "🇷🇴", Austria: "🇦🇹",
+  "Bosnia-Herzegovina": "🇧🇦", Slovenia: "🇸🇮", Albania: "🇦🇱",
+  Greece: "🇬🇷", Turkey: "🇹🇷", Georgia: "🇬🇪", Iceland: "🇮🇸",
+  Morocco: "🇲🇦", Senegal: "🇸🇳", Nigeria: "🇳🇬", Ghana: "🇬🇭",
+  "Ivory Coast": "🇨🇮", Cameroon: "🇨🇲", Algeria: "🇩🇿", Tunisia: "🇹🇳",
+  Egypt: "🇪🇬", "South Africa": "🇿🇦", Mali: "🇲🇱", Gabon: "🇬🇦",
+  "Cape Verde": "🇨🇻", "DR Congo": "🇨🇩", Benin: "🇧🇯",
+  Japan: "🇯🇵", "South Korea": "🇰🇷", "Saudi Arabia": "🇸🇦", Iran: "🇮🇷",
+  Qatar: "🇶🇦", Australia: "🇦🇺", "New Zealand": "🇳🇿",
+  Indonesia: "🇮🇩", Uzbekistan: "🇺🇿",
+};
+
+export function toFlag(englishName: string): string {
+  return FLAGS[englishName] ?? "🏳️";
+}

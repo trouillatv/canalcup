@@ -4,7 +4,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { cache, matchTTL, TTL } from "./cache";
 import { tsdbTimeline, tsdbStatus } from "./transformers";
-import { toFrench } from "@/lib/football/team-names";
+import { toFrench, toFlag } from "@/lib/football/team-names";
 import type { FullMatchDetail, MatchEvent, LineupPlayer, MatchStat } from "./types";
 
 const TSDB = "https://www.thesportsdb.com/api/v1/json/3";
@@ -209,6 +209,56 @@ export async function syncLiveScores(): Promise<number> {
   return synced;
 }
 
+// ─── Phase normalization ──────────────────────────────────────────────────────
+
+function normalizePhase(strRound?: string): { phase: string; stage: string | null } {
+  if (!strRound) return { phase: "Groupe", stage: null };
+  const r = strRound.toLowerCase();
+  if (/^group [a-l]$/i.test(strRound) || r.includes("group stage") || r.includes("group")) {
+    return { phase: "Groupe", stage: strRound };
+  }
+  if (r.includes("round of 16") || r.includes("16")) return { phase: "Huitièmes", stage: null };
+  if (r.includes("quarter")) return { phase: "Quarts", stage: null };
+  if (r.includes("semi")) return { phase: "Demis", stage: null };
+  if (r.includes("3rd") || r.includes("third place") || r.includes("third-place")) return { phase: "3ème place", stage: null };
+  if (r.includes("final")) return { phase: "Finale", stage: null };
+  return { phase: "Groupe", stage: strRound };
+}
+
+// ─── Standings sync ───────────────────────────────────────────────────────────
+
+export async function syncStandings(): Promise<number> {
+  const supabase = createAdminClient();
+  const json = await tsdbFetch(`/lookuptable.php?l=4429&s=2026`);
+  const rows = json?.table ?? [];
+  if (!rows.length) return 0;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const upsertRows = rows.map((r: any) => ({
+    competition: "FIFA World Cup 2026",
+    group_name: r.strGroupName ?? "Group A",
+    team_name: r.strTeam ?? "",
+    team_name_fr: toFrench(r.strTeam ?? ""),
+    team_flag: toFlag(r.strTeam ?? ""),
+    rank: parseInt(r.intRank ?? "0", 10),
+    played: parseInt(r.intPlayed ?? "0", 10),
+    won: parseInt(r.intWin ?? "0", 10),
+    draw: parseInt(r.intDraw ?? "0", 10),
+    lost: parseInt(r.intLoss ?? "0", 10),
+    goals_for: parseInt(r.intGoalsFor ?? "0", 10),
+    goals_against: parseInt(r.intGoalsAgainst ?? "0", 10),
+    goal_diff: parseInt(r.intGoalDifference ?? "0", 10),
+    points: parseInt(r.intPoints ?? "0", 10),
+  }));
+
+  const { error } = await supabase
+    .from("standings")
+    .upsert(upsertRows, { onConflict: "competition,group_name,team_name" });
+
+  if (error) console.error("[syncStandings] error", error.message);
+  return upsertRows.length;
+}
+
 // ─── Full season sync ─────────────────────────────────────────────────────────
 
 export async function syncSeason(): Promise<{ updated: number; inserted: number; total: number }> {
@@ -233,19 +283,29 @@ export async function syncSeason(): Promise<{ updated: number; inserted: number;
       matches.find((m) => m.external_id === externalId) ??
       matches.find((m) => m.team_a.toLowerCase() === teamAFr.toLowerCase() && m.team_b.toLowerCase() === teamBFr.toLowerCase());
 
+    const { phase, stage } = normalizePhase(e.strRound ?? e.intRound?.toString());
+
     if (existing) {
       await supabase.from("matches").update({
         external_id: externalId, status, score_a: scoreA, score_b: scoreB,
-        team_a: teamAFr, team_b: teamBFr, updated_at: new Date().toISOString(),
+        team_a: teamAFr, team_b: teamBFr,
+        flag_a: toFlag(e.strHomeTeam ?? ""), flag_b: toFlag(e.strAwayTeam ?? ""),
+        phase, stage: stage ?? undefined,
+        venue: e.strVenue ?? undefined,
+        updated_at: new Date().toISOString(),
       }).eq("id", existing.id);
       cache.invalidate(`match:${existing.id}`);
       updated++;
     } else {
       const kickoff = e.strTimestamp ? `${e.strTimestamp}Z` : `${e.dateEvent}T${e.strTime ?? "00:00:00"}Z`;
       const { error } = await supabase.from("matches").insert({
-        external_id: externalId, competition: "FIFA World Cup 2026", phase: "Groupe",
-        team_a: teamAFr, team_b: teamBFr, starts_at: kickoff,
-        channel: "Canal+", status, score_a: scoreA, score_b: scoreB,
+        external_id: externalId, competition: "FIFA World Cup 2026",
+        phase, stage: stage ?? undefined,
+        team_a: teamAFr, team_b: teamBFr,
+        flag_a: toFlag(e.strHomeTeam ?? ""), flag_b: toFlag(e.strAwayTeam ?? ""),
+        starts_at: kickoff, channel: "Canal+", status,
+        score_a: scoreA, score_b: scoreB,
+        venue: e.strVenue ?? undefined,
       });
       if (!error) {
         inserted++;

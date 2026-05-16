@@ -5,7 +5,7 @@ import Link from "next/link";
 import { MatchCard } from "@/components/matches/MatchCard";
 import type { Match, PredictionTrend, Prediction } from "@/lib/supabase/types";
 import { MOCK_MATCHES, MOCK_PREDICTION_TRENDS } from "@/lib/mock-data";
-import { Star } from "lucide-react";
+import { Star, Trophy } from "lucide-react";
 
 export default function MatchesPage() {
   const [matches, setMatches] = useState<Match[]>(MOCK_MATCHES);
@@ -50,12 +50,20 @@ export default function MatchesPage() {
           <h1 className="canal-headline text-2xl">Matchs & Pronostics</h1>
           <p className="text-canal-gray-muted text-sm mt-1">Heures en heure Nouvelle-Calédonie</p>
         </div>
-        <Link
-          href="/predictions"
-          className="flex items-center gap-1.5 text-xs font-bold text-canal-yellow border border-canal-yellow/30 rounded-xl px-3 py-2 hover:bg-canal-yellow/10 transition-colors"
-        >
-          <Star size={12} /> Bonus
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/bracket"
+            className="flex items-center gap-1.5 text-xs font-bold text-white border border-canal-gray-light rounded-xl px-3 py-2 hover:bg-canal-gray-light/10 transition-colors"
+          >
+            <Trophy size={12} /> Tableau
+          </Link>
+          <Link
+            href="/predictions"
+            className="flex items-center gap-1.5 text-xs font-bold text-canal-yellow border border-canal-yellow/30 rounded-xl px-3 py-2 hover:bg-canal-yellow/10 transition-colors"
+          >
+            <Star size={12} /> Bonus
+          </Link>
+        </div>
       </div>
 
       {live.length > 0 && (
