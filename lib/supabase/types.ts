@@ -1,29 +1,26 @@
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
 export type FootballLevel = "expert" | "amateur" | "ambiance";
 export type MatchStatus = "upcoming" | "live" | "finished";
 export type PredictionResult = "A" | "DRAW" | "B";
 export type RevivezType = "phrase" | "fail" | "photo" | "babyfoot" | "roast";
-export type InboxEventType =
-  | "mention"
-  | "vote_received"
-  | "badge"
-  | "matinale"
-  | "roast";
+export type InboxEventType = "mention" | "vote_received" | "badge" | "matinale" | "roast";
 export type BabyFootStatus = "upcoming" | "live" | "finished";
 export type QuizDifficulty = "easy" | "medium" | "hard";
 export type QuizCategory = "foot" | "culture" | "canal" | "general";
-export type AIContentType =
-  | "morning_brief"
-  | "team_roast"
-  | "coach_comment"
-  | "fail_caption";
+export type AIContentType = "morning_brief" | "team_roast" | "coach_comment" | "fail_caption";
+export type UserRole = "user" | "admin" | "event_admin" | "super_admin";
+export type TeamRole = "captain" | "member";
+export type TournamentPhase = "group_stage" | "round_of_16" | "quarter_final" | "semi_final" | "final";
 
-export interface User {
+// ─── Core entities ────────────────────────────────────────────────────────────
+
+export interface Service {
   id: string;
   name: string;
-  email: string;
-  avatar_url?: string;
-  football_level: FootballLevel;
-  team_id?: string;
+  emoji: string;
+  is_active: boolean;
+  sort_order: number;
   created_at: string;
 }
 
@@ -32,14 +29,80 @@ export interface Team {
   name: string;
   slogan: string;
   logo_url?: string;
+  color: string;
   total_points: number;
   reputation_label: string;
   created_at: string;
   members?: User[];
 }
 
+export interface User {
+  id: string;
+  auth_id?: string;
+  name: string;
+  display_name?: string;
+  user_slug?: string;
+  email: string;
+  avatar_url?: string;
+  football_level: FootballLevel;
+  team_id?: string;
+  team_role: TeamRole;
+  service_id?: string;
+  profile_completed: boolean;
+  onboarding_step: number;
+  last_login_at?: string;
+  updated_at?: string;
+  created_at: string;
+  // Relations
+  team?: Team;
+  service?: Service;
+}
+
+export interface AllowlistUser {
+  id: string;
+  email: string;
+  role: UserRole;
+  is_active: boolean;
+  created_at: string;
+}
+
+// Vue admin combinée (allowlist + profile)
+export interface AdminUserView {
+  email: string;
+  role: UserRole;
+  is_active: boolean;
+  allowlist_created_at: string;
+  // depuis public.users
+  display_name?: string;
+  user_slug?: string;
+  service_id?: string;
+  service?: Service;
+  football_level?: FootballLevel;
+  profile_completed: boolean;
+  last_login_at?: string;
+  // depuis auth.users (via service_role)
+  auth_last_sign_in?: string;
+}
+
+export interface AdminLog {
+  id: string;
+  admin_email: string;
+  action: string;
+  target_email?: string;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface AppSetting {
+  key: string;
+  value: unknown;
+  updated_at: string;
+}
+
+// ─── Match & Predictions ──────────────────────────────────────────────────────
+
 export interface MatchOdds {
-  odds_a: number;   // cote victoire équipe A (ex: 1.85)
+  odds_a: number;
   odds_draw: number;
   odds_b: number;
 }
@@ -82,6 +145,8 @@ export interface PredictionTrend {
   pct_draw: number;
   pct_b: number;
 }
+
+// ─── Content ──────────────────────────────────────────────────────────────────
 
 export interface MorningBrief {
   id: string;
@@ -169,6 +234,8 @@ export interface InboxEvent {
   is_read: boolean;
   created_at: string;
 }
+
+// ─── Leaderboard ─────────────────────────────────────────────────────────────
 
 export interface LeaderboardRow {
   team: Team;

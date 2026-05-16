@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?error=auth_failed`);
   }
 
-  // Vérifie que l'email est dans l'allowlist
+  // Vérifier l'allowlist
   const { data: allowed } = await supabase
     .from("allowlist_users")
     .select("is_active")
@@ -33,6 +33,23 @@ export async function GET(request: Request) {
   if (!allowed?.is_active) {
     await supabase.auth.signOut();
     return NextResponse.redirect(`${origin}/login?error=not_allowed`);
+  }
+
+  // Mettre à jour last_login_at
+  await supabase
+    .from("users")
+    .update({ last_login_at: new Date().toISOString() })
+    .eq("auth_id", user.id);
+
+  // Vérifier si le profil est complété
+  const { data: profile } = await supabase
+    .from("users")
+    .select("profile_completed")
+    .eq("auth_id", user.id)
+    .single();
+
+  if (!profile?.profile_completed) {
+    return NextResponse.redirect(`${origin}/onboarding`);
   }
 
   return NextResponse.redirect(`${origin}${redirectTo}`);

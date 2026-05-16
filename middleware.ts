@@ -1,15 +1,22 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = [
-  "/login",
-  "/auth/callback",
-  "/tv",
-  "/api/tv",
-];
+// Jamais protégé (dont /tv pour affichage salon commun)
+const PUBLIC_PATHS = ["/login", "/auth/callback", "/tv", "/api/tv"];
+
+// Auth requise mais pas profile_completed (onboarding en cours)
+const ONBOARDING_PATHS = ["/onboarding"];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
+}
+
+function isOnboarding(pathname: string): boolean {
+  return ONBOARDING_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
+}
+
+function isApiRoute(pathname: string): boolean {
+  return pathname.startsWith("/api/");
 }
 
 export async function middleware(request: NextRequest) {
@@ -30,9 +37,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options as Parameters<typeof supabaseResponse.cookies.set>[2])
@@ -44,12 +49,27 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
+  // Non connecté → login
   if (!user) {
     const loginUrl = new URL("/login", request.url);
-    if (pathname !== "/") {
-      loginUrl.searchParams.set("redirectTo", pathname);
-    }
+    if (pathname !== "/") loginUrl.searchParams.set("redirectTo", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Connecté + route onboarding ou API → pas de vérification profile_completed
+  if (isOnboarding(pathname) || isApiRoute(pathname)) {
+    return supabaseResponse;
+  }
+
+  // Pages utilisateur → vérifier profil complété
+  const { data: profile } = await supabase
+    .from("users")
+    .select("profile_completed")
+    .eq("auth_id", user.id)
+    .single();
+
+  if (!profile?.profile_completed) {
+    return NextResponse.redirect(new URL("/onboarding", request.url));
   }
 
   return supabaseResponse;
