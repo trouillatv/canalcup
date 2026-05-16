@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Mail, CheckCircle, AlertCircle, FlaskConical } from "lucide-react";
@@ -13,7 +13,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   unauthorized: "Accès refusé — vous n'avez pas les droits suffisants.",
 };
 
-export default function LoginPage() {
+function LoginForm() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") ?? "/";
   const errorKey = searchParams.get("error");
@@ -180,5 +180,17 @@ export default function LoginPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-canal-black flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-canal-yellow border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
