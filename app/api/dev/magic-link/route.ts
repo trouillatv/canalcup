@@ -12,12 +12,13 @@ export async function POST(req: Request) {
   if (!email) return NextResponse.json({ error: "Email requis" }, { status: 400 });
 
   const adminClient = createAdminClient();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3001";
+  // Utilise l'origin de la requête pour être correct quel que soit le port dev
+  const origin = new URL(req.url).origin;
 
   const { data, error } = await adminClient.auth.admin.generateLink({
     type: "magiclink",
     email,
-    options: { redirectTo: `${appUrl}/auth/callback` },
+    options: { redirectTo: `${origin}/auth/callback` },
   });
 
   if (error) {

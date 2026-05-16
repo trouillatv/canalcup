@@ -11,6 +11,14 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    rules: {
+      // App française : apostrophes et guillemets dans le JSX sont intentionnels
+      "react/no-unescaped-entities": "off",
+      // Images <img> acceptées au MVP (pas encore d'upload Supabase Storage)
+      "@next/next/no-img-element": "off",
+    },
+  },
 ];
 
 export default eslintConfig;

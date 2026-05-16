@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Mail, CheckCircle, AlertCircle, FlaskConical } from "lucide-react";
 
@@ -22,6 +22,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
   const [devLink, setDevLink] = useState<string | null>(null);
+  const [devLoading, setDevLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(
     errorKey ? (ERROR_MESSAGES[errorKey] ?? "Une erreur est survenue.") : null
   );
@@ -145,18 +146,27 @@ export default function LoginPage() {
               <button
                 onClick={async () => {
                   if (!email) return;
-                  const res = await fetch("/api/dev/magic-link", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ email }),
-                  });
-                  const data = await res.json();
-                  if (data.link) setDevLink(data.link);
-                  else setDevLink("Erreur : " + data.error);
+                  setDevLoading(true);
+                  setDevLink(null);
+                  try {
+                    const res = await fetch("/api/dev/magic-link", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ email }),
+                    });
+                    const data = await res.json();
+                    if (data.link) setDevLink(data.link);
+                    else setDevLink("Erreur : " + (data.error ?? "inconnue"));
+                  } catch {
+                    setDevLink("Erreur réseau");
+                  } finally {
+                    setDevLoading(false);
+                  }
                 }}
-                className="px-3 py-1.5 bg-canal-gray-mid border border-canal-gray-light rounded-lg text-xs text-white font-bold hover:bg-canal-gray-light"
+                disabled={devLoading}
+                className="px-3 py-1.5 bg-canal-gray-mid border border-canal-gray-light rounded-lg text-xs text-white font-bold hover:bg-canal-gray-light disabled:opacity-50"
               >
-                Générer
+                {devLoading ? "…" : "Générer"}
               </button>
             </div>
             {devLink && (
