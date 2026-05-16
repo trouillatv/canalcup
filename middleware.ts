@@ -49,8 +49,12 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Non connecté → login
+  // Non connecté
   if (!user) {
+    // Les API routes retournent 401, pas de redirect
+    if (isApiRoute(pathname)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const loginUrl = new URL("/login", request.url);
     if (pathname !== "/") loginUrl.searchParams.set("redirectTo", pathname);
     return NextResponse.redirect(loginUrl);
