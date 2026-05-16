@@ -241,4 +241,4 @@ create policy "Update inbox" on public.inbox_events for update to authenticated
   using (user_id in (select id from public.users where auth_id = auth.uid()));
 
 -- Revivez posts : insérer
-create policy "Insertion revivez" on public.revivez_posts for insert to authenticated using (true);
+create policy "Insertion revivez" on public.revivez_posts for insert to authenticated with check (true);
