@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getFootballProvider } from "@/lib/football";
+import { getMatchDetail } from "@/services/football";
+import { dedupe } from "@/services/football/polling";
 
 export async function GET(
   _req: Request,
@@ -9,23 +10,22 @@ export async function GET(
   const { id } = await params;
   const supabase = await createClient();
 
-  // Get static match from DB
+  // Verify match exists and user has access
   const { data: match } = await supabase
     .from("matches")
-    .select("*")
+    .select("id, status")
     .eq("id", id)
     .single();
 
   if (!match) return NextResponse.json({ error: "Match not found" }, { status: 404 });
 
-  // If match has an external_id, fetch live detail from provider
-  if (match.external_id) {
-    const provider = getFootballProvider();
-    const detail = await provider.getMatchDetail(match.external_id);
-    if (detail) {
-      return NextResponse.json({ match, detail }, { headers: { "Cache-Control": "s-maxage=60" } });
-    }
-  }
+  // Deduplicate concurrent requests for the same match
+  const detail = await dedupe(`api:match:${id}`, () => getMatchDetail(id));
 
-  return NextResponse.json({ match, detail: null });
+  if (!detail) return NextResponse.json({ error: "Match not found" }, { status: 404 });
+
+  const ttl = match.status === "live" ? 30 : match.status === "finished" ? 3600 : 300;
+  return NextResponse.json(detail, {
+    headers: { "Cache-Control": `s-maxage=${ttl}, stale-while-revalidate=10` },
+  });
 }

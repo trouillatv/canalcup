@@ -3,190 +3,194 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
-import type { MatchDetail } from "@/lib/football";
-import type { Match } from "@/lib/supabase/types";
-import { Tv, Clock, MapPin, User, RefreshCw } from "lucide-react";
+import type { FullMatchDetail, MatchEvent, LineupPlayer, StandingRow } from "@/services/football/types";
+import { Tv, MapPin, User, RefreshCw, Clock } from "lucide-react";
 
-type Tab = "timeline" | "lineups" | "stats";
+type Tab = "timeline" | "lineups" | "stats" | "standings";
 
 const EVENT_ICONS: Record<string, string> = {
-  goal: "⚽",
-  yellow_card: "🟨",
-  red_card: "🟥",
-  substitution: "🔄",
-  var: "📺",
-  penalty_missed: "❌",
+  goal: "⚽", yellow_card: "🟨", red_card: "🟥",
+  substitution: "🔄", var: "📺", penalty: "🎯", penalty_missed: "❌",
+};
+const EVENT_COLORS: Record<string, string> = {
+  goal: "bg-canal-yellow/10 border border-canal-yellow/20",
+  red_card: "bg-red-950/30 border border-red-900/20",
+  yellow_card: "bg-yellow-950/20 border border-yellow-900/20",
 };
 
 function StatusBadge({ status, minute }: { status: string; minute: number | null }) {
-  if (status === "live") {
-    return (
-      <span className="flex items-center gap-1.5 bg-red-600 text-white text-xs font-black px-2 py-0.5 rounded-full animate-pulse">
-        <span className="w-1.5 h-1.5 bg-white rounded-full" />
-        {minute ? `${minute}'` : "LIVE"}
-      </span>
-    );
-  }
-  if (status === "halftime") {
-    return <span className="bg-orange-600 text-white text-xs font-black px-2 py-0.5 rounded-full">MI-TEMPS</span>;
-  }
-  if (status === "finished") {
-    return <span className="bg-canal-gray-mid text-canal-gray-muted text-xs font-bold px-2 py-0.5 rounded-full">TERMINÉ</span>;
-  }
-  return <span className="bg-canal-gray-mid text-canal-gray-muted text-xs font-bold px-2 py-0.5 rounded-full">À VENIR</span>;
+  if (status === "live") return (
+    <span className="flex items-center gap-1.5 bg-red-600 text-white text-xs font-black px-2.5 py-1 rounded-full animate-pulse">
+      <span className="w-1.5 h-1.5 bg-white rounded-full" />
+      {minute ? `${minute}'` : "LIVE"}
+    </span>
+  );
+  if (status === "halftime") return <span className="bg-orange-600 text-white text-xs font-black px-2.5 py-1 rounded-full">MI-TEMPS</span>;
+  if (status === "finished") return <span className="bg-canal-gray-mid text-canal-gray-muted text-xs font-bold px-2.5 py-1 rounded-full">TERMINÉ</span>;
+  return <span className="bg-canal-gray-mid text-canal-gray-muted text-xs font-bold px-2.5 py-1 rounded-full">À VENIR</span>;
 }
 
-function ScoreBoard({ match, detail }: { match: Match; detail: MatchDetail | null }) {
-  const live = detail?.match;
-  const scoreA = live?.score_home ?? match.score_a ?? null;
-  const scoreB = live?.score_away ?? match.score_b ?? null;
-
+function ScoreBoard({ detail }: { detail: FullMatchDetail }) {
+  const { match } = detail;
   const kickoff = new Date(match.starts_at);
   const timeStr = kickoff.toLocaleTimeString("fr-NC", { hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Noumea" });
   const dateStr = kickoff.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+  const hasScore = match.score_a !== null && match.score_b !== null;
 
   return (
     <div className="bg-gradient-to-b from-canal-gray to-canal-black px-4 pt-6 pb-4">
-      <p className="text-center text-xs text-canal-gray-muted mb-1">{match.competition}</p>
-      {live && <div className="flex justify-center mb-3"><StatusBadge status={live.status} minute={live.minute} /></div>}
+      <p className="text-center text-xs text-canal-gray-muted mb-1 uppercase tracking-wider">{match.competition}</p>
+      {match.phase && <p className="text-center text-xs text-canal-gray-muted mb-2">{match.phase}</p>}
+      <div className="flex justify-center mb-3">
+        <StatusBadge status={match.status} minute={match.minute} />
+      </div>
 
       <div className="flex items-center justify-between gap-4 my-4">
-        {/* Team A */}
-        <div className="flex-1 flex flex-col items-center gap-1">
-          <span className="text-5xl">{match.flag_a}</span>
+        <div className="flex-1 flex flex-col items-center gap-2">
+          <span className="text-6xl">{match.flag_a}</span>
           <span className="text-sm font-black text-white text-center leading-tight">{match.team_a}</span>
         </div>
 
-        {/* Score */}
-        <div className="flex items-center gap-2">
-          {scoreA !== null && scoreB !== null ? (
+        <div className="flex items-center gap-3">
+          {hasScore ? (
             <>
-              <span className="text-5xl font-black text-white tabular-nums">{scoreA}</span>
-              <span className="text-3xl text-canal-gray-muted font-bold">–</span>
-              <span className="text-5xl font-black text-white tabular-nums">{scoreB}</span>
+              <span className="text-6xl font-black text-white tabular-nums">{match.score_a}</span>
+              <span className="text-4xl text-canal-gray-muted font-bold">–</span>
+              <span className="text-6xl font-black text-white tabular-nums">{match.score_b}</span>
             </>
           ) : (
             <div className="text-center">
-              <p className="text-canal-yellow font-black text-xl">{timeStr}</p>
+              <p className="text-canal-yellow font-black text-2xl">{timeStr}</p>
               <p className="text-canal-gray-muted text-xs mt-0.5">{dateStr}</p>
             </div>
           )}
         </div>
 
-        {/* Team B */}
-        <div className="flex-1 flex flex-col items-center gap-1">
-          <span className="text-5xl">{match.flag_b}</span>
+        <div className="flex-1 flex flex-col items-center gap-2">
+          <span className="text-6xl">{match.flag_b}</span>
           <span className="text-sm font-black text-white text-center leading-tight">{match.team_b}</span>
         </div>
       </div>
 
-      {/* Meta */}
       <div className="flex items-center justify-center gap-4 text-xs text-canal-gray-muted flex-wrap">
-        <span className="flex items-center gap-1"><Tv size={11} /> {match.channel}</span>
-        {live?.venue && <span className="flex items-center gap-1"><MapPin size={11} /> {live.venue}</span>}
-        {live?.referee && <span className="flex items-center gap-1"><User size={11} /> {live.referee}</span>}
+        {match.channel && <span className="flex items-center gap-1"><Tv size={11} /> {match.channel}</span>}
+        {match.venue && <span className="flex items-center gap-1"><MapPin size={11} /> {match.venue}</span>}
+        {match.referee && <span className="flex items-center gap-1"><User size={11} /> {match.referee}</span>}
       </div>
     </div>
   );
 }
 
-function Timeline({ events }: { events: MatchDetail["events"] }) {
-  if (!events.length) {
-    return <p className="text-center text-canal-gray-muted text-sm py-8">Aucun événement pour l'instant.</p>;
-  }
+function EventRow({ event, teamA, teamB }: { event: MatchEvent; teamA: string; teamB: string }) {
+  const isHome = event.team_side === "home";
+  const icon = EVENT_ICONS[event.type] ?? "•";
+  const colorClass = EVENT_COLORS[event.type] ?? "";
 
   return (
+    <div className={cn("flex items-center gap-3 px-3 py-2.5 rounded-xl", colorClass)}>
+      {isHome ? (
+        <>
+          <span className="text-lg w-7">{icon}</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-white truncate">{event.player_name}</p>
+            {event.assist_player_name && <p className="text-xs text-canal-gray-muted">Passe : {event.assist_player_name}</p>}
+            {event.detail && <p className="text-xs text-canal-gray-muted">{event.detail}</p>}
+          </div>
+          <span className="text-canal-yellow font-black text-sm shrink-0">{event.minute}'</span>
+          <span className="text-xs text-canal-gray-muted w-16 text-right truncate shrink-0">{teamA}</span>
+        </>
+      ) : (
+        <>
+          <span className="text-xs text-canal-gray-muted w-16 truncate shrink-0">{teamB}</span>
+          <span className="text-canal-yellow font-black text-sm shrink-0">{event.minute}'</span>
+          <div className="flex-1 min-w-0 text-right">
+            <p className="text-sm font-bold text-white truncate">{event.player_name}</p>
+            {event.assist_player_name && <p className="text-xs text-canal-gray-muted">Passe : {event.assist_player_name}</p>}
+            {event.detail && <p className="text-xs text-canal-gray-muted">{event.detail}</p>}
+          </div>
+          <span className="text-lg w-7 text-right">{icon}</span>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Timeline({ events, teamA, teamB }: { events: MatchEvent[]; teamA: string; teamB: string }) {
+  if (!events.length) return (
+    <p className="text-center text-canal-gray-muted text-sm py-12">Aucun événement pour l'instant.</p>
+  );
+  return (
     <div className="space-y-1 py-2">
-      {[...events].reverse().map((e, i) => (
-        <div
-          key={i}
-          className={cn(
-            "flex items-center gap-3 px-4 py-2.5 rounded-xl",
-            e.type === "goal" && "bg-canal-yellow/10 border border-canal-yellow/20",
-            e.type === "red_card" && "bg-red-950/30 border border-red-900/20",
-          )}
-        >
-          {e.team === "home" ? (
-            <>
-              <span className="text-base w-6">{EVENT_ICONS[e.type] ?? "•"}</span>
-              <div className="flex-1">
-                <p className="text-sm font-bold text-white">{e.player_name}</p>
-                {e.detail && <p className="text-xs text-canal-gray-muted">{e.detail}</p>}
-              </div>
-              <span className="text-canal-yellow font-black text-sm">{e.minute}'</span>
-            </>
-          ) : (
-            <>
-              <span className="text-canal-yellow font-black text-sm">{e.minute}'</span>
-              <div className="flex-1 text-right">
-                <p className="text-sm font-bold text-white">{e.player_name}</p>
-                {e.detail && <p className="text-xs text-canal-gray-muted">{e.detail}</p>}
-              </div>
-              <span className="text-base w-6 text-right">{EVENT_ICONS[e.type] ?? "•"}</span>
-            </>
-          )}
-        </div>
+      {[...events].sort((a, b) => b.minute - a.minute).map((e, i) => (
+        <EventRow key={i} event={e} teamA={teamA} teamB={teamB} />
       ))}
     </div>
   );
 }
 
-function Lineups({ lineups }: { lineups: NonNullable<MatchDetail["lineups"]> }) {
-  const starters = (side: "home" | "away") =>
-    lineups[side].players.filter((p) => p.is_starting);
-  const bench = (side: "home" | "away") =>
-    lineups[side].players.filter((p) => !p.is_starting);
+function PlayerRow({ player }: { player: LineupPlayer }) {
+  return (
+    <div className={cn(
+      "flex items-center gap-2 px-2 py-1.5 rounded-lg",
+      player.is_starting ? "bg-canal-gray-mid" : "opacity-50"
+    )}>
+      <span className="text-xs text-canal-gray-muted w-5 text-center font-bold">{player.shirt_number}</span>
+      <span className="text-xs text-white font-bold truncate flex-1">{player.player_name}</span>
+      <span className="text-xs text-canal-gray-muted">{player.position}</span>
+    </div>
+  );
+}
+
+function Lineups({ lineups }: { lineups: NonNullable<FullMatchDetail["lineups"]> }) {
+  const homeStarters = lineups.home.filter((p) => p.is_starting);
+  const homeBench = lineups.home.filter((p) => !p.is_starting);
+  const awayStarters = lineups.away.filter((p) => p.is_starting);
+  const awayBench = lineups.away.filter((p) => !p.is_starting);
 
   return (
     <div className="py-2 space-y-4">
+      {lineups.home_formation && lineups.away_formation && (
+        <div className="flex justify-between text-xs text-canal-gray-muted px-1">
+          <span className="font-bold">{lineups.home_formation}</span>
+          <span className="font-bold">{lineups.away_formation}</span>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3">
-        {(["home", "away"] as const).map((side) => (
-          <div key={side}>
-            <p className="text-xs text-canal-gray-muted font-bold uppercase tracking-wider mb-2 px-1">
-              {lineups[side].formation} · {lineups[side].coach}
-            </p>
-            <div className="space-y-1">
-              {starters(side).map((p, i) => (
-                <div key={i} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-canal-gray-mid">
-                  <span className="text-xs text-canal-gray-muted w-5 text-center font-bold">{p.shirt_number}</span>
-                  <span className="text-xs text-white font-bold truncate flex-1">{p.player_name}</span>
-                  <span className="text-xs text-canal-gray-muted">{p.position}</span>
-                </div>
-              ))}
+        {(["home", "away"] as const).map((side) => {
+          const starters = side === "home" ? homeStarters : awayStarters;
+          const bench = side === "home" ? homeBench : awayBench;
+          const coach = side === "home" ? lineups.home_coach : lineups.away_coach;
+          return (
+            <div key={side}>
+              {coach && <p className="text-xs text-canal-gray-muted mb-2 px-1">Coach : {coach}</p>}
+              <div className="space-y-1">
+                {starters.map((p, i) => <PlayerRow key={i} player={p} />)}
+              </div>
+              {bench.length > 0 && (
+                <>
+                  <p className="text-xs text-canal-gray-muted mt-2 mb-1 px-1">Banc</p>
+                  <div className="space-y-1">{bench.map((p, i) => <PlayerRow key={i} player={p} />)}</div>
+                </>
+              )}
             </div>
-            {bench(side).length > 0 && (
-              <>
-                <p className="text-xs text-canal-gray-muted mt-2 mb-1 px-1">Banc</p>
-                <div className="space-y-1">
-                  {bench(side).map((p, i) => (
-                    <div key={i} className="flex items-center gap-2 px-2 py-1 rounded-lg opacity-60">
-                      <span className="text-xs text-canal-gray-muted w-5 text-center">{p.shirt_number}</span>
-                      <span className="text-xs text-canal-gray-muted truncate flex-1">{p.player_name}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function Stats({ stats, match }: { stats: MatchDetail["stats"]; match: Match }) {
-  if (!stats.length) {
-    return <p className="text-center text-canal-gray-muted text-sm py-8">Stats disponibles après le coup d'envoi.</p>;
-  }
-
+function Stats({ stats, teamA, teamB }: { stats: FullMatchDetail["stats"]; teamA: string; teamB: string }) {
+  if (!stats.length) return (
+    <p className="text-center text-canal-gray-muted text-sm py-12">Stats disponibles après le coup d'envoi.</p>
+  );
   return (
-    <div className="py-2 space-y-3">
+    <div className="py-2 space-y-4">
       {stats.map((s, i) => {
         const homeVal = parseFloat(s.home_value) || 0;
         const awayVal = parseFloat(s.away_value) || 0;
         const total = homeVal + awayVal || 1;
         const homePct = Math.round((homeVal / total) * 100);
-
         return (
           <div key={i}>
             <div className="flex justify-between items-center mb-1">
@@ -195,15 +199,59 @@ function Stats({ stats, match }: { stats: MatchDetail["stats"]; match: Match }) 
               <span className="text-sm font-black text-white">{s.away_value}</span>
             </div>
             <div className="h-1.5 bg-canal-gray-mid rounded-full overflow-hidden flex">
-              <div
-                className="bg-canal-yellow rounded-l-full transition-all"
-                style={{ width: `${homePct}%` }}
-              />
+              <div className="bg-canal-yellow rounded-l-full transition-all" style={{ width: `${homePct}%` }} />
               <div className="flex-1 bg-canal-gray-light rounded-r-full" />
             </div>
             <div className="flex justify-between mt-0.5">
-              <span className="text-xs text-canal-gray-muted">{match.team_a}</span>
-              <span className="text-xs text-canal-gray-muted">{match.team_b}</span>
+              <span className="text-xs text-canal-gray-muted">{teamA}</span>
+              <span className="text-xs text-canal-gray-muted">{teamB}</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Standings({ rows }: { rows: StandingRow[] }) {
+  const groups = Array.from(new Set(rows.map((r) => r.group_name))).sort();
+  if (!groups.length) return (
+    <p className="text-center text-canal-gray-muted text-sm py-12">Classement disponible après la phase de groupes.</p>
+  );
+  return (
+    <div className="py-2 space-y-6">
+      {groups.map((group) => {
+        const groupRows = rows.filter((r) => r.group_name === group).sort((a, b) => a.rank - b.rank);
+        return (
+          <div key={group}>
+            <p className="text-xs font-black text-canal-yellow uppercase tracking-wider mb-2">{group}</p>
+            <div className="space-y-1">
+              {groupRows.map((r, i) => (
+                <div key={i} className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-xl text-xs",
+                  i < 2 ? "bg-canal-gray-mid" : "bg-transparent"
+                )}>
+                  <span className={cn("font-black w-4 text-center", i < 2 ? "text-canal-yellow" : "text-canal-gray-muted")}>{r.rank}</span>
+                  <span className="text-base">{r.team_flag ?? "🏳️"}</span>
+                  <span className="font-bold text-white flex-1 truncate">{r.team_name_fr ?? r.team_name}</span>
+                  <span className="text-canal-gray-muted w-6 text-center">{r.played}</span>
+                  <span className="text-canal-gray-muted w-6 text-center">{r.won}</span>
+                  <span className="text-canal-gray-muted w-6 text-center">{r.draw}</span>
+                  <span className="text-canal-gray-muted w-6 text-center">{r.lost}</span>
+                  <span className="text-canal-gray-muted w-8 text-center">{r.goal_diff > 0 ? `+${r.goal_diff}` : r.goal_diff}</span>
+                  <span className="font-black text-white w-6 text-center">{r.points}</span>
+                </div>
+              ))}
+              <div className="flex items-center gap-2 px-3 text-xs text-canal-gray-muted">
+                <span className="w-4" /><span className="text-base opacity-0">🏳️</span>
+                <span className="flex-1" />
+                <span className="w-6 text-center">J</span>
+                <span className="w-6 text-center">G</span>
+                <span className="w-6 text-center">N</span>
+                <span className="w-6 text-center">P</span>
+                <span className="w-8 text-center">Diff</span>
+                <span className="w-6 text-center">Pts</span>
+              </div>
             </div>
           </div>
         );
@@ -214,117 +262,93 @@ function Stats({ stats, match }: { stats: MatchDetail["stats"]; match: Match }) 
 
 export default function MatchCenterPage() {
   const { id } = useParams<{ id: string }>();
-  const [data, setData] = useState<{ match: Match; detail: MatchDetail | null } | null>(null);
+  const [detail, setDetail] = useState<FullMatchDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("timeline");
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  const fetch_ = useCallback(async () => {
+  const load = useCallback(async () => {
     const res = await fetch(`/api/matches/${id}`);
-    if (res.ok) {
-      const json = await res.json();
-      setData(json);
-      setLastUpdate(new Date());
-    }
+    if (res.ok) { setDetail(await res.json()); setLastUpdate(new Date()); }
     setLoading(false);
   }, [id]);
 
   useEffect(() => {
-    fetch_();
-    // Refresh every 60s if match is live
+    load();
     const interval = setInterval(() => {
-      if (data?.detail?.match.status === "live" || data?.detail?.match.status === "halftime") {
-        fetch_();
-      }
-    }, 60000);
+      if (detail?.match.status === "live" || detail?.match.status === "halftime") load();
+    }, 30000);
     return () => clearInterval(interval);
-  }, [fetch_, data?.detail?.match.status]);
+  }, [load, detail?.match.status]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-canal-black flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-canal-yellow border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="min-h-screen bg-canal-black flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-canal-yellow border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
-  if (!data) {
-    return (
-      <div className="min-h-screen bg-canal-black flex items-center justify-center">
-        <p className="text-canal-gray-muted">Match introuvable.</p>
-      </div>
-    );
-  }
+  if (!detail) return (
+    <div className="min-h-screen bg-canal-black flex items-center justify-center">
+      <p className="text-canal-gray-muted">Match introuvable.</p>
+    </div>
+  );
 
-  const { match, detail } = data;
-  const isLive = detail?.match.status === "live" || detail?.match.status === "halftime";
+  const { match, events, lineups, stats, standings } = detail;
+  const isLive = match.status === "live" || match.status === "halftime";
 
-  const tabs: { key: Tab; label: string }[] = [
-    { key: "timeline", label: "Timeline" },
+  const tabs: { key: Tab; label: string; count?: number }[] = [
+    { key: "timeline", label: "Timeline", count: events.length || undefined },
     { key: "lineups", label: "Compos" },
-    { key: "stats", label: "Stats" },
+    { key: "stats", label: "Stats", count: stats.length || undefined },
+    { key: "standings", label: "Groupe" },
   ];
 
   return (
     <div className="min-h-screen bg-canal-black">
-      <ScoreBoard match={match} detail={detail} />
+      <ScoreBoard detail={detail} />
 
-      {/* Refresh indicator for live */}
       {isLive && lastUpdate && (
         <div className="flex items-center justify-center gap-1.5 py-1.5 bg-red-950/20 border-b border-red-900/20">
           <RefreshCw size={10} className="text-red-400" />
           <span className="text-xs text-red-400">
-            Mis à jour à {lastUpdate.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} · auto toutes les 60s
+            {lastUpdate.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} · auto 30s
           </span>
         </div>
       )}
 
-      {/* Tabs */}
       <div className="flex border-b border-canal-gray-light sticky top-0 bg-canal-black z-10">
         {tabs.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
+          <button key={t.key} onClick={() => setTab(t.key)}
             className={cn(
-              "flex-1 py-3 text-sm font-bold transition-colors",
-              tab === t.key
-                ? "text-canal-yellow border-b-2 border-canal-yellow"
-                : "text-canal-gray-muted hover:text-white"
+              "flex-1 py-3 text-xs font-bold transition-colors relative",
+              tab === t.key ? "text-canal-yellow border-b-2 border-canal-yellow" : "text-canal-gray-muted hover:text-white"
             )}
           >
             {t.label}
+            {t.count ? <span className="ml-1 text-canal-gray-muted">({t.count})</span> : null}
           </button>
         ))}
       </div>
 
-      {/* Tab content */}
       <div className="px-4 pb-8 max-w-2xl mx-auto">
-        {tab === "timeline" && (
-          <Timeline events={detail?.events ?? []} />
+        {tab === "timeline" && <Timeline events={events} teamA={match.team_a} teamB={match.team_b} />}
+        {tab === "lineups" && (
+          lineups
+            ? <Lineups lineups={lineups} />
+            : <p className="text-center text-canal-gray-muted text-sm py-12">Compositions disponibles avant le coup d'envoi.</p>
         )}
-        {tab === "lineups" && detail?.lineups && (
-          <Lineups lineups={detail.lineups} />
-        )}
-        {tab === "lineups" && !detail?.lineups && (
-          <p className="text-center text-canal-gray-muted text-sm py-8">
-            Compositions disponibles avant le coup d'envoi.
-          </p>
-        )}
-        {tab === "stats" && (
-          <Stats stats={detail?.stats ?? []} match={match} />
-        )}
+        {tab === "stats" && <Stats stats={stats} teamA={match.team_a} teamB={match.team_b} />}
+        {tab === "standings" && <Standings rows={(standings ?? []) as StandingRow[]} />}
       </div>
 
-      {/* Clock */}
-      {!isLive && match.status === "upcoming" && (
+      {match.status === "upcoming" && (
         <div className="fixed bottom-20 left-0 right-0 flex justify-center pointer-events-none">
           <div className="flex items-center gap-2 bg-canal-black/90 border border-canal-gray-light rounded-full px-4 py-2 shadow-xl">
             <Clock size={14} className="text-canal-yellow" />
             <span className="text-sm text-white font-bold">
               {new Date(match.starts_at).toLocaleString("fr-FR", {
                 weekday: "short", day: "numeric", month: "short",
-                hour: "2-digit", minute: "2-digit",
-                timeZone: "Pacific/Noumea",
+                hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Noumea",
               })} NC
             </span>
           </div>
