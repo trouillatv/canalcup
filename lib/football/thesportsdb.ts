@@ -8,18 +8,32 @@ const BASE = "https://www.thesportsdb.com/api/v1/json/3";
 const WC_LEAGUE_ID = "4429";
 
 const FLAGS: Record<string, string> = {
-  France: "🇫🇷", Brazil: "🇧🇷", Argentina: "🇦🇷", Spain: "🇪🇸",
-  Portugal: "🇵🇹", Germany: "🇩🇪", England: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", Netherlands: "🇳🇱",
-  Belgium: "🇧🇪", Morocco: "🇲🇦", Senegal: "🇸🇳", Japan: "🇯🇵",
-  "South Korea": "🇰🇷", USA: "🇺🇸", Canada: "🇨🇦", Mexico: "🇲🇽",
-  Uruguay: "🇺🇾", Colombia: "🇨🇴", Ecuador: "🇪🇨", Croatia: "🇭🇷",
-  Switzerland: "🇨🇭", Denmark: "🇩🇰", Serbia: "🇷🇸", Poland: "🇵🇱",
-  Australia: "🇦🇺", Iran: "🇮🇷", "Saudi Arabia": "🇸🇦", Qatar: "🇶🇦",
-  Nigeria: "🇳🇬", Ghana: "🇬🇭", "Ivory Coast": "🇨🇮", Cameroon: "🇨🇲",
-  Algeria: "🇩🇿", Tunisia: "🇹🇳", Egypt: "🇪🇬", Panama: "🇵🇦",
-  "United States": "🇺🇸", Albania: "🇦🇱", "New Zealand": "🇳🇿",
-  Honduras: "🇭🇳", Slovenia: "🇸🇮", Gabon: "🇬🇦", Ukraine: "🇺🇦",
-  "South Africa": "🇿🇦", Belarus: "🇧🇾", Mali: "🇲🇱",
+  // Americas
+  USA: "🇺🇸", "United States": "🇺🇸", Canada: "🇨🇦", Mexico: "🇲🇽",
+  Brazil: "🇧🇷", Argentina: "🇦🇷", Uruguay: "🇺🇾", Colombia: "🇨🇴",
+  Ecuador: "🇪🇨", Paraguay: "🇵🇾", Peru: "🇵🇪", Chile: "🇨🇱",
+  Venezuela: "🇻🇪", Bolivia: "🇧🇴", Jamaica: "🇯🇲", Haiti: "🇭🇹",
+  Panama: "🇵🇦", "Costa Rica": "🇨🇷", Honduras: "🇭🇳", "El Salvador": "🇸🇻",
+  // Europe
+  France: "🇫🇷", Spain: "🇪🇸", Germany: "🇩🇪", England: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+  Portugal: "🇵🇹", Netherlands: "🇳🇱", Belgium: "🇧🇪", Italy: "🇮🇹",
+  Switzerland: "🇨🇭", Croatia: "🇭🇷", Denmark: "🇩🇰", Sweden: "🇸🇪",
+  Norway: "🇳🇴", Poland: "🇵🇱", Serbia: "🇷🇸", Ukraine: "🇺🇦",
+  Scotland: "🏴󠁧󠁢󠁳󠁣󠁴󠁿", Wales: "🏴󠁧󠁢󠁷󠁬󠁳󠁿", "Czech Republic": "🇨🇿",
+  Slovakia: "🇸🇰", Hungary: "🇭🇺", Romania: "🇷🇴", Austria: "🇦🇹",
+  "Bosnia-Herzegovina": "🇧🇦", Slovenia: "🇸🇮", Albania: "🇦🇱",
+  Greece: "🇬🇷", Turkey: "🇹🇷", Georgia: "🇬🇪", Iceland: "🇮🇸",
+  // Africa
+  Morocco: "🇲🇦", Senegal: "🇸🇳", Nigeria: "🇳🇬", Ghana: "🇬🇭",
+  "Ivory Coast": "🇨🇮", Cameroon: "🇨🇲", Algeria: "🇩🇿", Tunisia: "🇹🇳",
+  Egypt: "🇪🇬", "South Africa": "🇿🇦", Mali: "🇲🇱", Gabon: "🇬🇦",
+  "Cape Verde": "🇨🇻", "DR Congo": "🇨🇩", Benin: "🇧🇯",
+  // Asia / Pacific
+  Japan: "🇯🇵", "South Korea": "🇰🇷", "Saudi Arabia": "🇸🇦", Iran: "🇮🇷",
+  Qatar: "🇶🇦", Australia: "🇦🇺", "New Zealand": "🇳🇿",
+  Indonesia: "🇮🇩", Uzbekistan: "🇺🇿",
+  // Caribbean / other
+  "Curaçao": "🇨🇼", "Trinidad and Tobago": "🇹🇹", Cuba: "🇨🇺",
 };
 
 function flag(name: string): string {
