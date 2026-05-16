@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getMatchDetail } from "@/services/football";
 import { dedupe } from "@/services/football/polling";
+import { settleMatch } from "@/services/scoring/settle";
 
 export async function GET(
   _req: Request,
@@ -10,10 +11,9 @@ export async function GET(
   const { id } = await params;
   const supabase = await createClient();
 
-  // Verify match exists and user has access
   const { data: match } = await supabase
     .from("matches")
-    .select("id, status")
+    .select("id, status, is_settled")
     .eq("id", id)
     .single();
 
@@ -23,6 +23,11 @@ export async function GET(
   const detail = await dedupe(`api:match:${id}`, () => getMatchDetail(id));
 
   if (!detail) return NextResponse.json({ error: "Match not found" }, { status: 404 });
+
+  // Settle this match in background if it just finished
+  if (match.status === "finished" && !match.is_settled) {
+    after(() => settleMatch(id));
+  }
 
   const ttl = match.status === "live" ? 30 : match.status === "finished" ? 3600 : 300;
   return NextResponse.json(detail, {

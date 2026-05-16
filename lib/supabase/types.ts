@@ -113,6 +113,7 @@ export interface Match {
   external_id?: number;
   competition: string;
   phase?: string;
+  stage?: string;
   team_a: string;
   team_b: string;
   flag_a?: string;
@@ -123,6 +124,7 @@ export interface Match {
   score_a?: number;
   score_b?: number;
   is_match_of_week?: boolean;
+  is_settled?: boolean;
   odds?: MatchOdds;
 }
 
