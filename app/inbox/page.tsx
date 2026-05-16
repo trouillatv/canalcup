@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { MOCK_INBOX } from "@/lib/mock-data";
+import { useState, useEffect } from "react";
 import { cn, toNCDate } from "@/lib/utils";
 import type { InboxEvent } from "@/lib/supabase/types";
 import { Bell, Trophy, Newspaper, Heart, MessageCircle, Star } from "lucide-react";
@@ -47,7 +46,17 @@ function InboxItem({ event }: { event: InboxEvent }) {
 }
 
 export default function InboxPage() {
-  const unread = MOCK_INBOX.filter((e) => !e.is_read).length;
+  const [events, setEvents] = useState<InboxEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/inbox")
+      .then((r) => r.json())
+      .then((data: InboxEvent[]) => setEvents(data))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const unread = events.filter((e) => !e.is_read).length;
 
   return (
     <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto">
@@ -65,10 +74,15 @@ export default function InboxPage() {
       </div>
 
       <div className="space-y-3">
-        {MOCK_INBOX.map((event) => (
+        {loading && (
+          <div className="canal-card text-center py-8">
+            <p className="text-canal-gray-muted">Chargement…</p>
+          </div>
+        )}
+        {!loading && events.map((event) => (
           <InboxItem key={event.id} event={event} />
         ))}
-        {MOCK_INBOX.length === 0 && (
+        {!loading && events.length === 0 && (
           <div className="canal-card text-center py-8">
             <Bell size={32} className="text-canal-gray-muted mx-auto mb-2" />
             <p className="text-canal-gray-muted">Rien pour l'instant.</p>

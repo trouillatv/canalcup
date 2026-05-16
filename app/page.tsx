@@ -1,28 +1,34 @@
 import Link from "next/link";
-import {
-  MOCK_MATCHES, MOCK_MORNING_BRIEF, MOCK_LEADERBOARD,
-  MOCK_REVIVEZ, MOCK_PREDICTION_TRENDS
-} from "@/lib/mock-data";
+import { getMatches, getPredictionTrends } from "@/lib/data/matches";
+import { getLeaderboard } from "@/lib/data/teams";
+import { getTodayBrief, getRevivezPosts } from "@/lib/data/content";
 import { MatchCard } from "@/components/matches/MatchCard";
 import { MatchOfWeekHero } from "@/components/matches/MatchOfWeekHero";
 import { TonightOnAir } from "@/components/matches/TonightOnAir";
 import { LeaderboardTable } from "@/components/leaderboard/LeaderboardTable";
-import { toNCDate, toNCTime, flagEmoji } from "@/lib/utils";
-import { ChannelBadge } from "@/components/matches/ChannelBadge";
+import { toNCDate } from "@/lib/utils";
 import { Calendar, Trophy, Users, Newspaper, Gamepad2, Heart } from "lucide-react";
 
-export default function DashboardPage() {
-  const matchOfWeek = MOCK_MATCHES.find((m) => m.is_match_of_week);
-  const matchToday = MOCK_MATCHES.find((m) => m.status === "live")
-    ?? MOCK_MATCHES.find((m) => m.status === "upcoming" && !m.is_match_of_week);
-  const tonightMatches = MOCK_MATCHES.filter((m) => m.status === "upcoming").slice(0, 3);
-  const brief = MOCK_MORNING_BRIEF;
-  const topRevivez = MOCK_REVIVEZ[0];
-  const trend = matchToday ? MOCK_PREDICTION_TRENDS[matchToday.id] : undefined;
+export const revalidate = 60;
+
+export default async function DashboardPage() {
+  const [matches, trends, leaderboard, brief, revivez] = await Promise.all([
+    getMatches(),
+    getPredictionTrends(),
+    getLeaderboard(),
+    getTodayBrief(),
+    getRevivezPosts(),
+  ]);
+
+  const matchOfWeek = matches.find((m) => m.is_match_of_week);
+  const matchToday = matches.find((m) => m.status === "live")
+    ?? matches.find((m) => m.status === "upcoming" && !m.is_match_of_week);
+  const tonightMatches = matches.filter((m) => m.status === "upcoming").slice(0, 3);
+  const topRevivez = revivez[0];
+  const trend = matchToday ? trends[matchToday.id] : undefined;
 
   return (
     <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto">
-      {/* Header */}
       <div>
         <p className="text-xs text-canal-gray-muted uppercase tracking-widest mb-1">
           {toNCDate(new Date())} — Heure NC
@@ -36,7 +42,6 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Match de la semaine — Hero premium */}
       {matchOfWeek && (
         <section>
           <div className="flex items-center justify-between mb-2">
@@ -54,12 +59,10 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {/* Ce soir sur Canal+/beIN */}
       {tonightMatches.length > 0 && (
         <TonightOnAir matches={tonightMatches} title="À l'affiche — Canal+ / beIN Sports" />
       )}
 
-      {/* Prochain match avec cotes */}
       {matchToday && !matchToday.is_match_of_week && (
         <section>
           <div className="flex items-center justify-between mb-2">
@@ -71,7 +74,6 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {/* Matinale du jour */}
       <section>
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider">
@@ -83,19 +85,13 @@ export default function DashboardPage() {
         </div>
         <div className="canal-card">
           <p className="font-bold text-white mb-1">{brief.title}</p>
-          <p className="text-canal-gray-muted text-sm leading-relaxed line-clamp-3">
-            {brief.body}
-          </p>
-          <Link
-            href="/matinale"
-            className="inline-block mt-2 text-canal-yellow text-xs font-bold hover:underline"
-          >
+          <p className="text-canal-gray-muted text-sm leading-relaxed line-clamp-3">{brief.body}</p>
+          <Link href="/matinale" className="inline-block mt-2 text-canal-yellow text-xs font-bold hover:underline">
             Lire la matinale complète →
           </Link>
         </div>
       </section>
 
-      {/* Classement compact */}
       <section>
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider">
@@ -105,10 +101,9 @@ export default function DashboardPage() {
             Détail →
           </Link>
         </div>
-        <LeaderboardTable rows={MOCK_LEADERBOARD} compact />
+        <LeaderboardTable rows={leaderboard} compact />
       </section>
 
-      {/* Post du jour depuis Revivez */}
       {topRevivez && (
         <section>
           <div className="flex items-center justify-between mb-2">
@@ -131,7 +126,6 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {/* Raccourcis */}
       <section>
         <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider mb-3">
           Navigation rapide
@@ -145,11 +139,7 @@ export default function DashboardPage() {
             { href: "/quiz-live", icon: Gamepad2, label: "Quiz Live", sub: "15 secondes !" },
             { href: "/revivez", icon: Newspaper, label: "Revivez", sub: "Fails & phrases cultes" },
           ].map(({ href, icon: Icon, label, sub }) => (
-            <Link
-              key={href}
-              href={href}
-              className="canal-card hover:bg-canal-gray-mid transition-colors flex flex-col gap-2"
-            >
+            <Link key={href} href={href} className="canal-card hover:bg-canal-gray-mid transition-colors flex flex-col gap-2">
               <Icon size={20} className="text-canal-yellow" />
               <div>
                 <p className="font-bold text-white text-sm leading-tight">{label}</p>

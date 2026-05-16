@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
-import { MOCK_TEAMS, MOCK_LEADERBOARD } from "@/lib/mock-data";
+import { getTeamById, getLeaderboard } from "@/lib/data/teams";
 import { pointsBadge } from "@/lib/utils";
 import { Users, Star, Trophy } from "lucide-react";
+
+export const revalidate = 60;
 
 const FOOTBALL_LEVEL_LABELS: Record<string, string> = {
   expert: "Expert ⚽",
@@ -9,20 +11,15 @@ const FOOTBALL_LEVEL_LABELS: Record<string, string> = {
   ambiance: "Ambiance 🎉",
 };
 
-export default async function TeamDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function TeamDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const team = MOCK_TEAMS.find((t) => t.id === id);
+  const [team, leaderboard] = await Promise.all([getTeamById(id), getLeaderboard()]);
   if (!team) notFound();
 
-  const leaderboard = MOCK_LEADERBOARD.find((r) => r.team.id === id);
+  const lbRow = leaderboard.find((r) => r.team.id === id);
 
   return (
     <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto">
-      {/* Header équipe */}
       <div className="canal-card border border-canal-yellow/20">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-canal-gray-mid border-2 border-canal-yellow flex items-center justify-center">
@@ -41,19 +38,17 @@ export default async function TeamDetailPage({
         </div>
       </div>
 
-      {/* Stats détaillées */}
-      {leaderboard && (
+      {lbRow && (
         <section>
           <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider mb-3">
-            <Trophy size={14} className="inline mr-1" />
-            Décomposition des points
+            <Trophy size={14} className="inline mr-1" />Décomposition des points
           </h2>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { label: "Pronostics", value: leaderboard.points_predictions },
-              { label: "Quiz", value: leaderboard.points_quiz },
-              { label: "Babyfoot", value: leaderboard.points_babyfoot },
-              { label: "Votes", value: leaderboard.points_votes },
+              { label: "Pronostics", value: lbRow.points_predictions },
+              { label: "Quiz", value: lbRow.points_quiz },
+              { label: "Babyfoot", value: lbRow.points_babyfoot },
+              { label: "Votes", value: lbRow.points_votes },
             ].map(({ label, value }) => (
               <div key={label} className="canal-card text-center">
                 <p className="text-canal-yellow font-black text-2xl">{value}</p>
@@ -64,12 +59,10 @@ export default async function TeamDetailPage({
         </section>
       )}
 
-      {/* Membres */}
-      {team.members && (
+      {team.members && team.members.length > 0 && (
         <section>
           <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider mb-3">
-            <Users size={14} className="inline mr-1" />
-            Membres ({team.members.length})
+            <Users size={14} className="inline mr-1" />Membres ({team.members.length})
           </h2>
           <div className="space-y-2">
             {team.members.map((member) => (
@@ -79,9 +72,7 @@ export default async function TeamDetailPage({
                 </div>
                 <div className="flex-1">
                   <p className="font-bold text-white text-sm">{member.name}</p>
-                  <p className="text-xs text-canal-gray-muted">
-                    {FOOTBALL_LEVEL_LABELS[member.football_level]}
-                  </p>
+                  <p className="text-xs text-canal-gray-muted">{FOOTBALL_LEVEL_LABELS[member.football_level]}</p>
                 </div>
                 <Star size={14} className="text-canal-gray-muted" />
               </div>

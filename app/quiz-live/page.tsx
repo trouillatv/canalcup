@@ -1,24 +1,24 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { MOCK_QUIZ } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { Timer, CheckCircle, XCircle, Zap } from "lucide-react";
+import type { QuizQuestion } from "@/lib/supabase/types";
 
-type GameState = "idle" | "question" | "answered" | "finished";
+type GameState = "idle" | "question" | "answered" | "finished" | "loading";
 
 const ANSWERS = ["A", "B", "C", "D"] as const;
 const TIMER_SECONDS = 15;
 
 export default function QuizLivePage() {
   const [state, setState] = useState<GameState>("idle");
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(TIMER_SECONDS);
   const [score, setScore] = useState(0);
   const [results, setResults] = useState<boolean[]>([]);
 
-  const questions = MOCK_QUIZ;
   const currentQ = questions[questionIndex];
 
   const answerQuestion = useCallback(
@@ -36,7 +36,6 @@ export default function QuizLivePage() {
     [state, currentQ, timeLeft]
   );
 
-  // Timer
   useEffect(() => {
     if (state !== "question") return;
     if (timeLeft <= 0) {
@@ -47,13 +46,21 @@ export default function QuizLivePage() {
     return () => clearTimeout(t);
   }, [state, timeLeft, answerQuestion]);
 
-  const startQuiz = () => {
-    setQuestionIndex(0);
-    setSelected(null);
-    setTimeLeft(TIMER_SECONDS);
-    setScore(0);
-    setResults([]);
-    setState("question");
+  const startQuiz = async () => {
+    setState("loading");
+    try {
+      const res = await fetch("/api/quiz");
+      const data: QuizQuestion[] = await res.json();
+      setQuestions(data);
+      setQuestionIndex(0);
+      setSelected(null);
+      setTimeLeft(TIMER_SECONDS);
+      setScore(0);
+      setResults([]);
+      setState("question");
+    } catch {
+      setState("idle");
+    }
   };
 
   const nextQuestion = () => {
@@ -68,6 +75,7 @@ export default function QuizLivePage() {
   };
 
   const getAnswerText = (key: string) => {
+    if (!currentQ) return "";
     const map: Record<string, string> = {
       A: currentQ.answer_a,
       B: currentQ.answer_b,
@@ -77,8 +85,7 @@ export default function QuizLivePage() {
     return map[key] ?? "";
   };
 
-  // IDLE
-  if (state === "idle") {
+  if (state === "idle" || state === "loading") {
     return (
       <div className="px-4 py-4 max-w-2xl mx-auto flex flex-col gap-6">
         <div>
@@ -93,20 +100,19 @@ export default function QuizLivePage() {
             <li>✓ Bonne réponse : +3 pts</li>
             <li>✓ Bonne réponse en moins de 10s : +5 pts</li>
             <li>✗ Mauvaise réponse ou timeout : 0 pt</li>
-            <li>📌 {questions.length} questions disponibles</li>
           </ul>
         </div>
         <button
           onClick={startQuiz}
-          className="w-full py-4 bg-canal-yellow text-canal-black font-black text-lg rounded-xl hover:bg-canal-yellow-hover transition-colors"
+          disabled={state === "loading"}
+          className="w-full py-4 bg-canal-yellow text-canal-black font-black text-lg rounded-xl hover:bg-canal-yellow-hover transition-colors disabled:opacity-50"
         >
-          Démarrer le Quiz ⚡
+          {state === "loading" ? "Chargement…" : "Démarrer le Quiz ⚡"}
         </button>
       </div>
     );
   }
 
-  // FINISHED
   if (state === "finished") {
     const correct = results.filter(Boolean).length;
     return (
@@ -137,13 +143,11 @@ export default function QuizLivePage() {
     );
   }
 
-  // QUESTION / ANSWERED
   const timerPct = (timeLeft / TIMER_SECONDS) * 100;
   const timerColor = timeLeft <= 5 ? "bg-red-500" : timeLeft <= 10 ? "bg-yellow-400" : "bg-canal-yellow";
 
   return (
     <div className="px-4 py-4 max-w-2xl mx-auto flex flex-col gap-5">
-      {/* Progress */}
       <div className="flex items-center justify-between text-sm text-canal-gray-muted">
         <span>Question {questionIndex + 1}/{questions.length}</span>
         <span className="flex items-center gap-1 text-canal-yellow font-bold">
@@ -151,7 +155,6 @@ export default function QuizLivePage() {
         </span>
       </div>
 
-      {/* Timer */}
       <div>
         <div className="flex items-center justify-between mb-1">
           <Timer size={14} className={timeLeft <= 5 ? "text-red-400" : "text-canal-gray-muted"} />
@@ -167,7 +170,6 @@ export default function QuizLivePage() {
         </div>
       </div>
 
-      {/* Question */}
       <div className="canal-card">
         <span className="text-xs text-canal-gray-muted uppercase tracking-wider">
           {currentQ.category} · {currentQ.difficulty}
@@ -175,7 +177,6 @@ export default function QuizLivePage() {
         <p className="font-bold text-white text-lg mt-2 leading-snug">{currentQ.question}</p>
       </div>
 
-      {/* Réponses */}
       <div className="grid grid-cols-1 gap-3">
         {ANSWERS.map((key) => {
           const text = getAnswerText(key);
@@ -209,7 +210,6 @@ export default function QuizLivePage() {
         })}
       </div>
 
-      {/* Bouton suivant */}
       {state === "answered" && (
         <button
           onClick={nextQuestion}
