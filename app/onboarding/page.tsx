@@ -64,7 +64,7 @@ export default function OnboardingPage() {
       .eq("auth_id", user.id);
 
     if (updateErr) {
-      setError("Erreur lors de l'enregistrement. Réessayez.");
+      setError(`[DEBUG] ${updateErr.message} | code: ${updateErr.code}`);
       setSaving(false);
       return;
     }
