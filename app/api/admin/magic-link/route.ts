@@ -11,7 +11,9 @@ export async function POST(req: Request) {
   if (!email) return NextResponse.json({ error: "Email requis" }, { status: 400 });
 
   const adminClient = createAdminClient();
-  const origin = new URL(req.url).origin;
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "";
+  const proto = req.headers.get("x-forwarded-proto") || "https";
+  const origin = process.env.NEXT_PUBLIC_APP_URL || `${proto}://${host}`;
 
   const { data, error } = await adminClient.auth.admin.generateLink({
     type: "magiclink",
