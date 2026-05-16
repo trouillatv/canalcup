@@ -3,6 +3,7 @@
 // World Cup 2026 league ID: 4429
 
 import type { FootballProvider, LiveMatch, MatchDetail, MatchEvent, MatchStatus } from "./provider";
+import { toFrench } from "./team-names";
 
 const BASE = "https://www.thesportsdb.com/api/v1/json/3";
 const WC_LEAGUE_ID = "4429";
@@ -55,10 +56,12 @@ function eventToLiveMatch(e: any): LiveMatch {
   const kickoffDate = e.dateEvent ?? "";
   const kickoffTime = e.strTime ?? "00:00:00";
   const kickoff_at = kickoffDate ? `${kickoffDate}T${kickoffTime}Z` : new Date().toISOString();
+  const homeFr = toFrench(e.strHomeTeam ?? "");
+  const awayFr = toFrench(e.strAwayTeam ?? "");
   return {
     external_id: parseInt(e.idEvent, 10),
-    home_team: e.strHomeTeam ?? "",
-    away_team: e.strAwayTeam ?? "",
+    home_team: homeFr,
+    away_team: awayFr,
     home_flag: flag(e.strHomeTeam ?? ""),
     away_flag: flag(e.strAwayTeam ?? ""),
     status: mapStatus(e),

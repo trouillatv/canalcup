@@ -19,7 +19,29 @@
       "Bash(git commit -m ' *)",
       "Bash(git commit *)",
       "Bash(git push *)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(git reset *)",
+      "Bash(vercel --version)",
+      "Bash(vercel whoami *)",
+      "Bash(vercel link *)",
+      "Bash(vercel env *)",
+      "Bash(vercel *)",
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" npx next build)",
+      "Bash(curl *)",
+      "WebSearch",
+      "WebFetch(domain:www.fifa.com)",
+      "WebFetch(domain:en.wikipedia.org)",
+      "WebFetch(domain:www.aljazeera.com)",
+      "WebFetch(domain:worldcupwiki.com)",
+      "WebFetch(domain:sports.yahoo.com)",
+      "WebFetch(domain:www.foxsports.com)",
+      "WebFetch(domain:www.mlssoccer.com)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(e['idEvent'], e['strHomeTeam'], 'vs', e['strAwayTeam'], e['dateEvent']\\) for e in \\(d.get\\('events'\\) or []\\)]\")",
+      "Bash(openssl rand *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\vtrouillat\\\\Documents\\\\CanalCup\\\\app\" -Recurse -Directory)",
+      "Bash(Select-Object FullName)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(supabase --version)"
     ]
   }
 }

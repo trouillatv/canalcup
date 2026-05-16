@@ -1,24 +1,142 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { cn, flagEmoji, toNCDate, toNCTime } from "@/lib/utils";
 import type { Match, PredictionTrend } from "@/lib/supabase/types";
-import { Star, Clock, ChevronRight } from "lucide-react";
+import { getResult, scoreLabel } from "@/lib/scoring";
+import { Star, Clock, ChevronRight, Check, Lock } from "lucide-react";
 import { ChannelBadge } from "./ChannelBadge";
-import { OddsDisplay } from "./OddsDisplay";
+
+interface SavedPrediction {
+  score_a: number;
+  score_b: number;
+  points?: number;
+}
 
 interface MatchCardProps {
   match: Match;
   trend?: PredictionTrend;
-  userPrediction?: "A" | "DRAW" | "B";
-  onPredict?: (result: "A" | "DRAW" | "B") => void;
+  savedPrediction?: SavedPrediction;
   compact?: boolean;
 }
 
-export function MatchCard({ match, trend, userPrediction, onPredict, compact }: MatchCardProps) {
+function ScorePredictInput({
+  match,
+  savedPrediction,
+  onSave,
+}: {
+  match: Match;
+  savedPrediction?: SavedPrediction;
+  onSave: (a: number, b: number) => Promise<void>;
+}) {
+  const [scoreA, setScoreA] = useState(savedPrediction?.score_a ?? 1);
+  const [scoreB, setScoreB] = useState(savedPrediction?.score_b ?? 1);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(!!savedPrediction);
+
+  const hasStarted = new Date(match.starts_at) <= new Date();
+
+  if (hasStarted && savedPrediction) {
+    const result = getResult(savedPrediction.score_a, savedPrediction.score_b);
+    const label = result === "A" ? match.team_a : result === "B" ? match.team_b : "Nul";
+    return (
+      <div className="mt-3 flex items-center justify-between px-3 py-2 bg-canal-gray-mid rounded-xl">
+        <div className="flex items-center gap-2">
+          <Lock size={12} className="text-canal-gray-muted" />
+          <span className="text-xs text-canal-gray-muted">Prono verrouillé</span>
+        </div>
+        <span className="text-sm font-black text-white">
+          {savedPrediction.score_a} – {savedPrediction.score_b}
+          <span className="text-canal-gray-muted font-normal text-xs ml-1">({label})</span>
+        </span>
+        {savedPrediction.points !== undefined && savedPrediction.points > 0 && (
+          <span className="text-canal-yellow font-black text-sm">+{savedPrediction.points} pts</span>
+        )}
+      </div>
+    );
+  }
+
+  if (hasStarted) return null;
+
+  const resultLabel = () => {
+    const r = getResult(scoreA, scoreB);
+    if (r === "A") return `${match.team_a} gagne`;
+    if (r === "B") return `${match.team_b} gagne`;
+    return "Match nul";
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(scoreA, scoreB);
+    setSaving(false);
+    setSaved(true);
+  };
+
+  return (
+    <div className="mt-3 space-y-2">
+      <p className="text-xs text-canal-gray-muted text-center">Votre pronostic</p>
+      <div className="flex items-center gap-3 justify-center">
+        {/* Score A */}
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-xs text-canal-gray-muted truncate max-w-[64px] text-center">{match.team_a}</span>
+          <input
+            type="number"
+            min={0}
+            max={20}
+            value={scoreA}
+            onChange={(e) => { setSaved(false); setScoreA(Math.max(0, parseInt(e.target.value) || 0)); }}
+            className="w-14 h-10 text-center text-2xl font-black text-white bg-canal-gray-mid border border-canal-gray-light rounded-xl focus:border-canal-yellow outline-none"
+          />
+        </div>
+
+        <span className="text-canal-gray-muted font-bold text-xl mt-4">–</span>
+
+        {/* Score B */}
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-xs text-canal-gray-muted truncate max-w-[64px] text-center">{match.team_b}</span>
+          <input
+            type="number"
+            min={0}
+            max={20}
+            value={scoreB}
+            onChange={(e) => { setSaved(false); setScoreB(Math.max(0, parseInt(e.target.value) || 0)); }}
+            className="w-14 h-10 text-center text-2xl font-black text-white bg-canal-gray-mid border border-canal-gray-light rounded-xl focus:border-canal-yellow outline-none"
+          />
+        </div>
+
+        {/* Valider */}
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className={cn(
+            "mt-4 flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-black transition-colors",
+            saved
+              ? "bg-green-800/40 text-green-400 border border-green-700/40"
+              : "bg-canal-yellow text-canal-black hover:bg-yellow-400"
+          )}
+        >
+          {saved ? <><Check size={14} /> Sauvé</> : saving ? "…" : "Valider"}
+        </button>
+      </div>
+
+      <p className="text-xs text-center text-canal-gray-muted">{resultLabel()}</p>
+    </div>
+  );
+}
+
+export function MatchCard({ match, trend, savedPrediction, compact }: MatchCardProps) {
   const isFinished = match.status === "finished";
   const isLive = match.status === "live";
   const isUpcoming = match.status === "upcoming";
+
+  const handleSavePrediction = async (scoreA: number, scoreB: number) => {
+    await fetch("/api/predictions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ match_id: match.id, predicted_score_a: scoreA, predicted_score_b: scoreB }),
+    });
+  };
 
   return (
     <article className={cn("canal-card", compact && "p-3")}>
@@ -47,25 +165,17 @@ export function MatchCard({ match, trend, userPrediction, onPredict, compact }: 
 
       {/* Match display */}
       <div className="flex items-center justify-between gap-4">
-        {/* Team A */}
         <div className="flex-1 flex flex-col items-center gap-1">
           <span className="text-3xl">{flagEmoji(match.flag_a ?? match.team_a)}</span>
-          <span className="text-sm font-bold text-white text-center leading-tight">
-            {match.team_a}
-          </span>
+          <span className="text-sm font-bold text-white text-center leading-tight">{match.team_a}</span>
         </div>
 
-        {/* Score / VS */}
         <div className="flex flex-col items-center gap-1">
           {isFinished || isLive ? (
             <div className="flex items-center gap-2">
-              <span className="score-display text-3xl">
-                {match.score_a ?? 0}
-              </span>
+              <span className="score-display text-3xl">{match.score_a ?? 0}</span>
               <span className="text-canal-gray-muted font-bold text-xl">-</span>
-              <span className="score-display text-3xl">
-                {match.score_b ?? 0}
-              </span>
+              <span className="score-display text-3xl">{match.score_b ?? 0}</span>
             </div>
           ) : (
             <span className="text-canal-gray-muted font-black text-2xl">VS</span>
@@ -73,58 +183,37 @@ export function MatchCard({ match, trend, userPrediction, onPredict, compact }: 
           <ChannelBadge channel={match.channel} size="sm" />
         </div>
 
-        {/* Team B */}
         <div className="flex-1 flex flex-col items-center gap-1">
           <span className="text-3xl">{flagEmoji(match.flag_b ?? match.team_b)}</span>
-          <span className="text-sm font-bold text-white text-center leading-tight">
-            {match.team_b}
-          </span>
+          <span className="text-sm font-bold text-white text-center leading-tight">{match.team_b}</span>
         </div>
       </div>
 
-      {/* Cotes — si disponibles et match à venir */}
-      {match.odds && isUpcoming && !compact && (
-        <div className="mt-3 pt-3 border-t border-canal-gray-light">
-          <OddsDisplay
-            odds={match.odds}
-            teamA={match.team_a}
-            teamB={match.team_b}
-            selected={userPrediction}
-          />
-        </div>
+      {/* Score prediction — upcoming only */}
+      {isUpcoming && !compact && (
+        <ScorePredictInput
+          match={match}
+          savedPrediction={savedPrediction}
+          onSave={handleSavePrediction}
+        />
       )}
 
-      {/* Prediction buttons (upcoming only) */}
-      {isUpcoming && onPredict && !compact && (
-        <div className="mt-3 flex gap-2">
-          {(["A", "DRAW", "B"] as const).map((result) => {
-            const labels: Record<typeof result, string> = {
-              A: match.team_a,
-              DRAW: "Nul",
-              B: match.team_b,
-            };
-            const emojis: Record<typeof result, string> = {
-              A: flagEmoji(match.flag_a ?? match.team_a),
-              DRAW: "🤝",
-              B: flagEmoji(match.flag_b ?? match.team_b),
-            };
-            const isSelected = userPrediction === result;
-            return (
-              <button
-                key={result}
-                onClick={() => onPredict(result)}
-                className={cn(
-                  "pred-btn",
-                  isSelected ? "pred-btn-active" : "pred-btn-inactive"
-                )}
-              >
-                <span className="text-lg">{emojis[result]}</span>
-                <span className="text-xs leading-tight text-center">
-                  {labels[result]}
-                </span>
-              </button>
-            );
-          })}
+      {/* Prediction result display — finished */}
+      {isFinished && savedPrediction && !compact && (
+        <div className="mt-3 flex items-center justify-between px-3 py-2 bg-canal-gray-mid rounded-xl">
+          <span className="text-xs text-canal-gray-muted">
+            Prono : {savedPrediction.score_a}–{savedPrediction.score_b}
+          </span>
+          {savedPrediction.points !== undefined ? (
+            <span className={cn(
+              "text-sm font-black",
+              savedPrediction.points > 0 ? "text-canal-yellow" : "text-canal-gray-muted"
+            )}>
+              {savedPrediction.points > 0
+                ? `+${savedPrediction.points} pts — ${scoreLabel(savedPrediction.points)}`
+                : scoreLabel(0)}
+            </span>
+          ) : null}
         </div>
       )}
 
@@ -141,9 +230,7 @@ export function MatchCard({ match, trend, userPrediction, onPredict, compact }: 
             <div className="bg-canal-gray-light" style={{ width: `${trend.pct_draw}%` }} />
             <div className="bg-white/30" style={{ width: `${trend.pct_b}%` }} />
           </div>
-          <div className="text-center text-xs text-canal-gray-muted mt-1">
-            {trend.total} pronostics
-          </div>
+          <div className="text-center text-xs text-canal-gray-muted mt-1">{trend.total} pronostics</div>
         </div>
       )}
 

@@ -4,6 +4,7 @@
 
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { toFrench } from "@/lib/football/team-names";
 
 const BASE = "https://www.thesportsdb.com/api/v1/json/3";
 const WC_LEAGUE_ID = "4429";
@@ -54,18 +55,21 @@ export async function GET(request: Request) {
     const scoreA = e.intHomeScore !== null && e.intHomeScore !== "" ? parseInt(e.intHomeScore, 10) : null;
     const scoreB = e.intAwayScore !== null && e.intAwayScore !== "" ? parseInt(e.intAwayScore, 10) : null;
 
+    const teamAFr = toFrench(e.strHomeTeam ?? "");
+    const teamBFr = toFrench(e.strAwayTeam ?? "");
+
     const existing =
       matches.find((m) => m.external_id === externalId) ??
       matches.find(
         (m) =>
-          m.team_a.toLowerCase() === (e.strHomeTeam ?? "").toLowerCase() &&
-          m.team_b.toLowerCase() === (e.strAwayTeam ?? "").toLowerCase()
+          m.team_a.toLowerCase() === teamAFr.toLowerCase() &&
+          m.team_b.toLowerCase() === teamBFr.toLowerCase()
       );
 
     if (existing) {
       await supabase
         .from("matches")
-        .update({ external_id: externalId, status, score_a: scoreA, score_b: scoreB })
+        .update({ external_id: externalId, status, score_a: scoreA, score_b: scoreB, team_a: teamAFr, team_b: teamBFr })
         .eq("id", existing.id);
       updated++;
     } else {
@@ -75,9 +79,9 @@ export async function GET(request: Request) {
       const { error } = await supabase.from("matches").insert({
         external_id: externalId,
         competition: "FIFA World Cup 2026",
-        phase: "Group Stage",
-        team_a: e.strHomeTeam,
-        team_b: e.strAwayTeam,
+        phase: "Groupe",
+        team_a: teamAFr,
+        team_b: teamBFr,
         flag_a: null,
         flag_b: null,
         starts_at: kickoff,
@@ -88,7 +92,7 @@ export async function GET(request: Request) {
       });
       if (!error) {
         inserted++;
-        matches.push({ id: "", team_a: e.strHomeTeam, team_b: e.strAwayTeam, external_id: externalId });
+        matches.push({ id: "", team_a: teamAFr, team_b: teamBFr, external_id: externalId });
       }
     }
   }

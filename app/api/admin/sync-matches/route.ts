@@ -5,6 +5,7 @@
 
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { toFrench } from "@/lib/football/team-names";
 
 const BASE = "https://www.thesportsdb.com/api/v1/json/3";
 const WC_LEAGUE_ID = "4429";
@@ -52,8 +53,10 @@ export async function POST(req: Request) {
   const unmatched: string[] = [];
 
   for (const e of events) {
-    const homeNorm = normalize(e.strHomeTeam ?? "");
-    const awayNorm = normalize(e.strAwayTeam ?? "");
+    const teamAFr = toFrench(e.strHomeTeam ?? "");
+    const teamBFr = toFrench(e.strAwayTeam ?? "");
+    const homeNorm = normalize(teamAFr);
+    const awayNorm = normalize(teamBFr);
     const externalId = parseInt(e.idEvent, 10);
     const status = mapStatus(e);
     const scoreA = e.intHomeScore !== null && e.intHomeScore !== "" ? parseInt(e.intHomeScore, 10) : null;
@@ -67,18 +70,17 @@ export async function POST(req: Request) {
     if (match) {
       const { error: updateError } = await supabase
         .from("matches")
-        .update({ external_id: externalId, status, score_a: scoreA, score_b: scoreB })
+        .update({ external_id: externalId, status, score_a: scoreA, score_b: scoreB, team_a: teamAFr, team_b: teamBFr })
         .eq("id", match.id);
       if (!updateError) updated++;
     } else {
-      // New fixture not in DB yet — insert it
       const kickoff = e.strTimestamp ? `${e.strTimestamp}Z` : `${e.dateEvent}T${e.strTime ?? "00:00:00"}Z`;
       const { error: insertError } = await supabase.from("matches").insert({
         external_id: externalId,
         competition: "FIFA World Cup 2026",
-        phase: "Group Stage",
-        team_a: e.strHomeTeam,
-        team_b: e.strAwayTeam,
+        phase: "Groupe",
+        team_a: teamAFr,
+        team_b: teamBFr,
         flag_a: null,
         flag_b: null,
         starts_at: kickoff,
@@ -89,10 +91,9 @@ export async function POST(req: Request) {
       });
       if (!insertError) {
         inserted++;
-        // Add to local list so future events in same loop can match by external_id
-        matches.push({ id: "", team_a: e.strHomeTeam, team_b: e.strAwayTeam, external_id: externalId });
+        matches.push({ id: "", team_a: teamAFr, team_b: teamBFr, external_id: externalId });
       } else {
-        unmatched.push(`${e.strHomeTeam} vs ${e.strAwayTeam} (insert error: ${insertError.message})`);
+        unmatched.push(`${teamAFr} vs ${teamBFr} (insert error: ${insertError.message})`);
       }
     }
   }

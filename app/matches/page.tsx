@@ -1,36 +1,61 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { MatchCard } from "@/components/matches/MatchCard";
-import type { Match, PredictionTrend, PredictionResult } from "@/lib/supabase/types";
+import type { Match, PredictionTrend, Prediction } from "@/lib/supabase/types";
 import { MOCK_MATCHES, MOCK_PREDICTION_TRENDS } from "@/lib/mock-data";
+import { Star } from "lucide-react";
 
 export default function MatchesPage() {
   const [matches, setMatches] = useState<Match[]>(MOCK_MATCHES);
   const [trends, setTrends] = useState<Record<string, PredictionTrend>>(MOCK_PREDICTION_TRENDS);
-  const [predictions, setPredictions] = useState<Record<string, PredictionResult>>({});
+  const [myPredictions, setMyPredictions] = useState<Record<string, Prediction>>({});
 
   useEffect(() => {
-    fetch("/api/matches").then((r) => r.json()).then((d) => {
-      if (d.matches?.length) setMatches(d.matches);
-      if (d.trends) setTrends(d.trends);
-    }).catch(() => {});
+    fetch("/api/matches")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.matches?.length) setMatches(d.matches);
+        if (d.trends) setTrends(d.trends);
+      })
+      .catch(() => {});
+
+    fetch("/api/predictions")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.predictions) {
+          const map: Record<string, Prediction> = {};
+          for (const p of d.predictions) map[p.match_id] = p;
+          setMyPredictions(map);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const upcoming = matches.filter((m) => m.status === "upcoming");
   const live = matches.filter((m) => m.status === "live");
   const finished = matches.filter((m) => m.status === "finished");
 
-  const handlePredict = (matchId: string, result: PredictionResult) => {
-    setPredictions((prev) => ({ ...prev, [matchId]: result }));
-    // TODO: POST /api/predictions avec user_id depuis la session
+  const toSavedPrediction = (matchId: string) => {
+    const p = myPredictions[matchId];
+    if (!p || p.predicted_score_a === undefined || p.predicted_score_b === undefined) return undefined;
+    return { score_a: p.predicted_score_a!, score_b: p.predicted_score_b!, points: p.points_awarded };
   };
 
   return (
     <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto">
-      <div>
-        <h1 className="canal-headline text-2xl">Matchs & Pronostics</h1>
-        <p className="text-canal-gray-muted text-sm mt-1">Toutes les heures en heure Nouvelle-Calédonie</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="canal-headline text-2xl">Matchs & Pronostics</h1>
+          <p className="text-canal-gray-muted text-sm mt-1">Heures en heure Nouvelle-Calédonie</p>
+        </div>
+        <Link
+          href="/predictions"
+          className="flex items-center gap-1.5 text-xs font-bold text-canal-yellow border border-canal-yellow/30 rounded-xl px-3 py-2 hover:bg-canal-yellow/10 transition-colors"
+        >
+          <Star size={12} /> Bonus
+        </Link>
       </div>
 
       {live.length > 0 && (
@@ -40,7 +65,7 @@ export default function MatchesPage() {
           </h2>
           <div className="space-y-3">
             {live.map((m) => (
-              <MatchCard key={m.id} match={m} trend={trends[m.id]} userPrediction={predictions[m.id]} onPredict={(r) => handlePredict(m.id, r)} />
+              <MatchCard key={m.id} match={m} trend={trends[m.id]} savedPrediction={toSavedPrediction(m.id)} />
             ))}
           </div>
         </section>
@@ -53,7 +78,7 @@ export default function MatchesPage() {
           </h2>
           <div className="space-y-4">
             {upcoming.map((m) => (
-              <MatchCard key={m.id} match={m} trend={trends[m.id]} userPrediction={predictions[m.id]} onPredict={(r) => handlePredict(m.id, r)} />
+              <MatchCard key={m.id} match={m} trend={trends[m.id]} savedPrediction={toSavedPrediction(m.id)} />
             ))}
           </div>
         </section>
@@ -63,7 +88,9 @@ export default function MatchesPage() {
         <section>
           <h2 className="text-sm font-bold text-canal-gray-muted uppercase tracking-wider mb-3">Terminés</h2>
           <div className="space-y-3">
-            {finished.map((m) => <MatchCard key={m.id} match={m} compact />)}
+            {finished.map((m) => (
+              <MatchCard key={m.id} match={m} savedPrediction={toSavedPrediction(m.id)} compact />
+            ))}
           </div>
         </section>
       )}

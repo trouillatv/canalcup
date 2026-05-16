@@ -12,6 +12,7 @@ export type AIContentType = "morning_brief" | "team_roast" | "coach_comment" | "
 export type UserRole = "user" | "admin" | "event_admin" | "super_admin";
 export type TeamRole = "captain" | "member";
 export type TournamentPhase = "group_stage" | "round_of_16" | "quarter_final" | "semi_final" | "final";
+export type BonusPredictionType = "winner" | "top_scorer";
 
 // ─── Core entities ────────────────────────────────────────────────────────────
 
@@ -109,7 +110,9 @@ export interface MatchOdds {
 
 export interface Match {
   id: string;
+  external_id?: number;
   competition: string;
+  phase?: string;
   team_a: string;
   team_b: string;
   flag_a?: string;
@@ -119,7 +122,7 @@ export interface Match {
   status: MatchStatus;
   score_a?: number;
   score_b?: number;
-  is_match_of_week: boolean;
+  is_match_of_week?: boolean;
   odds?: MatchOdds;
 }
 
@@ -131,6 +134,16 @@ export interface Prediction {
   prediction_result: PredictionResult;
   predicted_score_a?: number;
   predicted_score_b?: number;
+  points_awarded: number;
+  created_at: string;
+}
+
+export interface BonusPrediction {
+  id: string;
+  user_id: string;
+  team_id?: string;
+  prediction_type: BonusPredictionType;
+  predicted_value: string;
   points_awarded: number;
   created_at: string;
 }
