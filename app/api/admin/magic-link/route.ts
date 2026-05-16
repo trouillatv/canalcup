@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   const { data, error } = await adminClient.auth.admin.generateLink({
     type: "magiclink",
     email,
-    options: { redirectTo: `${origin}/auth/callback` },
+    options: { redirectTo: `${origin}/auth/hash-callback` },
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Jamais protégé (dont /tv pour affichage salon commun)
-const PUBLIC_PATHS = ["/login", "/auth/callback", "/tv", "/api/tv", "/api/admin/magic-link"];
+const PUBLIC_PATHS = ["/login", "/auth/callback", "/auth/hash-callback", "/tv", "/api/tv", "/api/admin/magic-link"];
 
 // Auth requise mais pas profile_completed (onboarding en cours)
 const ONBOARDING_PATHS = ["/onboarding"];
