@@ -15,7 +15,6 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 export default function LoginPage() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const redirectTo = searchParams.get("redirectTo") ?? "/";
   const errorKey = searchParams.get("error");
 
