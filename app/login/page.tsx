@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Mail, CheckCircle, AlertCircle } from "lucide-react";
+import { Mail, CheckCircle, AlertCircle, FlaskConical } from "lucide-react";
+
+const IS_DEV = process.env.NODE_ENV === "development";
 
 const ERROR_MESSAGES: Record<string, string> = {
   auth_failed: "Lien invalide ou expiré. Réessayez.",
@@ -19,6 +21,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
+  const [devLink, setDevLink] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(
     errorKey ? (ERROR_MESSAGES[errorKey] ?? "Une erreur est survenue.") : null
   );
@@ -124,6 +127,48 @@ export default function LoginPage() {
           <br />
           Votre email doit être dans la liste autorisée.
         </p>
+
+        {/* Bypass dev — jamais affiché en production */}
+        {IS_DEV && (
+          <div className="border border-dashed border-canal-gray-light rounded-xl p-4 space-y-3">
+            <p className="text-xs text-canal-gray-muted flex items-center gap-1.5">
+              <FlaskConical size={12} /> Mode dev — lien direct (sans email)
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                placeholder="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="flex-1 bg-canal-gray border border-canal-gray-light rounded-lg px-2 py-1.5 text-xs text-white placeholder:text-canal-gray-muted"
+              />
+              <button
+                onClick={async () => {
+                  if (!email) return;
+                  const res = await fetch("/api/dev/magic-link", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email }),
+                  });
+                  const data = await res.json();
+                  if (data.link) setDevLink(data.link);
+                  else setDevLink("Erreur : " + data.error);
+                }}
+                className="px-3 py-1.5 bg-canal-gray-mid border border-canal-gray-light rounded-lg text-xs text-white font-bold hover:bg-canal-gray-light"
+              >
+                Générer
+              </button>
+            </div>
+            {devLink && (
+              <a
+                href={devLink}
+                className="block text-xs text-canal-yellow underline break-all leading-relaxed"
+              >
+                → Cliquer ici pour se connecter
+              </a>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
