@@ -256,6 +256,7 @@ export interface LeaderboardRow {
   points_quiz: number;
   points_babyfoot: number;
   points_votes: number;
+  points_bonus: number;
   total: number;
   rank: number;
 }

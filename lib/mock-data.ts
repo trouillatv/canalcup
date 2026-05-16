@@ -252,17 +252,17 @@ export const MOCK_INBOX: InboxEvent[] = [
 export const MOCK_LEADERBOARD: LeaderboardRow[] = [
   {
     team: MOCK_TEAMS[0],
-    points_predictions: 50, points_quiz: 20, points_babyfoot: 10, points_votes: 7,
+    points_predictions: 50, points_quiz: 20, points_babyfoot: 10, points_votes: 7, points_bonus: 0,
     total: 87, rank: 1,
   },
   {
     team: MOCK_TEAMS[1],
-    points_predictions: 35, points_quiz: 15, points_babyfoot: 15, points_votes: 7,
+    points_predictions: 35, points_quiz: 15, points_babyfoot: 15, points_votes: 7, points_bonus: 0,
     total: 72, rank: 2,
   },
   {
     team: MOCK_TEAMS[2],
-    points_predictions: 30, points_quiz: 12, points_babyfoot: 12, points_votes: 7,
+    points_predictions: 30, points_quiz: 12, points_babyfoot: 12, points_votes: 7, points_bonus: 0,
     total: 61, rank: 3,
   },
 ];

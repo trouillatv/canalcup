@@ -36,23 +36,27 @@ export async function getLeaderboard(): Promise<LeaderboardRow[]> {
     const supabase = await createClient();
     const { data: teams, error } = await supabase
       .from("teams")
-      .select("*")
-      .order("total_points", { ascending: false });
+      .select("*");
     if (error || !teams?.length) return MOCK_LEADERBOARD;
 
-    // Points détaillés depuis les tables de score
-    const { data: predPoints } = await supabase
-      .from("predictions")
-      .select("team_id, points_awarded");
-    const { data: quizPoints } = await supabase
-      .from("quiz_answers")
-      .select("team_id, points_awarded");
-    const { data: babyPoints } = await supabase
-      .from("babyfoot_matches")
-      .select("team_a_id, team_b_id, score_a, score_b, status");
+    // Fetch all scoring tables in parallel
+    const [
+      { data: predPoints },
+      { data: bonusPoints },
+      { data: quizPoints },
+      { data: babyPoints },
+    ] = await Promise.all([
+      supabase.from("predictions").select("team_id, points_awarded"),
+      supabase.from("bonus_predictions").select("team_id, points_awarded"),
+      supabase.from("quiz_answers").select("team_id, points_awarded"),
+      supabase.from("babyfoot_matches").select("team_a_id, team_b_id, score_a, score_b, status"),
+    ]);
 
-    return teams.map((team, i) => {
+    const rows: LeaderboardRow[] = teams.map((team) => {
       const pp = (predPoints ?? [])
+        .filter((r) => r.team_id === team.id)
+        .reduce((s: number, r: { points_awarded: number }) => s + (r.points_awarded ?? 0), 0);
+      const bp_bonus = (bonusPoints ?? [])
         .filter((r) => r.team_id === team.id)
         .reduce((s: number, r: { points_awarded: number }) => s + (r.points_awarded ?? 0), 0);
       const qp = (quizPoints ?? [])
@@ -64,16 +68,25 @@ export async function getLeaderboard(): Promise<LeaderboardRow[]> {
           (m.team_b_id === team.id && (m.score_b ?? 0) > (m.score_a ?? 0))
         )).length * 10;
 
+      const total = pp + bp_bonus + qp + bp;
+
       return {
         team: team as Team,
         points_predictions: pp,
         points_quiz: qp,
         points_babyfoot: bp,
         points_votes: 0,
-        total: team.total_points,
-        rank: i + 1,
+        points_bonus: bp_bonus,
+        total,
+        rank: 0,
       };
     });
+
+    // Sort by total descending, then assign rank
+    rows.sort((a, b) => b.total - a.total);
+    rows.forEach((r, i) => { r.rank = i + 1; });
+
+    return rows;
   } catch {
     return MOCK_LEADERBOARD;
   }

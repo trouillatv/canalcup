@@ -14,6 +14,7 @@ export function LeaderboardTable({ rows, compact }: LeaderboardTableProps) {
           <span className="w-8" />
           <span className="flex-1">Équipe</span>
           <span className="w-12 text-right">Pronos</span>
+          <span className="w-10 text-right">Bonus</span>
           <span className="w-10 text-right">Quiz</span>
           <span className="w-10 text-right">Baby</span>
           <span className="w-14 text-right font-bold text-canal-yellow">Total</span>
@@ -51,6 +52,7 @@ export function LeaderboardTable({ rows, compact }: LeaderboardTableProps) {
             {!compact && (
               <>
                 <span className="w-12 text-right text-sm text-white">{row.points_predictions}</span>
+                <span className="w-10 text-right text-sm text-white">{row.points_bonus ?? 0}</span>
                 <span className="w-10 text-right text-sm text-white">{row.points_quiz}</span>
                 <span className="w-10 text-right text-sm text-white">{row.points_babyfoot}</span>
               </>
