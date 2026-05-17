@@ -6,6 +6,7 @@ import { MatchCard } from "@/components/matches/MatchCard";
 import type { Match, PredictionTrend, Prediction } from "@/lib/supabase/types";
 import { MOCK_MATCHES, MOCK_PREDICTION_TRENDS } from "@/lib/mock-data";
 import { Star, Trophy } from "lucide-react";
+import { BreakingNews } from "@/components/matches/BreakingNews";
 
 export default function MatchesPage() {
   const [matches, setMatches] = useState<Match[]>(MOCK_MATCHES);
@@ -44,7 +45,9 @@ export default function MatchesPage() {
   };
 
   return (
-    <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto">
+      <BreakingNews />
+    <div className="px-4 py-4 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="canal-headline text-2xl">Matchs & Pronostics</h1>
@@ -102,6 +105,7 @@ export default function MatchesPage() {
           </div>
         </section>
       )}
+    </div>
     </div>
   );
 }

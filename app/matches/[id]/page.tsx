@@ -5,6 +5,8 @@ import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { FullMatchDetail, MatchEvent, LineupPlayer, StandingRow } from "@/services/football/types";
 import { Tv, MapPin, User, RefreshCw, Clock } from "lucide-react";
+import { MatchReactions } from "@/components/matches/MatchReactions";
+import { Countdown } from "@/components/matches/Countdown";
 
 type Tab = "timeline" | "lineups" | "stats" | "standings";
 
@@ -313,6 +315,18 @@ export default function MatchCenterPage() {
           <span className="text-xs text-red-400">
             {lastUpdate.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} · auto 30s
           </span>
+        </div>
+      )}
+
+      {/* Réactions emoji */}
+      <MatchReactions matchId={match.id} isLive={isLive} />
+
+      {/* Countdown avant coup d'envoi */}
+      {match.status === "upcoming" && (
+        <div className="flex items-center justify-center gap-2 py-3 border-b border-canal-gray-light">
+          <Clock size={13} className="text-canal-yellow" />
+          <span className="text-sm text-canal-gray-muted">Coup d'envoi dans</span>
+          <Countdown startsAt={match.starts_at} />
         </div>
       )}
 

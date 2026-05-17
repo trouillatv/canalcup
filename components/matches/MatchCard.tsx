@@ -7,6 +7,7 @@ import type { Match, PredictionTrend } from "@/lib/supabase/types";
 import { getResult, scoreLabel } from "@/lib/scoring";
 import { Star, Clock, ChevronRight, Check, Lock } from "lucide-react";
 import { ChannelBadge } from "./ChannelBadge";
+import { Countdown } from "./Countdown";
 
 interface SavedPrediction {
   score_a: number;
@@ -178,7 +179,10 @@ export function MatchCard({ match, trend, savedPrediction, compact }: MatchCardP
               <span className="score-display text-3xl">{match.score_b ?? 0}</span>
             </div>
           ) : (
-            <span className="text-canal-gray-muted font-black text-2xl">VS</span>
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-canal-gray-muted font-black text-xl">VS</span>
+              <Countdown startsAt={match.starts_at} />
+            </div>
           )}
           <ChannelBadge channel={match.channel} size="sm" />
         </div>
