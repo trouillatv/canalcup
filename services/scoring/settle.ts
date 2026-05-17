@@ -3,6 +3,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { calculatePoints } from "@/lib/scoring";
+import { generateMatchStory } from "@/services/ai/generators/match-story";
 
 // ─── Settle a single match ────────────────────────────────────────────────────
 
@@ -16,7 +17,7 @@ export async function settleMatch(matchId: string): Promise<{ settled: number; s
     .eq("id", matchId)
     .eq("is_settled", false)
     .eq("status", "finished")
-    .select("id, phase, score_a, score_b")
+    .select("id, phase, score_a, score_b, team_a, team_b, flag_a, flag_b")
     .single();
 
   // Another process already settled this match, or it's not finished/scores missing
@@ -52,6 +53,20 @@ export async function settleMatch(matchId: string): Promise<{ settled: number; s
   // Check perfect streak for each user who had a prediction on this match
   const userIds = [...new Set(predictions.map((p) => p.user_id))];
   await Promise.all(userIds.map((uid) => checkPerfectStreak(uid)));
+
+  // Generate AI story post-match (fire-and-forget, never blocks settlement)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const m = match as any;
+  generateMatchStory({
+    matchId,
+    teamA: m.team_a ?? "",
+    flagA: m.flag_a ?? "",
+    teamB: m.team_b ?? "",
+    flagB: m.flag_b ?? "",
+    scoreA: match.score_a!,
+    scoreB: match.score_b!,
+    phase: match.phase ?? "Groupe",
+  }).catch((e) => console.error(`[settle] story generation failed for match=${matchId}`, e));
 
   console.log(`[settle] match=${matchId} settled=${updates.length} predictions`);
   return { settled: updates.length, skipped: false };

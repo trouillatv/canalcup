@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { FullMatchDetail, MatchEvent, LineupPlayer, StandingRow } from "@/services/football/types";
-import { Tv, MapPin, User, RefreshCw, Clock } from "lucide-react";
+import { Tv, MapPin, User, RefreshCw, Clock, Sparkles } from "lucide-react";
 import { MatchReactions } from "@/components/matches/MatchReactions";
 import { Countdown } from "@/components/matches/Countdown";
 
@@ -262,6 +262,32 @@ function Standings({ rows }: { rows: StandingRow[] }) {
   );
 }
 
+function RobertStory({ matchId, isFinished }: { matchId: string; isFinished: boolean }) {
+  const [story, setStory] = useState<{ phrase: string } | null>(null);
+  const [tried, setTried] = useState(false);
+
+  useEffect(() => {
+    if (!isFinished || tried) return;
+    setTried(true);
+    fetch(`/api/matches/${matchId}/story`)
+      .then((r) => r.json())
+      .then((d) => { if (d.story) setStory(d.story); })
+      .catch(() => {});
+  }, [matchId, isFinished, tried]);
+
+  if (!story) return null;
+
+  return (
+    <div className="mx-4 my-3 px-4 py-3 rounded-2xl bg-gradient-to-br from-canal-gray-mid to-canal-gray border border-canal-yellow/20">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <Sparkles size={11} className="text-canal-yellow" />
+        <span className="text-xs font-black text-canal-yellow uppercase tracking-wider">Robert commente</span>
+      </div>
+      <p className="text-sm text-white font-medium leading-snug italic">"{story.phrase}"</p>
+    </div>
+  );
+}
+
 export default function MatchCenterPage() {
   const { id } = useParams<{ id: string }>();
   const [detail, setDetail] = useState<FullMatchDetail | null>(null);
@@ -320,6 +346,11 @@ export default function MatchCenterPage() {
 
       {/* Réactions emoji */}
       <MatchReactions matchId={match.id} isLive={isLive} />
+
+      {/* Robert — commentaire IA post-match */}
+      {match.status === "finished" && (
+        <RobertStory matchId={match.id} isFinished={true} />
+      )}
 
       {/* Countdown avant coup d'envoi */}
       {match.status === "upcoming" && (
