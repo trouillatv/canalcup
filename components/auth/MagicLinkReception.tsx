@@ -93,6 +93,14 @@ export function MagicLinkReception() {
           </p>
         </div>
 
+        {/* Connexion label */}
+        <div className="text-center">
+          <p className="text-white font-black text-xl">Connexion</p>
+          <p className="text-canal-gray-muted text-sm mt-1">
+            Nouveau ou déjà inscrit · même lien magique
+          </p>
+        </div>
+
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

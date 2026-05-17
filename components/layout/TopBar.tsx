@@ -55,7 +55,8 @@ export function TopBar() {
   const handleLogout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push("/");
+    router.refresh();
   };
 
   if (pathname === "/tv") return null;
