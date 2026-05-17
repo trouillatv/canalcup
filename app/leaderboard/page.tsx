@@ -1,11 +1,12 @@
 import { getLeaderboard } from "@/lib/data/teams";
+import { computeMedals } from "@/lib/data/medals";
 import { LeaderboardTable } from "@/components/leaderboard/LeaderboardTable";
 import { Trophy } from "lucide-react";
 
 export const revalidate = 60;
 
 export default async function LeaderboardPage() {
-  const rows = await getLeaderboard();
+  const [rows, medals] = await Promise.all([getLeaderboard(), computeMedals()]);
   const sorted = [...rows].sort((a, b) => b.total - a.total);
 
   return (
@@ -54,6 +55,28 @@ export default async function LeaderboardPage() {
           ))}
         </div>
       </div>
+
+      {medals.length > 0 && (
+        <div>
+          <h2 className="canal-headline text-xl mb-1">Médailles Absurdes</h2>
+          <p className="text-canal-gray-muted text-xs mb-4">Calculées depuis les pronostics sur matchs terminés</p>
+          <div className="space-y-3">
+            {medals.map((medal) => (
+              <div key={medal.key} className="canal-card flex items-start gap-3">
+                <span className="text-3xl shrink-0">{medal.emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2 mb-0.5">
+                    <p className="font-black text-sm text-white uppercase tracking-wide">{medal.label}</p>
+                    <span className="text-canal-yellow font-bold text-xs">{medal.value}</span>
+                  </div>
+                  <p className="text-canal-gray-muted text-xs leading-snug">{medal.description}</p>
+                  <p className="text-canal-yellow/70 font-bold text-xs mt-1">{medal.team_name}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

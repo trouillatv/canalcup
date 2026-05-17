@@ -4,6 +4,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { calculatePoints } from "@/lib/scoring";
 import { generateMatchStory } from "@/services/ai/generators/match-story";
+import { createFlash } from "@/lib/tv/flash";
 
 // ─── Settle a single match ────────────────────────────────────────────────────
 
@@ -53,6 +54,20 @@ export async function settleMatch(matchId: string): Promise<{ settled: number; s
   // Check perfect streak for each user who had a prediction on this match
   const userIds = [...new Set(predictions.map((p) => p.user_id))];
   await Promise.all(userIds.map((uid) => checkPerfectStreak(uid)));
+
+  // Flash TV — score exact détecté (fire-and-forget)
+  const exactCount = predictions.filter(
+    (p) => p.predicted_score_a === match.score_a && p.predicted_score_b === match.score_b
+  ).length;
+  if (exactCount > 0) {
+    createFlash(
+      "score_exact",
+      "⚡ SCORE EXACT DÉTECTÉ",
+      `${exactCount} équipe${exactCount > 1 ? "s ont" : " a"} vu juste : ${match.score_a}-${match.score_b}`,
+      "⚡",
+      8
+    ).catch(() => {});
+  }
 
   // Generate AI story post-match (fire-and-forget, never blocks settlement)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

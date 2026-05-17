@@ -13,11 +13,17 @@ import {
   formatNCTime,
   type EventType,
 } from "@/lib/tv/hype";
+import {
+  FLASH_CONFIGS,
+  getAtmosphericPhrase,
+  type TvFlash,
+} from "@/lib/tv/flash";
 
 type Slide = "upcoming" | "classement" | "match" | "duel" | "standings" | "matinale" | "revivez";
 
 const SLIDE_DURATION = 12000;
 const REFRESH_INTERVAL = 30000;
+const FLASH_POLL_INTERVAL = 10000;
 const SLIDES: Slide[] = ["upcoming", "classement", "match", "duel", "standings", "matinale", "revivez"];
 
 interface StandingRow {
@@ -588,6 +594,72 @@ function LiveClock() {
   return <span className="text-white font-bold text-xl">{time}</span>;
 }
 
+// ─── Flash Overlay (plein écran, 5s) ─────────────────────────────────────────
+
+function FlashOverlay() {
+  const [flash, setFlash] = useState<TvFlash | null>(null);
+  const seenIds = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const poll = () => {
+      fetch("/api/tv/flash")
+        .then((r) => r.json())
+        .then((d: { flashes: TvFlash[] }) => {
+          const newest = d.flashes[0];
+          if (newest && !seenIds.current.has(newest.id)) {
+            seenIds.current.add(newest.id);
+            setFlash(newest);
+            setTimeout(() => setFlash(null), 5000);
+          }
+        })
+        .catch(() => {});
+    };
+    poll();
+    const t = setInterval(poll, FLASH_POLL_INTERVAL);
+    return () => clearInterval(t);
+  }, []);
+
+  if (!flash) return null;
+  const config = FLASH_CONFIGS[flash.type] ?? FLASH_CONFIGS.fire;
+
+  return (
+    <div
+      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-b ${config.bg} border-4 ${config.border} cursor-pointer`}
+      onClick={() => setFlash(null)}
+    >
+      {flash.emoji && <span className="text-9xl mb-8 drop-shadow-lg">{flash.emoji}</span>}
+      <p className={`font-black text-6xl tracking-widest mb-6 uppercase text-center px-12 ${config.textColor} ${config.pulse ? "animate-pulse" : ""}`}>
+        {flash.title}
+      </p>
+      {flash.subtitle && (
+        <p className="text-3xl text-canal-gray-muted text-center max-w-3xl leading-snug px-8">
+          {flash.subtitle}
+        </p>
+      )}
+      <p className="absolute bottom-12 text-canal-gray-muted text-lg opacity-60">
+        Appuyez pour fermer
+      </p>
+    </div>
+  );
+}
+
+// ─── Atmospheric Status Line ──────────────────────────────────────────────────
+
+function AtmosphericLine() {
+  const [phrase, setPhrase] = useState("");
+  useEffect(() => {
+    setPhrase(getAtmosphericPhrase());
+    const t = setInterval(() => setPhrase(getAtmosphericPhrase()), 120_000);
+    return () => clearInterval(t);
+  }, []);
+  if (!phrase) return null;
+  return (
+    <div className="shrink-0 text-center py-2 border-t border-canal-gray-light/20">
+      <p className="text-canal-gray-muted text-lg italic opacity-70">{phrase}</p>
+    </div>
+  );
+}
+
 // ─── PIN Gate (admin-only, URL key: /tv?pin=XXXX) ───────────────────────────
 
 function PinGate({ children }: { children: React.ReactNode }) {
@@ -653,6 +725,7 @@ export default function TVPage() {
   return (
     <PinGate>
     <div className="fixed inset-0 bg-canal-black flex flex-col overflow-hidden tv-mode">
+      <FlashOverlay />
       {/* Header */}
       <header className="flex items-center justify-between px-12 py-4 border-b border-canal-gray-light shrink-0">
         <div className="flex items-center gap-4">
@@ -697,8 +770,11 @@ export default function TVPage() {
         )}
       </div>
 
+      {/* Atmospheric status line */}
+      <AtmosphericLine />
+
       {/* Footer dots */}
-      <footer className="flex items-center justify-center gap-3 pb-8 shrink-0">
+      <footer className="flex items-center justify-center gap-3 pb-6 shrink-0">
         {SLIDES.map((s, i) => (
           <button
             key={s}
