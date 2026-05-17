@@ -41,6 +41,8 @@ async function apifFetch(path: string) {
 
 function normalizePhase(strRound?: string): { phase: string; stage: string | null } {
   if (!strRound) return { phase: "Groupe", stage: null };
+  // A bare number is a group-stage matchday (round 1/2/3), NOT a group letter.
+  if (/^\d+$/.test(strRound.trim())) return { phase: "Groupe", stage: null };
   const r = strRound.toLowerCase();
   if (/^group [a-l]$/i.test(strRound) || r.includes("group stage") || r.includes("group")) {
     return { phase: "Groupe", stage: strRound };

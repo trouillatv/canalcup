@@ -210,12 +210,69 @@ function RoundColumn({
 
 // ─── Group-stage strip (compact, distinct from the standard view) ────────────
 
+function groupLetter(raw: string): string {
+  // "Group A" / "Groupe A" / "A" → "A" ; matchday numbers → ""
+  const m = raw.match(/([a-l])\s*$/i);
+  return m ? m[1].toUpperCase() : "";
+}
+
+function prettyGroupName(letter: string): string {
+  return letter ? `Groupe ${letter}` : "Groupe";
+}
+
+interface GroupView {
+  letter: string;
+  standings: StandingRow[];
+  teams: { name: string; flag: string }[];
+}
+
+function buildGroups(
+  buckets: GroupBucket[],
+  standings: Record<string, StandingRow[]>
+): GroupView[] {
+  const byLetter = new Map<string, GroupView>();
+  const get = (letter: string) => {
+    if (!byLetter.has(letter)) byLetter.set(letter, { letter, standings: [], teams: [] });
+    return byLetter.get(letter)!;
+  };
+
+  // 1) Real standings (preferred — has ranking)
+  for (const [name, rows] of Object.entries(standings)) {
+    const letter = groupLetter(name);
+    if (!letter || rows.length === 0) continue;
+    get(letter).standings = [...rows].sort(
+      (a, b) => b.points - a.points || b.goal_diff - a.goal_diff
+    );
+  }
+
+  // 2) Composition from group-stage matches (only buckets with a real group letter)
+  for (const bucket of buckets) {
+    const letter = groupLetter(bucket.stage ?? "");
+    if (!letter) continue;
+    const g = get(letter);
+    for (const m of bucket.matches) {
+      for (const [name, flag] of [
+        [m.team_a, teamFlag(m.flag_a, m.team_a)],
+        [m.team_b, teamFlag(m.flag_b, m.team_b)],
+      ] as const) {
+        if (name && name !== "TBD" && !g.teams.some((t) => t.name === name)) {
+          g.teams.push({ name, flag });
+        }
+      }
+    }
+  }
+
+  return [...byLetter.values()].sort((a, b) => a.letter.localeCompare(b.letter));
+}
+
 function GroupStrip({
-  groups, standings,
+  buckets, standings,
 }: {
-  groups: GroupBucket[];
+  buckets: GroupBucket[];
   standings: Record<string, StandingRow[]>;
 }) {
+  const groups = buildGroups(buckets, standings);
+
   return (
     <div>
       <div className="flex items-center gap-3 mb-3">
@@ -223,46 +280,56 @@ function GroupStrip({
         <h3 className="font-black text-sm text-white uppercase tracking-widest">Phase de groupes</h3>
         <div className="flex-1 h-px bg-gradient-to-r from-canal-yellow/40 to-transparent" />
       </div>
-      <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
-        {groups.map((bucket) => {
-          const groupLabel = bucket.stage ?? "Groupe";
-          const rows =
-            standings[groupLabel] ??
-            standings[`Group ${groupLabel.replace("Groupe ", "")}`] ??
-            [];
-          const sorted = [...rows].sort((a, b) => b.points - a.points || b.goal_diff - a.goal_diff);
-          return (
-            <div
-              key={groupLabel}
-              className="shrink-0 w-44 bg-canal-gray-mid/40 rounded-xl border border-canal-gray-light/25 p-3"
-            >
-              <p className="font-black text-canal-yellow text-[11px] uppercase tracking-widest mb-2">
-                {groupLabel}
-              </p>
-              {sorted.length > 0 ? (
+
+      {groups.length === 0 ? (
+        <div className="bg-canal-gray-mid/40 rounded-xl border border-canal-gray-light/25 p-4 text-center">
+          <p className="text-canal-gray-muted text-sm italic">
+            Tirage des groupes à venir — le tableau se remplira dès l&apos;officialisation FIFA.
+          </p>
+        </div>
+      ) : (
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+          {groups.map((g) => {
+            const hasStandings = g.standings.length > 0;
+            return (
+              <div
+                key={g.letter}
+                className="shrink-0 w-44 bg-canal-gray-mid/40 rounded-xl border border-canal-gray-light/25 p-3"
+              >
+                <p className="font-black text-canal-yellow text-[11px] uppercase tracking-widest mb-2">
+                  {prettyGroupName(g.letter)}
+                </p>
                 <div className="space-y-1">
-                  {sorted.slice(0, 4).map((row, i) => (
-                    <div
-                      key={row.team_name_fr}
-                      className={cn(
-                        "flex items-center gap-1.5 text-xs",
-                        i < 2 ? "text-white" : "text-canal-gray-muted"
-                      )}
-                    >
-                      <span className="w-3 text-center font-bold">{i + 1}</span>
-                      <span className="text-sm">{teamFlag(row.team_flag, row.team_name_fr)}</span>
-                      <span className="flex-1 min-w-0 truncate font-semibold">{row.team_name_fr}</span>
-                      <span className="font-black text-canal-yellow">{row.points}</span>
-                    </div>
-                  ))}
+                  {hasStandings
+                    ? g.standings.slice(0, 4).map((row, i) => (
+                        <div
+                          key={row.team_name_fr}
+                          className={cn(
+                            "flex items-center gap-1.5 text-xs",
+                            i < 2 ? "text-white" : "text-canal-gray-muted"
+                          )}
+                        >
+                          <span className="w-3 text-center font-bold">{i + 1}</span>
+                          <span className="text-sm">{teamFlag(row.team_flag, row.team_name_fr)}</span>
+                          <span className="flex-1 min-w-0 truncate font-semibold">{row.team_name_fr}</span>
+                          <span className="font-black text-canal-yellow">{row.points}</span>
+                        </div>
+                      ))
+                    : g.teams.slice(0, 4).map((t) => (
+                        <div
+                          key={t.name}
+                          className="flex items-center gap-1.5 text-xs text-white"
+                        >
+                          <span className="text-sm">{t.flag}</span>
+                          <span className="flex-1 min-w-0 truncate font-semibold">{t.name}</span>
+                        </div>
+                      ))}
                 </div>
-              ) : (
-                <p className="text-canal-gray-muted text-[11px] italic">En attente du coup d&apos;envoi</p>
-              )}
-            </div>
-          );
-        })}
-      </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -293,10 +360,8 @@ export function BracketFifa({ data }: { data: BracketData }) {
 
   return (
     <div className="space-y-10">
-      {/* Group stage — compact horizontal strip */}
-      {groupSection && groupSection.groups.length > 0 && (
-        <GroupStrip groups={groupSection.groups} standings={data.standings} />
-      )}
+      {/* Group stage — compact horizontal strip (always shown for a WC bracket) */}
+      <GroupStrip buckets={groupSection?.groups ?? []} standings={data.standings} />
 
       {/* Knockout bracket — the giant tree */}
       {rounds.length > 0 ? (
