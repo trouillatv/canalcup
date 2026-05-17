@@ -53,8 +53,7 @@ export function TopBar() {
   }, []);
 
   const handleLogout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await fetch("/auth/signout", { method: "POST" });
     router.push("/");
     router.refresh();
   };
