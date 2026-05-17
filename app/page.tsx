@@ -8,10 +8,18 @@ import { TonightOnAir } from "@/components/matches/TonightOnAir";
 import { LeaderboardTable } from "@/components/leaderboard/LeaderboardTable";
 import { toNCDate } from "@/lib/utils";
 import { Calendar, Trophy, Users, Newspaper, Gamepad2, Heart } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { MagicLinkReception } from "@/components/auth/MagicLinkReception";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+export default async function RootPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Non connecté → page de réception magic link
+  if (!user) return <MagicLinkReception />;
+
   const [matches, trends, leaderboard, brief, revivez] = await Promise.all([
     getMatches(),
     getPredictionTrends(),

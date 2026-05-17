@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Jamais protégé (dont /tv pour affichage salon commun)
-const PUBLIC_PATHS = ["/login", "/auth/callback", "/auth/hash-callback", "/tv", "/api/tv", "/api/admin/magic-link", "/api/admin/sync-matches", "/api/cron"];
+const PUBLIC_PATHS = ["/login", "/auth/callback", "/auth/hash-callback", "/tv", "/api/tv", "/api/admin/magic-link", "/api/admin/sync-matches", "/api/cron", "/api/babyfoot"];
 
 // Auth requise mais pas profile_completed (onboarding en cours)
 const ONBOARDING_PATHS = ["/onboarding"];
@@ -51,13 +51,15 @@ export async function middleware(request: NextRequest) {
 
   // Non connecté
   if (!user) {
-    // Les API routes retournent 401, pas de redirect
     if (isApiRoute(pathname)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const loginUrl = new URL("/login", request.url);
-    if (pathname !== "/") loginUrl.searchParams.set("redirectTo", pathname);
-    return NextResponse.redirect(loginUrl);
+    // Redirige vers "/" (réception magic link) sauf si déjà là
+    if (pathname !== "/") {
+      const home = new URL("/", request.url);
+      return NextResponse.redirect(home);
+    }
+    return NextResponse.next({ request });
   }
 
   // Connecté + route onboarding ou API → pas de vérification profile_completed

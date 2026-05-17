@@ -143,6 +143,76 @@ export const AMBIANCE_STATES: Record<string, { label: string; color: string; sub
   "🎉": { label: "AMBIANCE FÊTE", color: "#66BB6A", sub: "Le bureau célèbre" },
 };
 
+// ─── Pre-match Robert phrases ─────────────────────────────────────────────────
+
+export interface PreMatchContext {
+  teamA: string;
+  teamB: string;
+  topResult: "A" | "DRAW" | "B" | null;
+  topPct: number;
+  teamsMissing: number;
+  msLeft: number;
+}
+
+export function getRobertPreMatchPhrase(ctx: PreMatchContext): string {
+  const { teamA, teamB, topResult, topPct, teamsMissing, msLeft } = ctx;
+  const winner = topResult === "A" ? teamA : topResult === "B" ? teamB : null;
+  const mins = Math.floor(msLeft / 60_000);
+
+  if (msLeft <= 60_000) {
+    const phrases = [
+      "Robert a verrouillé ses pronostics. C'est l'heure.",
+      "Le coup d'envoi approche. Chacun assume ses choix.",
+      "Dans quelques secondes, les pronostics deviennent de l'histoire.",
+    ];
+    return phrases[new Date().getSeconds() % phrases.length];
+  }
+
+  if (msLeft <= 5 * 60_000) {
+    return `Cinq minutes. Le bureau retient son souffle. Robert aussi — et il retient très bien son souffle.`;
+  }
+
+  if (teamsMissing >= 2) {
+    return `${teamsMissing} équipe${teamsMissing > 1 ? "s" : ""} n'ont pas encore pronostiqué. Robert note. Robert se souvient toujours.`;
+  }
+
+  if (winner && topPct >= 60) {
+    return `${topPct}% du bureau croit en ${winner} ce soir. Cette confiance collective pourrait devenir un problème.`;
+  }
+
+  if (!winner) {
+    return `Le bureau est divisé sur ce match. Signe que personne ne sait vraiment. Ou que tout le monde sait différemment.`;
+  }
+
+  const phrases = [
+    `${teamA} contre ${teamB}. Le bureau a choisi. Reste à voir si le match est au courant.`,
+    `Les pronostics commencent à sentir le drame. Bonne ou mauvaise odeur, à vous de juger.`,
+    `${Math.round(mins / 5) * 5 || mins} minutes avant le coup d'envoi. Robert est prêt. Professionnellement parlant.`,
+    `Ce match va faire des heureux. Et statistiquement, autant de déçus.`,
+  ];
+  return phrases[new Date().getMinutes() % phrases.length];
+}
+
+// ─── Salon atmosphérique ──────────────────────────────────────────────────────
+
+export const SALON_PREMATCH: Record<string, string[]> = {
+  far:   ["Le match approche.", "Le bureau se prépare tranquillement.", "Encore le temps d'aller chercher un café."],
+  warm:  ["Le salon commence à s'échauffer.", "Les premières chaises se rapprochent de l'écran.", "L'ambiance monte doucement."],
+  hot:   ["Les tensions montent.", "Personne ne pense encore à partir.", "Le bureau est aux aguets."],
+  tense: ["Personne ne parle. Tout le monde regarde.", "Le silence s'installe. Le bon genre.", "Les poings se serrent."],
+  event: ["Le salon est debout.", "Tout le monde est là. Même Robert, debout.", "C'est maintenant."],
+};
+
+export function getSalonPhrase(msLeft: number): string {
+  let pool: string[];
+  if (msLeft <= 60_000)        pool = SALON_PREMATCH.event;
+  else if (msLeft <= 5 * 60_000)  pool = SALON_PREMATCH.tense;
+  else if (msLeft <= 15 * 60_000) pool = SALON_PREMATCH.hot;
+  else if (msLeft <= 30 * 60_000) pool = SALON_PREMATCH.warm;
+  else                          pool = SALON_PREMATCH.far;
+  return pool[new Date().getSeconds() % pool.length];
+}
+
 export const DUEL_PHRASES: Array<(gap: number, team1: string, team2: string) => string> = [
   (gap, t1, t2) => `${gap} point${gap > 1 ? "s" : ""} séparent ${t1} et ${t2}. Tout peut basculer ce soir.`,
   (gap, t1) => `${t1} tient bon. Mais ${gap} point${gap > 1 ? "s" : ""}, ça se rattrape en un match.`,

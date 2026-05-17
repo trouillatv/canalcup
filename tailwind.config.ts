@@ -11,16 +11,16 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Canal+ brand palette
+        // Canal+ brand palette — warm dark base (amber undertone)
         canal: {
-          black: "#0A0A0A",
+          black: "#0D0B08",      // near-black with warm amber hint
           yellow: "#FFD700",
           "yellow-hover": "#E6C200",
           white: "#FFFFFF",
-          gray: "#1A1A1A",
-          "gray-mid": "#2A2A2A",
-          "gray-light": "#3A3A3A",
-          "gray-muted": "#6B7280",
+          gray: "#1C1814",       // warm dark card background
+          "gray-mid": "#2A2218", // warm mid — inputs, secondary surfaces
+          "gray-light": "#3D3528", // warm border / divider
+          "gray-muted": "#8A8075", // warm stone — muted text
           green: "#22C55E",
           red: "#EF4444",
         },

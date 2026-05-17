@@ -209,6 +209,7 @@ export interface BabyFootMatch {
   score_a?: number;
   score_b?: number;
   status: BabyFootStatus;
+  round: string;
   highlight?: string;
   created_at: string;
   team_a?: Team;

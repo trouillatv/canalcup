@@ -4,8 +4,86 @@ import { getTodayBrief, getRevivezPosts } from "@/lib/data/content";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AMBIANCE_STATES } from "@/lib/tv/hype";
 import { NextResponse } from "next/server";
+import type { Match } from "@/lib/supabase/types";
 
 export const revalidate = 30;
+
+
+async function getPreMatchStats(supabase: ReturnType<typeof createAdminClient>, match: Match, totalTeams: number) {
+  const [{ data: preds }, { data: bonusPreds }] = await Promise.all([
+    supabase
+      .from("predictions")
+      .select("team_id, prediction_result, predicted_score_a, predicted_score_b")
+      .eq("match_id", match.id),
+    supabase
+      .from("bonus_predictions")
+      .select("predicted_value")
+      .eq("prediction_type", "top_scorer"),
+  ]);
+
+  const rows = preds ?? [];
+  const teamsPredicted = new Set(rows.map((r) => r.team_id)).size;
+  const teamsMissing = Math.max(0, totalTeams - teamsPredicted);
+
+  // Result distribution
+  const votesA = rows.filter((r) => r.prediction_result === "A").length;
+  const votesB = rows.filter((r) => r.prediction_result === "B").length;
+  const votesDraw = rows.filter((r) => r.prediction_result === "DRAW").length;
+  const total = rows.length || 1;
+
+  const pctA = Math.round((votesA / total) * 100);
+  const pctB = Math.round((votesB / total) * 100);
+  const pctDraw = 100 - pctA - pctB;
+
+  const topResult: "A" | "DRAW" | "B" | null =
+    votesA >= votesB && votesA >= votesDraw ? "A"
+    : votesB >= votesA && votesB >= votesDraw ? "B"
+    : votesDraw > 0 ? "DRAW" : null;
+
+  const topPct = topResult === "A" ? pctA : topResult === "B" ? pctB : pctDraw;
+
+  // Most predicted exact score
+  const scoreCounts: Record<string, number> = {};
+  for (const r of rows) {
+    if (r.predicted_score_a !== null && r.predicted_score_a !== undefined
+        && r.predicted_score_b !== null && r.predicted_score_b !== undefined) {
+      const key = `${r.predicted_score_a}-${r.predicted_score_b}`;
+      scoreCounts[key] = (scoreCounts[key] ?? 0) + 1;
+    }
+  }
+  const topScore = Object.entries(scoreCounts).sort(([, a], [, b]) => b - a)[0]?.[0] ?? null;
+  const topScoreCount = topScore ? scoreCounts[topScore] : 0;
+  const topScorePct = Math.round((topScoreCount / total) * 100);
+
+  // Most predicted top scorer from bonus predictions
+  const scorerCounts: Record<string, number> = {};
+  for (const b of bonusPreds ?? []) {
+    scorerCounts[b.predicted_value] = (scorerCounts[b.predicted_value] ?? 0) + 1;
+  }
+  const topScorerEntry = Object.entries(scorerCounts).sort(([, a], [, b]) => b - a)[0];
+  const topScorer = topScorerEntry?.[0] ?? null;
+  const topScorerTotal = (bonusPreds ?? []).length || 1;
+  const topScorerPct = topScorerEntry ? Math.round((topScorerEntry[1] / topScorerTotal) * 100) : 0;
+
+  return {
+    match,
+    total_teams: totalTeams,
+    teams_predicted: teamsPredicted,
+    teams_missing: teamsMissing,
+    votes_a: votesA,
+    votes_b: votesB,
+    votes_draw: votesDraw,
+    pct_a: pctA,
+    pct_b: pctB,
+    pct_draw: pctDraw,
+    top_result: topResult,
+    top_pct: topPct,
+    top_score: topScore,
+    top_score_pct: topScorePct,
+    top_scorer: topScorer,
+    top_scorer_pct: topScorerPct,
+  };
+}
 
 export async function GET() {
   const supabase = createAdminClient();
@@ -52,6 +130,15 @@ export async function GET() {
     }
   } catch {}
 
+  // Pre-match stats — always for the next upcoming match (any horizon)
+  let prematch = null;
+  try {
+    const nextMatch = matches.find((m) => m.status === "upcoming");
+    if (nextMatch) {
+      prematch = await getPreMatchStats(supabase, nextMatch, leaderboard.length);
+    }
+  } catch {}
+
   return NextResponse.json({
     matches,
     leaderboard,
@@ -60,5 +147,6 @@ export async function GET() {
     standings: standings ?? [],
     events: events ?? [],
     ambiance,
+    prematch,
   });
 }

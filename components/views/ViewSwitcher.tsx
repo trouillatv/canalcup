@@ -2,6 +2,7 @@
 
 const VIEW_META: Record<string, { icon: string; label: string }> = {
   standard: { icon: "☰", label: "Standard" },
+  bracket: { icon: "🔢", label: "Tableau" },
   fifa: { icon: "🏆", label: "FIFA" },
   tv: { icon: "📺", label: "TV" },
   compact: { icon: "⚡", label: "Compact" },

@@ -18,13 +18,17 @@ import {
   getAtmosphericPhrase,
   type TvFlash,
 } from "@/lib/tv/flash";
+import {
+  getRobertPreMatchPhrase,
+  getSalonPhrase,
+} from "@/lib/tv/hype";
 
-type Slide = "upcoming" | "classement" | "match" | "duel" | "standings" | "bracket" | "matinale" | "revivez";
+type Slide = "upcoming" | "classement" | "match" | "duel" | "standings" | "bracket" | "matinale" | "revivez" | "prematch";
 
 const SLIDE_DURATION = 12000;
 const REFRESH_INTERVAL = 30000;
 const FLASH_POLL_INTERVAL = 10000;
-const SLIDES: Slide[] = ["upcoming", "classement", "match", "duel", "standings", "bracket", "matinale", "revivez"];
+const BASE_SLIDES: Slide[] = ["prematch", "upcoming", "classement", "match", "duel", "standings", "bracket", "matinale", "revivez"];
 
 interface StandingRow {
   team_name_fr: string;
@@ -48,6 +52,22 @@ interface AmbianceState {
   sub: string;
 }
 
+interface PreMatchStats {
+  match: Match;
+  total_teams: number;
+  teams_predicted: number;
+  teams_missing: number;
+  pct_a: number;
+  pct_b: number;
+  pct_draw: number;
+  top_result: "A" | "DRAW" | "B" | null;
+  top_pct: number;
+  top_score: string | null;
+  top_score_pct: number;
+  top_scorer: string | null;
+  top_scorer_pct: number;
+}
+
 interface TVData {
   matches: Match[];
   leaderboard: LeaderboardRow[];
@@ -56,6 +76,7 @@ interface TVData {
   standings?: StandingRow[];
   events?: CanalCupEvent[];
   ambiance?: AmbianceState | null;
+  prematch?: PreMatchStats | null;
 }
 
 // ─── Ambiance Banner ─────────────────────────────────────────────────────────
@@ -735,6 +756,231 @@ function SlideBracket() {
   );
 }
 
+// ─── Slide: Pre-match experience ─────────────────────────────────────────────
+
+function getPreMatchPhase(msLeft: number): {
+  countdownColor: string;
+  pulse: boolean;
+  borderClass: string;
+  bgClass: string;
+  moodLabel: string;
+} {
+  if (msLeft <= 60_000) return {
+    countdownColor: "#FF1A1A", pulse: true,
+    borderClass: "border-red-500", bgClass: "bg-red-950/30",
+    moodLabel: "🚨 IMMINENTE",
+  };
+  if (msLeft <= 5 * 60_000) return {
+    countdownColor: "#FF5500", pulse: true,
+    borderClass: "border-orange-500/60", bgClass: "bg-orange-950/20",
+    moodLabel: "⚡ TENSION MAXIMALE",
+  };
+  if (msLeft <= 15 * 60_000) return {
+    countdownColor: "#FF8800", pulse: false,
+    borderClass: "border-orange-400/40", bgClass: "bg-orange-950/10",
+    moodLabel: "🔥 ÇA CHAUFFE",
+  };
+  if (msLeft <= 30 * 60_000) return {
+    countdownColor: "#FFD700", pulse: false,
+    borderClass: "border-canal-yellow/30", bgClass: "bg-canal-yellow/5",
+    moodLabel: "🌡️ HYPE EN MONTÉE",
+  };
+  return {
+    countdownColor: "#FFD700", pulse: false,
+    borderClass: "border-canal-gray-light/20", bgClass: "bg-canal-gray-mid/10",
+    moodLabel: "⏳ BIENTÔT",
+  };
+}
+
+function PreMatchCountdown({ targetIso, msLeft }: { targetIso: string; msLeft: number }) {
+  const [currentMs, setCurrentMs] = useState(msLeft);
+  useEffect(() => {
+    const t = setInterval(() => setCurrentMs(new Date(targetIso).getTime() - Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [targetIso]);
+
+  const phase = getPreMatchPhase(currentMs);
+  const label = formatCountdown(currentMs);
+  const totalSec = Math.floor(currentMs / 1000);
+  const mins = Math.floor(totalSec / 60);
+  const secs = totalSec % 60;
+  const isVeryClose = currentMs <= 5 * 60_000;
+
+  return (
+    <div className={`flex flex-col items-center gap-2 px-10 py-5 rounded-2xl border ${phase.borderClass} ${phase.bgClass} transition-all duration-1000`}>
+      <p className="text-canal-gray-muted text-xl font-bold uppercase tracking-widest">
+        {phase.moodLabel}
+      </p>
+      <span
+        className={`font-black tabular-nums transition-colors ${phase.pulse ? "animate-pulse" : ""}`}
+        style={{ fontSize: isVeryClose ? "8rem" : "6rem", color: phase.countdownColor, lineHeight: 1 }}
+      >
+        {isVeryClose && currentMs > 0
+          ? `${mins}:${secs.toString().padStart(2, "0")}`
+          : label}
+      </span>
+      <p className="text-canal-gray-muted text-xl">avant le coup d&apos;envoi</p>
+    </div>
+  );
+}
+
+function SlidePreMatch({ stats }: { stats: PreMatchStats }) {
+  const { match } = stats;
+  const msLeft = new Date(match.starts_at).getTime() - Date.now();
+  const [salon, setSalon] = useState(() => getSalonPhrase(msLeft));
+
+  useEffect(() => {
+    const t = setInterval(() => setSalon(getSalonPhrase(new Date(match.starts_at).getTime() - Date.now())), 30_000);
+    return () => clearInterval(t);
+  }, [match.starts_at]);
+
+  const topTeam = stats.top_result === "A" ? match.team_a : stats.top_result === "B" ? match.team_b : null;
+  const robertCtx = {
+    teamA: match.team_a,
+    teamB: match.team_b,
+    topResult: stats.top_result,
+    topPct: stats.top_pct,
+    teamsMissing: stats.teams_missing,
+    msLeft,
+  };
+
+  return (
+    <div className="flex flex-col h-full justify-between px-16 py-10">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <p className="text-canal-yellow font-black text-2xl uppercase tracking-widest">
+          🏟️ PRÉ-MATCH
+        </p>
+        <p className="text-canal-gray-muted text-xl">
+          {toNCDate(match.starts_at)} · {toNCTime(match.starts_at)} NC · {match.channel}
+        </p>
+      </div>
+
+      {/* Teams + Countdown */}
+      <div className="flex items-center justify-between gap-8">
+        {/* Team A */}
+        <div className="flex-1 text-center">
+          <span className="text-8xl block mb-4 leading-none">{flagEmoji(match.flag_a ?? match.team_a)}</span>
+          <p className="font-black text-4xl text-white">{match.team_a}</p>
+        </div>
+
+        {/* Countdown center */}
+        <div className="shrink-0">
+          <PreMatchCountdown targetIso={match.starts_at} msLeft={msLeft} />
+        </div>
+
+        {/* Team B */}
+        <div className="flex-1 text-center">
+          <span className="text-8xl block mb-4 leading-none">{flagEmoji(match.flag_b ?? match.team_b)}</span>
+          <p className="font-black text-4xl text-white">{match.team_b}</p>
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div className="grid grid-cols-3 gap-5">
+        {/* Bureau prédit */}
+        <div className="bg-canal-gray-mid/40 border border-canal-gray-light/30 rounded-2xl p-5">
+          <p className="text-canal-gray-muted text-lg font-bold mb-2 uppercase tracking-wide">📊 Le bureau prédit</p>
+          {stats.top_score ? (
+            <>
+              <p className="font-black text-3xl text-white mb-1">
+                {stats.top_result === "A" ? match.team_a : stats.top_result === "B" ? match.team_b : "Match nul"}{" "}
+                <span className="text-canal-yellow">{stats.top_score}</span>
+              </p>
+              <p className="text-canal-gray-muted text-lg">
+                {stats.top_score_pct}% des équipes · {stats.teams_predicted}/{stats.total_teams} ont pronostiqué
+              </p>
+            </>
+          ) : (
+            <p className="text-canal-gray-muted text-xl">
+              {stats.teams_predicted}/{stats.total_teams} équipes ont pronostiqué
+            </p>
+          )}
+
+          {/* Result bar */}
+          {stats.teams_predicted > 0 && (
+            <div className="mt-3 flex rounded-full overflow-hidden h-2">
+              {stats.pct_a > 0 && (
+                <div className="bg-canal-yellow/70 h-full" style={{ width: `${stats.pct_a}%` }} title={`${match.team_a} ${stats.pct_a}%`} />
+              )}
+              {stats.pct_draw > 0 && (
+                <div className="bg-canal-gray-muted/50 h-full" style={{ width: `${stats.pct_draw}%` }} title={`Nul ${stats.pct_draw}%`} />
+              )}
+              {stats.pct_b > 0 && (
+                <div className="bg-blue-400/60 h-full" style={{ width: `${stats.pct_b}%` }} title={`${match.team_b} ${stats.pct_b}%`} />
+              )}
+            </div>
+          )}
+          <div className="flex justify-between text-sm text-canal-gray-muted mt-1">
+            <span>{match.team_a} {stats.pct_a}%</span>
+            <span>Nul {stats.pct_draw}%</span>
+            <span>{stats.pct_b}% {match.team_b}</span>
+          </div>
+        </div>
+
+        {/* Joueur à surveiller / confidence */}
+        <div className="bg-canal-gray-mid/40 border border-canal-gray-light/30 rounded-2xl p-5 flex flex-col justify-between">
+          {stats.top_scorer ? (
+            <>
+              <p className="text-canal-gray-muted text-lg font-bold mb-2 uppercase tracking-wide">👀 Joueur à surveiller</p>
+              <p className="font-black text-3xl text-white">{stats.top_scorer}</p>
+              <p className="text-canal-gray-muted text-lg mt-1">
+                {stats.top_scorer_pct}% pensent qu&apos;il marque ce soir.
+              </p>
+            </>
+          ) : topTeam ? (
+            <>
+              <p className="text-canal-gray-muted text-lg font-bold mb-2 uppercase tracking-wide">💪 Confiance</p>
+              <p className="font-black text-3xl text-white">{topTeam}</p>
+              <p className="text-canal-gray-muted text-lg mt-1">
+                favori du bureau à <span className="text-canal-yellow font-bold">{stats.top_pct}%</span>
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-canal-gray-muted text-lg font-bold mb-2 uppercase tracking-wide">🎲 Pronostics</p>
+              <p className="font-black text-3xl text-white">Indécis</p>
+              <p className="text-canal-gray-muted text-lg mt-1">Le bureau ne sait pas. C&apos;est rare.</p>
+            </>
+          )}
+        </div>
+
+        {/* Alerte non-pronostiqués */}
+        <div className={`rounded-2xl p-5 flex flex-col justify-between border ${
+          stats.teams_missing > 0
+            ? "bg-orange-950/20 border-orange-500/30"
+            : "bg-canal-green/10 border-canal-green/30"
+        }`}>
+          {stats.teams_missing > 0 ? (
+            <>
+              <p className="text-orange-400 text-lg font-bold mb-2 uppercase tracking-wide">⚠️ Alerte</p>
+              <p className="font-black text-3xl text-white">{stats.teams_missing} équipe{stats.teams_missing > 1 ? "s" : ""}</p>
+              <p className="text-orange-300/70 text-lg mt-1">n&apos;ont pas encore pronostiqué.</p>
+            </>
+          ) : (
+            <>
+              <p className="text-canal-green text-lg font-bold mb-2 uppercase tracking-wide">✅ Complet</p>
+              <p className="font-black text-3xl text-white">Tout le monde</p>
+              <p className="text-canal-gray-muted text-lg mt-1">a pronostiqué. Robert apprécie.</p>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Robert quote + salon */}
+      <div className="flex items-end justify-between gap-6">
+        <div className="flex-1 bg-canal-gray-mid/30 border border-canal-gray-light/20 rounded-2xl px-6 py-4">
+          <p className="text-canal-gray-muted text-xl italic leading-snug">
+            &ldquo;{getRobertPreMatchPhrase(robertCtx)}&rdquo;
+          </p>
+          <p className="text-canal-yellow/60 text-lg mt-1">— Robert</p>
+        </div>
+        <p className="text-canal-gray-muted text-xl italic shrink-0 max-w-xs text-right">{salon}</p>
+      </div>
+    </div>
+  );
+}
+
 // ─── Flash Overlay (plein écran, 5s) ─────────────────────────────────────────
 
 function FlashOverlay() {
@@ -853,15 +1099,17 @@ export default function TVPage() {
     return () => clearInterval(t);
   }, []);
 
+  const slides = BASE_SLIDES;
+
   useEffect(() => {
     const t = setInterval(
-      () => setCurrentSlide((i) => (i + 1) % SLIDES.length),
+      () => setCurrentSlide((i) => (i + 1) % slides.length),
       SLIDE_DURATION
     );
     return () => clearInterval(t);
-  }, []);
+  }, [slides.length]);
 
-  const slide = SLIDES[currentSlide];
+  const slide = slides[currentSlide];
 
   return (
     <PinGate>
@@ -898,6 +1146,19 @@ export default function TVPage() {
           </div>
         ) : (
           <>
+            {slide === "prematch" && (
+              data.prematch
+                ? <SlidePreMatch stats={data.prematch} />
+                : (
+                  <div className="flex h-full items-center justify-center flex-col gap-6 px-20 text-center">
+                    <span className="text-6xl">🏆</span>
+                    <p className="text-canal-yellow font-black text-3xl">CANAL CUP 2026</p>
+                    <p className="text-canal-gray-muted text-2xl italic">
+                      &ldquo;Aucun match à l&apos;horizon. Robert se repose. Temporairement.&rdquo;
+                    </p>
+                  </div>
+                )
+            )}
             {slide === "upcoming" && (
               <SlideUpcoming events={data.events ?? []} matches={data.matches} />
             )}
@@ -917,12 +1178,16 @@ export default function TVPage() {
 
       {/* Footer dots */}
       <footer className="flex items-center justify-center gap-3 pb-6 shrink-0">
-        {SLIDES.map((s, i) => (
+        {slides.map((s, i) => (
           <button
-            key={s}
+            key={`${s}-${i}`}
             onClick={() => setCurrentSlide(i)}
             className={`h-2 rounded-full transition-all duration-300 ${
-              i === currentSlide ? "w-8 bg-canal-yellow" : "w-2 bg-canal-gray-light"
+              i === currentSlide
+                ? "w-8 bg-canal-yellow"
+                : s === "prematch"
+                ? "w-2 bg-orange-500/50"
+                : "w-2 bg-canal-gray-light"
             }`}
           />
         ))}

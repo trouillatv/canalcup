@@ -9,11 +9,12 @@ type ShowState = "intro" | "question" | "revealing" | "finished";
 
 const ANSWER_KEYS = ["A", "B", "C", "D"] as const;
 
-const ANSWER_PALETTE: Record<string, { border: string; bg: string; letter: string }> = {
-  A: { border: "border-canal-yellow/60", bg: "bg-canal-yellow/10", letter: "text-canal-yellow" },
-  B: { border: "border-blue-400/60",      bg: "bg-blue-950/40",      letter: "text-blue-300" },
-  C: { border: "border-purple-400/60",    bg: "bg-purple-950/40",    letter: "text-purple-300" },
-  D: { border: "border-orange-400/60",    bg: "bg-orange-950/40",    letter: "text-orange-300" },
+// Solid vivid colors — game show energy, not dark transparent boxes
+const ANSWER_PALETTE: Record<string, { bg: string; text: string; ring: string }> = {
+  A: { bg: "bg-canal-yellow",   text: "text-canal-black", ring: "ring-canal-yellow/60" },
+  B: { bg: "bg-blue-600",       text: "text-white",        ring: "ring-blue-400/60" },
+  C: { bg: "bg-violet-600",     text: "text-white",        ring: "ring-violet-400/60" },
+  D: { bg: "bg-orange-500",     text: "text-white",        ring: "ring-orange-400/60" },
 };
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -27,6 +28,10 @@ const DIFFICULTY_LABELS: Record<string, string> = {
 const DIFFICULTY_COLORS: Record<string, string> = {
   easy: "text-green-400", medium: "text-yellow-400", hard: "text-red-400",
 };
+
+// Warm dark gradient — stadium under warm lights, not a corporate void
+const WARM_BG =
+  "radial-gradient(ellipse at 50% -5%, #2A1E08 0%, #130F08 45%, #0A0906 100%)";
 
 // ─── PIN Gate ────────────────────────────────────────────────────────────────
 
@@ -42,7 +47,7 @@ function PinGate({ children }: { children: React.ReactNode }) {
 
   if (ok === null) {
     return (
-      <div className="fixed inset-0 bg-canal-black flex items-center justify-center">
+      <div className="fixed inset-0 flex items-center justify-center" style={{ background: WARM_BG }}>
         <div className="w-10 h-10 border-2 border-canal-yellow border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -50,11 +55,11 @@ function PinGate({ children }: { children: React.ReactNode }) {
 
   if (!ok) {
     return (
-      <div className="fixed inset-0 bg-canal-black flex flex-col items-center justify-center gap-6">
+      <div className="fixed inset-0 flex flex-col items-center justify-center gap-6" style={{ background: WARM_BG }}>
         <p className="text-canal-yellow font-black text-4xl">QUIZ CANAL CUP</p>
-        <p className="text-canal-gray-muted text-2xl">Accès réservé à l'animateur.</p>
-        <p className="text-canal-gray-muted text-lg mt-2">
-          Ajoutez <span className="text-canal-yellow font-mono">?pin=XXXX</span> à l'URL.
+        <p className="text-white/60 text-2xl">Accès réservé à l&apos;animateur.</p>
+        <p className="text-white/40 text-lg mt-2">
+          Ajoutez <span className="text-canal-yellow font-mono">?pin=XXXX</span> à l&apos;URL.
         </p>
       </div>
     );
@@ -80,7 +85,6 @@ export default function QuizShowPage() {
     try {
       const res = await fetch("/api/quiz");
       const data: QuizQuestion[] = await res.json();
-      // Shuffle so it's not the same order every time
       setQuestions([...data].sort(() => Math.random() - 0.5));
     } catch {}
     setLoading(false);
@@ -88,7 +92,6 @@ export default function QuizShowPage() {
 
   useEffect(() => { loadQuestions(); }, [loadQuestions]);
 
-  // State machine: Space / → / Enter / click always advances
   const advance = useCallback(() => {
     if (state === "intro" && !loading && questions.length) {
       setIdx(0);
@@ -105,7 +108,6 @@ export default function QuizShowPage() {
         setState("question");
       }
     } else if (state === "finished") {
-      // Restart
       setQuestions((prev) => [...prev].sort(() => Math.random() - 0.5));
       setIdx(0);
       setTimeLeft(TIMER_SECONDS);
@@ -113,7 +115,6 @@ export default function QuizShowPage() {
     }
   }, [state, loading, questions.length, isLast]);
 
-  // Keyboard handler
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === " " || e.key === "ArrowRight" || e.key === "Enter") {
@@ -125,7 +126,6 @@ export default function QuizShowPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [advance]);
 
-  // Timer — auto-reveal when reaching 0
   useEffect(() => {
     if (state !== "question") return;
     if (timeLeft <= 0) { setState("revealing"); return; }
@@ -142,25 +142,31 @@ export default function QuizShowPage() {
     return (
       <PinGate>
         <div
-          className="fixed inset-0 bg-canal-black flex flex-col items-center justify-center gap-12 cursor-pointer select-none"
+          className="fixed inset-0 flex flex-col items-center justify-center gap-12 cursor-pointer select-none"
+          style={{ background: WARM_BG }}
           onClick={!loading ? advance : undefined}
         >
-          <div className="text-center">
-            <span className="text-9xl block mb-8">🏆</span>
-            <p className="font-black text-7xl text-canal-yellow uppercase tracking-widest mb-3">QUIZ</p>
-            <p className="font-black text-5xl text-white uppercase tracking-wide mb-2">CANAL CUP</p>
-            <p className="font-black text-4xl text-white">2026</p>
-            <p className="text-canal-gray-muted text-2xl mt-6">Coupe du Monde — Qui sait le plus ?</p>
+          {/* Ambient warm halo behind trophy */}
+          <div className="relative flex flex-col items-center">
+            <div className="absolute inset-0 -inset-x-20 bg-canal-yellow/10 rounded-full blur-3xl" />
+            <span className="text-9xl relative">🏆</span>
+          </div>
+
+          <div className="text-center space-y-2">
+            <p className="font-black text-7xl text-canal-yellow uppercase tracking-widest">QUIZ</p>
+            <p className="font-black text-5xl text-white uppercase tracking-wide">CANAL CUP</p>
+            <p className="font-black text-4xl text-white/70">2026</p>
+            <p className="text-white/50 text-2xl mt-6">Coupe du Monde — Qui sait le plus ?</p>
           </div>
 
           {loading ? (
             <div className="w-12 h-12 border-2 border-canal-yellow border-t-transparent rounded-full animate-spin" />
           ) : (
             <div className="flex flex-col items-center gap-4">
-              <div className="px-16 py-6 bg-canal-yellow rounded-3xl">
-                <p className="font-black text-canal-black text-3xl">DÉMARRER</p>
+              <div className="px-16 py-6 bg-canal-yellow rounded-3xl shadow-[0_0_60px_rgba(255,215,0,0.4)]">
+                <p className="font-black text-canal-black text-3xl tracking-wider">DÉMARRER</p>
               </div>
-              <p className="text-canal-gray-muted text-xl">
+              <p className="text-white/40 text-xl">
                 {questions.length} questions · Appuyez sur ESPACE
               </p>
             </div>
@@ -176,18 +182,22 @@ export default function QuizShowPage() {
     return (
       <PinGate>
         <div
-          className="fixed inset-0 bg-canal-black flex flex-col items-center justify-center gap-12 cursor-pointer select-none"
+          className="fixed inset-0 flex flex-col items-center justify-center gap-12 cursor-pointer select-none"
+          style={{ background: WARM_BG }}
           onClick={advance}
         >
-          <span className="text-9xl">🏆</span>
-          <div className="text-center">
-            <p className="font-black text-6xl text-canal-yellow mb-4">QUIZ TERMINÉ !</p>
-            <p className="text-canal-gray-muted text-3xl">{questions.length} questions · Bravo à tous</p>
+          <div className="relative">
+            <div className="absolute inset-0 -inset-x-24 bg-canal-yellow/15 rounded-full blur-3xl" />
+            <span className="text-9xl relative">🏆</span>
           </div>
-          <p className="text-canal-gray-muted text-2xl italic max-w-2xl text-center">
-            "Robert valide les bonnes réponses. En silence."
+          <div className="text-center space-y-4">
+            <p className="font-black text-6xl text-canal-yellow">QUIZ TERMINÉ !</p>
+            <p className="text-white/60 text-3xl">{questions.length} questions · Bravo à tous</p>
+          </div>
+          <p className="text-white/35 text-2xl italic max-w-2xl text-center">
+            &ldquo;Robert valide les bonnes réponses. En silence.&rdquo;
           </p>
-          <p className="text-canal-gray-muted text-xl mt-8">ESPACE pour rejouer</p>
+          <p className="text-white/30 text-xl mt-4">ESPACE pour rejouer</p>
         </div>
       </PinGate>
     );
@@ -204,67 +214,66 @@ export default function QuizShowPage() {
   return (
     <PinGate>
       <div
-        className="fixed inset-0 bg-canal-black flex flex-col select-none cursor-pointer"
+        className="fixed inset-0 flex flex-col select-none cursor-pointer"
+        style={{ background: WARM_BG }}
         onClick={advance}
       >
         {/* ── Header ─────────────────────────────────────────────────────── */}
-        <header className="flex items-center justify-between px-12 py-5 border-b border-canal-gray-light shrink-0">
-          <div className="flex items-center gap-4">
+        <header className="flex items-center justify-between px-12 py-5 border-b border-white/10 shrink-0">
+          <div className="flex items-center gap-3">
             <span className="font-black text-3xl text-canal-yellow">CANAL</span>
             <span className="font-black text-3xl text-white">CUP</span>
-            <span className="font-black text-3xl text-canal-gray-muted">QUIZ</span>
+            <span className="font-black text-3xl text-white/30">QUIZ</span>
           </div>
 
           <div className="flex items-center gap-8">
-            {/* Category */}
             <div className="flex items-center gap-2">
               <span className="text-3xl">{CATEGORY_ICONS[q.category] ?? "🎲"}</span>
-              <span className={`font-bold text-xl ${DIFFICULTY_COLORS[q.difficulty] ?? "text-canal-gray-muted"}`}>
+              <span className={`font-bold text-xl ${DIFFICULTY_COLORS[q.difficulty] ?? "text-white/50"}`}>
                 {DIFFICULTY_LABELS[q.difficulty] ?? q.difficulty}
               </span>
             </div>
-
-            {/* Progress */}
             <div className="flex items-center gap-2">
               <span className="font-black text-4xl text-white tabular-nums">{idx + 1}</span>
-              <span className="text-canal-gray-muted text-3xl">/</span>
-              <span className="text-canal-gray-muted text-3xl">{questions.length}</span>
+              <span className="text-white/30 text-3xl">/</span>
+              <span className="text-white/30 text-3xl">{questions.length}</span>
             </div>
           </div>
         </header>
 
         {/* ── Question text ───────────────────────────────────────────────── */}
         <div className="flex-1 flex flex-col justify-center px-16 gap-10">
-          <p className="font-black text-5xl text-white leading-tight text-center max-w-5xl mx-auto">
+          <p className="font-black text-5xl text-white leading-tight text-center max-w-5xl mx-auto drop-shadow-sm">
             {q.question}
           </p>
 
           {/* ── Answer grid ──────────────────────────────────────────────── */}
-          <div className="grid grid-cols-2 gap-5 max-w-6xl mx-auto w-full">
+          <div className="grid grid-cols-2 gap-4 max-w-6xl mx-auto w-full">
             {ANSWER_KEYS.map((key) => {
               const text = answerText(key);
               const isCorrect = key === q.correct_answer;
               const palette = ANSWER_PALETTE[key];
-
               const isRevealing = state === "revealing";
 
-              const boxClass = `
-                rounded-3xl border-2 p-7 flex items-center gap-6 transition-all duration-300
-                ${isRevealing
-                  ? isCorrect
-                    ? "bg-green-900/70 border-green-400"
-                    : "bg-canal-gray/15 border-canal-gray-light/20 opacity-35"
-                  : `${palette.bg} ${palette.border}`
+              let boxClass = `rounded-3xl p-7 flex items-center gap-6 transition-all duration-300 ring-2 ring-transparent `;
+
+              if (isRevealing) {
+                if (isCorrect) {
+                  boxClass += "bg-green-500 ring-4 ring-green-300/50 shadow-[0_0_40px_rgba(34,197,94,0.4)]";
+                } else {
+                  boxClass += "bg-white/5 opacity-30";
                 }
-              `;
+              } else {
+                boxClass += `${palette.bg} hover:ring-white/30 shadow-lg`;
+              }
 
               return (
                 <div key={key} className={boxClass}>
                   <span className={`
                     font-black text-5xl w-14 text-center shrink-0 leading-none
                     ${isRevealing
-                      ? isCorrect ? "text-green-300" : "text-canal-gray-muted"
-                      : palette.letter
+                      ? isCorrect ? "text-white" : "text-white/40"
+                      : palette.text
                     }
                   `}>
                     {isRevealing && isCorrect ? "✓" : key}
@@ -272,8 +281,8 @@ export default function QuizShowPage() {
                   <span className={`
                     font-bold text-3xl leading-snug
                     ${isRevealing
-                      ? isCorrect ? "text-white" : "text-canal-gray-muted"
-                      : "text-white"
+                      ? isCorrect ? "text-white" : "text-white/40"
+                      : palette.text
                     }
                   `}>
                     {text}
@@ -285,8 +294,7 @@ export default function QuizShowPage() {
         </div>
 
         {/* ── Footer ─────────────────────────────────────────────────────── */}
-        <footer className="shrink-0 px-12 pb-10 pt-4 space-y-4">
-          {/* Timer bar — hidden when revealed */}
+        <footer className="shrink-0 px-12 pb-10 pt-4 space-y-4 border-t border-white/5">
           {state === "question" && (
             <div className="flex items-center gap-5">
               <span className={`
@@ -295,7 +303,7 @@ export default function QuizShowPage() {
               `}>
                 {timeLeft}s
               </span>
-              <div className="flex-1 h-3 bg-canal-gray-mid rounded-full overflow-hidden">
+              <div className="flex-1 h-3 bg-white/10 rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-1000 ${timerColor}`}
                   style={{ width: `${timerPct}%` }}
@@ -304,9 +312,8 @@ export default function QuizShowPage() {
             </div>
           )}
 
-          {/* Keyboard hint */}
           <div className="flex items-center justify-between">
-            <p className="text-canal-gray-muted text-xl">
+            <p className="text-white/30 text-xl">
               {state === "question"
                 ? "ESPACE → révéler la réponse"
                 : isLast
@@ -314,20 +321,19 @@ export default function QuizShowPage() {
                 : `ESPACE → question ${idx + 2}`}
             </p>
 
-            {/* Progress dots */}
             <div className="flex gap-1.5 flex-wrap max-w-xs justify-end">
               {questions.slice(0, Math.min(questions.length, 20)).map((_, i) => (
                 <div
                   key={i}
                   className={`h-2 rounded-full transition-all ${
-                    i < idx ? "w-4 bg-canal-yellow/50" :
+                    i < idx ? "w-4 bg-canal-yellow/40" :
                     i === idx ? "w-6 bg-canal-yellow" :
-                    "w-2 bg-canal-gray-light"
+                    "w-2 bg-white/15"
                   }`}
                 />
               ))}
               {questions.length > 20 && (
-                <span className="text-canal-gray-muted text-xs self-center">+{questions.length - 20}</span>
+                <span className="text-white/25 text-xs self-center">+{questions.length - 20}</span>
               )}
             </div>
           </div>
