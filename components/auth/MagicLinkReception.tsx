@@ -1,19 +1,26 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-type Status = "idle" | "loading" | "sent" | "error";
+type Tab = "login" | "signup";
+type Status = "idle" | "loading" | "error" | "sent";
 
 const ERROR_LABELS: Record<string, string> = {
-  auth_failed: "Lien invalide ou expiré. Demande un nouveau lien.",
+  auth_failed: "Lien invalide ou expiré. Connecte-toi ci-dessous.",
   not_allowed: "Cet email n'est pas autorisé. Contacte un admin.",
 };
 
 export function MagicLinkReception() {
+  const router = useRouter();
+  const [tab, setTab] = useState<Tab>("login");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const [forgotSent, setForgotSent] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -21,121 +28,228 @@ export function MagicLinkReception() {
     if (err) setErrorMsg(ERROR_LABELS[err] ?? "Une erreur est survenue.");
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const reset = () => { setStatus("idle"); setErrorMsg(""); setPassword(""); setConfirm(""); };
+
+  const checkAllowlistAndRedirect = async () => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.email) { setErrorMsg("Erreur de session."); setStatus("error"); return; }
+
+    const { data: allowed } = await supabase
+      .from("allowlist_users")
+      .select("is_active")
+      .eq("email", user.email)
+      .single();
+
+    if (!allowed?.is_active) {
+      await supabase.auth.signOut();
+      setErrorMsg("Cet email n'est pas autorisé. Contacte un admin.");
+      setStatus("error");
+      return;
+    }
+
+    router.push("/");
+    router.refresh();
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    if (!email || !password) return;
     setStatus("loading");
     setErrorMsg("");
 
     const supabase = createClient();
-    const callbackUrl = `${window.location.origin}/auth/callback`;
-
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: callbackUrl },
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       setStatus("error");
-      setErrorMsg(error.message);
-    } else {
-      setStatus("sent");
+      setErrorMsg(
+        error.message.includes("Invalid login")
+          ? "Email ou mot de passe incorrect."
+          : error.message
+      );
+      return;
     }
+
+    await checkAllowlistAndRedirect();
   };
 
-  // ─── Confirmation envoyée ────────────────────────────────────────────────
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password || !confirm) return;
+    if (password !== confirm) { setErrorMsg("Les mots de passe ne correspondent pas."); return; }
+    if (password.length < 8) { setErrorMsg("Le mot de passe doit faire au moins 8 caractères."); return; }
+    setStatus("loading");
+    setErrorMsg("");
 
-  if (status === "sent") {
-    return (
-      <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center px-8 text-center"
-        style={{ background: "radial-gradient(ellipse at 50% -5%, #2A1E08 0%, #0D0B08 70%)" }}>
-        <div className="space-y-6 max-w-xs">
-          <span className="text-6xl block">📬</span>
-          <div>
-            <p className="font-black text-white text-2xl mb-2">Vérifie ta boîte mail</p>
-            <p className="text-canal-gray-muted leading-relaxed">
-              Un lien de connexion a été envoyé à{" "}
-              <span className="text-canal-yellow font-bold">{email}</span>.
-            </p>
-            <p className="text-canal-gray-muted text-sm mt-3">
-              Clique sur le lien pour accéder au tournoi. Il expire dans 1 heure.
-            </p>
-          </div>
-          <button
-            onClick={() => setStatus("idle")}
-            className="text-canal-gray-muted text-sm underline hover:text-white transition-colors"
-          >
-            Utiliser un autre email
-          </button>
-        </div>
-      </div>
-    );
-  }
+    const supabase = createClient();
+    const { error } = await supabase.auth.signUp({ email, password });
 
-  // ─── Formulaire de réception ─────────────────────────────────────────────
+    if (error) {
+      setStatus("error");
+      setErrorMsg(
+        error.message.includes("already registered")
+          ? "Ce compte existe déjà. Connecte-toi."
+          : error.message
+      );
+      return;
+    }
+
+    await checkAllowlistAndRedirect();
+  };
+
+  const handleForgot = async () => {
+    if (!email) { setErrorMsg("Entre d'abord ton email."); return; }
+    setForgotSent(false);
+    const supabase = createClient();
+    const callbackUrl = `${window.location.origin}/auth/callback`;
+    await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: callbackUrl } });
+    setForgotSent(true);
+  };
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex flex-col items-center justify-center px-8"
+      className="min-h-screen flex flex-col items-center justify-center px-6"
       style={{ background: "radial-gradient(ellipse at 50% -5%, #2A1E08 0%, #0D0B08 70%)" }}
     >
-      <div className="w-full max-w-sm space-y-10">
+      <div className="w-full max-w-sm space-y-8">
 
         {/* Logo */}
-        <div className="text-center space-y-1">
-          <div className="flex items-center justify-center gap-2">
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-2 mb-1">
             <span className="text-canal-yellow font-black text-5xl tracking-tight">CANAL</span>
             <span className="text-white font-black text-5xl tracking-tight">CUP</span>
           </div>
           <p className="text-canal-yellow/60 font-bold tracking-[0.3em] text-sm">2026</p>
-          <p className="text-canal-gray-muted text-sm pt-2">
-            Tournoi interne Canal+ · Coupe du Monde
-          </p>
         </div>
 
-        {/* Connexion label */}
-        <div className="text-center">
-          <p className="text-white font-black text-xl">Connexion</p>
-          <p className="text-canal-gray-muted text-sm mt-1">
-            Nouveau ou déjà inscrit · même lien magique
-          </p>
-        </div>
+        {/* Card */}
+        <div className="bg-canal-gray rounded-2xl border border-canal-gray-light overflow-hidden">
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-xs text-canal-gray-muted mb-2 block font-bold uppercase tracking-wider">
-              Ton email Canal+
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="prenom.nom@canal-plus.com"
-              required
-              autoFocus
-              className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3.5 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow transition-colors"
-            />
+          {/* Tabs */}
+          <div className="flex border-b border-canal-gray-light">
+            <button
+              onClick={() => { setTab("login"); reset(); }}
+              className={`flex-1 py-3.5 text-sm font-bold transition-colors ${
+                tab === "login"
+                  ? "text-canal-yellow border-b-2 border-canal-yellow bg-canal-yellow/5"
+                  : "text-canal-gray-muted hover:text-white"
+              }`}
+            >
+              Se connecter
+            </button>
+            <button
+              onClick={() => { setTab("signup"); reset(); }}
+              className={`flex-1 py-3.5 text-sm font-bold transition-colors ${
+                tab === "signup"
+                  ? "text-canal-yellow border-b-2 border-canal-yellow bg-canal-yellow/5"
+                  : "text-canal-gray-muted hover:text-white"
+              }`}
+            >
+              Créer un compte
+            </button>
           </div>
 
-          {(status === "error" || errorMsg) && (
-            <p className="text-red-400 text-sm">{errorMsg || "Erreur — réessaie."}</p>
-          )}
+          <div className="p-6">
+            {tab === "login" ? (
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <label className="text-xs text-canal-gray-muted mb-1.5 block font-bold uppercase tracking-wider">Email</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="prenom.nom@canal-plus.com"
+                    required
+                    autoFocus
+                    className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-canal-gray-muted mb-1.5 block font-bold uppercase tracking-wider">Mot de passe</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow transition-colors"
+                  />
+                </div>
 
-          <button
-            type="submit"
-            disabled={status === "loading" || !email}
-            className="w-full py-4 bg-canal-yellow text-canal-black font-black text-base rounded-xl hover:bg-canal-yellow-hover transition-colors disabled:opacity-50 shadow-[0_0_30px_rgba(255,215,0,0.25)]"
-          >
-            {status === "loading" ? "Envoi…" : "Recevoir mon lien de connexion"}
-          </button>
-        </form>
+                {errorMsg && <p className="text-red-400 text-sm">{errorMsg}</p>}
+                {forgotSent && <p className="text-green-400 text-sm">Lien envoyé sur {email} !</p>}
 
-        <p className="text-center text-canal-gray-muted text-xs leading-relaxed">
-          Accès réservé aux participants Canal Cup.
-          <br />
-          Ton email doit être dans la liste autorisée.
-        </p>
+                <button
+                  type="submit"
+                  disabled={status === "loading"}
+                  className="w-full py-3.5 bg-canal-yellow text-canal-black font-black text-base rounded-xl hover:bg-canal-yellow-hover transition-colors disabled:opacity-50"
+                >
+                  {status === "loading" ? "Connexion…" : "Se connecter"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleForgot}
+                  className="w-full text-canal-gray-muted text-xs hover:text-white transition-colors text-center"
+                >
+                  Mot de passe oublié ? Recevoir un lien de connexion
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleSignup} className="space-y-4">
+                <div>
+                  <label className="text-xs text-canal-gray-muted mb-1.5 block font-bold uppercase tracking-wider">Email Canal+</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="prenom.nom@canal-plus.com"
+                    required
+                    autoFocus
+                    className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-canal-gray-muted mb-1.5 block font-bold uppercase tracking-wider">Mot de passe</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="8 caractères minimum"
+                    required
+                    className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-canal-gray-muted mb-1.5 block font-bold uppercase tracking-wider">Confirmer</label>
+                  <input
+                    type="password"
+                    value={confirm}
+                    onChange={(e) => setConfirm(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow transition-colors"
+                  />
+                </div>
+
+                {errorMsg && <p className="text-red-400 text-sm">{errorMsg}</p>}
+
+                <button
+                  type="submit"
+                  disabled={status === "loading"}
+                  className="w-full py-3.5 bg-canal-yellow text-canal-black font-black text-base rounded-xl hover:bg-canal-yellow-hover transition-colors disabled:opacity-50"
+                >
+                  {status === "loading" ? "Création…" : "Créer mon compte"}
+                </button>
+
+                <p className="text-canal-gray-muted text-xs text-center">
+                  Accès réservé aux participants Canal Cup.
+                </p>
+              </form>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
