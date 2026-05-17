@@ -1,5 +1,5 @@
 import type { Match } from "@/lib/supabase/types";
-import { flagEmoji, toNCTime } from "@/lib/utils";
+import { teamFlag, toNCTime } from "@/lib/utils";
 import { ChannelBadge } from "./ChannelBadge";
 import { getChannelConfig } from "@/lib/channels";
 import { cn } from "@/lib/utils";
@@ -37,9 +37,9 @@ export function TonightOnAir({ matches, title = "Ce soir en direct" }: TonightOn
             >
               {/* Drapeaux */}
               <div className="flex items-center gap-1 flex-shrink-0">
-                <span className="text-2xl">{flagEmoji(match.flag_a ?? match.team_a)}</span>
+                <span className="text-2xl">{teamFlag(match.flag_a, match.team_a)}</span>
                 <span className="text-canal-gray-muted text-xs font-bold">vs</span>
-                <span className="text-2xl">{flagEmoji(match.flag_b ?? match.team_b)}</span>
+                <span className="text-2xl">{teamFlag(match.flag_b, match.team_b)}</span>
               </div>
 
               {/* Info match */}

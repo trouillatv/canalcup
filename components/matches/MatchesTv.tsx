@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { toNCDate, toNCTime } from "@/lib/utils";
+import { teamFlag, toNCDate, toNCTime } from "@/lib/utils";
 import { Countdown } from "./Countdown";
 import type { Match } from "@/lib/supabase/types";
 
@@ -55,7 +55,7 @@ function TvMatchCard({ match }: { match: Match }) {
           <div className="flex items-center gap-4">
             {/* Team A */}
             <div className={`flex-1 flex flex-col items-center gap-3 ${winner === "b" ? "opacity-35" : ""}`}>
-              <span className="text-7xl leading-none">{match.flag_a ?? "🏳️"}</span>
+              <span className="text-7xl leading-none">{teamFlag(match.flag_a, match.team_a)}</span>
               <span className={`font-black text-base text-center leading-tight max-w-24 ${
                 winner === "a" ? "text-canal-yellow" : "text-white"
               }`}>
@@ -91,7 +91,7 @@ function TvMatchCard({ match }: { match: Match }) {
 
             {/* Team B */}
             <div className={`flex-1 flex flex-col items-center gap-3 ${winner === "a" ? "opacity-35" : ""}`}>
-              <span className="text-7xl leading-none">{match.flag_b ?? "🏳️"}</span>
+              <span className="text-7xl leading-none">{teamFlag(match.flag_b, match.team_b)}</span>
               <span className={`font-black text-base text-center leading-tight max-w-24 ${
                 winner === "b" ? "text-canal-yellow" : "text-white"
               }`}>

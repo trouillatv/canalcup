@@ -1,5 +1,5 @@
 import type { Match } from "@/lib/supabase/types";
-import { flagEmoji, toNCDate, toNCTime } from "@/lib/utils";
+import { teamFlag, toNCDate, toNCTime } from "@/lib/utils";
 import { ChannelBadge } from "./ChannelBadge";
 import { getChannelConfig } from "@/lib/channels";
 import { Star } from "lucide-react";
@@ -34,7 +34,7 @@ export function MatchOfWeekHero({ match, tagline }: MatchOfWeekHeroProps) {
       {/* Teams + score */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex flex-col items-center gap-2 flex-1">
-          <span className="text-5xl">{flagEmoji(match.flag_a ?? match.team_a)}</span>
+          <span className="text-5xl">{teamFlag(match.flag_a, match.team_a)}</span>
           <span className="font-black text-white text-base text-center">{match.team_a}</span>
         </div>
 
@@ -55,7 +55,7 @@ export function MatchOfWeekHero({ match, tagline }: MatchOfWeekHeroProps) {
         </div>
 
         <div className="flex flex-col items-center gap-2 flex-1">
-          <span className="text-5xl">{flagEmoji(match.flag_b ?? match.team_b)}</span>
+          <span className="text-5xl">{teamFlag(match.flag_b, match.team_b)}</span>
           <span className="font-black text-white text-base text-center">{match.team_b}</span>
         </div>
       </div>

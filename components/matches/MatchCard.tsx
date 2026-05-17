@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { cn, flagEmoji, toNCDate, toNCTime } from "@/lib/utils";
+import { cn, teamFlag, toNCDate, toNCTime } from "@/lib/utils";
 import type { Match, PredictionTrend } from "@/lib/supabase/types";
 import { getResult, scoreLabel } from "@/lib/scoring";
 import { Star, Clock, ChevronRight, Check, Lock } from "lucide-react";
@@ -167,7 +167,7 @@ export function MatchCard({ match, trend, savedPrediction, compact }: MatchCardP
       {/* Match display */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1 flex flex-col items-center gap-1">
-          <span className="text-3xl">{flagEmoji(match.flag_a ?? match.team_a)}</span>
+          <span className="text-3xl">{teamFlag(match.flag_a, match.team_a)}</span>
           <span className="text-sm font-bold text-white text-center leading-tight">{match.team_a}</span>
         </div>
 
@@ -188,7 +188,7 @@ export function MatchCard({ match, trend, savedPrediction, compact }: MatchCardP
         </div>
 
         <div className="flex-1 flex flex-col items-center gap-1">
-          <span className="text-3xl">{flagEmoji(match.flag_b ?? match.team_b)}</span>
+          <span className="text-3xl">{teamFlag(match.flag_b, match.team_b)}</span>
           <span className="text-sm font-bold text-white text-center leading-tight">{match.team_b}</span>
         </div>
       </div>

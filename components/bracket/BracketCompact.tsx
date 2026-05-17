@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { toNCTime } from "@/lib/utils";
+import { teamFlag, toNCTime } from "@/lib/utils";
 
 interface MatchRow {
   id: string;
@@ -38,7 +38,7 @@ function CompactRow({ match }: { match: MatchRow }) {
           isLive ? "bg-red-950/20" : ""
         }`}
       >
-        <span className="text-sm w-6 shrink-0">{match.flag_a ?? "🏳️"}</span>
+        <span className="text-sm w-6 shrink-0">{teamFlag(match.flag_a, match.team_a)}</span>
         <span className={`font-semibold flex-1 min-w-0 truncate ${isFinished ? "text-canal-gray-muted" : "text-white"}`}>
           {match.team_a || "—"}
         </span>
@@ -54,7 +54,7 @@ function CompactRow({ match }: { match: MatchRow }) {
         <span className={`font-semibold flex-1 min-w-0 truncate text-right ${isFinished ? "text-canal-gray-muted" : "text-white"}`}>
           {match.team_b || "—"}
         </span>
-        <span className="text-sm w-6 shrink-0 text-right">{match.flag_b ?? "🏳️"}</span>
+        <span className="text-sm w-6 shrink-0 text-right">{teamFlag(match.flag_b, match.team_b)}</span>
       </div>
     </Link>
   );

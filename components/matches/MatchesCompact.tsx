@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { toNCDate, toNCTime } from "@/lib/utils";
+import { teamFlag, toNCDate, toNCTime } from "@/lib/utils";
 import type { Match } from "@/lib/supabase/types";
 
 interface SavedPrediction { score_a: number; score_b: number; points?: number }
@@ -24,7 +24,7 @@ function CompactRow({
           isLive ? "bg-red-950/20" : ""
         }`}
       >
-        <span className="text-base w-6 shrink-0 leading-none">{match.flag_a ?? "🏳️"}</span>
+        <span className="text-base w-6 shrink-0 leading-none">{teamFlag(match.flag_a, match.team_a)}</span>
         <span className={`text-xs font-bold flex-1 min-w-0 truncate ${
           isFinished ? "text-canal-gray-muted" : "text-white"
         }`}>
@@ -49,7 +49,7 @@ function CompactRow({
         }`}>
           {match.team_b}
         </span>
-        <span className="text-base w-6 shrink-0 text-right leading-none">{match.flag_b ?? "🏳️"}</span>
+        <span className="text-base w-6 shrink-0 text-right leading-none">{teamFlag(match.flag_b, match.team_b)}</span>
 
         {/* My prediction (if exists) */}
         {prediction && (

@@ -76,23 +76,13 @@ export function TopBar() {
 
         {/* Actions */}
         <div className="flex items-center gap-1">
-          {isAdmin && (
-            <Link href="/admin/quiz" className="p-2 text-canal-yellow hover:text-white transition-colors" aria-label="Admin">
-              <ShieldCheck size={18} />
-            </Link>
-          )}
           <Link href="/inbox" className="relative p-2 text-canal-gray-muted hover:text-white transition-colors" aria-label="Notifications">
             <Bell size={20} />
             <span className="absolute top-1 right-1 w-2 h-2 bg-canal-yellow rounded-full" />
           </Link>
           {user && (
-            <div className="flex items-center gap-1 ml-0.5">
-              <div className="w-7 h-7 rounded-full bg-canal-yellow flex items-center justify-center">
-                <span className="text-canal-black font-black text-xs">{userInitial}</span>
-              </div>
-              <button onClick={handleLogout} className="p-1.5 text-canal-gray-muted hover:text-red-400 transition-colors" aria-label="Déconnexion">
-                <LogOut size={16} />
-              </button>
+            <div className="w-7 h-7 rounded-full bg-canal-yellow flex items-center justify-center ml-0.5">
+              <span className="text-canal-black font-black text-xs">{userInitial}</span>
             </div>
           )}
         </div>
@@ -152,7 +142,8 @@ export function TopBar() {
                 { href: "/admin/quiz", label: "Quiz" },
                 { href: "/admin/matches", label: "Matchs" },
                 { href: "/admin/teams", label: "Équipes" },
-                { href: "/admin/babyfoot", label: "Babyfoot" },
+                { href: "/admin/babyfoot", label: "Babyfoot — matchs" },
+                { href: "/admin/babyfoot/teams", label: "Babyfoot — équipes" },
                 { href: "/admin/users", label: "Utilisateurs" },
               ].map(({ href, label }) => (
                 <Link
@@ -166,6 +157,17 @@ export function TopBar() {
               ))}
             </>
           )}
+
+          {/* Déconnexion */}
+          <div className="pt-4 mt-2 border-t border-canal-gray-light">
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm text-canal-gray-muted hover:text-red-400 hover:bg-canal-gray-mid transition-colors"
+            >
+              <LogOut size={18} />
+              Se déconnecter
+            </button>
+          </div>
         </nav>
       </div>
     </>

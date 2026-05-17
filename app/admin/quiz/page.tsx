@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Trash2, Sparkles, Plus, ChevronDown, ChevronUp, Play, Edit2 } from "lucide-react";
+import { Trash2, Plus, ChevronDown, ChevronUp, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { QuizQuestion, QuizCategory, QuizDifficulty } from "@/lib/supabase/types";
 
@@ -53,13 +53,6 @@ export default function AdminQuizPage() {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // AI generation state
-  const [genCategory, setGenCategory] = useState<QuizCategory>("general");
-  const [genDifficulty, setGenDifficulty] = useState<QuizDifficulty>("easy");
-  const [genCount, setGenCount] = useState(3);
-  const [generating, setGenerating] = useState(false);
-  const [genResult, setGenResult] = useState<string | null>(null);
-
   // Manual form state
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
@@ -67,11 +60,6 @@ export default function AdminQuizPage() {
 
   // Expanded question
   const [expanded, setExpanded] = useState<string | null>(null);
-
-  // Inline edit state
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<FormState>(EMPTY_FORM);
-  const [editSaving, setEditSaving] = useState(false);
 
   const fetchQuestions = useCallback(async () => {
     setLoading(true);
@@ -82,29 +70,6 @@ export default function AdminQuizPage() {
   }, []);
 
   useEffect(() => { fetchQuestions(); }, [fetchQuestions]);
-
-  const handleGenerate = async () => {
-    setGenerating(true);
-    setGenResult(null);
-    try {
-      const res = await fetch("/api/admin/quiz/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category: genCategory, difficulty: genDifficulty, count: genCount }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setGenResult(`Erreur : ${data.error}${data.hint ? ` — ${data.hint}` : ""}`);
-      } else {
-        setGenResult(`✅ ${data.count} question(s) générée(s) — coût estimé : ${data.costEur}€`);
-        fetchQuestions();
-      }
-    } catch {
-      setGenResult("Erreur réseau.");
-    } finally {
-      setGenerating(false);
-    }
-  };
 
   const handleManualSave = async () => {
     if (!form.question || !form.answer_a || !form.answer_b || !form.answer_c || !form.answer_d) return;
@@ -127,35 +92,6 @@ export default function AdminQuizPage() {
     setQuestions((prev) => prev.filter((q) => q.id !== id));
   };
 
-  const startEditing = (q: QuizQuestion) => {
-    setEditingId(q.id);
-    setEditForm({
-      question: q.question,
-      answer_a: q.answer_a,
-      answer_b: q.answer_b,
-      answer_c: q.answer_c,
-      answer_d: q.answer_d,
-      correct_answer: q.correct_answer,
-      difficulty: q.difficulty,
-      category: q.category,
-    });
-  };
-
-  const handleEditSave = async (id: string) => {
-    setEditSaving(true);
-    const res = await fetch("/api/admin/quiz", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", "x-admin-secret": ADMIN_SECRET },
-      body: JSON.stringify({ id, ...editForm }),
-    });
-    if (res.ok) {
-      const updated: QuizQuestion = await res.json();
-      setQuestions((prev) => prev.map((q) => (q.id === id ? updated : q)));
-      setEditingId(null);
-    }
-    setEditSaving(false);
-  };
-
   return (
     <div className="px-4 py-6 max-w-2xl mx-auto space-y-8">
       <div className="flex items-start justify-between gap-4">
@@ -173,66 +109,6 @@ export default function AdminQuizPage() {
           <Play size={14} /> Diaporama
         </Link>
       </div>
-
-      {/* ─── Génération IA ─── */}
-      <section className="canal-card space-y-4">
-        <div className="flex items-center gap-2">
-          <Sparkles size={16} className="text-canal-yellow" />
-          <h2 className="font-bold text-white">Générer avec l'IA</h2>
-        </div>
-
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <label className="text-xs text-canal-gray-muted mb-1 block">Catégorie</label>
-            <select
-              value={genCategory}
-              onChange={(e) => setGenCategory(e.target.value as QuizCategory)}
-              className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-lg px-3 py-2 text-sm text-white"
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs text-canal-gray-muted mb-1 block">Difficulté</label>
-            <select
-              value={genDifficulty}
-              onChange={(e) => setGenDifficulty(e.target.value as QuizDifficulty)}
-              className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-lg px-3 py-2 text-sm text-white"
-            >
-              {DIFFICULTIES.map((d) => (
-                <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs text-canal-gray-muted mb-1 block">Nombre</label>
-            <input
-              type="number"
-              min={1}
-              max={10}
-              value={genCount}
-              onChange={(e) => setGenCount(Number(e.target.value))}
-              className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-lg px-3 py-2 text-sm text-white"
-            />
-          </div>
-        </div>
-
-        <button
-          onClick={handleGenerate}
-          disabled={generating}
-          className="w-full py-3 bg-canal-yellow text-canal-black font-black rounded-xl hover:bg-canal-yellow-hover transition-colors disabled:opacity-50"
-        >
-          {generating ? "Génération en cours…" : `Générer ${genCount} question(s) ⚡`}
-        </button>
-
-        {genResult && (
-          <p className={cn("text-sm", genResult.startsWith("✅") ? "text-green-400" : "text-red-400")}>
-            {genResult}
-          </p>
-        )}
-      </section>
 
       {/* ─── Ajout manuel ─── */}
       <section className="canal-card space-y-4">
@@ -346,7 +222,7 @@ export default function AdminQuizPage() {
 
         {!loading && questions.length === 0 && (
           <div className="canal-card text-center py-6 text-canal-gray-muted">
-            Aucune question. Générez-en avec l'IA ou ajoutez-en manuellement.
+            Aucune question. Ajoutez-en manuellement.
           </div>
         )}
 
@@ -370,13 +246,6 @@ export default function AdminQuizPage() {
                   {expanded === q.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </button>
                 <button
-                  onClick={() => { startEditing(q); setExpanded(q.id); }}
-                  className="p-1.5 text-canal-gray-muted hover:text-canal-yellow transition-colors"
-                  title="Éditer"
-                >
-                  <Edit2 size={16} />
-                </button>
-                <button
                   onClick={() => handleDelete(q.id)}
                   className="p-1.5 text-canal-gray-muted hover:text-red-400 transition-colors"
                 >
@@ -385,7 +254,7 @@ export default function AdminQuizPage() {
               </div>
             </div>
 
-            {expanded === q.id && editingId !== q.id && (
+            {expanded === q.id && (
               <div className="mt-3 pt-3 border-t border-canal-gray-light grid grid-cols-2 gap-2">
                 {(["A", "B", "C", "D"] as const).map((key) => {
                   const text = q[`answer_${key.toLowerCase()}` as keyof QuizQuestion] as string;
@@ -409,97 +278,6 @@ export default function AdminQuizPage() {
               </div>
             )}
 
-            {expanded === q.id && editingId === q.id && (
-              <div className="mt-3 pt-3 border-t border-canal-gray-light space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-canal-gray-muted mb-1 block">Catégorie</label>
-                    <select
-                      value={editForm.category}
-                      onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value as QuizCategory }))}
-                      className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-lg px-3 py-2 text-sm text-white"
-                    >
-                      {CATEGORIES.map((c) => <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs text-canal-gray-muted mb-1 block">Difficulté</label>
-                    <select
-                      value={editForm.difficulty}
-                      onChange={(e) => setEditForm((f) => ({ ...f, difficulty: e.target.value as QuizDifficulty }))}
-                      className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-lg px-3 py-2 text-sm text-white"
-                    >
-                      {DIFFICULTIES.map((d) => <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs text-canal-gray-muted mb-1 block">Question</label>
-                  <textarea
-                    value={editForm.question}
-                    onChange={(e) => setEditForm((f) => ({ ...f, question: e.target.value }))}
-                    rows={2}
-                    className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-lg px-3 py-2 text-sm text-white placeholder:text-canal-gray-muted resize-none"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {(["A", "B", "C", "D"] as const).map((key) => {
-                    const field = `answer_${key.toLowerCase()}` as keyof typeof editForm;
-                    return (
-                      <div key={key}>
-                        <label className="text-xs text-canal-gray-muted mb-1 flex items-center gap-1">
-                          <span className="w-5 h-5 bg-canal-gray-light rounded text-xs font-black flex items-center justify-center text-white">{key}</span>
-                          {editForm.correct_answer === key && <span className="text-canal-yellow text-xs">✓ bonne réponse</span>}
-                        </label>
-                        <input
-                          value={editForm[field] as string}
-                          onChange={(e) => setEditForm((f) => ({ ...f, [field]: e.target.value }))}
-                          className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-lg px-3 py-2 text-sm text-white"
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div>
-                  <label className="text-xs text-canal-gray-muted mb-1 block">Bonne réponse</label>
-                  <div className="flex gap-2">
-                    {(["A", "B", "C", "D"] as const).map((key) => (
-                      <button
-                        key={key}
-                        onClick={() => setEditForm((f) => ({ ...f, correct_answer: key }))}
-                        className={cn(
-                          "flex-1 py-2 rounded-lg font-black text-sm transition-all",
-                          editForm.correct_answer === key
-                            ? "bg-canal-yellow text-canal-black"
-                            : "bg-canal-gray-mid text-canal-gray-muted border border-canal-gray-light"
-                        )}
-                      >
-                        {key}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEditSave(q.id)}
-                    disabled={editSaving}
-                    className="flex-1 py-2.5 bg-canal-yellow text-canal-black font-black rounded-xl hover:bg-canal-yellow-hover transition-colors disabled:opacity-50 text-sm"
-                  >
-                    {editSaving ? "Enregistrement…" : "Sauvegarder"}
-                  </button>
-                  <button
-                    onClick={() => setEditingId(null)}
-                    className="px-4 py-2.5 bg-canal-gray-mid text-canal-gray-muted border border-canal-gray-light font-bold rounded-xl hover:text-white transition-colors text-sm"
-                  >
-                    Annuler
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         ))}
       </section>

@@ -7,9 +7,10 @@ import { MatchOfWeekHero } from "@/components/matches/MatchOfWeekHero";
 import { TonightOnAir } from "@/components/matches/TonightOnAir";
 import { LeaderboardTable } from "@/components/leaderboard/LeaderboardTable";
 import { toNCDate } from "@/lib/utils";
-import { Calendar, Trophy, Users, Newspaper, Gamepad2, Heart } from "lucide-react";
+import { Heart } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { MagicLinkReception } from "@/components/auth/MagicLinkReception";
+import { PronoReminder } from "@/components/predictions/PronoReminder";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,23 @@ export default async function RootPage() {
     getTodayBrief(),
     getRevivezPosts(),
   ]);
+
+  // Upcoming matches without user prediction
+  const { data: profile } = await supabase.from("users").select("id").eq("auth_id", user.id).single();
+  let missingPronoCount = 0;
+  if (profile) {
+    const now = new Date().toISOString();
+    const upcoming = matches.filter((m) => m.status === "upcoming" && m.starts_at > now);
+    if (upcoming.length > 0) {
+      const { data: preds } = await supabase
+        .from("predictions")
+        .select("match_id")
+        .eq("user_id", profile.id)
+        .in("match_id", upcoming.map((m) => m.id));
+      const predictedIds = new Set((preds ?? []).map((p) => p.match_id));
+      missingPronoCount = upcoming.filter((m) => !predictedIds.has(m.id)).length;
+    }
+  }
 
   const matchOfWeek = matches.find((m) => m.is_match_of_week);
   const matchToday = matches.find((m) => m.status === "live")
@@ -49,6 +67,8 @@ export default async function RootPage() {
           Pronostics • Équipes • Babyfoot • Bonne ambiance
         </p>
       </div>
+
+      {missingPronoCount > 0 && <PronoReminder count={missingPronoCount} />}
 
       {matchOfWeek && (
         <section>
@@ -134,29 +154,6 @@ export default async function RootPage() {
         </section>
       )}
 
-      <section>
-        <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider mb-3">
-          Navigation rapide
-        </h2>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { href: "/matches", icon: Calendar, label: "Matchs & Pronostics", sub: "Vote en 10s" },
-            { href: "/leaderboard", icon: Trophy, label: "Classement complet", sub: "Points détaillés" },
-            { href: "/teams", icon: Users, label: "Équipes", sub: "Fiches & stats" },
-            { href: "/babyfoot", icon: Gamepad2, label: "Babyfoot", sub: "Tournoi interne" },
-            { href: "/quiz-live", icon: Gamepad2, label: "Quiz Live", sub: "15 secondes !" },
-            { href: "/revivez", icon: Newspaper, label: "Revivez", sub: "Fails & phrases cultes" },
-          ].map(({ href, icon: Icon, label, sub }) => (
-            <Link key={href} href={href} className="canal-card hover:bg-canal-gray-mid transition-colors flex flex-col gap-2">
-              <Icon size={20} className="text-canal-yellow" />
-              <div>
-                <p className="font-bold text-white text-sm leading-tight">{label}</p>
-                <p className="text-canal-gray-muted text-xs">{sub}</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
     </div>
   );
 }
