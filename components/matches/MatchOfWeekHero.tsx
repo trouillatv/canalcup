@@ -1,6 +1,5 @@
 import type { Match } from "@/lib/supabase/types";
 import { teamFlag, toNCDate, toNCTime } from "@/lib/utils";
-import { ChannelBadge } from "./ChannelBadge";
 import { getChannelConfig } from "@/lib/channels";
 import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -28,7 +27,6 @@ export function MatchOfWeekHero({ match, tagline }: MatchOfWeekHeroProps) {
         <span className="flex items-center gap-1 canal-badge">
           <Star size={10} fill="currentColor" /> Match de la semaine
         </span>
-        <ChannelBadge channel={match.channel} size="md" />
       </div>
 
       {/* Teams + score */}

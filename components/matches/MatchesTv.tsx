@@ -82,11 +82,6 @@ function TvMatchCard({ match }: { match: Match }) {
               ) : (
                 <span className="text-canal-gray-muted text-3xl font-black">VS</span>
               )}
-              {match.channel && (
-                <span className="text-xs text-canal-yellow font-bold border border-canal-yellow/30 rounded-full px-3 py-0.5">
-                  {match.channel}
-                </span>
-              )}
             </div>
 
             {/* Team B */}

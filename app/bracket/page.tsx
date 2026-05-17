@@ -100,9 +100,6 @@ function MatchChip({ match }: { match: MatchRow }) {
           <span className="text-canal-gray-muted text-xs">
             {isLive ? "🔴 En direct" : `${toNCDate(match.starts_at)} ${toNCTime(match.starts_at)}`}
           </span>
-          {match.channel && (
-            <span className="text-canal-yellow text-xs font-medium">{match.channel}</span>
-          )}
         </div>
       </div>
     </Link>

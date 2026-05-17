@@ -78,7 +78,7 @@ export async function GET() {
   const soon = new Date(Date.now() + 30 * 60_000).toISOString();
   const { data: upcoming } = await supabase
     .from("matches")
-    .select("team_a, team_b, flag_a, flag_b, starts_at, channel")
+    .select("team_a, team_b, flag_a, flag_b, starts_at")
     .eq("status", "upcoming")
     .lte("starts_at", soon)
     .order("starts_at", { ascending: true })
@@ -91,7 +91,7 @@ export async function GET() {
     news.push({
       type: "upcoming",
       text: `⏱️ Coup d'envoi dans moins de 30min`,
-      sub: `${m.flag_a ?? ""} ${m.team_a} vs ${m.team_b} ${m.flag_b ?? ""} — ${t} NC sur ${m.channel}`,
+      sub: `${m.flag_a ?? ""} ${m.team_a} vs ${m.team_b} ${m.flag_b ?? ""} — ${t} NC`,
       at: m.starts_at,
     });
   }

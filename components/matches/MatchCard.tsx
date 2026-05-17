@@ -6,7 +6,6 @@ import { cn, teamFlag, toNCDate, toNCTime } from "@/lib/utils";
 import type { Match, PredictionTrend } from "@/lib/supabase/types";
 import { getResult, scoreLabel } from "@/lib/scoring";
 import { Star, Clock, ChevronRight, Check, Lock } from "lucide-react";
-import { ChannelBadge } from "./ChannelBadge";
 import { Countdown } from "./Countdown";
 
 interface SavedPrediction {
@@ -184,7 +183,6 @@ export function MatchCard({ match, trend, savedPrediction, compact }: MatchCardP
               <Countdown startsAt={match.starts_at} />
             </div>
           )}
-          <ChannelBadge channel={match.channel} size="sm" />
         </div>
 
         <div className="flex-1 flex flex-col items-center gap-1">

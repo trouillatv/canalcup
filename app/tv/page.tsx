@@ -141,7 +141,7 @@ function SlideUpcoming({ events, matches }: { events: CanalCupEvent[]; matches: 
           teams: [matchWeek.team_a, matchWeek.team_b],
           hype_level: 3,
           robert_phrase: undefined,
-          location: matchWeek.channel,
+          location: undefined,
           is_active: true,
           created_at: matchWeek.starts_at,
         } as CanalCupEvent,
@@ -269,7 +269,7 @@ function SlideTimeline({ events, matches }: { events: CanalCupEvent[]; matches: 
       title: `${m.team_a} vs ${m.team_b}`,
       starts_at: m.starts_at,
       hype_level: m.is_match_of_week ? 3 : 2,
-      location: m.channel,
+      location: undefined,
       is_active: true,
     } as CanalCupEvent));
 
@@ -479,7 +479,6 @@ function SlideMatch({ matches }: { matches: Match[] }) {
           <p className="text-canal-gray-muted text-xs sm:text-xl text-center">
             {toNCDate(match.starts_at)} — {toNCTime(match.starts_at)} NC
           </p>
-          <div className="canal-badge text-xs sm:text-lg px-2 sm:px-4 py-1">{match.channel}</div>
         </div>
         <div className="flex flex-col items-center gap-1 sm:gap-4 flex-1 min-w-0">
           <span className="text-4xl sm:text-6xl lg:text-8xl">{teamFlag(match.flag_b, match.team_b)}</span>
@@ -850,7 +849,7 @@ function SlidePreMatch({ stats }: { stats: PreMatchStats }) {
           🏟️ PRÉ-MATCH
         </p>
         <p className="text-canal-gray-muted text-xs sm:text-xl">
-          {toNCDate(match.starts_at)} · {toNCTime(match.starts_at)} NC · {match.channel}
+          {toNCDate(match.starts_at)} · {toNCTime(match.starts_at)} NC
         </p>
       </div>
 

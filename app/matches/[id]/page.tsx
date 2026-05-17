@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { FullMatchDetail, MatchEvent, LineupPlayer, StandingRow } from "@/services/football/types";
-import { Tv, MapPin, User, RefreshCw, Clock, Sparkles } from "lucide-react";
+import { MapPin, User, RefreshCw, Clock, Sparkles } from "lucide-react";
 import { MatchReactions } from "@/components/matches/MatchReactions";
 import { Countdown } from "@/components/matches/Countdown";
 
@@ -75,7 +75,6 @@ function ScoreBoard({ detail }: { detail: FullMatchDetail }) {
       </div>
 
       <div className="flex items-center justify-center gap-4 text-xs text-canal-gray-muted flex-wrap">
-        {match.channel && <span className="flex items-center gap-1"><Tv size={11} /> {match.channel}</span>}
         {match.venue && <span className="flex items-center gap-1"><MapPin size={11} /> {match.venue}</span>}
         {match.referee && <span className="flex items-center gap-1"><User size={11} /> {match.referee}</span>}
       </div>
