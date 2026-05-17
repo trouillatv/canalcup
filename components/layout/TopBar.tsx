@@ -72,11 +72,6 @@ export function TopBar() {
         <span className="text-canal-gray-muted text-xl font-bold">2026</span>
       </div>
 
-      {!isHome && (
-        <h1 className="absolute left-1/2 -translate-x-1/2 text-white font-bold text-sm">
-          {title}
-        </h1>
-      )}
 
       <div className="flex items-center gap-2">
         {isAdmin && (
