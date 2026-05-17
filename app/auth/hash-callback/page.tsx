@@ -39,7 +39,7 @@ function HashCallback() {
       }
 
       if (!session?.user?.email) {
-        router.replace("/login?error=auth_failed");
+        router.replace("/?error=auth_failed");
         return;
       }
 
@@ -51,7 +51,7 @@ function HashCallback() {
 
       if (!allowed?.is_active) {
         await supabase.auth.signOut();
-        router.replace("/login?error=not_allowed");
+        router.replace("/?error=not_allowed");
         return;
       }
 

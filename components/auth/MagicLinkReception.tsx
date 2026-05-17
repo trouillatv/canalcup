@@ -1,14 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type Status = "idle" | "loading" | "sent" | "error";
+
+const ERROR_LABELS: Record<string, string> = {
+  auth_failed: "Lien invalide ou expiré. Demande un nouveau lien.",
+  not_allowed: "Cet email n'est pas autorisé. Contacte un admin.",
+};
 
 export function MagicLinkReception() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get("error");
+    if (err) setErrorMsg(ERROR_LABELS[err] ?? "Une erreur est survenue.");
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,7 +110,7 @@ export function MagicLinkReception() {
             />
           </div>
 
-          {status === "error" && (
+          {(status === "error" || errorMsg) && (
             <p className="text-red-400 text-sm">{errorMsg || "Erreur — réessaie."}</p>
           )}
 

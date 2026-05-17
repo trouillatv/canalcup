@@ -7,20 +7,20 @@ export async function GET(request: Request) {
   const redirectTo = searchParams.get("redirectTo") ?? "/";
 
   if (!code) {
-    return NextResponse.redirect(`${origin}/login?error=auth_failed`);
+    return NextResponse.redirect(`${origin}/?error=auth_failed`);
   }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
-    return NextResponse.redirect(`${origin}/login?error=auth_failed`);
+    return NextResponse.redirect(`${origin}/?error=auth_failed`);
   }
 
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user?.email) {
-    return NextResponse.redirect(`${origin}/login?error=auth_failed`);
+    return NextResponse.redirect(`${origin}/?error=auth_failed`);
   }
 
   // Vérifier l'allowlist
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
 
   if (!allowed?.is_active) {
     await supabase.auth.signOut();
-    return NextResponse.redirect(`${origin}/login?error=not_allowed`);
+    return NextResponse.redirect(`${origin}/?error=not_allowed`);
   }
 
   // Mettre à jour last_login_at
