@@ -133,4 +133,30 @@ Règles absolues :
 - Si scores exacts > 3 : saluer les génies du pronostic
 - Réponds uniquement en JSON valide, sans markdown.
 `,
+
+  playerRatings: (context: {
+    teamA: string;
+    teamB: string;
+    scoreA: number;
+    scoreB: number;
+    phase: string;
+    homeStarters: string[];
+    awayStarters: string[];
+    events: string; // résumé textuel : buts, passes D, cartons, remplacements
+  }) => `
+Tu es analyste football. À partir des FAITS du match ci-dessous, estime une note /10 pour chaque titulaire.
+Tu n'inventes AUCUN fait : tu te bases uniquement sur les événements fournis. C'est une ESTIMATION.
+
+Match : ${context.teamA} ${context.scoreA}–${context.scoreB} ${context.teamB} (${context.phase})
+Titulaires ${context.teamA} : ${context.homeStarters.join(", ")}
+Titulaires ${context.teamB} : ${context.awayStarters.join(", ")}
+Événements : ${context.events || "aucun événement notable"}
+
+Barème : base 6.0. Bonus but +1.0 à +1.5, passe décisive +0.7, carton jaune −0.3,
+carton rouge −1.5. Vainqueur légèrement au-dessus, perdant en dessous. Plage 4.0–9.5.
+Arrondis à 0.1. Le joueur du match (is_motm:true) = meilleure note, un seul, côté décisif.
+
+Réponds en JSON strict, sans markdown :
+{"players":[{"team_side":"home|away","player_name":"...","rating":7.2,"goals":0,"assists":0,"yellow_cards":0,"red_cards":0,"is_motm":false}]}
+`,
 } as const;

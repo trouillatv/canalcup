@@ -3,12 +3,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
-import type { FullMatchDetail, MatchEvent, LineupPlayer, StandingRow } from "@/services/football/types";
-import { MapPin, User, RefreshCw, Clock, Sparkles } from "lucide-react";
+import type { FullMatchDetail, MatchEvent, LineupPlayer, PlayerMatchStat, StandingRow } from "@/services/football/types";
+import { MapPin, User, RefreshCw, Clock, Sparkles, Star, BarChart3 } from "lucide-react";
 import { MatchReactions } from "@/components/matches/MatchReactions";
 import { Countdown } from "@/components/matches/Countdown";
 
-type Tab = "timeline" | "lineups" | "stats" | "standings";
+type Tab = "timeline" | "lineups" | "stats" | "notes" | "pronos" | "standings";
 
 const EVENT_ICONS: Record<string, string> = {
   goal: "⚽", yellow_card: "🟨", red_card: "🟥",
@@ -261,6 +261,132 @@ function Standings({ rows }: { rows: StandingRow[] }) {
   );
 }
 
+function ratingClass(r: number | null): string {
+  if (r == null) return "bg-canal-gray-mid text-canal-gray-muted";
+  if (r >= 7.5) return "bg-green-500/20 text-green-400 border border-green-500/40";
+  if (r >= 6.5) return "bg-canal-yellow/15 text-canal-yellow border border-canal-yellow/30";
+  return "bg-red-500/15 text-red-400 border border-red-500/30";
+}
+
+function PlayerStatRow({ p }: { p: PlayerMatchStat }) {
+  const badges = [
+    ...Array(p.goals).fill("⚽"),
+    ...Array(p.assists).fill("🅰️"),
+    ...Array(p.yellow_cards).fill("🟨"),
+    ...Array(p.red_cards).fill("🟥"),
+  ].join(" ");
+  return (
+    <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-canal-gray-mid">
+      <span className="text-xs text-white font-bold truncate flex-1">{p.player_name}</span>
+      {badges && <span className="text-[11px] shrink-0">{badges}</span>}
+      <span className={cn("text-xs font-black tabular-nums px-1.5 py-0.5 rounded shrink-0", ratingClass(p.rating))}>
+        {p.rating != null ? p.rating.toFixed(1) : "—"}
+      </span>
+    </div>
+  );
+}
+
+function TopPlayers({ players, teamA, teamB }: { players: PlayerMatchStat[]; teamA: string; teamB: string }) {
+  if (!players.length) return (
+    <p className="text-center text-canal-gray-muted text-sm py-12">
+      Notes joueurs disponibles après le match.
+    </p>
+  );
+
+  const estimated = players.some((p) => p.source !== "api-football");
+  const motm = players.find((p) => p.is_motm) ?? null;
+  const sortByRating = (arr: PlayerMatchStat[]) =>
+    [...arr].sort((x, y) => (y.rating ?? 0) - (x.rating ?? 0));
+  const home = sortByRating(players.filter((p) => p.team_side === "home"));
+  const away = sortByRating(players.filter((p) => p.team_side === "away"));
+
+  return (
+    <div className="py-2 space-y-4">
+      {estimated && (
+        <p className="text-[11px] text-canal-gray-muted italic text-center">
+          Notes estimées (analyse Canal Cup) — non officielles.
+        </p>
+      )}
+      {motm && (
+        <div className="rounded-2xl bg-gradient-to-br from-canal-yellow/15 to-canal-gray border border-canal-yellow/30 px-4 py-3 flex items-center gap-3">
+          <Star size={20} className="text-canal-yellow shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-black text-canal-yellow uppercase tracking-wider">Joueur du match</p>
+            <p className="text-sm font-black text-white truncate">{motm.player_name}</p>
+          </div>
+          <span className={cn("text-base font-black tabular-nums px-2 py-1 rounded", ratingClass(motm.rating))}>
+            {motm.rating != null ? motm.rating.toFixed(1) : "—"}
+          </span>
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-3">
+        {[{ label: teamA, list: home }, { label: teamB, list: away }].map(({ label, list }) => (
+          <div key={label}>
+            <p className="text-xs font-black text-canal-yellow uppercase tracking-wider mb-2 truncate">{label}</p>
+            <div className="space-y-1">
+              {list.map((p, i) => <PlayerStatRow key={`${p.player_name}-${i}`} p={p} />)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PredictionTrend({ matchId }: { matchId: string }) {
+  const [data, setData] = useState<{ total: number; a: number; draw: number; b: number; exact: number | null; finished: boolean } | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/matches/${matchId}/predictions-trend`)
+      .then((r) => r.json())
+      .then(setData)
+      .catch(() => {});
+  }, [matchId]);
+
+  if (!data) return (
+    <p className="text-center text-canal-gray-muted text-sm py-12">Chargement des pronostics…</p>
+  );
+  if (!data.total) return (
+    <p className="text-center text-canal-gray-muted text-sm py-12">
+      Aucun pronostic Canal Cup sur ce match pour l'instant.
+    </p>
+  );
+
+  const pct = (n: number) => Math.round((n / data.total) * 100);
+  const bars = [
+    { label: "Victoire 1", n: data.a, color: "bg-canal-yellow" },
+    { label: "Match nul", n: data.draw, color: "bg-canal-gray-light" },
+    { label: "Victoire 2", n: data.b, color: "bg-canal-yellow" },
+  ];
+
+  return (
+    <div className="py-2 space-y-4">
+      <p className="text-xs text-canal-gray-muted text-center">
+        {data.total} pronostic{data.total > 1 ? "s" : ""} Canal Cup
+      </p>
+      <div className="space-y-3">
+        {bars.map((bar) => (
+          <div key={bar.label}>
+            <div className="flex justify-between text-xs mb-1">
+              <span className="text-white font-bold">{bar.label}</span>
+              <span className="text-canal-gray-muted">{pct(bar.n)}% · {bar.n}</span>
+            </div>
+            <div className="h-2 bg-canal-gray-mid rounded-full overflow-hidden">
+              <div className={cn("h-full rounded-full transition-all", bar.color)} style={{ width: `${pct(bar.n)}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+      {data.finished && data.exact != null && (
+        <div className="rounded-xl bg-canal-gray-mid px-4 py-3 text-center">
+          <p className="text-2xl font-black text-canal-yellow tabular-nums">{data.exact}</p>
+          <p className="text-xs text-canal-gray-muted">score{data.exact > 1 ? "s" : ""} exact{data.exact > 1 ? "s" : ""} sur {data.total}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function RobertStory({ matchId, isFinished }: { matchId: string; isFinished: boolean }) {
   const [story, setStory] = useState<{ phrase: string } | null>(null);
   const [tried, setTried] = useState(false);
@@ -320,13 +446,15 @@ export default function MatchCenterPage() {
     </div>
   );
 
-  const { match, events, lineups, stats, standings } = detail;
+  const { match, events, lineups, stats, playerStats, standings } = detail;
   const isLive = match.status === "live" || match.status === "halftime";
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: "timeline", label: "Timeline", count: events.length || undefined },
     { key: "lineups", label: "Compos" },
     { key: "stats", label: "Stats", count: stats.length || undefined },
+    { key: "notes", label: "Notes", count: playerStats.length || undefined },
+    { key: "pronos", label: "Pronos" },
     { key: "standings", label: "Groupe" },
   ];
 
@@ -382,6 +510,8 @@ export default function MatchCenterPage() {
             : <p className="text-center text-canal-gray-muted text-sm py-12">Compositions disponibles avant le coup d'envoi.</p>
         )}
         {tab === "stats" && <Stats stats={stats} teamA={match.team_a} teamB={match.team_b} />}
+        {tab === "notes" && <TopPlayers players={playerStats} teamA={match.team_a} teamB={match.team_b} />}
+        {tab === "pronos" && <PredictionTrend matchId={match.id} />}
         {tab === "standings" && <Standings rows={(standings ?? []) as StandingRow[]} />}
       </div>
 

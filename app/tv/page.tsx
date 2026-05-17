@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { teamFlag, toNCDate, toNCTime } from "@/lib/utils";
 import { QrCode } from "lucide-react";
 import type { Match, LeaderboardRow, MorningBrief, RevivezPost, CanalCupEvent } from "@/lib/supabase/types";
+import type { FullMatchDetail } from "@/services/football/types";
 import {
   EVENT_CONFIGS,
   DUEL_PHRASES,
@@ -23,12 +24,12 @@ import {
   getSalonPhrase,
 } from "@/lib/tv/hype";
 
-type Slide = "upcoming" | "classement" | "match" | "duel" | "standings" | "bracket" | "matinale" | "revivez" | "prematch";
+type Slide = "upcoming" | "classement" | "match" | "livematch" | "duel" | "standings" | "bracket" | "matinale" | "revivez" | "prematch";
 
 const SLIDE_DURATION = 12000;
 const REFRESH_INTERVAL = 30000;
 const FLASH_POLL_INTERVAL = 10000;
-const BASE_SLIDES: Slide[] = ["prematch", "upcoming", "classement", "match", "duel", "standings", "bracket", "matinale", "revivez"];
+const BASE_SLIDES: Slide[] = ["prematch", "upcoming", "classement", "match", "livematch", "duel", "standings", "bracket", "matinale", "revivez"];
 
 interface StandingRow {
   team_name_fr: string;
@@ -492,6 +493,149 @@ function SlideMatch({ matches }: { matches: Match[] }) {
   );
 }
 
+// ─── Slide: Live Match (simplifié TV) ────────────────────────────────────────
+// Score · buteurs · cartons · dernier fait marquant · compos avant-match · MOTM
+function SlideLiveMatch({ matches }: { matches: Match[] }) {
+  const target =
+    matches.find((m) => m.status === "live" || m.status === "halftime") ??
+    matches.find((m) => m.status === "finished") ??
+    matches.find((m) => m.status === "upcoming");
+
+  const [detail, setDetail] = useState<FullMatchDetail | null>(null);
+
+  useEffect(() => {
+    if (!target) return;
+    let stop = false;
+    const load = () =>
+      fetch(`/api/matches/${target.id}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => { if (!stop) setDetail(d); })
+        .catch(() => {});
+    load();
+    const live = target.status === "live" || target.status === "halftime";
+    const t = live ? setInterval(load, 20000) : null;
+    return () => { stop = true; if (t) clearInterval(t); };
+  }, [target?.id, target?.status]);
+
+  if (!target) return null;
+
+  const m = detail?.match;
+  const status = m?.status ?? target.status;
+  const isUpcoming = status === "upcoming";
+  const isFinished = status === "finished";
+  const events = detail?.events ?? [];
+  const goals = events.filter((e) => e.type === "goal");
+  const cards = events.filter((e) => e.type === "yellow_card" || e.type === "red_card");
+  const lastEvent = [...events].sort((a, b) => b.minute - a.minute)[0] ?? null;
+  const motm = (detail?.playerStats ?? []).find((p) => p.is_motm) ?? null;
+
+  const sideGoals = (side: "home" | "away") =>
+    goals
+      .filter((g) => g.team_side === side)
+      .map((g) => `${g.player_name} ${g.minute}'`)
+      .join(" · ");
+
+  const statusLabel = isUpcoming
+    ? "⚽ Prochain match"
+    : isFinished
+    ? "✅ Terminé"
+    : status === "halftime"
+    ? "⏸ Mi-temps"
+    : `🔴 En direct${m?.minute ? ` · ${m.minute}'` : ""}`;
+
+  return (
+    <div className="flex flex-col h-full justify-center px-4 sm:px-10 lg:px-24 py-6 sm:py-10">
+      <p className="text-canal-yellow font-black text-base sm:text-2xl uppercase tracking-widest mb-4 sm:mb-8 text-center">
+        {statusLabel}
+      </p>
+
+      <div className="flex items-center gap-2 sm:gap-12 w-full justify-center">
+        <div className="flex flex-col items-center gap-1 sm:gap-3 flex-1 min-w-0">
+          <span className="text-4xl sm:text-7xl lg:text-8xl">{teamFlag(target.flag_a, target.team_a)}</span>
+          <p className="font-black text-sm sm:text-3xl text-white text-center break-words leading-tight">{target.team_a}</p>
+        </div>
+        <div className="flex flex-col items-center gap-1 shrink-0">
+          {isUpcoming ? (
+            <span className="font-black text-2xl sm:text-5xl text-canal-gray-muted">VS</span>
+          ) : (
+            <div className="flex gap-2 sm:gap-5 items-center">
+              <span className="font-black text-4xl sm:text-7xl lg:text-8xl text-canal-yellow tabular-nums">{m?.score_a ?? target.score_a ?? 0}</span>
+              <span className="font-black text-2xl sm:text-4xl text-canal-gray-muted">–</span>
+              <span className="font-black text-4xl sm:text-7xl lg:text-8xl text-canal-yellow tabular-nums">{m?.score_b ?? target.score_b ?? 0}</span>
+            </div>
+          )}
+          <p className="text-canal-gray-muted text-xs sm:text-lg text-center mt-1">
+            {toNCDate(target.starts_at)} — {toNCTime(target.starts_at)} NC
+          </p>
+        </div>
+        <div className="flex flex-col items-center gap-1 sm:gap-3 flex-1 min-w-0">
+          <span className="text-4xl sm:text-7xl lg:text-8xl">{teamFlag(target.flag_b, target.team_b)}</span>
+          <p className="font-black text-sm sm:text-3xl text-white text-center break-words leading-tight">{target.team_b}</p>
+        </div>
+      </div>
+
+      {/* Buteurs */}
+      {goals.length > 0 && (
+        <div className="flex justify-between gap-4 mt-6 sm:mt-10 max-w-4xl mx-auto w-full">
+          <p className="flex-1 text-left text-white text-sm sm:text-2xl font-bold leading-snug">
+            <span className="text-canal-gray-muted">⚽ </span>{sideGoals("home") || "—"}
+          </p>
+          <p className="flex-1 text-right text-white text-sm sm:text-2xl font-bold leading-snug">
+            {sideGoals("away") || "—"}<span className="text-canal-gray-muted"> ⚽</span>
+          </p>
+        </div>
+      )}
+
+      {/* Cartons */}
+      {cards.length > 0 && (
+        <p className="text-center text-canal-gray-muted text-xs sm:text-xl mt-4 sm:mt-6">
+          {cards
+            .map((c) => `${c.type === "red_card" ? "🟥" : "🟨"} ${c.player_name} ${c.minute}'`)
+            .join("   ")}
+        </p>
+      )}
+
+      {/* Joueur du match (fini) */}
+      {isFinished && motm && (
+        <div className="mt-6 sm:mt-10 mx-auto canal-badge text-sm sm:text-2xl px-4 sm:px-8 py-2">
+          ⭐ Joueur du match : {motm.player_name}
+          {motm.rating != null && ` (${motm.rating.toFixed(1)})`}
+        </div>
+      )}
+
+      {/* Compos avant-match */}
+      {isUpcoming && detail?.lineups && (
+        <div className="grid grid-cols-2 gap-6 sm:gap-16 mt-6 sm:mt-10 max-w-5xl mx-auto w-full">
+          {(["home", "away"] as const).map((side) => (
+            <div key={side}>
+              <p className="text-canal-yellow font-black text-xs sm:text-lg uppercase tracking-wider mb-2 text-center">
+                {side === "home" ? target.team_a : target.team_b}
+              </p>
+              <p className="text-white text-xs sm:text-lg text-center leading-relaxed">
+                {detail.lineups![side]
+                  .filter((p) => p.is_starting)
+                  .map((p) => p.player_name)
+                  .join(" · ") || "Compo à venir"}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Dernier fait marquant (live, pas de but/carton plus parlant) */}
+      {!isUpcoming && !isFinished && goals.length === 0 && cards.length === 0 && lastEvent && (
+        <p className="text-center text-canal-gray-muted text-sm sm:text-xl mt-6 italic">
+          Dernier fait : {lastEvent.player_name} {lastEvent.minute}'
+        </p>
+      )}
+
+      {target.is_match_of_week && (
+        <div className="mt-6 sm:mt-8 mx-auto canal-badge text-sm sm:text-xl px-4 sm:px-6 py-2">⭐ Match de la semaine</div>
+      )}
+    </div>
+  );
+}
+
 // ─── Slide: Standings ────────────────────────────────────────────────────────
 
 function SlideStandings({ standings }: { standings: StandingRow[] }) {
@@ -821,6 +965,129 @@ function PreMatchCountdown({ targetIso, msLeft }: { targetIso: string; msLeft: n
   );
 }
 
+// Panneau pré-match qui TOURNE : forme · derniers matchs · joueurs clés · compos
+interface DossierTeam {
+  name: string;
+  form: string[];
+  formCodes: ("V" | "N" | "D" | "?")[];
+  recentScores: string[];
+  keyPlayers: { name: string; position: string | null; club: string | null }[];
+  squadValue: string | null;
+}
+interface MatchPreview {
+  home: DossierTeam;
+  away: DossierTeam;
+  lineups: { home: string[]; away: string[] } | null;
+}
+
+const FORM_DOT: Record<string, string> = {
+  V: "bg-green-500 text-black",
+  N: "bg-canal-gray-light text-white",
+  D: "bg-red-500 text-white",
+  "?": "bg-canal-gray-mid text-canal-gray-muted",
+};
+
+function DossierColumn({ team, facet, lineup }: { team: DossierTeam; facet: string; lineup?: string[] }) {
+  return (
+    <div className="flex-1 min-w-0">
+      {facet === "forme" && (
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center">
+          {team.formCodes.length ? (
+            team.formCodes.map((c, i) => (
+              <span key={i} className={`w-7 h-7 sm:w-11 sm:h-11 rounded-lg flex items-center justify-center font-black text-sm sm:text-2xl ${FORM_DOT[c]}`}>
+                {c}
+              </span>
+            ))
+          ) : (
+            <span className="text-canal-gray-muted text-sm sm:text-xl">—</span>
+          )}
+        </div>
+      )}
+      {facet === "resultats" && (
+        <div className="space-y-1 sm:space-y-1.5">
+          {team.recentScores.length ? (
+            team.recentScores.map((s, i) => (
+              <p key={i} className="text-white text-xs sm:text-xl text-center leading-tight truncate">{s}</p>
+            ))
+          ) : (
+            <p className="text-canal-gray-muted text-sm sm:text-xl text-center">Pas de données</p>
+          )}
+        </div>
+      )}
+      {facet === "joueurs" && (
+        <div className="space-y-1 sm:space-y-1.5">
+          {team.keyPlayers.length ? (
+            team.keyPlayers.map((p, i) => (
+              <p key={i} className="text-white text-xs sm:text-xl text-center leading-tight truncate">
+                <span className="font-black">{p.name}</span>
+                {p.club && <span className="text-canal-gray-muted"> · {p.club}</span>}
+              </p>
+            ))
+          ) : (
+            <p className="text-canal-gray-muted text-sm sm:text-xl text-center">—</p>
+          )}
+        </div>
+      )}
+      {facet === "compos" && (
+        <p className="text-white text-xs sm:text-lg text-center leading-relaxed">
+          {lineup && lineup.length ? lineup.join(" · ") : "Compo à venir"}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function PreMatchDossier({ matchId, teamA, teamB, flagA, flagB }: {
+  matchId: string; teamA: string; teamB: string; flagA?: string; flagB?: string;
+}) {
+  const [data, setData] = useState<MatchPreview | null>(null);
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    fetch(`/api/match-preview/${matchId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setData)
+      .catch(() => {});
+  }, [matchId]);
+
+  const facets = [
+    { key: "forme", label: "🔥 Forme — 5 derniers" },
+    { key: "resultats", label: "📅 Derniers matchs" },
+    { key: "joueurs", label: "🎯 Joueurs offensifs à suivre" },
+    ...(data?.lineups ? [{ key: "compos", label: "📋 Compositions probables" }] : []),
+  ];
+
+  useEffect(() => {
+    const t = setInterval(() => setIdx((i) => (i + 1) % facets.length), 7000);
+    return () => clearInterval(t);
+  }, [facets.length]);
+
+  if (!data) return null;
+  const facet = facets[idx % facets.length];
+
+  return (
+    <div className="bg-canal-gray-mid/40 border border-canal-gray-light/30 rounded-2xl px-4 sm:px-8 py-3 sm:py-5">
+      <p className="text-canal-yellow font-black text-sm sm:text-xl uppercase tracking-widest text-center mb-2 sm:mb-4">
+        {facet.label}
+      </p>
+      <div className="flex items-start gap-3 sm:gap-8">
+        <DossierColumn team={data.home} facet={facet.key} lineup={data.lineups?.home} />
+        <div className="shrink-0 flex flex-col items-center gap-1 px-1 sm:px-3">
+          <span className="text-2xl sm:text-4xl">{teamFlag(flagA, teamA)}</span>
+          <span className="text-canal-gray-muted font-black text-xs sm:text-lg">VS</span>
+          <span className="text-2xl sm:text-4xl">{teamFlag(flagB, teamB)}</span>
+        </div>
+        <DossierColumn team={data.away} facet={facet.key} lineup={data.lineups?.away} />
+      </div>
+      <div className="flex justify-center gap-1.5 mt-2 sm:mt-3">
+        {facets.map((f, i) => (
+          <span key={f.key} className={`h-1.5 rounded-full transition-all ${i === idx % facets.length ? "w-6 bg-canal-yellow" : "w-1.5 bg-canal-gray-light"}`} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SlidePreMatch({ stats }: { stats: PreMatchStats }) {
   const { match } = stats;
   const msLeft = new Date(match.starts_at).getTime() - Date.now();
@@ -961,6 +1228,15 @@ function SlidePreMatch({ stats }: { stats: PreMatchStats }) {
           )}
         </div>
       </div>
+
+      {/* Dossier pré-match tournant : forme · résultats · joueurs · compos */}
+      <PreMatchDossier
+        matchId={match.id}
+        teamA={match.team_a}
+        teamB={match.team_b}
+        flagA={match.flag_a}
+        flagB={match.flag_b}
+      />
 
       {/* Robert quote + salon */}
       <div className="flex items-end justify-between gap-3 sm:gap-6">
@@ -1160,6 +1436,7 @@ export default function TVPage() {
             )}
             {slide === "classement" && <SlideClassement leaderboard={data.leaderboard} />}
             {slide === "match" && <SlideMatch matches={data.matches} />}
+            {slide === "livematch" && <SlideLiveMatch matches={data.matches} />}
             {slide === "duel" && <SlideDuel leaderboard={data.leaderboard} />}
             {slide === "standings" && <SlideStandings standings={data.standings ?? []} />}
             {slide === "bracket" && <SlideBracket />}

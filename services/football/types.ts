@@ -57,6 +57,27 @@ export interface MatchStat {
   away_value: string;
 }
 
+export type StatSource = "api-football" | "gemini" | "thesportsdb";
+
+export interface PlayerMatchStat {
+  id?: string;
+  match_id: string;
+  team_side: TeamSide;
+  player_name: string;
+  player_id?: string;
+  rating: number | null; // 0.0–10.0 ; null si non disponible
+  goals: number;
+  assists: number;
+  yellow_cards: number;
+  red_cards: number;
+  shots: number;
+  passes: number;
+  tackles: number;
+  dribbles: number;
+  is_motm: boolean;
+  source: StatSource;
+}
+
 export interface StandingRow {
   team_name: string;
   team_name_fr?: string;
@@ -85,5 +106,6 @@ export interface FullMatchDetail {
     away_coach?: string;
   } | null;
   stats: MatchStat[];
+  playerStats: PlayerMatchStat[];
   standings?: StandingRow[];
 }

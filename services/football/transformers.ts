@@ -2,7 +2,7 @@
 // Change provider → only update transformers, app stays untouched
 
 import { toFrench } from "@/lib/football/team-names";
-import type { MatchStatus, EventType, TeamSide, MatchEvent, LineupPlayer, MatchStat, StandingRow } from "./types";
+import type { MatchStatus, EventType, TeamSide, MatchEvent, LineupPlayer, MatchStat, PlayerMatchStat, StandingRow } from "./types";
 
 const FLAGS: Record<string, string> = {
   "États-Unis": "🇺🇸", "USA": "🇺🇸", "Mexique": "🇲🇽", "Brésil": "🇧🇷",
@@ -134,6 +134,52 @@ export function apifStats(homeStats: any[], awayStats: any[], matchId: string): 
     home_value: String(s.value ?? 0),
     away_value: String(awayStats[i]?.value ?? 0),
   }));
+}
+
+// API-Football /fixtures/players → notes & stats individuelles.
+// raw[0] = équipe domicile, raw[1] = extérieur (même convention qu'apifLineup).
+// bloc: { players:[{ player:{id,name}, statistics:[{ games:{rating}, goals:{total,assists}, cards:{yellow,red}, shots:{total}, passes:{total}, tackles:{total}, dribbles:{success} }] }] }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function apifPlayerSide(block: any, side: TeamSide, matchId: string): PlayerMatchStat[] {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (block?.players ?? []).map((entry: any) => {
+    const st = entry?.statistics?.[0] ?? {};
+    const ratingRaw = st.games?.rating;
+    const rating =
+      ratingRaw != null && ratingRaw !== "" ? Math.round(parseFloat(ratingRaw) * 10) / 10 : null;
+    return {
+      match_id: matchId,
+      team_side: side,
+      player_name: entry?.player?.name ?? "",
+      player_id: entry?.player?.id != null ? String(entry.player.id) : undefined,
+      rating,
+      goals: st.goals?.total ?? 0,
+      assists: st.goals?.assists ?? 0,
+      yellow_cards: st.cards?.yellow ?? 0,
+      red_cards: st.cards?.red ?? 0,
+      shots: st.shots?.total ?? 0,
+      passes: st.passes?.total ?? 0,
+      tackles: st.tackles?.total ?? 0,
+      dribbles: st.dribbles?.success ?? 0,
+      is_motm: false,
+      source: "api-football" as const,
+    };
+  });
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function apifPlayerStats(homeBlock: any, awayBlock: any, matchId: string): PlayerMatchStat[] {
+  const out = [
+    ...apifPlayerSide(homeBlock, "home", matchId),
+    ...apifPlayerSide(awayBlock, "away", matchId),
+  ];
+  // Joueur du match = meilleure note disponible.
+  const best = out.reduce<PlayerMatchStat | null>(
+    (acc, p) => (p.rating != null && (!acc || (acc.rating ?? 0) < p.rating) ? p : acc),
+    null
+  );
+  if (best) best.is_motm = true;
+  return out;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

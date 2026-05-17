@@ -3,9 +3,10 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { cache, matchTTL, TTL } from "./cache";
-import { tsdbTimeline, tsdbStatus, apifEvents, apifLineup, apifStats, apifStatus } from "./transformers";
+import { tsdbTimeline, tsdbStatus, apifEvents, apifLineup, apifStats, apifPlayerStats, apifStatus } from "./transformers";
 import { toFrench, toFlag } from "@/lib/football/team-names";
-import type { FullMatchDetail, MatchEvent, LineupPlayer, MatchStat } from "./types";
+import { generatePlayerRatings } from "@/services/ai/generators/player-ratings";
+import type { FullMatchDetail, MatchEvent, LineupPlayer, MatchStat, PlayerMatchStat } from "./types";
 
 const TSDB = "https://www.thesportsdb.com/api/v1/json/3";
 const APIF = "https://v3.football.api-sports.io";
@@ -228,6 +229,117 @@ async function loadStatsFromDB(matchId: string): Promise<MatchStat[]> {
   return (data ?? []) as MatchStat[];
 }
 
+// ─── Player stats / notes ─────────────────────────────────────────────────────
+
+async function loadPlayerStatsFromDB(matchId: string): Promise<PlayerMatchStat[]> {
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("player_match_stats").select("*").eq("match_id", matchId)
+    .order("rating", { ascending: false, nullsFirst: false });
+  return (data ?? []) as PlayerMatchStat[];
+}
+
+async function upsertPlayerStats(rows: PlayerMatchStat[]): Promise<PlayerMatchStat[]> {
+  if (!rows.length) return [];
+  const supabase = createAdminClient();
+  await supabase
+    .from("player_match_stats")
+    .upsert(rows, { onConflict: "match_id,team_side,player_name" });
+  return rows;
+}
+
+// API-Football : notes & stats réelles (/fixtures/players).
+async function syncPlayerStatsApiF(matchId: string, apifId: number): Promise<PlayerMatchStat[]> {
+  const json = await apifFetch(`/fixtures/players?fixture=${apifId}`);
+  const raw = json?.response ?? [];
+  if (raw.length < 2) return [];
+  const rows = apifPlayerStats(raw[0], raw[1], matchId);
+  return upsertPlayerStats(rows);
+}
+
+// Fallback : notes ESTIMÉES (Gemini ou heuristique) — match fini, compos connues.
+async function syncPlayerRatingsEstimate(
+  matchId: string,
+  match: { team_a: string; team_b: string; score_a: number | null; score_b: number | null; phase: string },
+  events: MatchEvent[],
+  lineups: { home: LineupPlayer[]; away: LineupPlayer[] }
+): Promise<PlayerMatchStat[]> {
+  if (!lineups.home.length || !lineups.away.length) return [];
+  const rows = await generatePlayerRatings({
+    matchId,
+    teamA: match.team_a,
+    teamB: match.team_b,
+    scoreA: match.score_a ?? 0,
+    scoreB: match.score_b ?? 0,
+    phase: match.phase ?? "Groupe",
+    events,
+    homeLineup: lineups.home,
+    awayLineup: lineups.away,
+  });
+  return upsertPlayerStats(rows);
+}
+
+// Rafraîchit la ligne matches (score/statut/minute) pour UN match, on-read.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function refreshMatchRow(match: any): Promise<void> {
+  const supabase = createAdminClient();
+  if (match.apif_id && hasApiFootball()) {
+    const json = await apifFetch(`/fixtures?id=${match.apif_id}`);
+    const f = json?.response?.[0];
+    if (!f) return;
+    await supabase.from("matches").update({
+      status: apifStatus(f.fixture.status.short),
+      minute: f.fixture.status.elapsed ?? null,
+      score_a: f.goals.home ?? null,
+      score_b: f.goals.away ?? null,
+      venue: f.fixture.venue?.name ?? undefined,
+      referee: f.fixture.referee ?? undefined,
+      updated_at: new Date().toISOString(),
+    }).eq("id", match.id);
+  } else if (match.external_id) {
+    const json = await tsdbFetch(`/lookupevent.php?id=${match.external_id}`);
+    const e = json?.events?.[0];
+    if (!e) return;
+    await supabase.from("matches").update({
+      status: tsdbStatus(e),
+      minute: e.intProgress ? parseInt(e.intProgress, 10) : null,
+      score_a: e.intHomeScore !== null && e.intHomeScore !== "" ? parseInt(e.intHomeScore, 10) : null,
+      score_b: e.intAwayScore !== null && e.intAwayScore !== "" ? parseInt(e.intAwayScore, 10) : null,
+      venue: e.strVenue ?? undefined,
+      referee: e.strOfficial ?? undefined,
+      updated_at: new Date().toISOString(),
+    }).eq("id", match.id);
+  }
+}
+
+// ─── Resync on-read (sans cron — compatible plan Hobby) ───────────────────────
+//
+// Pendant le live et la fenêtre post-match, une lecture de la fiche déclenche
+// un resync serveur (jamais depuis le frontend), throttlé pour ne pas marteler
+// le provider : ≤ toutes les 5 min en live, ≤ toutes les 30 min après le coup
+// de sifflet (couvre les passes « final », « +30 min », « +2 h corrigées »).
+
+const RESYNC_LIVE_MS = 5 * 60_000;
+const RESYNC_FINISHED_MS = 30 * 60_000;
+const POST_MATCH_WINDOW_MS = 5 * 60 * 60_000; // ~kickoff + 5 h : couvre le +2 h
+
+function inResyncWindow(status: string, startsAt: string): boolean {
+  if (status === "live" || status === "halftime") return true;
+  if (status === "finished") {
+    const elapsed = Date.now() - new Date(startsAt).getTime();
+    return elapsed >= 0 && elapsed < POST_MATCH_WINDOW_MS;
+  }
+  return false;
+}
+
+// true si on doit re-tirer le provider maintenant (et pose le verrou anti-spam).
+function takeResyncSlot(matchId: string, status: string): boolean {
+  const key = `resync:${matchId}`;
+  if (cache.get(key)) return false;
+  cache.set(key, true, status === "finished" ? RESYNC_FINISHED_MS : RESYNC_LIVE_MS);
+  return true;
+}
+
 // ─── Full match detail ────────────────────────────────────────────────────────
 
 export async function getMatchDetail(matchId: string): Promise<FullMatchDetail | null> {
@@ -236,27 +348,37 @@ export async function getMatchDetail(matchId: string): Promise<FullMatchDetail |
   if (cached) return cached;
 
   const supabase = createAdminClient();
-  const { data: match } = await supabase.from("matches").select("*").eq("id", matchId).single();
+  let { data: match } = await supabase.from("matches").select("*").eq("id", matchId).single();
   if (!match) return null;
+
+  // ── Resync on-read (throttlé) : rafraîchit la ligne match puis recharge ────
+  const doResync =
+    inResyncWindow(match.status ?? "upcoming", match.starts_at) &&
+    takeResyncSlot(matchId, match.status ?? "upcoming");
+  if (doResync) {
+    await refreshMatchRow(match);
+    const { data: fresh } = await supabase.from("matches").select("*").eq("id", matchId).single();
+    if (fresh) match = fresh;
+  }
 
   const status = match.status ?? "upcoming";
   const externalId = match.external_id;
   const apifId: number | null = match.apif_id ?? null;
   const isActive = status === "live" || status === "halftime" || status === "finished";
+  // En fenêtre de resync on re-tire le provider même si la DB a déjà des lignes.
+  const force = doResync && isActive;
 
   // ── Events ────────────────────────────────────────────────────────────────
   let events: MatchEvent[] = [];
   const { data: dbEvents } = await supabase
     .from("match_events").select("*").eq("match_id", matchId).order("minute", { ascending: true });
+  events = (dbEvents ?? []) as MatchEvent[];
 
-  if (dbEvents?.length) {
-    events = dbEvents as MatchEvent[];
-  } else if (isActive) {
-    if (apifId && hasApiFootball()) {
-      events = await syncEventsApiF(matchId, apifId, 0);
-    } else if (externalId) {
-      events = await syncEventsTsdb(matchId, externalId, "");
-    }
+  if ((!events.length || force) && isActive) {
+    let fresh: MatchEvent[] = [];
+    if (apifId && hasApiFootball()) fresh = await syncEventsApiF(matchId, apifId, 0);
+    else if (externalId) fresh = await syncEventsTsdb(matchId, externalId, "");
+    if (fresh.length) events = fresh; // sinon on garde la DB
   }
 
   // ── Lineups ───────────────────────────────────────────────────────────────
@@ -264,29 +386,44 @@ export async function getMatchDetail(matchId: string): Promise<FullMatchDetail |
     .from("match_lineups").select("*").eq("match_id", matchId);
 
   let lineups: FullMatchDetail["lineups"] = null;
-  if (dbLineups?.length) {
-    const home = dbLineups.filter((p) => p.team_side === "home") as LineupPlayer[];
-    const away = dbLineups.filter((p) => p.team_side === "away") as LineupPlayer[];
-    lineups = { home, away };
-  } else if (isActive) {
+  const buildLineups = (rows: LineupPlayer[]) => ({
+    home: rows.filter((p) => p.team_side === "home"),
+    away: rows.filter((p) => p.team_side === "away"),
+  });
+  if (dbLineups?.length) lineups = buildLineups(dbLineups as LineupPlayer[]);
+
+  if ((!lineups || force) && isActive) {
     let players: LineupPlayer[] | null = null;
-    if (apifId && hasApiFootball()) {
-      players = await syncLineupsApiF(matchId, apifId);
-    } else if (externalId) {
-      players = await syncLineupsTsdb(matchId, externalId);
-    }
-    if (players) {
-      lineups = {
-        home: players.filter((p) => p.team_side === "home"),
-        away: players.filter((p) => p.team_side === "away"),
-      };
-    }
+    if (apifId && hasApiFootball()) players = await syncLineupsApiF(matchId, apifId);
+    else if (externalId) players = await syncLineupsTsdb(matchId, externalId);
+    if (players?.length) lineups = buildLineups(players); // sinon on garde la DB
   }
 
   // ── Stats ─────────────────────────────────────────────────────────────────
   let stats = await loadStatsFromDB(matchId);
-  if (!stats.length && isActive && apifId && hasApiFootball()) {
-    stats = await syncStatsApiF(matchId, apifId);
+  if ((!stats.length || force) && apifId && hasApiFootball()) {
+    const fresh = await syncStatsApiF(matchId, apifId);
+    if (fresh.length) stats = fresh;
+  }
+
+  // ── Notes joueurs ─────────────────────────────────────────────────────────
+  // 1) API-Football si dispo (notes réelles, resynchro post-match incluse).
+  // 2) sinon, match fini + compos connues → estimation Gemini/heuristique
+  //    (labellisée « estimé » en UI). L'estimation est stable : on ne la
+  //    régénère pas tant qu'elle existe (économie budget Gemini).
+  let playerStats = await loadPlayerStatsFromDB(matchId);
+  const hasRealStats = playerStats.some((p) => p.source === "api-football");
+  if ((!playerStats.length || (force && hasRealStats)) && apifId && hasApiFootball()) {
+    const fresh = await syncPlayerStatsApiF(matchId, apifId);
+    if (fresh.length) playerStats = fresh;
+  }
+  if (!playerStats.length && status === "finished" && lineups) {
+    playerStats = await syncPlayerRatingsEstimate(
+      matchId,
+      { team_a: match.team_a, team_b: match.team_b, score_a: match.score_a, score_b: match.score_b, phase: match.phase },
+      events,
+      lineups
+    );
   }
 
   // ── Standings ─────────────────────────────────────────────────────────────
@@ -311,6 +448,7 @@ export async function getMatchDetail(matchId: string): Promise<FullMatchDetail |
     events,
     lineups,
     stats,
+    playerStats,
     standings,
   };
 
