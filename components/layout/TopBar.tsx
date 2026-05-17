@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, Tv, Inbox, Newspaper, Gamepad2 } from "lucide-react";
+import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, Tv, Inbox, Newspaper, Gamepad2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -76,12 +76,8 @@ export function TopBar() {
 
         {/* Actions */}
         <div className="flex items-center gap-1">
-          <Link href="/inbox" className="relative p-2 text-canal-gray-muted hover:text-white transition-colors" aria-label="Notifications">
-            <Bell size={20} />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-canal-yellow rounded-full" />
-          </Link>
           {user && (
-            <div className="w-7 h-7 rounded-full bg-canal-yellow flex items-center justify-center ml-0.5">
+            <div className="w-7 h-7 rounded-full bg-canal-yellow flex items-center justify-center">
               <span className="text-canal-black font-black text-xs">{userInitial}</span>
             </div>
           )}
