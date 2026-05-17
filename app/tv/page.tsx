@@ -19,12 +19,12 @@ import {
   type TvFlash,
 } from "@/lib/tv/flash";
 
-type Slide = "upcoming" | "classement" | "match" | "duel" | "standings" | "matinale" | "revivez";
+type Slide = "upcoming" | "classement" | "match" | "duel" | "standings" | "bracket" | "matinale" | "revivez";
 
 const SLIDE_DURATION = 12000;
 const REFRESH_INTERVAL = 30000;
 const FLASH_POLL_INTERVAL = 10000;
-const SLIDES: Slide[] = ["upcoming", "classement", "match", "duel", "standings", "matinale", "revivez"];
+const SLIDES: Slide[] = ["upcoming", "classement", "match", "duel", "standings", "bracket", "matinale", "revivez"];
 
 interface StandingRow {
   team_name_fr: string;
@@ -594,6 +594,147 @@ function LiveClock() {
   return <span className="text-white font-bold text-xl">{time}</span>;
 }
 
+// ─── Slide: Bracket knockout ─────────────────────────────────────────────────
+
+interface TvMatchRow {
+  id: string; team_a: string; team_b: string;
+  flag_a?: string; flag_b?: string;
+  score_a?: number | null; score_b?: number | null;
+  status: string; starts_at: string; phase?: string;
+}
+
+interface TvBracketPhase { phase: string; groups: { matches: TvMatchRow[] }[] }
+
+const TV_PHASE_EMOJIS: Record<string, string> = {
+  Huitièmes: "🔥", Quarts: "⚡", Demis: "🌟", "3ème place": "🥉", Finale: "🏆",
+};
+const TV_PHASE_LABELS: Record<string, string> = {
+  Huitièmes: "Huitièmes de finale", Quarts: "Quarts de finale",
+  Demis: "Demi-finales", "3ème place": "Match pour la 3ème place", Finale: "Grande Finale",
+};
+
+function SlideBracket() {
+  const [phases, setPhases] = useState<TvBracketPhase[]>([]);
+
+  useEffect(() => {
+    fetch("/api/bracket")
+      .then((r) => r.json())
+      .then((d: { phases: TvBracketPhase[] }) => setPhases(d.phases ?? []))
+      .catch(() => {});
+  }, []);
+
+  // Only show knockout rounds (skip group stage — too dense for TV at distance)
+  const knockout = phases.filter((p) => p.phase !== "Groupe");
+
+  if (!knockout.length) {
+    return (
+      <div className="flex h-full items-center justify-center flex-col gap-6 px-20">
+        <span className="text-6xl">🏆</span>
+        <p className="text-canal-gray-muted text-2xl text-center">
+          Phase à élimination directe pas encore commencée.
+        </p>
+        <p className="text-canal-gray-muted text-xl italic text-center">
+          "La phase de groupes décide des combats. Patience."
+        </p>
+      </div>
+    );
+  }
+
+  // Show the current most-active round (first with non-finished matches, else latest)
+  const activePhase =
+    knockout.find((p) => p.groups[0]?.matches.some((m) => m.status !== "finished")) ??
+    knockout[knockout.length - 1];
+
+  const matches = activePhase.groups[0]?.matches ?? [];
+  const emoji = TV_PHASE_EMOJIS[activePhase.phase] ?? "⚽";
+  const label = TV_PHASE_LABELS[activePhase.phase] ?? activePhase.phase;
+
+  return (
+    <div className="flex flex-col h-full justify-center px-16 py-10">
+      <div className="mb-8">
+        <p className="text-canal-yellow font-black text-2xl uppercase tracking-widest mb-2">
+          {emoji} {label}
+        </p>
+        <div className="h-1 w-48 bg-canal-yellow" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-5">
+        {matches.slice(0, 4).map((match) => {
+          const isLive = match.status === "live" || match.status === "halftime";
+          const isFinished = match.status === "finished";
+          const hasScore = match.score_a !== null && match.score_a !== undefined;
+          const winner =
+            isFinished && hasScore && match.score_b !== null
+              ? match.score_a! > match.score_b! ? "a" : match.score_a! < match.score_b! ? "b" : null
+              : null;
+
+          return (
+            <div
+              key={match.id}
+              className={`rounded-2xl border p-5 ${
+                isLive
+                  ? "border-red-500/50 bg-red-950/20"
+                  : isFinished
+                  ? "border-canal-yellow/20 bg-canal-gray-mid/40"
+                  : "border-canal-gray-light/30 bg-canal-gray-mid/20"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                {/* Team A */}
+                <div className={`flex-1 text-center ${winner === "b" ? "opacity-35" : ""}`}>
+                  <span className="text-5xl block mb-2 leading-none">{match.flag_a ?? "🏳️"}</span>
+                  <p className={`font-black text-lg leading-tight ${winner === "a" ? "text-canal-yellow" : "text-white"}`}>
+                    {match.team_a || "—"}
+                  </p>
+                </div>
+
+                {/* Score */}
+                <div className="shrink-0 text-center flex flex-col gap-1">
+                  {(isLive || isFinished) && hasScore ? (
+                    <div className="flex items-center gap-2">
+                      <span className={`font-black text-5xl tabular-nums ${
+                        winner === "a" ? "text-canal-yellow" : isLive ? "text-red-400" : "text-white"
+                      }`}>
+                        {match.score_a}
+                      </span>
+                      <span className="text-canal-gray-muted text-3xl">–</span>
+                      <span className={`font-black text-5xl tabular-nums ${
+                        winner === "b" ? "text-canal-yellow" : isLive ? "text-red-400" : "text-white"
+                      }`}>
+                        {match.score_b}
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-canal-gray-muted text-2xl font-black">VS</p>
+                  )}
+                  {isLive && (
+                    <p className="text-red-400 text-base font-black animate-pulse">🔴 LIVE</p>
+                  )}
+                </div>
+
+                {/* Team B */}
+                <div className={`flex-1 text-center ${winner === "a" ? "opacity-35" : ""}`}>
+                  <span className="text-5xl block mb-2 leading-none">{match.flag_b ?? "🏳️"}</span>
+                  <p className={`font-black text-lg leading-tight ${winner === "b" ? "text-canal-yellow" : "text-white"}`}>
+                    {match.team_b || "—"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Phase progression indicator if all finished */}
+      {matches.length > 0 && matches.every((m) => m.status === "finished") && (
+        <p className="text-center text-canal-gray-muted text-xl mt-8 italic">
+          "Tous qualifiés. Le prochain round s'annonce."
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ─── Flash Overlay (plein écran, 5s) ─────────────────────────────────────────
 
 function FlashOverlay() {
@@ -764,6 +905,7 @@ export default function TVPage() {
             {slide === "match" && <SlideMatch matches={data.matches} />}
             {slide === "duel" && <SlideDuel leaderboard={data.leaderboard} />}
             {slide === "standings" && <SlideStandings standings={data.standings ?? []} />}
+            {slide === "bracket" && <SlideBracket />}
             {slide === "matinale" && <SlideMatinale brief={data.brief} />}
             {slide === "revivez" && <SlideRevivez posts={data.revivezPosts} />}
           </>

@@ -4,6 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Trophy } from "lucide-react";
 import { toNCDate, toNCTime } from "@/lib/utils";
+import { ViewSwitcher } from "@/components/views/ViewSwitcher";
+import { BracketFifa } from "@/components/bracket/BracketFifa";
+import { BracketCompact } from "@/components/bracket/BracketCompact";
+
+const VIEW_KEY = "bracket-view";
 
 interface MatchRow {
   id: string;
@@ -49,6 +54,8 @@ interface BracketData {
   standings: Record<string, StandingRow[]>;
 }
 
+// ─── Standard view components ─────────────────────────────────────────────────
+
 function MatchChip({ match }: { match: MatchRow }) {
   const isLive = match.status === "live" || match.status === "halftime";
   const isFinished = match.status === "finished";
@@ -65,12 +72,10 @@ function MatchChip({ match }: { match: MatchRow }) {
         }`}
       >
         <div className="flex items-center justify-between gap-2">
-          {/* Home */}
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
             <span className="text-lg leading-none">{match.flag_a ?? "🏳️"}</span>
             <span className="font-semibold text-sm text-white truncate">{match.team_a}</span>
           </div>
-          {/* Score / VS */}
           <div className="flex items-center gap-1 shrink-0">
             {isFinished || isLive ? (
               <>
@@ -86,7 +91,6 @@ function MatchChip({ match }: { match: MatchRow }) {
               <span className="text-canal-gray-muted text-xs px-1">VS</span>
             )}
           </div>
-          {/* Away */}
           <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-end">
             <span className="font-semibold text-sm text-white truncate text-right">{match.team_b}</span>
             <span className="text-lg leading-none">{match.flag_b ?? "🏳️"}</span>
@@ -105,7 +109,7 @@ function MatchChip({ match }: { match: MatchRow }) {
   );
 }
 
-function GroupStandings({ groupName, rows }: { groupName: string; rows: StandingRow[] }) {
+function GroupStandings({ rows }: { rows: StandingRow[] }) {
   const sorted = [...rows].sort((a, b) => b.points - a.points || b.goal_diff - a.goal_diff);
   return (
     <div className="overflow-x-auto">
@@ -161,24 +165,10 @@ function GroupSection({ bucket, standings }: { bucket: GroupBucket; standings: R
   return (
     <div className="canal-card p-4 space-y-4">
       <h3 className="font-black text-canal-yellow text-base uppercase tracking-wider">{groupLabel}</h3>
-      {standingRows.length > 0 && (
-        <GroupStandings groupName={groupLabel} rows={standingRows} />
-      )}
+      {standingRows.length > 0 && <GroupStandings rows={standingRows} />}
       <div className="space-y-2">
-        {bucket.matches.map((m) => (
-          <MatchChip key={m.id} match={m} />
-        ))}
+        {bucket.matches.map((m) => <MatchChip key={m.id} match={m} />)}
       </div>
-    </div>
-  );
-}
-
-function KnockoutSection({ bucket }: { bucket: GroupBucket }) {
-  return (
-    <div className="space-y-2">
-      {bucket.matches.map((m) => (
-        <MatchChip key={m.id} match={m} />
-      ))}
     </div>
   );
 }
@@ -193,25 +183,61 @@ const PHASE_LABELS: Record<string, string> = {
 };
 
 const PHASE_ICONS: Record<string, string> = {
-  Groupe: "⚽",
-  "Huitièmes": "🔥",
-  Quarts: "⚡",
-  Demis: "🌟",
-  "3ème place": "🥉",
-  Finale: "🏆",
+  Groupe: "⚽", "Huitièmes": "🔥", Quarts: "⚡",
+  Demis: "🌟", "3ème place": "🥉", Finale: "🏆",
 };
+
+function BracketStandard({ data }: { data: BracketData }) {
+  return (
+    <>
+      {data.phases.map((section) => (
+        <section key={section.phase} className="mb-10">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-2xl">{PHASE_ICONS[section.phase] ?? "⚽"}</span>
+            <h2 className="font-black text-xl text-white uppercase tracking-wide">
+              {PHASE_LABELS[section.phase] ?? section.phase}
+            </h2>
+          </div>
+
+          {section.phase === "Groupe" ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {section.groups.map((bucket) => (
+                <GroupSection key={bucket.stage ?? "groupe"} bucket={bucket} standings={data.standings} />
+              ))}
+            </div>
+          ) : (
+            <div className="canal-card p-4 space-y-2">
+              {section.groups[0]?.matches.map((m) => <MatchChip key={m.id} match={m} />)}
+            </div>
+          )}
+        </section>
+      ))}
+    </>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function BracketPage() {
   const [data, setData] = useState<BracketData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState("standard");
+
+  // Persist view preference
+  useEffect(() => {
+    const saved = localStorage.getItem(VIEW_KEY);
+    if (saved) setView(saved);
+  }, []);
+
+  const handleViewChange = (v: string) => {
+    setView(v);
+    localStorage.setItem(VIEW_KEY, v);
+  };
 
   useEffect(() => {
     fetch("/api/bracket")
       .then((r) => r.json())
-      .then((d: BracketData) => {
-        setData(d);
-        setLoading(false);
-      })
+      .then((d: BracketData) => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 
@@ -223,47 +249,29 @@ export default function BracketPage() {
           <Link href="/matches" className="text-canal-gray-muted hover:text-white transition-colors">
             <ArrowLeft size={20} />
           </Link>
-          <div>
+          <div className="flex-1 min-w-0">
             <h1 className="font-black text-2xl text-white flex items-center gap-2">
               <Trophy size={22} className="text-canal-yellow" />
               Tableau de la Coupe
             </h1>
             <p className="text-canal-gray-muted text-sm">FIFA World Cup 2026</p>
           </div>
+          <ViewSwitcher view={view} onChange={handleViewChange} modes={["standard", "fifa", "compact"]} />
         </div>
 
         {loading && (
           <div className="flex items-center justify-center py-20">
-            <p className="text-canal-gray-muted">Chargement…</p>
+            <div className="w-8 h-8 border-2 border-canal-yellow border-t-transparent rounded-full animate-spin" />
           </div>
         )}
 
-        {data && data.phases.map((section) => (
-          <section key={section.phase} className="mb-10">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-2xl">{PHASE_ICONS[section.phase] ?? "⚽"}</span>
-              <h2 className="font-black text-xl text-white uppercase tracking-wide">
-                {PHASE_LABELS[section.phase] ?? section.phase}
-              </h2>
-            </div>
-
-            {section.phase === "Groupe" ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {section.groups.map((bucket) => (
-                  <GroupSection
-                    key={bucket.stage ?? "groupe"}
-                    bucket={bucket}
-                    standings={data.standings}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="canal-card p-4">
-                <KnockoutSection bucket={section.groups[0]} />
-              </div>
-            )}
-          </section>
-        ))}
+        {data && (
+          <>
+            {view === "standard" && <BracketStandard data={data} />}
+            {view === "fifa" && <BracketFifa data={data} />}
+            {view === "compact" && <BracketCompact data={data} />}
+          </>
+        )}
 
         {data && data.phases.length === 0 && (
           <div className="text-center py-20">
