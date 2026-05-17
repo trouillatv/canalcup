@@ -1,0 +1,85 @@
+Équipe;Catégorie;Nom;Poste;Club (Pays);Valeur Marchande
+Danemark;Infos Générales;Derniers scores: Défaite aux TAB vs Tchéquie (2-2), Victoire vs Serbie (2-0), Nul vs Suisse (2-2), Victoire vs Espagne (1-0), Nul vs Suisse (1-1);-;Calendrier CDM: 13 juin vs Oman (Houston) | 19 juin vs Tunisie (Raleigh-Durham) | 26 juin vs Équateur (Houston);-
+Danemark;Joueur;Rasmus Højlund;Avant-centre;Manchester United (ANG);65 M€
+Danemark;Joueur;Joachim Andersen;Défenseur Central;Fulham FC (ANG);35 M€
+Danemark;Joueur;Andreas Christensen;Défenseur Central;FC Barcelone (ESP);30 M€
+Danemark;Joueur;Pierre-Emile Højbjerg;Milieu Central;Olympique de Marseille (FRA);18 M€
+Danemark;Joueur;Morten Hjulmand;Milieu Défensif;Sporting CP (POR);40 M€
+Danemark;Joueur;Alexander Bah;Arrière Droit;Benfica (POR);16 M€
+Danemark;Joueur;Victor Kristiansen;Arrière Gauche;Leicester City (ANG);15 M€
+Danemark;Joueur;Jannik Vestergaard;Défenseur Central;Leicester City (ANG);3 M€
+Danemark;Joueur;Victor Nelsson;Défenseur Central;Galatasaray (TUR);15 M€
+Danemark;Joueur;Kasper Schmeichel;Gardien;Celtic Glasgow (ECO);1 M€
+Danemark;Joueur;Frederik Rønnow;Gardien;Union Berlin (ALL);3 M€
+Danemark;Joueur;Mads Hermansen;Gardien;Leicester City (ANG);18 M€
+Danemark;Joueur;Christian Eriksen;Milieu Offensif;Manchester United (ANG);8 M€
+Danemark;Joueur;Matt O'Riley;Milieu Central;Brighton (ANG);30 M€
+Danemark;Joueur;Albert Grønbæk;Milieu Offensif;Stade Rennais (FRA);12 M€
+Danemark;Joueur;Gustav Isaksen;Ailier;Lazio Rome (ITA);12 M€
+Danemark;Joueur;Andreas Skov Olsen;Ailier;Club Bruges (BEL);18 M€
+Danemark;Joueur;Jonas Wind;Avant-centre;VfL Wolfsburg (ALL);15 M€
+Danemark;Joueur;Yussuf Poulsen;Avant-centre;RB Leipzig (ALL);6 M€
+Danemark;Joueur;Kasper Dolberg;Avant-centre;Anderlecht (BEL);10 M€
+Équateur;Infos Générales;Derniers scores: Victoire vs Pérou (1-0), Défaite vs Brésil (0-1), Victoire vs Argentine (2-1), Victoire vs Uruguay (1-0), Nul vs Chili (0-0);-;Calendrier CDM: 13 juin vs Tunisie (Dallas) | 19 juin vs Oman (Dallas) | 26 juin vs Danemark (Houston);-
+Équateur;Joueur;Moises Caicedo;Milieu Défensif;Chelsea (ANG);75 M€
+Équateur;Joueur;Piero Hincapié;Défenseur Central;Bayer Leverkusen (ALL);40 M€
+Équateur;Joueur;Willian Pacho;Défenseur Central;Paris Saint-Germain (FRA);40 M€
+Équateur;Joueur;Pervis Estupiñán;Arrière Gauche;Brighton (ANG);30 M€
+Équateur;Joueur;Kendry Páez;Milieu Offensif;Independiente del Valle (EQU);12 M€
+Équateur;Joueur;Angelo Preciado;Arrière Droit;Sparta Prague (TCH);7 M€
+Équateur;Joueur;Félix Torres;Défenseur Central;Corinthians (BRE);6 M€
+Équateur;Joueur;Joel Ordóñez;Défenseur Central;Club Bruges (BEL);6 M€
+Équateur;Joueur;Alan Franco;Milieu Central;Atlético Mineiro (BRE);5 M€
+Équateur;Joueur;Carlos Gruezo;Milieu Défensif;San Jose Earthquakes (USA);3 M€
+Équateur;Joueur;Hernán Galíndez;Gardien;Huracán (ARG);1 M€
+Équateur;Joueur;Moisés Ramírez;Gardien;Independiente del Valle (EQU);1,5 M€
+Équateur;Joueur;Alexander Domínguez;Gardien;LDU Quito (EQU);500 k€
+Équateur;Joueur;Jhoanner Chávez;Arrière Gauche;RC Lens (FRA);4 M€
+Équateur;Joueur;Jeremy Sarmiento;Milieu Offensif;Burnley (ANG);7 M€
+Équateur;Joueur;John Yeboah;Ailier;Venezia (ITA);3 M€
+Équateur;Joueur;Gonzalo Plata;Ailier;Flamengo (BRE);6 M€
+Équateur;Joueur;Alan Minda;Ailier;Cercle Bruges (BEL);6 M€
+Équateur;Joueur;Enner Valencia;Avant-centre;Internacional (BRE);2 M€
+Équateur;Joueur;Kevin Rodríguez;Avant-centre;Union Saint-Gilloise (BEL);4 M€
+Équateur;Joueur;Jordy Caicedo;Avant-centre;Sporting Gijón (ESP);2 M€
+Oman;Infos Générales;Derniers scores: Victoire vs Koweït (4-0), Défaite vs Corée du Sud (1-3), Victoire vs Palestine (1-0), Défaite vs Irak (0-1), Victoire vs Kirghizistan (1-0);-;Calendrier CDM: 13 juin vs Danemark (Houston) | 19 juin vs Équateur (Dallas) | 26 juin vs Tunisie (Austin);-
+Oman;Joueur;Salaah Al-Yahyaei;Milieu Offensif;Al-Khaldiya (BAH);600 k€
+Oman;Joueur;Muhsen Al-Ghassani;Avant-centre;Bangkok United (THA);500 k€
+Oman;Joueur;Jameel Al-Yahmadi;Ailier;Al-Seeb (OMA);400 k€
+Oman;Joueur;Harib Al-Saadi;Milieu Défensif;Al-Seeb (OMA);350 k€
+Oman;Joueur;Ahmed Al-Khamisi;Défenseur Central;Al-Seeb (OMA);300 k€
+Oman;Joueur;Ibrahim Al-Mukhaini;Gardien;Al-Nahda (OMA);500 k€
+Oman;Joueur;Fayiz Al-Rushaidi;Gardien;Al-Suwaiq (OMA);150 k€
+Oman;Joueur;Ghanim Al-Habashi;Gardien;Al-Nahda (OMA);100 k€
+Oman;Joueur;Khalid Al-Braiki;Défenseur Central;Al-Shabab (OMA);250 k€
+Oman;Joueur;Mohammed Al-Musalami;Défenseur Central;Al-Seeb (OMA);150 k€
+Oman;Joueur;Ali Al-Busaidi;Arrière Gauche;Al-Seeb (OMA);300 k€
+Oman;Joueur;Abdulaziz Al-Shamousi;Arrière Droit;Al-Nahda (OMA);200 k€
+Oman;Joueur;Amjad Al-Harthi;Arrière Droit;Al-Seeb (OMA);250 k€
+Oman;Joueur;Abdullah Fawaz;Milieu Central;Al-Nahda (OMA);350 k€
+Oman;Joueur;Zahir Al-Aghbari;Milieu Central;Al-Seeb (OMA);300 k€
+Oman;Joueur;Arshad Al-Alawi;Milieu Central;Al-Seeb (OMA);300 k€
+Oman;Joueur;Abdulrahman Al-Mushaifri;Ailier;Al-Seeb (OMA);400 k€
+Oman;Joueur;Essam Al-Subhi;Avant-centre;Al-Nahda (OMA);350 k€
+Oman;Joueur;Omer Al-Malki;Avant-centre;Al-Seeb (OMA);300 k€
+Tunisie;Infos Générales;Derniers scores: Victoire vs Madagascar (3-2), Victoire vs Gambie (2-1), Nul vs Namibie (0-0), Victoire vs Guinée équatoriale (1-0), Défaite vs Croatie (0-0 TAB);-;Calendrier CDM: 13 juin vs Équateur (Dallas) | 19 juin vs Danemark (Raleigh-Durham) | 26 juin vs Oman (Austin);-
+Tunisie;Joueur;Elye Skhiri;Milieu Défensif;Eintracht Francfort (ALL);13 M€
+Tunisie;Joueur;Aissa Laïdouni;Milieu Central;Al-Wakrah (QAT);6 M€
+Tunisie;Joueur;Hannibal Mejbri;Milieu Offensif;Burnley (ANG);9 M€
+Tunisie;Joueur;Montassar Talbi;Défenseur Central;FC Lorient (FRA);7 M€
+Tunisie;Joueur;Ali Abdi;Arrière Gauche;OGC Nice (FRA);4 M€
+Tunisie;Joueur;Yann Valery;Arrière Droit;Sheffield Wednesday (ANG);2,5 M€
+Tunisie;Joueur;Elias Achouri;Ailier;FC Copenhague (DAN);4 M€
+Tunisie;Joueur;Amanallah Memmiche;Gardien;Espérance de Tunis (TUN);2 M€
+Tunisie;Joueur;Aymen Dahmen;Gardien;CS Sfaxien (TUN);800 k€
+Tunisie;Joueur;Bechir Ben Saïd;Gardien;Espérance de Tunis (TUN);800 k€
+Tunisie;Joueur;Dylan Bronn;Défenseur Central;Salernitana (ITA);1,5 M€
+Tunisie;Joueur;Yassine Meriah;Défenseur Central;Espérance de Tunis (TUN);1,8 M€
+Tunisie;Joueur;Wajdi Kechrida;Arrière Droit;Al-Gharafa (QAT);1,2 M€
+Tunisie;Joueur;Yan Sasse;Milieu Offensif;Espérance de Tunis (TUN);2 M€
+Tunisie;Joueur;Mohamed Ali Ben Romdhane;Milieu Central;Ferencváros (HON);2,5 M€
+Tunisie;Joueur;Hamza Rafia;Milieu Offensif;Lecce (ITA);2,5 M€
+Tunisie;Joueur;Sayfallah Ltaief;Ailier;FC Twente (P-B);3 M€
+Tunisie;Joueur;Seifeddine Jaziri;Avant-centre;Zamalek (EGY);1 M€
+Tunisie;Joueur;Haythem Jouini;Avant-centre;Dibba Al-Hisn (EAU);600 k€
+Tunisie;Joueur;Youssef Msakni;Ailier;Al-Arabi (QAT);1 M€

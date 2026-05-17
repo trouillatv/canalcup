@@ -1,0 +1,238 @@
+[
+  {
+    "name": "Afrique du Sud",
+    "slug": "afrique-du-sud"
+  },
+  {
+    "name": "Algérie",
+    "slug": "algerie"
+  },
+  {
+    "name": "Allemagne",
+    "slug": "allemagne"
+  },
+  {
+    "name": "Angleterre",
+    "slug": "angleterre"
+  },
+  {
+    "name": "Arabie Saoudite",
+    "slug": "arabie-saoudite"
+  },
+  {
+    "name": "Argentine",
+    "slug": "argentine"
+  },
+  {
+    "name": "Australie",
+    "slug": "australie"
+  },
+  {
+    "name": "Autriche",
+    "slug": "autriche"
+  },
+  {
+    "name": "Belgique",
+    "slug": "belgique"
+  },
+  {
+    "name": "Bosnie-Herzégovine",
+    "slug": "bosnie-herzegovine"
+  },
+  {
+    "name": "Brésil",
+    "slug": "bresil"
+  },
+  {
+    "name": "Cameroun",
+    "slug": "cameroun"
+  },
+  {
+    "name": "Canada",
+    "slug": "canada"
+  },
+  {
+    "name": "Cap-Vert",
+    "slug": "cap-vert"
+  },
+  {
+    "name": "Chili",
+    "slug": "chili"
+  },
+  {
+    "name": "Colombie",
+    "slug": "colombie"
+  },
+  {
+    "name": "Corée du Sud",
+    "slug": "coree-du-sud"
+  },
+  {
+    "name": "Costa Rica",
+    "slug": "costa-rica"
+  },
+  {
+    "name": "Côte d'Ivoire",
+    "slug": "cote-d-ivoire"
+  },
+  {
+    "name": "Croatie",
+    "slug": "croatie"
+  },
+  {
+    "name": "Curaçao",
+    "slug": "curacao"
+  },
+  {
+    "name": "Danemark",
+    "slug": "danemark"
+  },
+  {
+    "name": "Écosse",
+    "slug": "ecosse"
+  },
+  {
+    "name": "Égypte",
+    "slug": "egypte"
+  },
+  {
+    "name": "Équateur",
+    "slug": "equateur"
+  },
+  {
+    "name": "Espagne",
+    "slug": "espagne"
+  },
+  {
+    "name": "États-Unis",
+    "slug": "etats-unis"
+  },
+  {
+    "name": "France",
+    "slug": "france"
+  },
+  {
+    "name": "Ghana",
+    "slug": "ghana"
+  },
+  {
+    "name": "Haïti",
+    "slug": "haiti"
+  },
+  {
+    "name": "Honduras",
+    "slug": "honduras"
+  },
+  {
+    "name": "Irak",
+    "slug": "irak"
+  },
+  {
+    "name": "Iran",
+    "slug": "iran"
+  },
+  {
+    "name": "Japon",
+    "slug": "japon"
+  },
+  {
+    "name": "Jordanie",
+    "slug": "jordanie"
+  },
+  {
+    "name": "Mali",
+    "slug": "mali"
+  },
+  {
+    "name": "Maroc",
+    "slug": "maroc"
+  },
+  {
+    "name": "Mexique",
+    "slug": "mexique"
+  },
+  {
+    "name": "Nigeria",
+    "slug": "nigeria"
+  },
+  {
+    "name": "Norvège",
+    "slug": "norvege"
+  },
+  {
+    "name": "Nouvelle-Zélande",
+    "slug": "nouvelle-zelande"
+  },
+  {
+    "name": "Oman",
+    "slug": "oman"
+  },
+  {
+    "name": "Ouzbékistan",
+    "slug": "ouzbekistan"
+  },
+  {
+    "name": "Panama",
+    "slug": "panama"
+  },
+  {
+    "name": "Paraguay",
+    "slug": "paraguay"
+  },
+  {
+    "name": "Pays-Bas",
+    "slug": "pays-bas"
+  },
+  {
+    "name": "Pologne",
+    "slug": "pologne"
+  },
+  {
+    "name": "Portugal",
+    "slug": "portugal"
+  },
+  {
+    "name": "Qatar",
+    "slug": "qatar"
+  },
+  {
+    "name": "RD Congo",
+    "slug": "rd-congo"
+  },
+  {
+    "name": "Roumanie",
+    "slug": "roumanie"
+  },
+  {
+    "name": "Sénégal",
+    "slug": "senegal"
+  },
+  {
+    "name": "Suède",
+    "slug": "suede"
+  },
+  {
+    "name": "Suisse",
+    "slug": "suisse"
+  },
+  {
+    "name": "Tchéquie",
+    "slug": "tchequie"
+  },
+  {
+    "name": "Tunisie",
+    "slug": "tunisie"
+  },
+  {
+    "name": "Turquie",
+    "slug": "turquie"
+  },
+  {
+    "name": "Ukraine",
+    "slug": "ukraine"
+  },
+  {
+    "name": "Uruguay",
+    "slug": "uruguay"
+  }
+]

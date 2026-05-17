@@ -1,0 +1,38 @@
+Équipe;Catégorie;Nom;Poste;Club (Pays);Valeur Marchande
+Allemagne;Infos Générales;Derniers scores: Défaite vs Autriche (1-2), Victoire vs Pays-Bas (1-0), Nul vs Hongrie (1-1), Victoire vs Bosnie (7-0), Victoire vs Pays-Bas (1-0);-;Calendrier CDM: 18 juin vs Panama (Atlanta) | 23 juin vs Côte d'Ivoire (Miami) | 27 juin vs Australie (Houston);-
+Allemagne;Joueur;Florian Wirtz;Milieu Offensif;Bayer Leverkusen (ALL);130 M€
+Allemagne;Joueur;Jamal Musiala;Milieu Offensif;Bayern Munich (ALL);130 M€
+Allemagne;Joueur;Kai Havertz;Avant-centre;Arsenal (ANG);75 M€
+Allemagne;Joueur;Joshua Kimmich;Milieu Central;Bayern Munich (ALL);50 M€
+Allemagne;Joueur;Antonio Rüdiger;Défenseur Central;Real Madrid (ESP);25 M€
+Allemagne;Joueur;Nico Schlotterbeck;Défenseur Central;Borussia Dortmund (ALL);40 M€
+Allemagne;Joueur;Marc-André ter Stegen;Gardien;FC Barcelone (ESP);20 M€
+Allemagne;Joueur;Niclas Füllkrug;Avant-centre;West Ham United (ANG);15 M€
+Australie;Infos Générales;Derniers scores: Nul vs Bahreïn (2-2), Victoire vs Arabie Saoudite (1-0), Victoire vs Chine (3-1), Nul vs Indonésie (0-0), Défaite vs Bahreïn (0-1);-;Calendrier CDM: 18 juin vs Côte d'Ivoire (Houston) | 22 juin vs Panama (Atlanta) | 27 juin vs Allemagne (Houston);-
+Australie;Joueur;Mathew Ryan;Gardien;AS Rome (ITA);1,2 M€
+Australie;Joueur;Joe Gauci;Gardien;Aston Villa (ANG);1,5 M€
+Australie;Joueur;Harry Souttar;Défenseur Central;Sheffield United (ANG);9 M€
+Australie;Joueur;Kye Rowles;Défenseur Central;Hearts (ECO);1,8 M€
+Australie;Joueur;Jordan Bos;Arrière Gauche;Westerlo (BEL);2 M€
+Australie;Joueur;Jackson Irvine;Milieu Central;Sankt Pauli (ALL);2 M€
+Australie;Joueur;Connor Metcalfe;Milieu Central;Sankt Pauli (ALL);2,5 M€
+Australie;Joueur;Riley McGree;Milieu Offensif;Middlesbrough (ANG);3,5 M€
+Australie;Joueur;Nestory Irankunda;Ailier;Bayern Munich (ALL);3,5 M€
+Australie;Joueur;Kusini Yengi;Avant-centre;Portsmouth (ANG);1 M€
+Côte d'Ivoire;Infos Générales;Derniers scores: Victoire vs Tchad (4-0), Victoire vs Zambie (1-0), Victoire vs Sierra Leone (4-1), Défaite vs Sierra Leone (0-1), Victoire vs Corée du Sud (4-0);-;Calendrier CDM: 18 juin vs Australie (Houston) | 23 juin vs Allemagne (Miami) | 27 juin vs Panama (New York);-
+Côte d'Ivoire;Joueur;Ousmane Diomande;Défenseur Central;Sporting CP (POR);40 M€
+Côte d'Ivoire;Joueur;Evan Ndicka;Défenseur Central;AS Rome (ITA);24 M€
+Côte d'Ivoire;Joueur;Odilon Kossounou;Défenseur Central;Atalanta Bergame (ITA);35 M€
+Côte d'Ivoire;Joueur;Wilfried Singo;Arrière Droit;AS Monaco (FRA);25 M€
+Côte d'Ivoire;Joueur;Franck Kessié;Milieu Central;Al-Ahli (ARA);18 M€
+Côte d'Ivoire;Joueur;Ibrahim Sangaré;Milieu Défensif;Nottingham Forest (ANG);30 M€
+Côte d'Ivoire;Joueur;Simon Adingra;Ailier;Brighton (ANG);30 M€
+Côte d'Ivoire;Joueur;Sebastien Haller;Avant-centre;CD Leganés (ESP);10 M€
+Côte d'Ivoire;Joueur;Yahia Fofana;Gardien;Angers SCO (FRA);3 M€
+Panama;Infos Générales;Derniers scores: Victoire vs Costa Rica (1-0), Défaite vs États-Unis (0-2), Défaite vs Canada (1-2), Défaite vs Mexique (0-1), Victoire vs Afrique du Sud (2-1);-;Calendrier CDM: 18 juin vs Allemagne (Atlanta) | 22 juin vs Australie (Atlanta) | 27 juin vs Côte d'Ivoire (New York);-
+Panama;Joueur;Adalberto Carrasquilla;Milieu Central;Houston Dynamo (USA);4,5 M€
+Panama;Joueur;Michael Amir Murillo;Arrière Droit;Olympique de Marseille (FRA);5 M€
+Panama;Joueur;José Córdoba;Défenseur Central;Norwich City (ANG);3,5 M€
+Panama;Joueur;Ismael Díaz;Ailier;Universidad Católica (EQU);1,2 M€
+Panama;Joueur;Orlando Mosquera;Gardien;Al-Fayha (ARA);800 k€
+Panama;Joueur;Andrés Andrade;Défenseur Central;LASK (AUT);1,5 M€

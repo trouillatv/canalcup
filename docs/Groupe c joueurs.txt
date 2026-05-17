@@ -1,0 +1,87 @@
+Équipe;Catégorie;Nom;Poste;Club (Pays);Valeur Marchande
+États-Unis;Infos Générales;Derniers scores: Défaite vs Canada (1-2), Victoire vs Panama (2-0), Nul vs Nouvelle-Zélande (1-1), Victoire vs Jamaïque (4-2), Victoire vs Autriche (2-1);-;Calendrier CDM: 12 juin vs Maroc (Los Angeles) | 19 juin vs Ouzbékistan (Seattle) | 25 juin vs Nouvelle-Zélande (Los Angeles);-
+États-Unis;Joueur;Christian Pulisic;Ailier;AC Milan (ITA);40 M€
+États-Unis;Joueur;Folarin Balogun;Avant-centre;AS Monaco (FRA);30 M€
+États-Unis;Joueur;Weston McKennie;Milieu Central;Juventus (ITA);22 M€
+États-Unis;Joueur;Antonee Robinson;Arrière Gauche;Fulham FC (ANG);25 M€
+États-Unis;Joueur;Tyler Adams;Milieu Défensif;Bournemouth (ANG);15 M€
+États-Unis;Joueur;Yunus Musah;Milieu Central;AC Milan (ITA);15 M€
+États-Unis;Joueur;Timothy Weah;Ailier;Juventus (ITA);12 M€
+États-Unis;Joueur;Chris Richards;Défenseur Central;Crystal Palace (ANG);12 M€
+États-Unis;Joueur;Cameron Carter-Vickers;Défenseur Central;Celtic Glasgow (ECO);14 M€
+États-Unis;Joueur;Joe Scally;Arrière Droit;Borussia M'gladbach (ALL);12 M€
+États-Unis;Joueur;Matt Turner;Gardien;Crystal Palace (ANG);5 M€
+États-Unis;Joueur;Ethan Horvath;Gardien;Cardiff City (ANG);1,5 M€
+États-Unis;Joueur;Patrick Schulte;Gardien;Columbus Crew (USA);3 M€
+États-Unis;Joueur;Miles Robinson;Défenseur Central;FC Cincinnati (USA);4 M€
+États-Unis;Joueur;Tim Ream;Défenseur Central;Charlotte FC (USA);800 k€
+États-Unis;Joueur;Kristoffer Lund;Arrière Gauche;Palerme (ITA);2,5 M€
+États-Unis;Joueur;Johnny Cardoso;Milieu Défensif;Betis Séville (ESP);20 M€
+États-Unis;Joueur;Malik Tillman;Milieu Offensif;PSV Eindhoven (P-B);25 M€
+États-Unis;Joueur;Brenden Aaronson;Milieu Offensif;Leeds United (ANG);11 M€
+États-Unis;Joueur;Ricardo Pepi;Avant-centre;PSV Eindhoven (P-B);12 M€
+États-Unis;Joueur;Haji Wright;Ailier;Coventry City (ANG);8 M€
+États-Unis;Joueur;Brandon Vazquez;Avant-centre;Monterrey (MEX);6 M€
+Maroc;Infos Générales;Derniers scores: Victoire vs Centrafrique (4-0), Victoire vs Gabon (4-1), Victoire vs Lesotho (1-0), Nul vs Côte d'Ivoire (1-1), Victoire vs Angola (1-0);-;Calendrier CDM: 12 juin vs États-Unis (Los Angeles) | 17 juin vs Nouvelle-Zélande (Dallas) | 25 juin vs Ouzbékistan (Kansas City);-
+Maroc;Joueur;Achraf Hakimi;Arrière Droit;Paris Saint-Germain (FRA);60 M€
+Maroc;Joueur;Brahim Díaz;Milieu Offensif;Real Madrid (ESP);40 M€
+Maroc;Joueur;Amine Adli;Ailier;Bayer Leverkusen (ALL);25 M€
+Maroc;Joueur;Nayef Aguerd;Défenseur Central;Real Sociedad (ESP);30 M€
+Maroc;Joueur;Sofyan Amrabat;Milieu Défensif;Fenerbahçe (TUR);22 M€
+Maroc;Joueur;Azzedine Ounahi;Milieu Central;Panathinaïkos (GRE);12 M€
+Maroc;Joueur;Hakim Ziyech;Ailier;Galatasaray (TUR);7 M€
+Maroc;Joueur;Youssef En-Nesyri;Avant-centre;Fenerbahçe (TUR);15 M€
+Maroc;Joueur;Yassine Bounou;Gardien;Al-Hilal (ARA);10 M€
+Maroc;Joueur;Munir Mohamedi;Gardien;RS Berkane (MAR);500 k€
+Maroc;Joueur;El Mehdi Benabid;Gardien;AS FAR (MAR);800 k€
+Maroc;Joueur;Chadi Riad;Défenseur Central;Crystal Palace (ANG);15 M€
+Maroc;Joueur;Abdel Abqar;Défenseur Central;Deportivo Alavés (ESP);7 M€
+Maroc;Joueur;Achraf Dari;Défenseur Central;Al Ahly (EGY);2 M€
+Maroc;Joueur;Yahia Attiyat Allah;Arrière Gauche;Al Ahly (EGY);2,2 M€
+Maroc;Joueur;Noussair Mazraoui;Arrière Gauche;Manchester United (ANG);30 M€
+Maroc;Joueur;Bilal El Khannouss;Milieu Offensif;Leicester City (ANG);30 M€
+Maroc;Joueur;Ismael Saibari;Milieu Central;PSV Eindhoven (P-B);16 M€
+Maroc;Joueur;Amine Harit;Milieu Offensif;Olympique de Marseille (FRA);15 M€
+Maroc;Joueur;Ayoub El Kaabi;Avant-centre;Olympiakos (GRE);5 M€
+Maroc;Joueur;Soufiane Rahimi;Attaquant;Al-Ain (EAU);8 M€
+Maroc;Joueur;Ilias Akhomach;Ailier;Villarreal (ESP);12 M€
+Ouzbékistan;Infos Générales;Derniers scores: Victoire vs Émirats Arabes Unis (1-0), Nul vs Iran (0-0), Victoire vs Kirghizistan (3-2), Victoire vs Corée du Nord (1-0), Victoire vs Turkménistan (3-1);-;Calendrier CDM: 13 juin vs Nouvelle-Zélande (Miami) | 19 juin vs États-Unis (Seattle) | 25 juin vs Maroc (Kansas City);-
+Ouzbékistan;Joueur;Abdukodir Khusanov;Défenseur Central;RC Lens (FRA);5 M€
+Ouzbékistan;Joueur;Eldor Shomurodov;Avant-centre;AS Rome (ITA);5 M€
+Ouzbékistan;Joueur;Abbosbek Fayzullaev;Milieu Offensif;CSKA Moscou (RUS);6 M€
+Ouzbékistan;Joueur;Otabek Shukurov;Milieu Central;Al-Fayha (ARA);2,5 M€
+Ouzbékistan;Joueur;Jaloliddin Masharipov;Ailier;Esteghlal (IRN);1,5 M€
+Ouzbékistan;Joueur;Utkir Yusupov;Gardien;Foolad (IRN);700 k€
+Ouzbékistan;Joueur;Abduvohid Nematov;Gardien;Nasaf Qarshi (OUZ);1 M€
+Ouzbékistan;Joueur;Rustam Ashurmatov;Défenseur Central;Rubin Kazan (RUS);1,2 M€
+Ouzbékistan;Joueur;Husniddin Aliqulov;Défenseur Central;Çaykur Rizespor (TUR);1,2 M€
+Ouzbékistan;Joueur;Umar Eshmurodov;Défenseur Central;Selangor (MAL);500 k€
+Ouzbékistan;Joueur;Sherzod Nasrullaev;Arrière Gauche;Nasaf Qarshi (OUZ);800 k€
+Ouzbékistan;Joueur;Khojiakbar Alijonov;Arrière Droit;Pakhtakor Tachkent (OUZ);1 M€
+Ouzbékistan;Joueur;Odiljon Hamrobekov;Milieu Défensif;Navbahor (OUZ);1,2 M€
+Ouzbékistan;Joueur;Jamshid Iskanderov;Milieu Central;Navbahor (OUZ);800 k€
+Ouzbékistan;Joueur;Diyor Kholmatov;Milieu Central;Pakhtakor Tachkent (OUZ);700 k€
+Ouzbékistan;Joueur;Oston Urunov;Ailier;Persépolis (IRN);1,5 M€
+Ouzbékistan;Joueur;Jasur Yakhshiboev;Avant-centre;Ordabasy (KAZ);1 M€
+Ouzbékistan;Joueur;Igor Sergeev;Avant-centre;BG Pathum United (THA);600 k€
+Nouvelle-Zélande;Infos Générales;Derniers scores: Victoire vs Tahiti (3-0), Nul vs États-Unis (1-1), Défaite vs Mexique (0-3), Victoire vs Vanuatu (4-0), Victoire vs Îles Salomon (3-0);-;Calendrier CDM: 13 juin vs Ouzbékistan (Miami) | 17 juin vs Maroc (Dallas) | 25 juin vs États-Unis (Los Angeles);-
+Nouvelle-Zélande;Joueur;Chris Wood;Avant-centre;Nottingham Forest (ANG);7 M€
+Nouvelle-Zélande;Joueur;Liborato Cacace;Arrière Gauche;Empoli (ITA);2,5 M€
+Nouvelle-Zélande;Joueur;Sarpreet Singh;Milieu Offensif;Uniao de Leiria (POR);1,2 M€
+Nouvelle-Zélande;Joueur;Marko Stamenic;Milieu Central;Olympiakos (GRE);5 M€
+Nouvelle-Zélande;Joueur;Michael Boxall;Défenseur Central;Minnesota United (USA);350 k€
+Nouvelle-Zélande;Joueur;Tyler Bindon;Défenseur Central;Reading (ANG);1,8 M€
+Nouvelle-Zélande;Joueur;Alex Paulsen;Gardien;Auckland FC (N-Z);1,2 M€
+Nouvelle-Zélande;Joueur;Oliver Sail;Gardien;Perth Glory (AUS);500 k€
+Nouvelle-Zélande;Joueur;Max Crocombe;Gardien;Burton Albion (ANG);400 k€
+Nouvelle-Zélande;Joueur;Nando Pijnaker;Défenseur Central;Auckland FC (N-Z);600 k€
+Nouvelle-Zélande;Joueur;Tommy Smith;Défenseur Central;Auckland FC (N-Z);150 k€
+Nouvelle-Zélande;Joueur;Tim Payne;Arrière Droit;Wellington Phoenix (N-Z);600 k€
+Nouvelle-Zélande;Joueur;Dalton Wilkins;Arrière Gauche;SønderjyskE (DAN);400 k€
+Nouvelle-Zélande;Joueur;Joe Bell;Milieu Défensif;Viking FK (NOR);1,5 M€
+Nouvelle-Zélande;Joueur;Matthew Garbett;Milieu Central;NAC Breda (P-B);1 M€
+Nouvelle-Zélande;Joueur;Ben Old;Milieu Offensif;AS Saint-Étienne (FRA);1,5 M€
+Nouvelle-Zélande;Joueur;Elijah Just;Ailier;Horsens (DAN);600 k€
+Nouvelle-Zélande;Joueur;Kosta Barbarouses;Ailier;Wellington Phoenix (N-Z);300 k€
+Nouvelle-Zélande;Joueur;Ben Waine;Avant-centre;Mansfield Town (ANG);700 k€
+Nouvelle-Zélande;Joueur;Max Mata;Avant-centre;Auckland FC (N-Z);500 k€

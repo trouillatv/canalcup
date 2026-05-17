@@ -1,0 +1,88 @@
+Équipe;Catégorie;Nom;Poste;Club (Pays);Valeur Marchande
+Argentine;Infos Générales;Derniers scores: Défaite vs Équateur (1-2), Défaite vs Colombie (1-2), Victoire vs Bolivie (6-0), Nul vs Venezuela (1-1), Victoire vs Chili (3-0);-;Calendrier CDM: 18 juin vs Égypte (Boston) | 23 juin vs Écosse (Atlanta) | 27 juin vs Nigeria (Miami);-
+Argentine;Joueur;Lionel Messi;Milieu Offensif;Inter Miami (USA);30 M€
+Argentine;Joueur;Lautaro Martínez;Avant-centre;Inter Milan (ITA);110 M€
+Argentine;Joueur;Julián Álvarez;Avant-centre;Atlético Madrid (ESP);90 M€
+Argentine;Joueur;Alexis Mac Allister;Milieu Central;Liverpool (ANG);75 M€
+Argentine;Joueur;Enzo Fernández;Milieu Défensif;Chelsea (ANG);75 M€
+Argentine;Joueur;Rodrigo De Paul;Milieu Central;Atlético Madrid (ESP);30 M€
+Argentine;Joueur;Cristian Romero;Défenseur Central;Tottenham (ANG);65 M€
+Argentine;Joueur;Lisandro Martínez;Défenseur Central;Manchester United (ANG);50 M€
+Argentine;Joueur;Nahuel Molina;Arrière Droit;Atlético Madrid (ESP);28 M€
+Argentine;Joueur;Nicolás Tagliafico;Arrière Gauche;Olympique Lyonnais (FRA);8 M€
+Argentine;Joueur;Emiliano Martínez;Gardien;Aston Villa (ANG);28 M€
+Argentine;Joueur;Geronimo Rulli;Gardien;Olympique de Marseille (FRA);5 M€
+Argentine;Joueur;Walter Benítez;Gardien;PSV Eindhoven (P-B);13 M€
+Argentine;Joueur;Nicolas Otamendi;Défenseur Central;Benfica (POR);3 M€
+Argentine;Joueur;Gonzalo Montiel;Arrière Droit;Séville FC (ESP);10 M€
+Argentine;Joueur;Exequiel Palacios;Milieu Central;Bayer Leverkusen (ALL);45 M€
+Argentine;Joueur;Leandro Paredes;Milieu Défensif;AS Rome (ITA);8 M€
+Argentine;Joueur;Giovani Lo Celso;Milieu Offensif;Betis Séville (ESP);20 M€
+Argentine;Joueur;Alejandro Garnacho;Ailier;Manchester United (ANG);45 M€
+Argentine;Joueur;Nicolás González;Ailier;Juventus (ITA);35 M€
+Argentine;Joueur;Paulo Dybala;Milieu Offensif;AS Rome (ITA);20 M€
+Nigeria;Infos Générales;Derniers scores: Victoire vs Bénin (2-1), Nul vs Rwanda (0-0), Victoire vs Bénin (3-0), Défaite vs Bénin (1-2), Nul vs Afrique du Sud (1-1);-;Calendrier CDM: 18 juin vs Écosse (Houston) | 22 juin vs Égypte (Dallas) | 27 juin vs Argentine (Miami);-
+Nigeria;Joueur;Victor Osimhen;Avant-centre;Galatasaray (TUR);75 M€
+Nigeria;Joueur;Ademola Lookman;Ailier;Atalanta Bergame (ITA);40 M€
+Nigeria;Joueur;Victor Boniface;Avant-centre;Bayer Leverkusen (ALL);45 M€
+Nigeria;Joueur;Alex Iwobi;Milieu Offensif;Fulham FC (ANG);15 M€
+Nigeria;Joueur;Wilfred Ndidi;Milieu Défensif;Leicester City (ANG);16 M€
+Nigeria;Joueur;Calvin Bassey;Défenseur Central;Fulham FC (ANG);16 M€
+Nigeria;Joueur;Ola Aina;Arrière Droit;Nottingham Forest (ANG);12 M€
+Nigeria;Joueur;Stanley Nwabali;Gardien;Chippa United (A-S);1,5 M€
+Nigeria;Joueur;Maduka Okoye;Gardien;Udinese (ITA);4 M€
+Nigeria;Joueur;Amas Obasogie;Gardien;Fasil Kenema (ETH);400 k€
+Nigeria;Joueur;William Troost-Ekong;Défenseur Central;Al-Kholood (ARA);2 M€
+Nigeria;Joueur;Semilogo Ajayi;Défenseur Central;West Bromwich (ANG);1,5 M€
+Nigeria;Joueur;Bruno Onyemaechi;Arrière Gauche;Boavista (POR);3 M€
+Nigeria;Joueur;Bright Osayi-Samuel;Arrière Droit;Fenerbahçe (TUR);8 M€
+Nigeria;Joueur;Frank Onyeka;Milieu Défensif;Augsbourg (ALL);9 M€
+Nigeria;Joueur;Raphael Onyedika;Milieu Central;Club Bruges (BEL);10 M€
+Nigeria;Joueur;Fisayo Dele-Bashiru;Milieu Offensif;Lazio Rome (ITA);6 M€
+Nigeria;Joueur;Moses Simon;Ailier;FC Nantes (FRA);10 M€
+Nigeria;Joueur;Samuel Chukwueze;Ailier;AC Milan (ITA);20 M€
+Nigeria;Joueur;Kelechi Iheanacho;Avant-centre;Séville FC (ESP);9 M€
+Nigeria;Joueur;Taiwo Awoniyi;Avant-centre;Nottingham Forest (ANG);20 M€
+Égypte;Infos Générales;Derniers scores: Nul vs Cap-Vert (1-1), Victoire vs Mauritanie (1-0), Victoire vs Mauritanie (2-0), Nul vs Guinée-Bissau (1-1), Victoire vs Burkina Faso (2-1);-;Calendrier CDM: 18 juin vs Argentine (Boston) | 22 juin vs Nigeria (Dallas) | 27 juin vs Écosse (Atlanta);-
+Égypte;Joueur;Mohamed Salah;Ailier;Liverpool (ANG);55 M€
+Égypte;Joueur;Omar Marmoush;Avant-centre;Eintracht Francfort (ALL);22 M€
+Égypte;Joueur;Mostafa Mohamed;Avant-centre;FC Nantes (FRA);15 M€
+Égypte;Joueur;Trezeguet;Ailier;Al-Rayyan (QAT);5 M€
+Égypte;Joueur;Mohamed Elneny;Milieu Défensif;Al-Jazira (EAU);1,5 M€
+Égypte;Joueur;Mohamed El Shenawy;Gardien;Al Ahly (EGY);1,5 M€
+Égypte;Joueur;Mostafa Shobeir;Gardien;Al Ahly (EGY);800 k€
+Égypte;Joueur;Mohamed Awad;Gardien;Zamalek (EGY);600 k€
+Égypte;Joueur;Mohamed Abdelmonem;Défenseur Central;OGC Nice (FRA);3 M€
+Égypte;Joueur;Ahmed Hegazi;Défenseur Central;Neom FC (ARA);1 M€
+Égypte;Joueur;Rami Rabia;Défenseur Central;Al Ahly (EGY);500 k€
+Égypte;Joueur;Mohamed Hamdi;Arrière Gauche;Pyramids FC (EGY);1,2 M€
+Égypte;Joueur;Mohamed Hany;Arrière Droit;Al Ahly (EGY);1,2 M€
+Égypte;Joueur;Akram Tawfik;Milieu Défensif;Al Ahly (EGY);1,5 M€
+Égypte;Joueur;Hamdi Fathi;Milieu Central;Al-Wakrah (QAT);3 M€
+Égypte;Joueur;Marwan Attia;Milieu Central;Al Ahly (EGY);1,8 M€
+Égypte;Joueur;Ahmed Sayed Zizo;Ailier;Zamalek (EGY);4,5 M€
+Égypte;Joueur;Ibrahim Adel;Ailier;Pyramids FC (EGY);1,5 M€
+Égypte;Joueur;Mohamed Sherif;Avant-centre;Al-Khaleej (ARA);1,8 M€
+Égypte;Joueur;Koka;Avant-centre;Al-Alanyaspor (TUR);800 k€
+Écosse;Infos Générales;Derniers scores: Victoire vs Portugal (0-0, match réévalué), Défaite vs Croatie (1-2), Défaite vs Portugal (1-2), Défaite vs Pologne (2-3), Nul vs Finlande (2-2);-;Calendrier CDM: 18 juin vs Nigeria (Houston) | 23 juin vs Argentine (Atlanta) | 27 juin vs Égypte (Atlanta);-
+Écosse;Joueur;Scott McTominay;Milieu Central;SSC Naples (ITA);32 M€
+Écosse;Joueur;Andrew Robertson;Arrière Gauche;Liverpool (ANG);30 M€
+Écosse;Joueur;John McGinn;Milieu Central;Aston Villa (ANG);30 M€
+Écosse;Joueur;Billy Gilmour;Milieu Défensif;SSC Naples (ITA);18 M€
+Écosse;Joueur;Lewis Ferguson;Milieu Offensif;Bologne FC (ITA);24 M€
+Écosse;Joueur;Che Adams;Avant-centre;Torino (ITA);15 M€
+Écosse;Joueur;Angus Gunn;Gardien;Norwich City (ANG);2,5 M€
+Écosse;Joueur;Zander Clark;Gardien;Hearts (ECO);600 k€
+Écosse;Joueur;Liam Kelly;Gardien;Glasgow Rangers (ECO);700 k€
+Écosse;Joueur;Grant Hanley;Défenseur Central;Norwich City (ANG);500 k€
+Écosse;Joueur;Ryan Porteous;Défenseur Central;Watford (ANG);3 M€
+Écosse;Joueur;John Souttar;Défenseur Central;Glasgow Rangers (ECO);3 M€
+Écosse;Joueur;Greg Taylor;Arrière Gauche;Celtic Glasgow (ECO);7 M€
+Écosse;Joueur;Anthony Ralston;Arrière Droit;Celtic Glasgow (ECO);1,8 M€
+Écosse;Joueur;Callum McGregor;Milieu Central;Celtic Glasgow (ECO);8 M€
+Écosse;Joueur;Kenny McLean;Milieu Central;Norwich City (ANG);900 k€
+Écosse;Joueur;Ryan Christie;Milieu Offensif;Bournemouth (ANG);12 M€
+Écosse;Joueur;Ben Doak;Ailier;Middlesbrough (ANG);10 M€
+Écosse;Joueur;James Forrest;Ailier;Celtic Glasgow (ECO);800 k€
+Écosse;Joueur;Lawrence Shankland;Avant-centre;Hearts (ECO);4 M€
+Écosse;Joueur;Lyndon Dykes;Avant-centre;Birmingham City (ANG);2 M€

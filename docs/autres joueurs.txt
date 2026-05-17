@@ -1,0 +1,204 @@
+Équipe;Catégorie;Nom;Poste;Club (Pays);Valeur Marchande
+Angleterre;Joueur;Jordan Pickford;Gardien;Everton (ANG);22 M€
+Angleterre;Joueur;Aaron Ramsdale;Gardien;Southampton (ANG);20 M€
+Angleterre;Joueur;Dean Henderson;Gardien;Crystal Palace (ANG);12 M€
+Angleterre;Joueur;John Stones;Défenseur Central;Manchester City (ANG);35 M€
+Angleterre;Joueur;Marc Guéhi;Défenseur Central;Crystal Palace (ANG);38 M€
+Angleterre;Joueur;Ezri Konsa;Défenseur Central;Aston Villa (ANG);35 M€
+Angleterre;Joueur;Levi Colwill;Défenseur Central;Chelsea (ANG);50 M€
+Angleterre;Joueur;Kieran Trippier;Arrière Droit;Newcastle United (ANG);10 M€
+Angleterre;Joueur;Kyle Walker;Arrière Droit;Manchester City (ANG);13 M€
+Angleterre;Joueur;Trent Alexander-Arnold;Arrière Droit;Liverpool (ANG);70 M€
+Angleterre;Joueur;Declan Rice;Milieu Défensif;Arsenal (ANG);120 M€
+Angleterre;Joueur;Kobbie Mainoo;Milieu Central;Manchester United (ANG);55 M€
+Angleterre;Joueur;Conor Gallagher;Milieu Central;Atlético Madrid (ESP);42 M€
+Angleterre;Joueur;Jude Bellingham;Milieu Offensif;Real Madrid (ESP);180 M€
+Angleterre;Joueur;Phil Foden;Milieu Offensif;Manchester City (ANG);150 M€
+Angleterre;Joueur;Cole Palmer;Milieu Offensif;Chelsea (ANG);90 M€
+Angleterre;Joueur;Bukayo Saka;Ailier;Arsenal (ANG);140 M€
+Angleterre;Joueur;Anthony Gordon;Ailier;Newcastle United (ANG);60 M€
+Angleterre;Joueur;Harry Kane;Avant-centre;Bayern Munich (ALL);100 M€
+Angleterre;Joueur;Ollie Watkins;Avant-centre;Aston Villa (ANG);65 M€
+Angleterre;Joueur;Ivan Toney;Avant-centre;Al-Ahli (ARA);40 M€
+Arabie Saoudite;Joueur;Mohammed Al-Owais;Gardien;Al-Hilal (ARA);500 k€
+Arabie Saoudite;Joueur;Ahmed Al-Kassar;Gardien;Al-Qadsiah (ARA);200 k€
+Arabie Saoudite;Joueur;Raghed Al-Najjar;Gardien;Al-Nassr (ARA);150 k€
+Arabie Saoudite;Joueur;Ali Lajami;Défenseur Central;Al-Nassr (ARA);1 M€
+Arabie Saoudite;Joueur;Ali Al-Bulaihi;Défenseur Central;Al-Hilal (ARA);350 k€
+Arabie Saoudite;Joueur;Hassan Tambakti;Défenseur Central;Al-Hilal (ARA);1,5 M€
+Arabie Saoudite;Joueur;Yasser Al-Shahrani;Arrière Gauche;Al-Hilal (ARA);600 k€
+Arabie Saoudite;Joueur;Saud Abdulhamid;Arrière Droit;AS Rome (ITA);4 M€
+Arabie Saoudite;Joueur;Sultan Al-Ghannam;Arrière Droit;Al-Nassr (ARA);2 M€
+Arabie Saoudite;Joueur;Abdulelah Al-Malki;Milieu Défensif;Al-Ettifaq (ARA);600 k€
+Arabie Saoudite;Joueur;Abdullah Otayf;Milieu Défensif;Al-Ahli (ARA);100 k€
+Arabie Saoudite;Joueur;Mohamed Kanno;Milieu Central;Al-Hilal (ARA);1,2 M€
+Arabie Saoudite;Joueur;Faisal Al-Ghamdi;Milieu Central;Beerschot (BEL);2,5 M€
+Arabie Saoudite;Joueur;Musab Al-Juwayr;Milieu Offensif;Al-Shabab (ARA);1,5 M€
+Arabie Saoudite;Joueur;Salem Al-Dawsari;Ailier;Al-Hilal (ARA);1,8 M€
+Arabie Saoudite;Joueur;Abdulrahman Ghareeb;Ailier;Al-Nassr (ARA);2 M€
+Arabie Saoudite;Joueur;Firas Al-Buraikan;Avant-centre;Al-Ahli (ARA);5 M€
+Arabie Saoudite;Joueur;Saleh Al-Shehri;Avant-centre;Al-Ittihad (ARA);500 k€
+Autriche;Joueur;Patrick Pentz;Gardien;Brøndby IF (DAN);2,5 M€
+Autriche;Joueur;Alexander Schlager;Gardien;RB Salzbourg (AUT);2 M€
+Autriche;Joueur;Niklas Hedl;Gardien;Rapid Vienne (AUT);2,5 M€
+Autriche;Joueur;Kevin Danso;Défenseur Central;RC Lens (FRA);25 M€
+Autriche;Joueur;Maximilian Wöber;Défenseur Central;Leeds United (ANG);10 M€
+Autriche;Joueur;Philipp Lienhart;Défenseur Central;Fribourg (ALL);15 M€
+Autriche;Joueur;Stefan Posch;Arrière Droit;Bologne FC (ITA);14 M€
+Autriche;Joueur;Phillipp Mwene;Arrière Gauche;Mayence 05 (ALL);2,5 M€
+Autriche;Joueur;Nicolas Seiwald;Milieu Défensif;RB Leipzig (ALL);16 M€
+Autriche;Joueur;Florian Grillitsch;Milieu Défensif;TSG Hoffenheim (ALL);6,5 M€
+Autriche;Joueur;Konrad Laimer;Milieu Central;Bayern Munich (ALL);30 M€
+Autriche;Joueur;Marcel Sabitzer;Milieu Offensif;Borussia Dortmund (ALL);20 M€
+Autriche;Joueur;Christoph Baumgartner;Milieu Offensif;RB Leipzig (ALL);18 M€
+Autriche;Joueur;Patrick Wimmer;Ailier;VfL Wolfsburg (ALL);15 M€
+Autriche;Joueur;Romano Schmid;Milieu Offensif;Werder Brême (ALL);8 M€
+Autriche;Joueur;Michael Gregoritsch;Avant-centre;Fribourg (ALL);6 M€
+Autriche;Joueur;Marko Arnautović;Avant-centre;Inter Milan (ITA);2 M€
+Brésil;Joueur;Alisson Becker;Gardien;Liverpool (ANG);28 M€
+Brésil;Joueur;Ederson Moraes;Gardien;Manchester City (ANG);35 M€
+Brésil;Joueur;Bento;Gardien;Al-Nassr (ARA);15 M€
+Brésil;Joueur;Marquinhos;Défenseur Central;Paris Saint-Germain (FRA);45 M€
+Brésil;Joueur;Gabriel Magalhães;Défenseur Central;Arsenal (ANG);40 M€
+Brésil;Joueur;Éder Militão;Défenseur Central;Real Madrid (ESP);50 M€
+Brésil;Joueur;Bremer;Défenseur Central;Juventus (ITA);40 M€
+Brésil;Joueur;Danilo;Arrière Droit;Juventus (ITA);6 M€
+Brésil;Joueur;Yan Couto;Arrière Droit;Borussia Dortmund (ALL);30 M€
+Brésil;Joueur;Guilherme Arana;Arrière Gauche;Atlético Mineiro (BRE);10 M€
+Brésil;Joueur;Bruno Guimarães;Milieu Défensif;Newcastle United (ANG);85 M€
+Brésil;Joueur;Douglas Luiz;Milieu Central;Juventus (ITA);55 M€
+Brésil;Joueur;João Gomes;Milieu Défensif;Wolverhampton (ANG);40 M€
+Brésil;Joueur;Lucas Paquetá;Milieu Offensif;West Ham United (ANG);55 M€
+Brésil;Joueur;Andreas Pereira;Milieu Offensif;Fulham FC (ANG);20 M€
+Brésil;Joueur;Vinícius Júnior;Ailier;Real Madrid (ESP);180 M€
+Brésil;Joueur;Rodrygo Goes;Ailier;Real Madrid (ESP);110 M€
+Brésil;Joueur;Raphinha;Ailier;FC Barcelone (ESP);50 M€
+Brésil;Joueur;Savinho;Ailier;Manchester City (ANG);50 M€
+Brésil;Joueur;Endrick;Avant-centre;Real Madrid (ESP);60 M€
+Brésil;Joueur;Gabriel Martinelli;Ailier;Arsenal (ANG);65 M€
+Cap-Vert;Joueur;Vozinha;Gardien;AS Trenčín (SLO);100 k€
+Cap-Vert;Joueur;Dylan Silva;Gardien;Sintrense (POR);150 k€
+Cap-Vert;Joueur;Logan Costa;Défenseur Central;Villarreal (ESP);12 M€
+Cap-Vert;Joueur;Roberto Lopes;Défenseur Central;Shamrock Rovers (IRL);200 k€
+Cap-Vert;Joueur;Pico;Défenseur Central;Shamrock Rovers (IRL);250 k€
+Cap-Vert;Joueur;Steven Moreira;Arrière Droit;Columbus Crew (USA);1,5 M€
+Cap-Vert;Joueur;João Paulo;Arrière Gauche;Sheriff Tiraspol (MDA);600 k€
+Cap-Vert;Joueur;Kevin Pina;Milieu Défensif;Krasnodar (RUS);2,5 M€
+Cap-Vert;Joueur;Patrick Andrade;Milieu Central;Qarabag FK (AZE);400 k€
+Cap-Vert;Joueur;Deroy Duarte;Milieu Central;Ludogorets (BUL);1,2 M€
+Cap-Vert;Joueur;Jamiro Monteiro;Milieu Offensif;Zwolle (P-B);1 M€
+Cap-Vert;Joueur;Ryan Mendes;Ailier;Hatta Club (EAU);400 k€
+Cap-Vert;Joueur;Garry Rodrigues;Ailier;Sivasspor (TUR);800 k€
+Cap-Vert;Joueur;Jovane Cabral;Ailier;Estrela Amadora (POR);2,5 M€
+Cap-Vert;Joueur;Bebé;Ailier;Racing Ferrol (ESP);200 k€
+Cap-Vert;Joueur;Garry Rodrigues;Ailier;Sivasspor (TUR);800 k€
+Cap-Vert;Joueur;Bryan Teixeira;Avant-centre;Magdebourg (ALL);800 k€
+Curaçao;Joueur;Eloy Room;Gardien;Vitesse Arnhem (P-B);300 k€
+Curaçao;Joueur;Tyrick Bodak;Gardien;Telstar (P-B);100 k€
+Curaçao;Joueur;Riechedly Bazoer;Défenseur Central;Konyaspor (TUR);2 M€
+Curaçao;Joueur;Juriën Gaari;Défenseur Central;Al-Hazem (ARA);400 k€
+Curaçao;Joueur;Sherel Floranus;Arrière Droit;PEC Zwolle (P-B);700 k€
+Curaçao;Joueur;Nathangelo Markelo;Arrière Gauche;Roda JC (P-B);300 k€
+Curaçao;Joueur;Vurnon Anita;Milieu Défensif;Al-Orobah (ARA);150 k€
+Curaçao;Joueur;Leandro Bacuna;Milieu Central;Groningue (P-B);400 k€
+Curaçao;Joueur;Juninho Bacuna;Milieu Offensif;Al-Wahda (EAU);2 M€
+Curaçao;Joueur;Gervane Kastaneer;Ailier;Castellón (ESP);300 k€
+Curaçao;Joueur;Brandley Kuwas;Ailier;Volendam (P-B);250 k€
+Curaçao;Joueur;Jearl Margaritha;Ailier;Phoenix Rising (USA);350 k€
+Curaçao;Joueur;Rangelo Janga;Avant-centre;Eindhoven (P-B);250 k€
+Curaçao;Joueur;Jürgen Locadia;Avant-centre;Inter de Inter (ESP);300 k€
+Ghana;Joueur;Lawrence Ati-Zigi;Gardien;Saint-Gall (SUI);2,5 M€
+Ghana;Joueur;Jojo Wollacott;Gardien;Crawley Town (ANG);400 k€
+Ghana;Joueur;Mohammed Salisu;Défenseur Central;AS Monaco (FRA);15 M€
+Ghana;Joueur;Alexander Djiku;Défenseur Central;Fenerbahçe (TUR);10 M€
+Ghana;Joueur;Alidu Seidu;Arrière Droit;Stade Rennais (FRA);9 M€
+Ghana;Joueur;Tariq Lamptey;Arrière Droit;Brighton (ANG);12 M€
+Ghana;Joueur;Gideon Mensah;Arrière Gauche;Auxerre (FRA);2,5 M€
+Ghana;Joueur;Thomas Partey;Milieu Défensif;Arsenal (ANG);18 M€
+Ghana;Joueur;Salis Abdul Samed;Milieu Défensif;Sunderland (ANG);8 M€
+Ghana;Joueur;Elisha Owusu;Milieu Central;Auxerre (FRA);3 M€
+Ghana;Joueur;Mohammed Kudus;Milieu Offensif;West Ham United (ANG);50 M€
+Ghana;Joueur;Ernest Nuamah;Ailier;Olympique Lyonnais (FRA);18 M€
+Ghana;Joueur;Jordan Ayew;Ailier;Leicester City (ANG);4 M€
+Ghana;Joueur;Abdul Fatawu Issahaku;Ailier;Leicester City (ANG);16 M€
+Ghana;Joueur;Antoine Semenyo;Avant-centre;Bournemouth (ANG);20 M€
+Ghana;Joueur;Inaki Williams;Avant-centre;Athletic Bilbao (ESP);25 M€
+Haïti;Joueur;Johnny Placide;Gardien;Bastia (FRA);200 k€
+Haïti;Joueur;Alexandre Pierre;Gardien;Sochaux (FRA);300 k€
+Haïti;Joueur;Ricardo Adé;Défenseur Central;LDU Quito (EQU);600 k€
+Haïti;Joueur;Jean-Kevin Duverne;Défenseur Central;Nantes (FRA);2 M€
+Haïti;Joueur;Garissone Innocent;Gardien;Eupen (BEL);350 k€
+Haïti;Joueur;Carlens Arcus;Arrière Droit;Angers SCO (FRA);1,2 M€
+Haïti;Joueur;Duke Lacroix;Arrière Gauche;Colorado Springs (USA);250 k€
+Haïti;Joueur;Carl-Fred Sainte;Milieu Défensif;Dallas (USA);400 k€
+Haïti;Joueur;Leverton Pierre;Milieu Central;Avranches (FRA);300 k€
+Haïti;Joueur;Danley Jean Jacques;Milieu Central;Philadelphia Union (USA);2,5 M€
+Haïti;Joueur;Duckens Nazon;Avant-centre;Kayserispor (TUR);1,5 M€
+Haïti;Joueur;Frantzdy Pierrot;Avant-centre;AEK Athènes (GRE);3,5 M€
+Haïti;Joueur;Mondy Prunier;Avant-centre;Francs Borains (BEL);400 k€
+Haïti;Joueur;Derrick Etienne Jr.;Ailier;Toronto FC (CAN);1 M€
+Jordanie;Joueur;Yazeed Abulaila;Gardien;Al-Hussein (JOR);400 k€
+Jordanie;Joueur;Abdallah Al-Fakhouri;Gardien;Al-Wehdat (JOR);250 k€
+Jordanie;Joueur;Yazan Al-Arab;Défenseur Central;FC Séoul (COR);600 k€
+Jordanie;Joueur;Abdallah Nasib;Défenseur Central;Al-Hussein (JOR);400 k€
+Jordanie;Joueur;Ehsan Haddad;Arrière Droit;Al-Faisaly (JOR);350 k€
+Jordanie;Joueur;Mohammad Abu Hasheesh;Arrière Gauche;Al-Ahed (LIB);300 k€
+Jordanie;Joueur;Nizar Al-Rashdan;Milieu Défensif;Al-Khaldiya (BAH);450 k€
+Jordanie;Joueur;Noor Al-Rawabdeh;Milieu Central;Selangor (MAL);400 k€
+Jordanie;Joueur;Musa Al-Taamari;Ailier;Montpellier HSC (FRA);8 M€
+Jordanie;Joueur;Ali Olwan;Ailier;Al-Shamal (QAT);600 k€
+Jordanie;Joueur;Yazan Al-Naimat;Avant-centre;Al-Arabi (QAT);1,8 M€
+Jordanie;Joueur;Mahmoud Al-Mardi;Milieu Offensif;Al-Hussein (JOR);450 k€
+Pays-Bas;Joueur;Bart Verbruggen;Gardien;Brighton (ANG);18 M€
+Pays-Bas;Joueur;Mark Flekken;Gardien;Brentford (ANG);10 M€
+Pays-Bas;Joueur;Nick Olij;Gardien;Sparta Rotterdam (P-B);4 M€
+Pays-Bas;Joueur;Virgil van Dijk;Défenseur Central;Liverpool (ANG);30 M€
+Pays-Bas;Joueur;Nathan Aké;Défenseur Central;Manchester City (ANG);40 M€
+Pays-Bas;Joueur;Matthijs de Ligt;Défenseur Central;Manchester United (ANG);50 M€
+Pays-Bas;Joueur;Stefan de Vrij;Défenseur Central;Inter Milan (ITA);8 M€
+Pays-Bas;Joueur;Micky van de Ven;Défenseur Central;Tottenham (ANG);55 M€
+Pays-Bas;Joueur;Lutsharel Geertruida;Arrière Droit;RB Leipzig (ALL);32 M€
+Pays-Bas;Joueur;Denzel Dumfries;Arrière Droit;Inter Milan (ITA);24 M€
+Pays-Bas;Joueur;Jeremie Frimpong;Arrière Droit;Bayer Leverkusen (ALL);50 M€
+Pays-Bas;Joueur;Jerdy Schouten;Milieu Défensif;PSV Eindhoven (P-B);28 M€
+Pays-Bas;Joueur;Ryan Gravenberch;Milieu Central;Liverpool (ANG);35 M€
+Pays-Bas;Joueur;Tijjani Reijnders;Milieu Central;AC Milan (ITA);35 M€
+Pays-Bas;Joueur;Xavi Simons;Milieu Offensif;RB Leipzig (ALL);80 M€
+Pays-Bas;Joueur;Cody Gakpo;Ailier;Liverpool (ANG);50 M€
+Pays-Bas;Joueur;Donyell Malen;Ailier;Borussia Dortmund (ALL);35 M€
+Pays-Bas;Joueur;Memphis Depay;Avant-centre;Corinthians (BRE);10 M€
+Pays-Bas;Joueur;Brian Brobbey;Avant-centre;Ajax Amsterdam (P-B);35 M€
+Pays-Bas;Joueur;Joshua Zirkzee;Avant-centre;Manchester United (ANG);40 M€
+RD Congo;Joueur;Lionel Mpasi;Gardien;Rodez AF (FRA);800 k€
+RD Congo;Joueur;Dimitry Bertaud;Gardien;Montpellier HSC (FRA);1 M€
+RD Congo;Joueur;Chancel Mbemba;Défenseur Central;Olympique de Marseille (FRA);15 M€
+RD Congo;Joueur;Dylan Batubinsika;Défenseur Central;AS Saint-Étienne (FRA);2,5 M€
+RD Congo;Joueur;Inonga Baka;Défenseur Central;AS FAR (MAR);600 k€
+RD Congo;Joueur;Gédéon Kalulu;Arrière Droit;FC Lorient (FRA);2,5 M€
+RD Congo;Joueur;Arthur Masuaku;Arrière Gauche;Beşiktaş (TUR);3 M€
+RD Congo;Joueur;Joris Kayembe;Arrière Gauche;Genk (BEL);2,5 M€
+RD Congo;Joueur;Samuel Moutoussamy;Milieu Central;Sivasspor (TUR);2,5 M€
+RD Congo;Joueur;Charles Pickel;Milieu Défensif;Cremonese (ITA);2,5 M€
+RD Congo;Joueur;Edo Kayembe;Milieu Central;Watford (ANG);3 M€
+RD Congo;Joueur;Gaël Kakuta;Milieu Offensif;Esteghlal (IRN);1 M€
+RD Congo;Joueur;Meschack Elia;Ailier;Young Boys Berne (SUI);4 M€
+RD Congo;Joueur;Théo Bongonda;Ailier;Spartak Moscou (RUS);4 M€
+RD Congo;Joueur;Yoane Wissa;Ailier;Brentford (ANG);25 M€
+RD Congo;Joueur;Simon Banza;Avant-centre;Sporting Braga (POR);16 M€
+RD Congo;Joueur;Cedric Bakambu;Avant-centre;Betis Séville (ESP);2,5 M€
+RD Congo;Joueur;Fiston Mayele;Avant-centre;Pyramids FC (EGY);1,2 M€
+Suède;Joueur;Robin Olsen;Gardien;Aston Villa (ANG);1,5 M€
+Suède;Joueur;Viktor Johansson;Gardien;Stoke City (ANG);3,5 M€
+Suède;Joueur;Victor Lindelöf;Défenseur Central;Manchester United (ANG);15 M€
+Suède;Joueur;Isak Hien;Défenseur Central;Atalanta Bergame (ITA);20 M€
+Suède;Joueur;Carl Starfelt;Défenseur Central;Celta Vigo (ESP);6 M€
+Suède;Joueur;Ludwig Augustinsson;Arrière Gauche;Anderlecht (BEL);2 M€
+Suède;Joueur;Emil Krafth;Arrière Droit;Newcastle United (ANG);3 M€
+Suède;Joueur;Jens Cajuste;Milieu Défensif;Ipswich Town (ANG);10 M€
+Suède;Joueur;Hugo Larsson;Milieu Central;Eintracht Francfort (ALL);28 M€
+Suède;Joueur;Mattias Svanberg;Milieu Central;VfL Wolfsburg (ALL);12 M€
+Suède;Joueur;Dejan Kulusevski;Milieu Offensif;Tottenham (ANG);55 M€
+Suède;Joueur;Emil Forsberg;Milieu Offensif;New York Red Bulls (USA);3 M€
+Suède;Joueur;Anthony Elanga;Ailier;Nottingham Forest (ANG);22 M€
+Suède;Joueur;Alexander Isak;Avant-centre;Newcastle United (ANG);75 M€
+Suède;Joueur;Viktor Gyökeres;Avant-centre;Sporting CP (POR);70 M€

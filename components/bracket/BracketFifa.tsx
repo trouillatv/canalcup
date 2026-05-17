@@ -2,8 +2,26 @@
 
 import Link from "next/link";
 import { Fragment, useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { teamFlag, toNCTime, cn } from "@/lib/utils";
 import { WC2026_GROUPS } from "@/lib/football/groups-2026";
+import { wcTeamHref } from "@/lib/football/wc-teams-index";
+
+// Nom d'équipe : lien vers la fiche détaillée si des données docs existent,
+// sinon texte simple (jamais de lien mort).
+function TeamName({ name, className }: { name: string; className?: string }) {
+  const href = wcTeamHref(name);
+  const label = <span className={cn("truncate", className)}>{name}</span>;
+  if (!href) return label;
+  return (
+    <Link
+      href={href}
+      className={cn("truncate hover:text-canal-yellow transition-colors", className)}
+    >
+      {name}
+    </Link>
+  );
+}
 
 interface MatchRow {
   id: string;
@@ -292,7 +310,7 @@ function GroupTabs({ standings }: { standings: Record<string, StandingRow[]> }) 
                       <span className="flex items-center gap-1.5">
                         <span className="font-black w-3">{i + 1}</span>
                         <span className="text-base">{teamFlag(row.team_flag, row.team_name_fr)}</span>
-                        <span className="truncate max-w-[110px] font-semibold">{row.team_name_fr}</span>
+                        <TeamName name={row.team_name_fr} className="max-w-[110px] font-semibold" />
                       </span>
                     </td>
                     <td className="text-center">{row.played}</td>
@@ -308,16 +326,32 @@ function GroupTabs({ standings }: { standings: Record<string, StandingRow[]> }) 
           </div>
         ) : (
           <>
-            <div className="space-y-2">
-              {group.teams.map((name) => (
-                <div key={name} className="flex items-center gap-2 text-sm text-white">
-                  <span className="text-lg">{teamFlag(null, name)}</span>
-                  <span className="flex-1 min-w-0 truncate font-semibold">{name}</span>
-                </div>
-              ))}
+            <div className="space-y-1">
+              {group.teams.map((name) => {
+                const href = wcTeamHref(name);
+                const row = (
+                  <div
+                    className={cn(
+                      "flex items-center gap-2 text-sm text-white rounded-lg px-2 py-1.5 -mx-2",
+                      href && "hover:bg-canal-yellow/10 transition-colors"
+                    )}
+                  >
+                    <span className="text-lg">{teamFlag(null, name)}</span>
+                    <span className="flex-1 min-w-0 truncate font-semibold">{name}</span>
+                    {href && <ChevronRight size={14} className="text-canal-gray-muted shrink-0" />}
+                  </div>
+                );
+                return href ? (
+                  <Link key={name} href={href} className="block">
+                    {row}
+                  </Link>
+                ) : (
+                  <div key={name}>{row}</div>
+                );
+              })}
             </div>
             <p className="text-canal-gray-muted text-[11px] italic mt-3">
-              Classement (J · G · N · D · BP:BC · Pts) dès le coup d&apos;envoi du tournoi.
+              Touchez une équipe pour sa fiche · classement dès le coup d&apos;envoi du tournoi.
             </p>
           </>
         )}

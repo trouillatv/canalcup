@@ -1,0 +1,89 @@
+Équipe;Catégorie;Nom;Poste;Club (Pays);Valeur Marchande
+Portugal;Infos Générales;Derniers scores: Nul vs Croatie (1-1), Victoire vs Pologne (5-1), Nul vs Écosse (0-0), Victoire vs Pologne (3-1), Victoire vs Écosse (2-1);-;Calendrier CDM: 18 juin vs Mali (Los Angeles) | 23 juin vs Turquie (San Francisco) | 27 juin vs Uruguay (Sacramento);-
+Portugal;Joueur;Cristiano Ronaldo;Avant-centre;Al-Nassr (ARA);15 M€
+Portugal;Joueur;Rafael Leão;Ailier;AC Milan (ITA);75 M€
+Portugal;Joueur;Bernardo Silva;Milieu Offensif;Manchester City (ANG);70 M€
+Portugal;Joueur;Bruno Fernandes;Milieu Offensif;Manchester United (ANG);65 M€
+Portugal;Joueur;Rúben Dias;Défenseur Central;Manchester City (ANG);80 M€
+Portugal;Joueur;João Neves;Milieu Central;Paris Saint-Germain (FRA);55 M€
+Portugal;Joueur;Vitinha;Milieu Central;Paris Saint-Germain (FRA);50 M€
+Portugal;Joueur;João Palhinha;Milieu Défensif;Bayern Munich (ALL);50 M€
+Portugal;Joueur;Nuno Mendes;Arrière Gauche;Paris Saint-Germain (FRA);55 M€
+Portugal;Joueur;Diogo Dalot;Arrière Droit;Manchester United (ANG);35 M€
+Portugal;Joueur;Diogo Costa;Gardien;FC Porto (POR);45 M€
+Portugal;Joueur;José Sá;Gardien;Wolverhampton (ANG);10 M€
+Portugal;Joueur;Rui Silva;Gardien;Betis Séville (ESP);8 M€
+Portugal;Joueur;Gonçalo Inácio;Défenseur Central;Sporting CP (POR);40 M€
+Portugal;Joueur;António Silva;Défenseur Central;Benfica (POR);45 M€
+Portugal;Joueur;Nélson Semedo;Arrière Droit;Wolverhampton (ANG);12 M€
+Portugal;Joueur;Matheus Nunes;Milieu Central;Manchester City (ANG);40 M€
+Portugal;Joueur;Otávio;Milieu Offensif;Al-Nassr (ARA);25 M€
+Portugal;Joueur;João Félix;Ailier;Chelsea (ANG);30 M€
+Portugal;Joueur;Pedro Neto;Ailier;Chelsea (ANG);55 M€
+Portugal;Joueur;Diogo Jota;Avant-centre;Liverpool (ANG);50 M€
+Uruguay;Infos Générales;Derniers scores: Victoire vs Colombie (3-2), Nul vs Équateur (0-0), Défaite vs Pérou (0-1), Nul vs Venezuela (0-0), Nul vs Guatemala (1-1);-;Calendrier CDM: 18 juin vs Turquie (San Francisco) | 22 juin vs Mali (Sacramento) | 27 juin vs Portugal (Sacramento);-
+Uruguay;Joueur;Federico Valverde;Milieu Central;Real Madrid (ESP);100 M€
+Uruguay;Joueur;Darwin Núñez;Avant-centre;Liverpool (ANG);65 M€
+Uruguay;Joueur;Ronald Araújo;Défenseur Central;FC Barcelone (ESP);70 M€
+Uruguay;Joueur;Manuel Ugarte;Milieu Défensif;Manchester United (ANG);45 M€
+Uruguay;Joueur;José María Giménez;Défenseur Central;Atlético Madrid (ESP);22 M€
+Uruguay;Joueur;Mathías Olivera;Arrière Gauche;SSC Naples (ITA);15 M€
+Uruguay;Joueur;Nahitan Nández;Arrière Droit;Al-Qadsiah (ARA);5 M€
+Uruguay;Joueur;Sergio Rochet;Gardien;Internacional (BRE);3,5 M€
+Uruguay;Joueur;Santiago Mele;Gardien;Junior Barranquilla (COL);2,5 M€
+Uruguay;Joueur;Franco Israel;Gardien;Sporting CP (POR);3,5 M€
+Uruguay;Joueur;Sebastián Cáceres;Défenseur Central;Club América (MEX);7 M€
+Uruguay;Joueur;Guillermo Varela;Arrière Droit;Flamengo (BRE);1,8 M€
+Uruguay;Joueur;Lucas Olaza;Arrière Gauche;Krasnodar (RUS);3 M€
+Uruguay;Joueur;Nicolás de la Cruz;Milieu Central;Flamengo (BRE);18 M€
+Uruguay;Joueur;Rodrigo Bentancur;Milieu Central;Tottenham (ANG);35 M€
+Uruguay;Joueur;Giorgian de Arrascaeta;Milieu Offensif;Flamengo (BRE);15 M€
+Uruguay;Joueur;Facundo Pellistri;Ailier;Panathinaïkos (GRE);10 M€
+Uruguay;Joueur;Maximiliano Araújo;Ailier;Sporting CP (POR);12 M€
+Uruguay;Joueur;Facundo Torres;Ailier;Orlando City (USA);14 M€
+Uruguay;Joueur;Luciano Rodríguez;Avant-centre;Bahia (BRE);15 M€
+Uruguay;Joueur;Kike Olivera;Avant-centre;Los Angeles FC (USA);4 M€
+Turquie;Infos Générales;Derniers scores: Victoire vs Islande (4-2), Victoire vs Monténégro (1-0), Victoire vs Islande (3-1), Nul vs Pays-Bas (1-1), Victoire vs Pays de Galles (0-0, match réévalué);-;Calendrier CDM: 18 juin vs Uruguay (San Francisco) | 23 juin vs Portugal (San Francisco) | 27 juin vs Mali (Los Angeles);-
+Turquie;Joueur;Hakan Çalhanoğlu;Milieu Central;Inter Milan (ITA);30 M€
+Turquie;Joueur;Arda Güler;Milieu Offensif;Real Madrid (ESP);45 M€
+Turquie;Joueur;Kenan Yıldız;Ailier;Juventus (ITA);40 M€
+Turquie;Joueur;Barış Alper Yılmaz;Ailier;Galatasaray (TUR);20 M€
+Turquie;Joueur;Ferdi Kadıoğlu;Arrière Gauche;Brighton (ANG);30 M€
+Turquie;Joueur;Merih Demiral;Défenseur Central;Al-Ahli (ARA);16 M€
+Turquie;Joueur;Abdülkerim Bardakcı;Défenseur Central;Galatasaray (TUR);7,5 M€
+Turquie;Joueur;Mert Müldür;Arrière Droit;Fenerbahçe (TUR);6 M€
+Turquie;Joueur;Mert Günok;Gardien;Beşiktaş (TUR);1,2 M€
+Turquie;Joueur;Uğurcan Çakır;Gardien;Trabzonspor (TUR);8 M€
+Turquie;Joueur;Altay Bayındır;Gardien;Manchester United (ANG);10 M€
+Turquie;Joueur;Çağlar Söyüncü;Défenseur Central;Fenerbahçe (TUR);10 M€
+Turquie;Joueur;Samet Akaydin;Défenseur Central;Fenerbahçe (TUR);2,5 M€
+Turquie;Joueur;Zeki Çelik;Arrière Droit;AS Rome (ITA);6 M€
+Turquie;Joueur;Ismail Yüksek;Milieu Défensif;Fenerbahçe (TUR);14 M€
+Turquie;Joueur;Salih Özcan;Milieu Défensif;VfL Wolfsburg (ALL);10 M€
+Turquie;Joueur;Orkun Kökçü;Milieu Central;Benfica (POR);28 M€
+Turquie;Joueur;Kerem Aktürkoğlu;Ailier;Benfica (POR);18 M€
+Turquie;Joueur;İrfan Can Kahveci;Milieu Offensif;Fenerbahçe (TUR);10 M€
+Turquie;Joueur;Cenk Tosun;Avant-centre;Fenerbahçe (TUR);1,5 M€
+Turquie;Joueur;Semih Kılıçsoy;Avant-centre;Beşiktaş (TUR);12 M€
+Mali;Infos Générales;Derniers scores: Victoire vs Guinée-Bissau (1-0), Nul vs Guinée-Bissau (0-0), Victoire vs Eswatini (1-0), Nul vs Mozambique (1-1), Victoire vs Madagascar (2-1);-;Calendrier CDM: 18 juin vs Portugal (Los Angeles) | 22 juin vs Uruguay (Sacramento) | 27 juin vs Turquie (Los Angeles);-
+Mali;Joueur;Yves Bissouma;Milieu Défensif;Tottenham (ANG);35 M€
+Mali;Joueur;Amadou Haidara;Milieu Central;RB Leipzig (ALL);20 M€
+Mali;Joueur;Cheick Doucouré;Milieu Défensif;Crystal Palace (ANG);30 M€
+Mali;Joueur;Mohamed Camara;Milieu Défensif;Al-Sadd (QAT);20 M€
+Mali;Joueur;Hamari Traoré;Arrière Droit;Real Sociedad (ESP);5 M€
+Mali;Joueur;Falaye Sacko;Arrière Droit;Montpellier HSC (FRA);4 M€
+Mali;Joueur;Abdoulaye Diaby;Défenseur Central;Saint-Gall (SUI);2 M€
+Mali;Joueur;Djigui Diarra;Gardien;Young Africans (TAN);400 k€
+Mali;Joueur;Ismael Diawara;Gardien;AIK Solna (SUE);350 k€
+Mali;Joueur;Aboubacar Doumbia;Gardien;AFAD Djékanou (CIV);150 k€
+Mali;Joueur;Boubakar Kouyaté;Défenseur Central;Montpellier HSC (FRA);5 M€
+Mali;Joueur;Sikou Niakaté;Défenseur Central;Sporting Braga (POR);6 M€
+Mali;Joueur;Modibo Sagnan;Défenseur Central;Montpellier HSC (FRA);5 M€
+Mali;Joueur;Amadou Dante;Arrière Gauche;Arouca (POR);2 M€
+Mali;Joueur;Diadié Samassékou;Milieu Défensif;Hoffenheim (ALL);2,5 M€
+Mali;Joueur;Lassana Coulibaly;Milieu Central;Salernitana (ITA);3,5 M€
+Mali;Joueur;Kamory Doumbia;Milieu Offensif;Stade Brestois (FRA);4 M€
+Mali;Joueur;Adama Traoré;Ailier;Ferencváros (HON);2,5 M€
+Mali;Joueur;Moussa Djenepo;Ailier;Antalyaspor (TUR);3 M€
+Mali;Joueur;El Bilal Touré;Avant-centre;VfB Stuttgart (ALL);20 M€
+Mali;Joueur;Nene Dorgeles;Avant-centre;RB Salzbourg (AUT);5 M€

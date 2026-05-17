@@ -1,0 +1,84 @@
+Équipe;Catégorie;Nom;Poste;Club (Pays);Valeur Marchande
+Ukraine;Infos Générales;Derniers scores: Victoire vs Islande (2-1), Victoire vs Bosnie (2-1), Défaite vs Albanie (1-2), Nul vs République tchèque (1-1), Défaite vs France (0-4);-;Calendrier CDM: 15 juin vs Iran (Los Angeles) | 21 juin vs Chili (San Jose) | 26 juin vs Costa Rica (Los Angeles);-
+Ukraine;Joueur;Artem Dovbyk;Avant-centre;AS Rome (ITA);35 M€
+Ukraine;Joueur;Oleksandr Zinchenko;Arrière Gauche;Arsenal (ANG);38 M€
+Ukraine;Joueur;Mykhaylo Mudryk;Ailier;Chelsea (ANG);35 M€
+Ukraine;Joueur;Georgiy Sudakov;Milieu Offensif;Chakhtar Donetsk (UKR);35 M€
+Ukraine;Joueur;Illia Zabarnyi;Défenseur Central;Bournemouth (ANG);32 M€
+Ukraine;Joueur;Viktor Tsygankov;Ailier;Girona (ESP);30 M€
+Ukraine;Joueur;Vitaliy Mykolenko;Arrière Gauche;Everton (ANG);28 M€
+Ukraine;Joueur;Andriy Lunin;Gardien;Real Madrid (ESP);25 M€
+Ukraine;Joueur;Anatoliy Trubin;Gardien;Benfica (POR);25 M€
+Ukraine;Joueur;Heorhiy Bushchan;Gardien;Dynamo Kiev (UKR);7 M€
+Ukraine;Joueur;Mykola Matviyenko;Défenseur Central;Chakhtar Donetsk (UKR);18 M€
+Ukraine;Joueur;Valeriy Bondar;Défenseur Central;Chakhtar Donetsk (UKR);5 M€
+Ukraine;Joueur;Yukhym Konoplia;Arrière Droit;Chakhtar Donetsk (UKR);6 M€
+Ukraine;Joueur;Volodymyr Brazhko;Milieu Défensif;Dynamo Kiev (UKR);7 M€
+Ukraine;Joueur;Ruslan Malinovskyi;Milieu Central;Genoa (ITA);8 M€
+Ukraine;Joueur;Mykola Shaparenko;Milieu Central;Dynamo Kiev (UKR);9 M€
+Ukraine;Joueur;Serhiy Sydorchuk;Milieu Défensif;Westerlo (BEL);2 M€
+Ukraine;Joueur;Oleksandr Zubkov;Ailier;Chakhtar Donetsk (UKR);5 M€
+Ukraine;Joueur;Roman Yaremchuk;Avant-centre;Olympiakos (GRE);4 M€
+Ukraine;Joueur;Vladyslav Vanat;Avant-centre;Dynamo Kiev (UKR);7 M€
+Iran;Infos Générales;Derniers scores: Victoire vs Kirghizistan (3-2), Victoire vs Corée du Nord (3-2), Victoire vs Qatar (4-1), Nul vs Ouzbékistan (0-0), Victoire vs Émirats Arabes Unis (1-0);-;Calendrier CDM: 15 juin vs Ukraine (Los Angeles) | 20 juin vs Costa Rica (San Diego) | 26 juin vs Chili (Los Angeles);-
+Iran;Joueur;Mehdi Taremi;Avant-centre;Inter Milan (ITA);10 M€
+Iran;Joueur;Sardar Azmoun;Avant-centre;Shabab Al-Ahli (EAU);8 M€
+Iran;Joueur;Alireza Jahanbakhsh;Ailier;Heerenveen (P-B);3 M€
+Iran;Joueur;Saman Ghoddos;Milieu Offensif;Ittihad Kalba (EAU);2 M€
+Iran;Joueur;Alireza Beiranvand;Gardien;Tractor SC (IRN);1,2 M€
+Iran;Joueur;Payam Niazmand;Gardien;Sepahan (IRN);1 M€
+Iran;Joueur;Hossein Hosseini;Gardien;Esteghlal (IRN);500 k€
+Iran;Joueur;Shoja Khalilzadeh;Défenseur Central;Tractor SC (IRN);200 k€
+Iran;Joueur;Hossein Kanaanizadegan;Défenseur Central;Persepolis (IRN);1,2 M€
+Iran;Joueur;Ali Nemati;Défenseur Central;Tractor SC (IRN);600 k€
+Iran;Joueur;Milad Mohammadi;Arrière Gauche;Persepolis (IRN);800 k€
+Iran;Joueur;Aria Yousefi;Arrière Droit;Sepahan (IRN);600 k€
+Iran;Joueur;Ramin Rezaeian;Arrière Droit;Esteghlal (IRN);350 k€
+Iran;Joueur;Saeid Ezatolahi;Milieu Défensif;Shabab Al-Ahli (EAU);1,5 M€
+Iran;Joueur;Mohammad Karimi;Milieu Central;Sepahan (IRN);700 k€
+Iran;Joueur;Omid Noorafkan;Milieu Central;Malavan (IRN);1 M€
+Iran;Joueur;Ali Gholizadeh;Ailier;Lech Poznan (POL);1,5 M€
+Iran;Joueur;Mohammad Mohebi;Ailier;Rostov (RUS);2,5 M€
+Iran;Joueur;Mehdi Ghayedi;Ailier;Ittihad Kalba (EAU);2,5 M€
+Chili;Infos Générales;Derniers scores: Victoire vs Venezuela (4-2), Nul vs Pérou (0-0), Défaite vs Colombie (0-4), Défaite vs Brésil (1-2), Défaite vs Bolivie (1-2);-;Calendrier CDM: 15 juin vs Costa Rica (San Diego) | 21 juin vs Ukraine (San Jose) | 26 juin vs Iran (Los Angeles);-
+Chili;Joueur;Guillermo Maripán;Défenseur Central;Torino (ITA);10 M€
+Chili;Joueur;Paulo Díaz;Défenseur Central;River Plate (ARG);5 M€
+Chili;Joueur;Gabriel Suazo;Arrière Gauche;Toulouse FC (FRA);7 M€
+Chili;Joueur;Erick Pulgar;Milieu Défensif;Flamengo (BRE);5 M€
+Chili;Joueur;Rodrigo Echeverría;Milieu Central;Huracán (ARG);3 M€
+Chili;Joueur;Diego Valdés;Milieu Offensif;Club América (MEX);6 M€
+Chili;Joueur;Ben Brereton Díaz;Avant-centre;Southampton (ANG);8 M€
+Chili;Joueur;Eduardo Vargas;Avant-centre;Atlético Mineiro (BRE);1 M€
+Chili;Joueur;Brayan Cortés;Gardien;Colo-Colo (CHI);3 M€
+Chili;Joueur;Lawrence Vigouroux;Gardien;Swansea City (GAL);800 k€
+Chili;Joueur;Vicente Reyes;Gardien;Cambridge United (ANG);500 k€
+Chili;Joueur;Benjamin Kuscevic;Défenseur Central;Fortaleza (BRE);1,8 M€
+Chili;Joueur;Matías Catalán;Défenseur Central;Talleres (ARG);2 M€
+Chili;Joueur;Felipe Loyola;Arrière Droit;Independiente (ARG);3,5 M€
+Chili;Joueur;Thomas Galdames;Arrière Gauche;Krylia Sovetov (RUS);2,5 M€
+Chili;Joueur;Vicente Pizarro;Milieu Central;Colo-Colo (CHI);2,5 M€
+Chili;Joueur;Williams Alarcón;Milieu Central;Huracán (ARG);4 M€
+Chili;Joueur;Darío Osorio;Ailier;Midtjylland (DAN);7 M€
+Chili;Joueur;Víctor Dávila;Ailier;Club América (MEX);5 M€
+Chili;Joueur;Maximilian Guerrero;Ailier;Universidad de Chile (CHI);1,5 M€
+Costa Rica;Infos Générales;Derniers scores: Victoire vs Panama (1-0), Défaite vs Panama (0-1), Victoire vs Guadeloupe (3-1), Victoire vs Guatemala (3-0), Nul vs Guatemala (1-1);-;Calendrier CDM: 15 juin vs Chili (San Diego) | 20 juin vs Iran (San Diego) | 26 juin vs Ukraine (Los Angeles);-
+Costa Rica;Joueur;Jeyland Mitchell;Défenseur Central;Feyenoord (P-B);2,5 M€
+Costa Rica;Joueur;Manfred Ugalde;Avant-centre;Spartak Moscou (RUS);8 M€
+Costa Rica;Joueur;Patrick Sequeira;Gardien;Casa Pia (POR);1 M€
+Costa Rica;Joueur;Kevin Chamorro;Gardien;Estoril Praia (POR);800 k€
+Costa Rica;Joueur;Aaron Cruz;Gardien;Herediano (C-R);250 k€
+Costa Rica;Joueur;Juan Pablo Vargas;Défenseur Central;Millonarios (COL);1,8 M€
+Costa Rica;Joueur;Francisco Calvo;Défenseur Central;Hatayspor (TUR);1,5 M€
+Costa Rica;Joueur;Fernán Faerron;Défenseur Central;Herediano (C-R);400 k€
+Costa Rica;Joueur;Julio Cascante;Défenseur Central;Austin FC (USA);2 M€
+Costa Rica;Joueur;Haxzel Quirós;Arrière Droit;Herediano (C-R);350 k€
+Costa Rica;Joueur;Joseph Mora;Arrière Gauche;Saprissa (C-R);300 k€
+Costa Rica;Joueur;Jefferson Brenes;Milieu Défensif;Saprissa (C-R);400 k€
+Costa Rica;Joueur;Orlando Galo;Milieu Défensif;Riga FC (LET);1,5 M€
+Costa Rica;Joueur;Brandon Aguilera;Milieu Offensif;Rio Ave (POR);1,2 M€
+Costa Rica;Joueur;Alvaro Zamora;Ailier;Aris Salonique (GRE);1,5 M€
+Costa Rica;Joueur;Josimar Alcócer;Ailier;Westerlo (BEL);1,5 M€
+Costa Rica;Joueur;Kenneth Vargas;Ailier;Hearts (ECO);1,8 M€
+Costa Rica;Joueur;Joel Campbell;Ailier;Atlético Goianiense (BRE);1 M€
+Costa Rica;Joueur;Warren Madrigal;Avant-centre;Saprissa (C-R);1 M€
+Costa Rica;Joueur;Anthony Contreras;Avant-centre;Riga FC (LET);900 k€

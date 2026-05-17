@@ -1,0 +1,40 @@
+Équipe;Catégorie;Nom;Poste;Club (Pays);Valeur Marchande
+Pologne;Infos Générales;Derniers scores: Victoire aux TAB vs Pays de Galles (0-0), Victoire vs Estonie (5-1), Défaite vs Écosse (1-2), Victoire vs Croatie (3-3), Nul vs Portugal (3-3);-;Calendrier CDM: 15 juin vs Paraguay (San Francisco) | 21 juin vs Cameroun (Los Angeles) | 26 juin vs Ouzbékistan (San Francisco);-
+Pologne;Joueur;Robert Lewandowski;Avant-centre;FC Barcelone (ESP);15 M€
+Pologne;Joueur;Piotr Zieliński;Milieu Offensif;Inter Milan (ITA);22 M€
+Pologne;Joueur;Łukasz Skorupski;Gardien;Bologne FC (ITA);2,5 M€
+Pologne;Joueur;Marcin Bułka;Gardien;OGC Nice (FRA);20 M€
+Pologne;Joueur;Jan Bednarek;Défenseur Central;Southampton (ANG);11 M€
+Pologne;Joueur;Jakub Kiwior;Défenseur Central;Arsenal (ANG);30 M€
+Pologne;Joueur;Sebastian Walukiewicz;Défenseur Central;Torino (ITA);5 M€
+Pologne;Joueur;Nicola Zalewski;Arrière Gauche;AS Rome (ITA);12 M€
+Pologne;Joueur;Sebastian Szymański;Milieu Offensif;Fenerbahçe (TUR);19 M€
+Pologne;Joueur;Kacper Urbański;Milieu Central;Bologne FC (ITA);7 M€
+Pologne;Joueur;Krzysztof Piątek;Avant-centre;Başakşehir (TUR);6 M€
+Cameroun;Infos Générales;Derniers scores: Victoire vs Zimbabwe (2-1), Nul vs Namibie (0-0), Victoire vs Kenya (1-0), Victoire vs Kenya (4-1), Nul vs Angola (1-1);-;Calendrier CDM: 15 juin vs Ouzbékistan (Seattle) | 21 juin vs Pologne (Los Angeles) | 26 juin vs Paraguay (San Diego);-
+Cameroun;Joueur;André Onana;Gardien;Manchester United (ANG);35 M€
+Cameroun;Joueur;Christopher Wooh;Défenseur Central;Stade Rennais (FRA);10 M€
+Cameroun;Joueur;Jean-Charles Castelletto;Défenseur Central;FC Nantes (FRA);3,5 M€
+Cameroun;Joueur;Nouhou Tolo;Arrière Gauche;Seattle Sounders (USA);2,5 M€
+Cameroun;Joueur;Jackson Tchatchoua;Arrière Droit;Hellas Vérone (ITA);6 M€
+Cameroun;Joueur;André-Frank Zambo Anguissa;Milieu Central;SSC Naples (ITA);28 M€
+Cameroun;Joueur;Carlos Baleba;Milieu Défensif;Brighton (ANG);22 M€
+Cameroun;Joueur;Bryan Mbeumo;Ailier;Brentford (ANG);40 M€
+Cameroun;Joueur;Vincent Aboubakar;Avant-centre;Hatayspor (TUR);2,5 M€
+Paraguay;Infos Générales;Derniers scores: Nul vs Bolivie (2-2), Victoire vs Argentine (2-1), Victoire vs Venezuela (2-1), Nul vs Équateur (0-0), Victoire vs Brésil (1-0);-;Calendrier CDM: 15 juin vs Pologne (San Francisco) | 20 juin vs Ouzbékistan (Seattle) | 26 juin vs Cameroun (San Diego);-
+Paraguay;Joueur;Julio Enciso;Milieu Offensif;Brighton (ANG);22 M€
+Paraguay;Joueur;Gustavo Gómez;Défenseur Central;Palmeiras (BRE);8 M€
+Paraguay;Joueur;Omar Alderete;Défenseur Central;Getafe (ESP);5 M€
+Paraguay;Joueur;Miguel Almirón;Ailier;Newcastle United (ANG);20 M€
+Paraguay;Joueur;Ramón Sosa;Ailier;Nottingham Forest (ANG);13 M€
+Paraguay;Joueur;Antonio Sanabria;Avant-centre;Torino (ITA);6 M€
+Ouzbékistan;Infos Générales;Derniers scores: Victoire vs Émirats Arabes Unis (1-0), Nul vs Iran (0-0), Victoire vs Kirghizistan (3-2), Victoire vs Corée du Nord (1-0), Victoire vs Turkménistan (3-1);-;Calendrier CDM: 15 juin vs Cameroun (Seattle) | 20 juin vs Paraguay (Seattle) | 26 juin vs Pologne (San Francisco);-
+Ouzbékistan;Joueur;Abdukodir Khusanov;Défenseur Central;RC Lens (FRA);5 M€
+Ouzbékistan;Joueur;Eldor Shomurodov;Avant-centre;AS Rome (ITA);5 M€
+Ouzbékistan;Joueur;Abbosbek Fayzullaev;Milieu Offensif;CSKA Moscou (RUS);6 M€
+Ouzbékistan;Joueur;Otabek Shukurov;Milieu Central;Al-Fayha (ARA);2,5 M€
+Ouzbékistan;Joueur;Utkir Yusupov;Gardien;Foolad (IRN);700 k€
+Ouzbékistan;Joueur;Husniddin Aliqulov;Défenseur Central;Çaykur Rizespor (TUR);1,2 M€
+Ouzbékistan;Joueur;Sherzod Nasrullaev;Arrière Gauche;Nasaf Qarshi (OUZ);800 k€
+Ouzbékistan;Joueur;Khojiakbar Alijonov;Arrière Droit;Pakhtakor Tachkent (OUZ);1 M€
+Ouzbékistan;Joueur;Oston Urunov;Ailier;Persépolis (IRN);1,5 M€

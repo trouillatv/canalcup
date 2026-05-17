@@ -1,0 +1,104 @@
+Équipe;Catégorie;Nom;Poste;Club (Pays);Valeur Marchande
+Mexique;Infos Générales;Derniers scores: Nul vs Belgique (1-1), Nul vs Portugal (0-0), Victoire vs Islande (4-0), Victoire vs Bolivie (1-0), Victoire vs Panama (1-0);-;Calendrier CDM: 11 juin vs Afrique du Sud (Stade Azteca) | 18 juin vs Corée du Sud (Guadalajara) | 25 juin vs Tchéquie (Stade Azteca);-
+Mexique;Joueur;Guillermo Ochoa;Gardien;AVS Futebol SAD (POR);500 k€
+Mexique;Joueur;Luis Malagón;Gardien;Club América (MEX);4,5 M€
+Mexique;Joueur;Julio González;Gardien;Pumas UNAM (MEX);1 M€
+Mexique;Joueur;Johan Vásquez;Défenseur Central;Genoa (ITA);15 M€
+Mexique;Joueur;César Montes;Défenseur Central;Lokomotiv Moscou (RUS);10 M€
+Mexique;Joueur;Israel Reyes;Défenseur Central;Club América (MEX);4 M€
+Mexique;Joueur;Jesús Orozco;Défenseur Central;Chivas Guadalajara (MEX);6 M€
+Mexique;Joueur;Gerardo Arteaga;Arrière Gauche;Monterrey (MEX);6 M€
+Mexique;Joueur;Jesús Gallardo;Arrière Gauche;Toluca (MEX);4 M€
+Mexique;Joueur;Jorge Sánchez;Arrière Droit;Cruz Azul (MEX);5 M€
+Mexique;Joueur;Alan Mozo;Arrière Droit;Chivas Guadalajara (MEX);4 M€
+Mexique;Joueur;Edson Álvarez;Milieu Défensif;West Ham United (ANG);35 M€
+Mexique;Joueur;Luis Romo;Milieu Central;Cruz Azul (MEX);6,5 M€
+Mexique;Joueur;Carlos Rodríguez;Milieu Central;Cruz Azul (MEX);6 M€
+Mexique;Joueur;Erick Sánchez;Milieu Central;Club América (MEX);9 M€
+Mexique;Joueur;Luis Chávez;Milieu Central;Dynamo Moscou (RUS);8 M€
+Mexique;Joueur;Orbelín Pineda;Milieu Offensif;AEK Athènes (GRE);7 M€
+Mexique;Joueur;Marcel Ruiz;Milieu Offensif;Toluca (MEX);6 M€
+Mexique;Joueur;Santiago Giménez;Avant-centre;Feyenoord (P-B);45 M€
+Mexique;Joueur;Hirving Lozano;Ailier;San Diego FC (USA);15 M€
+Mexique;Joueur;Raúl Jiménez;Avant-centre;Fulham FC (ANG);5 M€
+Mexique;Joueur;César Huerta;Ailier;Pumas UNAM (MEX);5 M€
+Mexique;Joueur;Uriel Antuna;Ailier;Tigres UANL (MEX);4 M€
+Mexique;Joueur;Alexis Vega;Ailier;Toluca (MEX);5,5 M€
+Mexique;Joueur;Henry Martín;Avant-centre;Club América (MEX);4,5 M€
+Corée du Sud;Infos Générales;Derniers scores: Défaite vs Autriche (0-1), Défaite vs Côte d'Ivoire (0-4), Victoire vs Ghana (1-0), Victoire vs Bolivie (2-0), Victoire vs Paraguay (2-0);-;Calendrier CDM: 12 juin vs Tchéquie (Guadalajara) | 18 juin vs Mexique (Guadalajara) | 25 juin vs Afrique du Sud (Monterrey);-
+Corée du Sud;Joueur;Jo Hyeon-woo;Gardien;Ulsan HD (COR);1,2 M€
+Corée du Sud;Joueur;Song Bum-keun;Gardien;Shonan Bellmare (JAP);1 M€
+Corée du Sud;Joueur;Lee Chang-geun;Gardien;Daejeon Hana Citizen (COR);700 k€
+Corée du Sud;Joueur;Kim Min-jae;Défenseur Central;Bayern Munich (ALL);50 M€
+Corée du Sud;Joueur;Cho Yu-min;Défenseur Central;Sharjah FC (EAU);1,2 M€
+Corée du Sud;Joueur;Jung Seung-hyun;Défenseur Central;Al-Wasl (EAU);1 M€
+Corée du Sud;Joueur;Kwon Kyung-won;Défenseur Central;Khor Fakkan (EAU);600 k€
+Corée du Sud;Joueur;Seol Young-woo;Arrière Gauche;Étoile Rouge de Belgrade (SER);3 M€
+Corée du Sud;Joueur;Lee Myung-jae;Arrière Gauche;Ulsan HD (COR);700 k€
+Corée du Sud;Joueur;Kim Moon-hwan;Arrière Droit;Daejeon Hana Citizen (COR);1 M€
+Corée du Sud;Joueur;Hwang Jae-won;Arrière Droit;Daegu FC (COR);1 M€
+Corée du Sud;Joueur;Hwang In-beom;Milieu Central;Feyenoord (P-B);10 M€
+Corée du Sud;Joueur;Park Yong-woo;Milieu Défensif;Al-Ain (EAU);2,2 M€
+Corée du Sud;Joueur;Lee Jae-sung;Milieu Offensif;Mayence 05 (ALL);3 M€
+Corée du Sud;Joueur;Hong Hyun-seok;Milieu Central;Mayence 05 (ALL);5 M€
+Corée du Sud;Joueur;Jeong Woo-yeong;Milieu Offensif;Union Berlin (ALL);3,5 M€
+Corée du Sud;Joueur;Lee Dong-gyeong;Milieu Central;Gimcheon Sangmu (COR);900 k€
+Corée du Sud;Joueur;Paik Seung-ho;Milieu Central;Birmingham City (ANG);1,5 M€
+Corée du Sud;Joueur;Son Heung-min;Ailier;Tottenham Hotspur (ANG);45 M€
+Corée du Sud;Joueur;Lee Kang-in;Milieu Offensif;Paris Saint-Germain (FRA);25 M€
+Corée du Sud;Joueur;Hwang Hee-chan;Ailier;Wolverhampton (ANG);22 M€
+Corée du Sud;Joueur;Cho Gue-sung;Avant-centre;Midtjylland (DAN);3 M€
+Corée du Sud;Joueur;Oh Hyeon-gyu;Avant-centre;Genk (BEL);3 M€
+Corée du Sud;Joueur;Joo Min-kyu;Avant-centre;Ulsan HD (COR);1 M€
+Corée du Sud;Joueur;Bae Jun-ho;Ailier;Stoke City (ANG);4 M€
+Tchéquie;Infos Générales;Derniers scores: Victoire aux TAB vs Danemark (2-2), Victoire aux TAB vs Irlande (2-2), Défaite vs Géorgie (1-2), Victoire vs Albanie (1-0), Nul vs Ukraine (1-1);-;Calendrier CDM: 12 juin vs Corée du Sud (Guadalajara) | 18 juin vs Afrique du Sud (Atlanta) | 25 juin vs Mexique (Stade Azteca);-
+Tchéquie;Joueur;Matěj Kovář;Gardien;Bayer Leverkusen (ALL);7 M€
+Tchéquie;Joueur;Jindřich Staněk;Gardien;Slavia Prague (TCH);3,5 M€
+Tchéquie;Joueur;Antonín Kinský;Gardien;Slavia Prague (TCH);4 M€
+Tchéquie;Joueur;Ladislav Krejčí;Défenseur Central;Girona FC (ESP);10 M€
+Tchéquie;Joueur;Martin Vitík;Défenseur Central;Sparta Prague (TCH);12 M€
+Tchéquie;Joueur;Robin Hranáč;Défenseur Central;TSG Hoffenheim (ALL);8 M€
+Tchéquie;Joueur;Tomáš Holeš;Défenseur Central;Slavia Prague (TCH);3 M€
+Tchéquie;Joueur;David Zima;Défenseur Central;Slavia Prague (TCH);4 M€
+Tchéquie;Joueur;Vladimír Coufal;Arrière Droit;West Ham United (ANG);4 M€
+Tchéquie;Joueur;David Douděra;Arrière Droit;Slavia Prague (TCH);3 M€
+Tchéquie;Joueur;David Jurásek;Arrière Gauche;TSG Hoffenheim (ALL);6 M€
+Tchéquie;Joueur;Tomáš Souček;Milieu Défensif;West Ham United (ANG);30 M€
+Tchéquie;Joueur;Pavel Šulc;Milieu Offensif;Viktoria Plzeň (TCH);8 M€
+Tchéquie;Joueur;Lukáš Provod;Milieu Central;Slavia Prague (TCH);6 M€
+Tchéquie;Joueur;Ondřej Lingr;Milieu Offensif;Slavia Prague (TCH);4 M€
+Tchéquie;Joueur;Antonín Barák;Milieu Offensif;Kasımpaşa (TUR);4,5 M€
+Tchéquie;Joueur;Michal Sadílek;Milieu Central;FC Twente (P-B);6 M€
+Tchéquie;Joueur;Alex Král;Milieu Défensif;Espanyol Barcelone (ESP);5 M€
+Tchéquie;Joueur;Patrik Schick;Avant-centre;Bayer Leverkusen (ALL);22 M€
+Tchéquie;Joueur;Adam Hložek;Ailier;TSG Hoffenheim (ALL);12 M€
+Tchéquie;Joueur;Tomáš Chorý;Avant-centre;Slavia Prague (TCH);3,5 M€
+Tchéquie;Joueur;Jan Kuchta;Avant-centre;FC Midtjylland (DAN);4 M€
+Tchéquie;Joueur;Mojmír Chytil;Avant-centre;Slavia Prague (TCH);5 M€
+Tchéquie;Joueur;Václav Černý;Ailier;Rangers FC (ECO);7 M€
+Tchéquie;Joueur;Lukáš Haraslín;Ailier;Sparta Prague (TCH);5,5 M€
+Afrique du Sud;Infos Générales;Derniers scores: Défaite vs Panama (1-2), Victoire vs Congo, Nul vs Zimbabwe (1-1), Victoire vs Lesotho (2-1), Défaite vs Nigeria (0-2);-;Calendrier CDM: 11 juin vs Mexique (Stade Azteca) | 18 juin vs Tchéquie (Atlanta) | 25 juin vs Corée du Sud (Monterrey);-
+Afrique du Sud;Joueur;Ronwen Williams;Gardien;Mamelodi Sundowns (A-S);1,5 M€
+Afrique du Sud;Joueur;Veli Mothwa;Gardien;AmaZulu FC (A-S);500 k€
+Afrique du Sud;Joueur;Ricardo Goss;Gardien;SuperSport United (A-S);600 k€
+Afrique du Sud;Joueur;Khuliso Mudau;Arrière Droit;Mamelodi Sundowns (A-S);1,2 M€
+Afrique du Sud;Joueur;Aubrey Modiba;Arrière Gauche;Mamelodi Sundowns (A-S);1,3 M€
+Afrique du Sud;Joueur;Mothobi Mvala;Défenseur Central;Mamelodi Sundowns (A-S);1 M€
+Afrique du Sud;Joueur;Grant Kekana;Défenseur Central;Mamelodi Sundowns (A-S);900 k€
+Afrique du Sud;Joueur;Nkosinathi Sibisi;Défenseur Central;Orlando Pirates (A-S);800 k€
+Afrique du Sud;Joueur;Tapelo Xoki;Défenseur Central;Orlando Pirates (A-S);900 k€
+Afrique du Sud;Joueur;Thapelo Morena;Arrière Droit;Mamelodi Sundowns (A-S);1,1 M€
+Afrique du Sud;Joueur;Siyabonga Ngezana;Défenseur Central;FCSB (ROU);1,8 M€
+Afrique du Sud;Joueur;Teboho Mokoena;Milieu Défensif;Mamelodi Sundowns (A-S);2,5 M€
+Afrique du Sud;Joueur;Sphephelo Sithole;Milieu Central;Gil Vicente (POR);1,5 M€
+Afrique du Sud;Joueur;Jayden Adams;Milieu Central;Stellenbosch FC (A-S);1 M€
+Afrique du Sud;Joueur;Thabang Monare;Milieu Central;Sekhukhune United (A-S);300 k€
+Afrique du Sud;Joueur;Bathusi Aubaas;Milieu Défensif;Mamelodi Sundowns (A-S);700 k€
+Afrique du Sud;Joueur;Patrick Maswanganyi;Milieu Offensif;Orlando Pirates (A-S);1,2 M€
+Afrique du Sud;Joueur;Lyle Foster;Avant-centre;Burnley (ANG);13 M€
+Afrique du Sud;Joueur;Percy Tau;Ailier;Qatar SC (QAT);1,5 M€
+Afrique du Sud;Joueur;Themba Zwane;Milieu Offensif;Mamelodi Sundowns (A-S);400 k€
+Afrique du Sud;Joueur;Iqraam Rayners;Avant-centre;Mamelodi Sundowns (A-S);1 M€
+Afrique du Sud;Joueur;Elias Mokwana;Ailier;Espérance de Tunis (TUN);800 k€
+Afrique du Sud;Joueur;Oswin Appollis;Ailier;Polokwane City (A-S);800 k€
+Afrique du Sud;Joueur;Relebohile Mofokeng;Ailier;Orlando Pirates (A-S);2 M€

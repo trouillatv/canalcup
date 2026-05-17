@@ -1,0 +1,87 @@
+Équipe;Catégorie;Nom;Poste;Club (Pays);Valeur Marchande
+Espagne;Infos Générales;Derniers scores: Nul vs Suisse (3-3), Victoire vs Danemark (2-1), Victoire vs Serbie (3-0), Défaite vs Danemark (0-1), Victoire vs Suisse (4-1);-;Calendrier CDM: 14 juin vs Japon (San Francisco) | 20 juin vs Colombie (Los Angeles) | 26 juin vs Croatie (Seattle);-
+Espagne;Joueur;Rodri;Milieu Défensif;Manchester City (ANG);130 M€
+Espagne;Joueur;Lamine Yamal;Ailier;FC Barcelone (ESP);150 M€
+Espagne;Joueur;Pedri;Milieu Central;FC Barcelone (ESP);80 M€
+Espagne;Joueur;Gavi;Milieu Central;FC Barcelone (ESP);90 M€
+Espagne;Joueur;Nico Williams;Ailier;Athletic Bilbao (ESP);70 M€
+Espagne;Joueur;Dani Olmo;Milieu Offensif;FC Barcelone (ESP);60 M€
+Espagne;Joueur;Martín Zubimendi;Milieu Défensif;Real Sociedad (ESP);60 M€
+Espagne;Joueur;Fabian Ruiz;Milieu Central;Paris Saint-Germain (FRA);35 M€
+Espagne;Joueur;Dani Carvajal;Arrière Droit;Real Madrid (ESP);12 M€
+Espagne;Joueur;Robin Le Normand;Défenseur Central;Atlético Madrid (ESP);40 M€
+Espagne;Joueur;Aymeric Laporte;Défenseur Central;Al-Nassr (ARA);20 M€
+Espagne;Joueur;Marc Cucurella;Arrière Gauche;Chelsea (ANG);30 M€
+Espagne;Joueur;David Raya;Gardien;Arsenal (ANG);35 M€
+Espagne;Joueur;Álex Remiro;Gardien;Real Sociedad (ESP);25 M€
+Espagne;Joueur;Robert Sánchez;Gardien;Chelsea (ANG);20 M€
+Espagne;Joueur;Pau Cubarsí;Défenseur Central;FC Barcelone (ESP);40 M€
+Espagne;Joueur;Alejandro Grimaldo;Arrière Gauche;Bayer Leverkusen (ALL);45 M€
+Espagne;Joueur;Pedro Porro;Arrière Droit;Tottenham (ANG);45 M€
+Espagne;Joueur;Álex Baena;Milieu Offensif;Villarreal (ESP);50 M€
+Espagne;Joueur;Alvaro Morata;Avant-centre;AC Milan (ITA);16 M€
+Croatie;Infos Générales;Derniers scores: Nul vs Portugal (1-1), Victoire vs Écosse (2-1), Défaite vs Pologne (3-4), Victoire vs Écosse (2-1), Victoire vs Tunisie (0-0 TAB);-;Calendrier CDM: 14 juin vs Colombie (Los Angeles) | 19 juin vs Japon (San Francisco) | 26 juin vs Espagne (Seattle);-
+Croatie;Joueur;Joško Gvardiol;Défenseur Central;Manchester City (ANG);75 M€
+Croatie;Joueur;Mateo Kovačić;Milieu Central;Manchester City (ANG);30 M€
+Croatie;Joueur;Luka Modrić;Milieu Central;Real Madrid (ESP);6 M€
+Croatie;Joueur;Martin Baturina;Milieu Offensif;Dinamo Zagreb (CRO);20 M€
+Croatie;Joueur;Mario Pašalić;Milieu Central;Atalanta Bergame (ITA);13 M€
+Croatie;Joueur;Luka Sučić;Milieu Central;Real Sociedad (ESP);15 M€
+Croatie;Joueur;Josip Šutalo;Défenseur Central;Ajax Amsterdam (P-B);15 M€
+Croatie;Joueur;Andrej Kramarić;Avant-centre;Hoffenheim (ALL);5 M€
+Croatie;Joueur;Dominik Livaković;Gardien;Fenerbahçe (TUR);11 M€
+Croatie;Joueur;Nediljko Labrović;Gardien;Augsbourg (ALL);4,5 M€
+Croatie;Joueur;Ivica Ivušić;Gardien;Pafos FC (CHY);2 M€
+Croatie;Joueur;Duje Ćaleta-Car;Défenseur Central;Olympique Lyonnais (FRA);7 M€
+Croatie;Joueur;Marin Pongračić;Défenseur Central;Fiorentina (ITA);7 M€
+Croatie;Joueur;Borna Sosa;Arrière Gauche;Torino (ITA);7,5 M€
+Croatie;Joueur;Josip Stanišić;Arrière Droit;Bayern Munich (ALL);28 M€
+Croatie;Joueur;Kristijan Jakić;Milieu Défensif;Augsbourg (ALL);6 M€
+Croatie;Joueur;Nikola Vlašić;Milieu Offensif;Torino (ITA);10 M€
+Croatie;Joueur;Ivan Perišić;Ailier;PSV Eindhoven (P-B);2 M€
+Croatie;Joueur;Ante Budimir;Avant-centre;Osasuna (ESP);5 M€
+Croatie;Joueur;Bruno Petković;Avant-centre;Dinamo Zagreb (CRO);5 M€
+Colombie;Infos Générales;Derniers scores: Défaite vs France (1-3), Défaite vs France (1-2), Victoire vs Chili (4-0), Défaite vs Bolivie (0-1), Victoire vs Argentine (2-1);-;Calendrier CDM: 14 juin vs Croatie (Los Angeles) | 20 juin vs Espagne (Los Angeles) | 26 juin vs Japon (Sacramento);-
+Colombie;Joueur;Luis Díaz;Ailier;Liverpool (ANG);75 M€
+Colombie;Joueur;Jhon Durán;Avant-centre;Aston Villa (ANG);35 M€
+Colombie;Joueur;Daniel Muñoz;Arrière Droit;Crystal Palace (ANG);22 M€
+Colombie;Joueur;Jefferson Lerma;Milieu Défensif;Crystal Palace (ANG);20 M€
+Colombie;Joueur;Davinson Sánchez;Défenseur Central;Galatasaray (TUR);18 M€
+Colombie;Joueur;James Rodríguez;Milieu Offensif;Rayo Vallecano (ESP);5 M€
+Colombie;Joueur;Jhon Arias;Ailier;Fluminense (BRE);15 M€
+Colombie;Joueur;Richard Ríos;Milieu Central;Palmeiras (BRE);13 M€
+Colombie;Joueur;Camilo Vargas;Gardien;Atlas Guadalajara (MEX);1,5 M€
+Colombie;Joueur;Kevin Mier;Gardien;Cruz Azul (MEX);5 M€
+Colombie;Joueur;Álvaro Montero;Gardien;Millonarios (COL);1,2 M€
+Colombie;Joueur;Carlos Cuesta;Défenseur Central;Genk (BEL);6 M€
+Colombie;Joueur;Jhon Lucumí;Défenseur Central;Bologne FC (ITA);17 M€
+Colombie;Joueur;Johan Mojica;Arrière Gauche;Majorque (ESP);2,5 M€
+Colombie;Joueur;Juan Cabal;Arrière Gauche;Juventus (ITA);3,5 M€
+Colombie;Joueur;Mateus Uribe;Milieu Central;Al-Sadd (QAT);2 M€
+Colombie;Joueur;Kevin Castaño;Milieu Défensif;Krasnodar (RUS);5 M€
+Colombie;Joueur;Juan Fernando Quintero;Milieu Offensif;Racing Club (ARG);2,5 M€
+Colombie;Joueur;Luis Sinisterra;Ailier;Bournemouth (ANG);17 M€
+Colombie;Joueur;Rafael Santos Borré;Avant-centre;Internacional (BRE);8 M€
+Colombie;Joueur;Jhon Córdoba;Avant-centre;Krasnodar (RUS);14 M€
+Japon;Infos Générales;Derniers scores: Victoire vs Indonésie (4-0), Nul vs Australie (1-1), Victoire vs Arabie Saoudite (2-0), Victoire vs Bahreïn (5-0), Victoire vs Chine (7-0);-;Calendrier CDM: 14 juin vs Espagne (San Francisco) | 19 juin vs Croatie (San Francisco) | 26 juin vs Colombie (Sacramento);-
+Japon;Joueur;Takefusa Kubo;Ailier;Real Sociedad (ESP);50 M€
+Japon;Joueur;Kaoru Mitoma;Ailier;Brighton (ANG);45 M€
+Japon;Joueur;Takumi Minamino;Milieu Offensif;AS Monaco (FRA);20 M€
+Japon;Joueur;Wataru Endo;Milieu Défensif;Liverpool (ANG);13 M€
+Japon;Joueur;Hiroki Ito;Défenseur Central;Bayern Munich (ALL);30 M€
+Japon;Joueur;Ko Itakura;Défenseur Central;Borussia M'gladbach (ALL);15 M€
+Japon;Joueur;Takehiro Tomiyasu;Défenseur Central;Arsenal (ANG);30 M€
+Japon;Joueur;Hidemasa Morita;Milieu Central;Sporting CP (POR);15 M€
+Japon;Joueur;Zion Suzuki;Gardien;Parme (ITA);7 M€
+Japon;Joueur;Keisuke Osako;Gardien;Sanfrecce Hiroshima (JAP);1,2 M€
+Japon;Joueur;Kosei Tani;Gardien;Machida Zelvia (JAP);800 k€
+Japon;Joueur;Koki Machida;Défenseur Central;Union Saint-Gilloise (BEL);10 M€
+Japon;Joueur;Yukinari Sugawara;Arrière Droit;Southampton (ANG);12 M€
+Japon;Joueur;Yuto Nagatomo;Arrière Gauche;FC Tokyo (JAP);200 k€
+Japon;Joueur;Ao Tanaka;Milieu Central;Leeds United (ANG);4 M€
+Japon;Joueur;Reo Hatate;Milieu Central;Celtic Glasgow (ECO);10 M€
+Japon;Joueur;Daichi Kamada;Milieu Offensif;Crystal Palace (ANG);18 M€
+Japon;Joueur;Ritsu Doan;Ailier;Fribourg (ALL);18 M€
+Japon;Joueur;Keito Nakamura;Ailier;Stade de Reims (FRA);10 M€
+Japon;Joueur;Koki Ogawa;Avant-centre;NEC Nimègue (P-B);3 M€
+Japon;Joueur;Ayase Ueda;Avant-centre;Feyenoord (P-B);8 M€

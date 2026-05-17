@@ -1,0 +1,91 @@
+Équipe;Catégorie;Nom;Poste;Club (Pays);Valeur Marchande
+Canada;Infos Générales;Derniers scores: Victoire vs États-Unis (2-1), Victoire vs Panama (1-0), Nul vs Mexique (1-1), Victoire vs Jamaïque (3-1), Défaite vs Pays-Bas (1-2);-;Calendrier CDM: 12 juin vs Qatar (Toronto) | 18 juin vs Bosnie-Herzégovine (Vancouver) | 24 juin vs Suisse (Toronto);-
+Canada;Joueur;Alphonso Davies;Arrière Gauche;Bayern Munich (ALL);50 M€
+Canada;Joueur;Jonathan David;Avant-centre;Lille OSC (FRA);45 M€
+Canada;Joueur;Tajon Buchanan;Ailier;Inter Milan (ITA);8 M€
+Canada;Joueur;Ismaël Koné;Milieu Central;Olympique de Marseille (FRA);11 M€
+Canada;Joueur;Stephen Eustáquio;Milieu Defensive;FC Porto (POR);10 M€
+Canada;Joueur;Alistair Johnston;Arrière Droit;Celtic Glasgow (ECO);8 M€
+Canada;Joueur;Moïse Bombito;Défenseur Central;OGC Nice (FRA);7 M€
+Canada;Joueur;Derek Cornelius;Défenseur Central;Olympique de Marseille (FRA);4,5 M€
+Canada;Joueur;Kamal Miller;Défenseur Central;Portland Timbers (USA);2,5 M€
+Canada;Joueur;Richie Laryea;Arrière Droit;Toronto FC (CAN);2 M€
+Canada;Joueur;Dayne St. Clair;Gardien;Minnesota United (USA);2,5 M€
+Canada;Joueur;Maxime Crépeau;Gardien;Portland Timbers (USA);1,5 M€
+Canada;Joueur;Jonathan Sirois;Gardien;CF Montréal (CAN);1,5 M€
+Canada;Joueur;Samuel Piette;Milieu Defensive;CF Montréal (CAN);1,5 M€
+Canada;Joueur;Mathieu Choinière;Milieu Central;Grasshopper Zurich (SUI);2,5 M€
+Canada;Joueur;Ali Ahmed;Milieu Central;Vancouver Whitecaps (CAN);2 M€
+Canada;Joueur;Jacob Shaffelburg;Ailier;Nashville SC (USA);3 M€
+Canada;Joueur;Liam Millar;Ailier;Hull City (ANG);2,5 M€
+Canada;Joueur;Cyle Larin;Avant-centre;RCD Majorque (ESP);4 M€
+Canada;Joueur;Tani Oluwaseyi;Avant-centre;Minnesota United (USA);1,8 M€
+Canada;Joueur;Theo Bair;Avant-centre;Auxerre (FRA);2 M€
+Bosnie-Herzégovine;Infos Générales;Derniers scores: Victoire aux TAB vs Ukraine (1-1), Victoire vs Islande (2-1), Défaite vs Pays-Bas (2-5), Nul vs Allemagne (1-1), Défaite vs Hongrie (0-2);-;Calendrier CDM: 13 juin vs Suisse (Boston) | 18 juin vs Canada (Vancouver) | 24 juin vs Qatar (Atlanta);-
+Bosnie-Herzégovine;Joueur;Ermedin Demirović;Avant-centre;VfB Stuttgart (ALL);28 M€
+Bosnie-Herzégovine;Joueur;Amar Dedić;Arrière Droit;RB Salzbourg (AUT);20 M€
+Bosnie-Herzégovine;Joueur;Anel Ahmedhodžić;Défenseur Central;Sheffield United (ANG);18 M€
+Bosnie-Herzégovine;Joueur;Benjamin Tahirović;Milieu Defensive;Ajax Amsterdam (P-B);5 M€
+Bosnie-Herzégovine;Joueur;Sead Kolašinac;Défenseur Central;Atalanta Bergame (ITA);8 M€
+Bosnie-Herzégovine;Joueur;Denis Huseinbašić;Milieu Central;FC Cologne (ALL);5 M€
+Bosnie-Herzégovine;Joueur;Haris Hajradinović;Milieu Offensif;Kasımpaşa (TUR);4,5 M€
+Bosnie-Herzégovine;Joueur;Nikola Vasilj;Gardien;Sankt Pauli (ALL);2 M€
+Bosnie-Herzégovine;Joueur;Kenan Pirić;Gardien;Antalyaspor (TUR);1 M€
+Bosnie-Herzégovine;Joueur;Osman Hadžikić;Gardien;Velež Mostar (BOS);600 k€
+Bosnie-Herzégovine;Joueur;Dennis Hadžikadunić;Défenseur Central;Hambourg SV (ALL);2 M€
+Bosnie-Herzégovine;Joueur;Nihad Mujakić;Défenseur Central;Partizan Belgrade (SER);1,5 M€
+Bosnie-Herzégovine;Joueur;Stjepan Radeljić;Défenseur Central;HNK Rijeka (CRO);1,2 M€
+Bosnie-Herzégovine;Joueur;Jusuf Gazibegović;Arrière Droit;Sturm Graz (AUT);5 M€
+Bosnie-Herzégovine;Joueur;Dženis Burnić;Milieu Central;Karlsruher SC (ALL);1 M€
+Bosnie-Herzégovine;Joueur;Armin Gigović;Milieu Central;Holstein Kiel (ALL);2,5 M€
+Bosnie-Herzégovine;Joueur;Ivan Bašić;Milieu Offensif;Orenbourg (RUS);2 M€
+Bosnie-Herzégovine;Joueur;Edin Džeko;Avant-centre;Fenerbahçe (TUR);2 M€
+Bosnie-Herzégovine;Joueur;Haris Tabaković;Avant-centre;Hoffenheim (ALL);2,5 M€
+Bosnie-Herzégovine;Joueur;Smail Prevljak;Avant-centre;Hertha Berlin (ALL);1 M€
+Bosnie-Herzégovine;Joueur;Dal Varešanović;Milieu Offensif;Rizespor (TUR);2,5 M€
+Qatar;Infos Générales;Derniers scores: Défaite vs Émirats Arabes Unis (1-3), Victoire vs Kirghizistan (3-1), Défaite vs Iran (1-4), Victoire vs Ouzbékistan (3-2), Victoire vs Corée du Nord (1-0);-;Calendrier CDM: 12 juin vs Canada (Toronto) | 17 juin vs Suisse (Houston) | 24 juin vs Bosnie-Herzégovine (Atlanta);-
+Qatar;Joueur;Akram Afif;Ailier;Al-Sadd SC (QAT);6 M€
+Qatar;Joueur;Almoez Ali;Avant-centre;Al-Duhail SC (QAT);2,5 M€
+Qatar;Joueur;Lucas Mendes;Défenseur Central;Al-Wakrah SC (QAT);800 k€
+Qatar;Joueur;Boualem Khoukhi;Défenseur Central;Al-Sadd SC (QAT);500 k€
+Qatar;Joueur;Homam Ahmed;Arrière Gauche;Al-Gharafa SC (QAT);1,2 M€
+Qatar;Joueur;Pedro Miguel;Arrière Droit;Al-Sadd SC (QAT);600 k€
+Qatar;Joueur;Jassim Gaber;Milieu Defensive;Al-Arabi SC (QAT);1,5 M€
+Qatar;Joueur;Ahmed Fathy;Milieu Defensive;Al-Arabi SC (QAT);400 k€
+Qatar;Joueur;Mohammed Waad;Milieu Central;Al-Sadd SC (QAT);800 k€
+Qatar;Joueur;Mostafa Meshaal;Milieu Central;Al-Sadd SC (QAT);700 k€
+Qatar;Joueur;Abdelaziz Hatem;Milieu Central;Al-Rayyan SC (QAT);300 k€
+Qatar;Joueur;Meshaal Barsham;Gardien;Al-Sadd SC (QAT);1,2 M€
+Qatar;Joueur;Salah Zakaria;Gardien;Al-Duhail SC (QAT);600 k€
+Qatar;Joueur;Saad Al-Sheeb;Gardien;Al-Sadd SC (QAT);150 k€
+Qatar;Joueur;Tarek Salman;Défenseur Central;Al-Sadd SC (QAT);800 k€
+Qatar;Joueur;Sultan Al-Brake;Arrière Gauche;Al-Duhail SC (QAT);500 k€
+Qatar;Joueur;Bassam Al-Rawi;Défenseur Central;Al-Duhail SC (QAT);1 M€
+Qatar;Joueur;Abdullah Al-Ahrak;Milieu Central;Qatar SC (QAT);400 k€
+Qatar;Joueur;Karim Boudiaf;Milieu Defensive;Al-Duhail SC (QAT);200 k€
+Qatar;Joueur;Ismaeel Mohammad;Ailier;Al-Duhail SC (QAT);300 k€
+Qatar;Joueur;Yusuf Abdurisag;Ailier;Al-Sadd SC (QAT);450 k€
+Qatar;Joueur;Ahmed Alaaelden;Avant-centre;Al-Gharafa SC (QAT);350 k€
+Suisse;Infos Générales;Derniers scores: Nul vs Espagne (3-3), Victoire vs Serbie (3-0), Nul vs Danemark (2-2), Défaite vs Serbie (0-2), Victoire vs Espagne (2-1);-;Calendrier CDM: 13 juin vs Bosnie-Herzégovine (Boston) | 17 juin vs Qatar (Houston) | 24 juin vs Canada (Toronto);-
+Suisse;Joueur;Manuel Akanji;Défenseur Central;Manchester City (ANG);45 M€
+Suisse;Joueur;Gregor Kobel;Gardien;Borussia Dortmund (ALL);40 M€
+Suisse;Joueur;Granit Xhaka;Milieu Defensive;Bayer Leverkusen (ALL);20 M€
+Suisse;Joueur;Denis Zakaria;Milieu Defensive;AS Monaco (FRA);28 M€
+Suisse;Joueur;Remo Freuler;Milieu Central;Bologne FC (ITA);6,5 M€
+Suisse;Joueur;Michel Aebischer;Milieu Central;Bologne FC (ITA);9 M€
+Suisse;Joueur;Dan Ndoye;Ailier;Bologne FC (ITA);22 M€
+Suisse;Joueur;Ruben Vargas;Ailier;FC Augsburg (ALL);9 M€
+Suisse;Joueur;Breel Embolo;Avant-centre;AS Monaco (FRA);12 M€
+Suisse;Joueur;Zeki Amdouni;Avant-centre;Benfica (POR);12 M€
+Suisse;Joueur;Yann Sommer;Gardien;Inter Milan (ITA);3 M€
+Suisse;Joueur;Yvon Mvogo;Gardien;FC Lorient (FRA);2,5 M€
+Suisse;Joueur;Nico Elvedi;Défenseur Central;Borussia M'gladbach (ALL);10 M€
+Suisse;Joueur;Cédric Zesiger;Défenseur Central;VfL Wolfsburg (ALL);5 M€
+Suisse;Joueur;Ricardo Rodríguez;Arrière Gauche;Betis Séville (ESP);3,5 M€
+Suisse;Joueur;Silvan Widmer;Arrière Droit;Mayence 05 (ALL);2,5 M€
+Suisse;Joueur;Vincent Sierro;Milieu Central;Toulouse FC (FRA);5 M€
+Suisse;Joueur;Fabian Rieder;Milieu Offensif;VfB Stuttgart (ALL);8 M€
+Suisse;Joueur;Noah Okafor;Ailier;AC Milan (ITA);20 M€
+Suisse;Joueur;Renato Steffen;Ailier;FC Lugano (SUI);1 M€
+Suisse;Joueur;Kwadwo Duah;Avant-centre;Ludogorets (BUL);3 M€
+Suisse;Joueur;Andi Zeqiri;Avant-centre;Standard de Liège (BEL);3,5 M€

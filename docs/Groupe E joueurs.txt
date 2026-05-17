@@ -1,0 +1,86 @@
+Équipe;Catégorie;Nom;Poste;Club (Pays);Valeur Marchande
+Belgique;Infos Générales;Derniers scores: Nul vs Mexique (1-1), Victoire vs République tchèque (2-1), Victoire vs Israël (3-1), Défaite vs France (0-1), Nul vs Italie (2-2);-;Calendrier CDM: 14 juin vs Honduras (Boston) | 20 juin vs Roumanie (Raleigh-Durham) | 26 juin vs Algérie (Atlanta);-
+Belgique;Joueur;Kevin De Bruyne;Milieu Offensif;Manchester City (ANG);30 M€
+Belgique;Joueur;Jérémy Doku;Ailier;Manchester City (ANG);65 M€
+Belgique;Joueur;Amadou Onana;Milieu Défensif;Aston Villa (ANG);50 M€
+Belgique;Joueur;Lois Openda;Avant-centre;RB Leipzig (ALL);60 M€
+Belgique;Joueur;Romelu Lukaku;Avant-centre;SSC Naples (ITA);30 M€
+Belgique;Joueur;Leandro Trossard;Ailier;Arsenal (ANG);35 M€
+Belgique;Joueur;Charles De Ketelaere;Milieu Offensif;Atalanta Bergame (ITA);34 M€
+Belgique;Joueur;Johan Bakayoko;Ailier;PSV Eindhoven (P-B);45 M€
+Belgique;Joueur;Arthur Theate;Défenseur Central;Eintracht Francfort (ALL);20 M€
+Belgique;Joueur;Wout Faes;Défenseur Central;Leicester City (ANG);20 M€
+Belgique;Joueur;Timothy Castagne;Arrière Droit;Fulham FC (ANG);12 M€
+Belgique;Joueur;Maxim De Cuyper;Arrière Gauche;Club Bruges (BEL);12 M€
+Belgique;Joueur;Koen Casteels;Gardien;Al-Qadsiah (ARA);6 M€
+Belgique;Joueur;Matz Sels;Gardien;Nottingham Forest (ANG);7 M€
+Belgique;Joueur;Thomas Kaminski;Gardien;Luton Town (ANG);3 M€
+Belgique;Joueur;Zeno Debast;Défenseur Central;Sporting CP (POR);22 M€
+Belgique;Joueur;Youri Tielemans;Milieu Central;Aston Villa (ANG);30 M€
+Belgique;Joueur;Orel Mangala;Milieu Central;Everton (ANG);20 M€
+Belgique;Joueur;Arne Engels;Milieu Central;Celtic Glasgow (ECO);11 M€
+Belgique;Joueur;Dodi Lukebakio;Ailier;Séville FC (ESP);12 M€
+Algérie;Infos Générales;Derniers scores: Victoire vs Libéria (5-1), Victoire vs Guinée équatoriale (1-0), Victoire vs Togo (1-0), Victoire vs Togo (5-1), Victoire vs Libéria (3-0);-;Calendrier CDM: 14 juin vs Roumanie (Dallas) | 20 juin vs Honduras (Houston) | 26 juin vs Belgique (Atlanta);-
+Algérie;Joueur;Rayan Aït-Nouri;Arrière Gauche;Wolverhampton (ANG);35 M€
+Algérie;Joueur;Ismaël Bennacer;Milieu Défensif;AC Milan (ITA);30 M€
+Algérie;Joueur;Said Benrahma;Ailier;Olympique Lyonnais (FRA);15 M€
+Algérie;Joueur;Amine Gouiri;Avant-centre;Stade Rennais (FRA);25 M€
+Algérie;Joueur;Riyad Mahrez;Ailier;Al-Ahli (ARA);12 M€
+Algérie;Joueur;Mohamed Amoura;Avant-centre;VfL Wolfsburg (ALL);16 M€
+Algérie;Joueur;Farès Chaïbi;Milieu Offensif;Eintracht Francfort (ALL);18 M€
+Algérie;Joueur;Aissa Mandi;Défenseur Central;LOSC Lille (FRA);2 M€
+Algérie;Joueur;Ramy Bensebaini;Défenseur Central;Borussia Dortmund (ALL);7 M€
+Algérie;Joueur;Youcef Atal;Arrière Droit;Al-Sadd (QAT);4,5 M€
+Algérie;Joueur;Anthony Mandrea;Gardien;SM Caen (FRA);2 M€
+Algérie;Joueur;Alexandre Oukidja;Gardien;FC Metz (FRA);400 k€
+Algérie;Joueur;Alexis Guendouz;Gardien;Persepolis (IRN);600 k€
+Algérie;Joueur;Jaouen Hadjam;Arrière Gauche;Young Boys Berne (SUI);2,5 M€
+Algérie;Joueur;Mohamed Tougai;Défenseur Central;Espérance de Tunis (TUN);1,2 M€
+Algérie;Joueur;Ramiz Zerrouki;Milieu Défensif;Feyenoord (P-B);8 M€
+Algérie;Joueur;Hicham Boudaoui;Milieu Central;OGC Nice (FRA);10 M€
+Algérie;Joueur;Adem Zorgane;Milieu Central;Charleroi (BEL);5 M€
+Algérie;Joueur;Houssem Aouar;Milieu Offensif;Al-Ittihad (ARA);10 M€
+Algérie;Joueur;Baghdad Bounedjah;Avant-centre;Al-Shamal (QAT);1,5 M€
+Algérie;Joueur;Anis Hadj Moussa;Ailier;Feyenoord (P-B);4 M€
+Honduras;Infos Générales;Derniers scores: Défaite vs Mexique (0-2), Victoire vs Mexique (2-0), Victoire vs Guyane (3-2), Victoire vs Trinité-et-Tobago (4-0), Nul vs Équateur (1-1);-;Calendrier CDM: 14 juin vs Belgique (Boston) | 20 juin vs Algérie (Houston) | 26 juin vs Roumanie (Dallas);-
+Honduras;Joueur;Luis Palma;Ailier;Celtic Glasgow (ECO);4,5 M€
+Honduras;Joueur;Choco Lozano;Avant-centre;Santos Laguna (MEX);1,2 M€
+Honduras;Joueur;Kervin Arriaga;Milieu Défensif;Partizan Belgrade (SER);1,5 M€
+Honduras;Joueur;Rigoberto Rivas;Ailier;Hatayspor (TUR);1,8 M€
+Honduras;Joueur;Joseph Rosales;Arrière Gauche;Minnesota United (USA);1 M€
+Honduras;Joueur;Denil Maldonado;Défenseur Central;Universitatea Craiova (ROU);1 M€
+Honduras;Joueur;Edrick Menjívar;Gardien;Olimpia (HON);350 k€
+Honduras;Joueur;Marlon Licona;Gardien;Motagua (HON);150 k€
+Honduras;Joueur;Luis López;Gardien;Real España (HON);250 k€
+Honduras;Joueur;Luis Vega;Défenseur Central;Motagua (HON);400 k€
+Honduras;Joueur;Devron García;Défenseur Central;Real España (HON);300 k€
+Honduras;Joueur;Andy Najar;Arrière Droit;Olimpia (HON);300 k€
+Honduras;Joueur;Maylor Núñez;Arrière Droit;Olimpia (HON);250 k€
+Honduras;Joueur;Deybi Flores;Milieu Défensif;Toronto FC (CAN);1 M€
+Honduras;Joueur;Edwin Rodríguez;Milieu Central;Olimpia (HON);450 k€
+Honduras;Joueur;Alexander López;Milieu Offensif;Olancho (HON);250 k€
+Honduras;Joueur;Jorge Álvarez;Milieu Central;Olimpia (HON);450 k€
+Honduras;Joueur;José Pinto;Ailier;Olimpia (HON);350 k€
+Honduras;Joueur;Bryan Róchez;Avant-centre;Petro Luanda (ANG);400 k€
+Honduras;Joueur;Douglas Martínez;Avant-centre;Indy Eleven (USA);300 k€
+Roumanie;Infos Générales;Derniers scores: Victoire vs Chypre (4-1), Victoire vs Kosovo (3-0 d.), Victoire vs Lituanie (2-1), Victoire vs Chypre (3-0), Victoire vs Lituanie (3-1);-;Calendrier CDM: 14 juin vs Algérie (Dallas) | 20 juin vs Belgique (Raleigh-Durham) | 26 juin vs Honduras (Dallas);-
+Roumanie;Joueur;Radu Drăgușin;Défenseur Central;Tottenham (ANG);25 M€
+Roumanie;Joueur;Dennis Man;Ailier;Parme (ITA);15 M€
+Roumanie;Joueur;Nicolae Stanciu;Milieu Central;Damac FC (ARA);4 M€
+Roumanie;Joueur;Răzvan Marin;Milieu Central;Cagliari (ITA);7,5 M€
+Roumanie;Joueur;Valentin Mihăilă;Ailier;Parme (ITA);2,8 M€
+Roumanie;Joueur;Denis Drăguș;Avant-centre;Trabzonspor (TUR);4 M€
+Roumanie;Joueur;Darius Olaru;Milieu Offensif;FCSB (ROU);7 M€
+Roumanie;Joueur;Andrei Rațiu;Arrière Droit;Rayo Vallecano (ESP);4 M€
+Roumanie;Joueur;Horațiu Moldovan;Gardien;Sassuolo (ITA);2,5 M€
+Roumanie;Joueur;Florin Niță;Gardien;Damac FC (ARA);200 k€
+Roumanie;Joueur;Ștefan Târnovanu;Gardien;FCSB (ROU);3 M€
+Roumanie;Joueur;Andrei Burcă;Défenseur Central;Baniyas (EAU);3 M€
+Roumanie;Joueur;Adrian Rus;Défenseur Central;Paphos (CHY);1,5 M€
+Roumanie;Joueur;Nicușor Bancu;Arrière Gauche;Universitatea Craiova (ROU);1,5 M€
+Roumanie;Joueur;Marius Marin;Milieu Défensif;Pise (ITA);2 M€
+Roumanie;Joueur;Alexandru Mitriță;Milieu Offensif;Universitatea Craiova (ROU);3,5 M€
+Roumanie;Joueur;Florinel Coman;Ailier;Al-Gharafa (QAT);7 M€
+Roumanie;Joueur;Ianis Hagi;Milieu Offensif;Glasgow Rangers (ECO);2 M€
+Roumanie;Joueur;George Pușcaș;Avant-centre;Bodrum FK (TUR);1,5 M€
+Roumanie;Joueur;Daniel Bîrligea;Avant-centre;FCSB (ROU);2 M€

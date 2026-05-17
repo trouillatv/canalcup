@@ -1,0 +1,88 @@
+Équipe;Catégorie;Nom;Poste;Club (Pays);Valeur Marchande
+France;Infos Générales;Derniers scores: Victoire vs Colombie (3-1), Victoire vs Brésil (2-1), Victoire vs Azerbaïdjan (3-1), Victoire vs Ukraine (4-0), Nul vs Islande (2-2);-;Calendrier CDM: 17 juin vs Sénégal (New York) | 23 juin vs Irak (Philadelphie) | 27 juin vs Norvège (Boston);-
+France;Joueur;Mike Maignan;Gardien;AC Milan (ITA);40 M€
+France;Joueur;Brice Samba;Gardien;RC Lens (FRA);10 M€
+France;Joueur;Lucas Chevalier;Gardien;Lille OSC (FRA);25 M€
+France;Joueur;William Saliba;Défenseur Central;Arsenal (ANG);80 M€
+France;Joueur;Ibrahima Konaté;Défenseur Central;Liverpool (ANG);45 M€
+France;Joueur;Dayot Upamecano;Défenseur Central;Bayern Munich (ALL);45 M€
+France;Joueur;Jules Koundé;Arrière Droit;FC Barcelone (ESP);45 M€
+France;Joueur;Theo Hernández;Arrière Gauche;AC Milan (ITA);60 M€
+France;Joueur;Ferland Mendy;Arrière Gauche;Real Madrid (ESP);22 M€
+France;Joueur;Aurélien Tchouaméni;Milieu Défensif;Real Madrid (ESP);90 M€
+France;Joueur;Eduardo Camavinga;Milieu Central;Real Madrid (ESP);90 M€
+France;Joueur;Warren Zaïre-Emery;Milieu Central;Paris Saint-Germain (FRA);60 M€
+France;Joueur;Adrien Rabiot;Milieu Central;Juventus (ITA);35 M€
+France;Joueur;N'Golo Kanté;Milieu Central;Al-Ittihad (ARA);10 M€
+France;Joueur;Kylian Mbappé;Avant-centre;Real Madrid (ESP);180 M€
+France;Joueur;Antoine Griezmann;Milieu Offensif;Atlético Madrid (ESP);25 M€
+France;Joueur;Ousmane Dembélé;Ailier;Paris Saint-Germain (FRA);60 M€
+France;Joueur;Michael Olise;Ailier;Bayern Munich (ALL);55 M€
+France;Joueur;Bradley Barcola;Ailier;Paris Saint-Germain (FRA);40 M€
+France;Joueur;Marcus Thuram;Avant-centre;Inter Milan (ITA);60 M€
+France;Joueur;Randal Kolo Muani;Avant-centre;Paris Saint-Germain (FRA);35 M€
+Sénégal;Infos Générales;Derniers scores: Victoire vs Burundi (2-0), Victoire vs Burkina Faso (1-0), Victoire vs Malawi (4-0), Victoire vs Malawi (1-0), Nul vs Burkina Faso (1-1);-;Calendrier CDM: 17 juin vs France (New York) | 22 juin vs Norvège (Washington) | 27 juin vs Irak (Orlando);-
+Sénégal;Joueur;Edouard Mendy;Gardien;Al-Ahli (ARA);8 M€
+Sénégal;Joueur;Mory Diaw;Gardien;Clermont Foot (FRA);2 M€
+Sénégal;Joueur;Seny Dieng;Gardien;Middlesbrough (ANG);2 M€
+Sénégal;Joueur;Kalidou Koulibaly;Défenseur Central;Al-Hilal (ARA);15 M€
+Sénégal;Joueur;Abdou Diallo;Défenseur Central;Al-Arabi (QAT);9 M€
+Sénégal;Joueur;Formose Mendy;Défenseur Central;FC Lorient (FRA);4 M€
+Sénégal;Joueur;Ismail Jakobs;Arrière Gauche;Galatasaray (TUR);8 M€
+Sénégal;Joueur;El Hadji Malick Diouf;Arrière Gauche;Slavia Prague (TCH);7 M€
+Sénégal;Joueur;Abdoulaye Seck;Défenseur Central;Maccabi Haïfa (ISR);1,5 M€
+Sénégal;Joueur;Pape Matar Sarr;Milieu Central;Tottenham (ANG);40 M€
+Sénégal;Joueur;Lamine Camara;Milieu Central;AS Monaco (FRA);12 M€
+Sénégal;Joueur;Idrissa Gueye;Milieu Défensif;Everton (ANG);1 M€
+Sénégal;Joueur;Nampalys Mendy;Milieu Défensif;RC Lens (FRA);2 M€
+Sénégal;Joueur;Pathé Ciss;Milieu Défensif;Rayo Vallecano (ESP);3,5 M€
+Sénégal;Joueur;Sadio Mané;Ailier;Al-Nassr (ARA);15 M€
+Sénégal;Joueur;Ismaïla Sarr;Ailier;Crystal Palace (ANG);18 M€
+Sénégal;Joueur;Nicolas Jackson;Avant-centre;Chelsea (ANG);35 M€
+Sénégal;Joueur;Illiman Ndiaye;Milieu Offensif;Everton (ANG);15 M€
+Sénégal;Joueur;Habib Diallo;Avant-centre;Damac FC (ARA);8 M€
+Sénégal;Joueur;Cherif Ndiaye;Avant-centre;Étoile Rouge de Belgrade (SER);4 M€
+Sénégal;Joueur;Boulaye Dia;Avant-centre;Lazio Rome (ITA);12 M€
+Irak;Infos Générales;Derniers scores: Victoire vs Oman (1-0), Nul vs Jordanie (0-0), Victoire vs Palestine (1-0), Défaite vs Corée du Sud (2-3), Victoire vs Koweït (3-1);-;Calendrier CDM: 16 juin vs Norvège (New York) | 23 juin vs France (Philadelphie) | 27 juin vs Sénégal (Orlando);-
+Irak;Joueur;Aymen Hussein;Avant-centre;Al-Khor (QAT);2 M€
+Irak;Joueur;Ali Jasim;Ailier;Côme 1907 (ITA);2,5 M€
+Irak;Joueur;Zidane Iqbal;Milieu Central;FC Utrecht (P-B);1,5 M€
+Irak;Joueur;Amir Al-Ammari;Milieu Central;Cracovia (POL);1 M€
+Irak;Joueur;Youssef Amyn;Ailier;Al-Wehda (ARA);800 k€
+Irak;Joueur;Jalal Hassan;Gardien;Al-Zawraa (IRQ);300 k€
+Irak;Joueur;Fahad Talib;Gardien;Al-Talaba (IRQ);200 k€
+Irak;Joueur;Ahmed Basil;Gardien;Al-Shorta (IRQ);150 k€
+Irak;Joueur;Saad Natiq;Défenseur Central;Al-Talaba (IRQ);350 k€
+Irak;Joueur;Rebin Sulaka;Défenseur Central;FC Schalke 04 (ALL);250 k€
+Irak;Joueur;Zaid Tahseen;Défenseur Central;Al- الطلبة (IRQ);400 k€
+Irak;Joueur;Merdchas Doski;Arrière Gauche;Slovácko (TCH);800 k€
+Irak;Joueur;Hussein Ali;Arrière Droit;Heerenveen (P-B);600 k€
+Irak;Joueur;Mustafa Saadoon;Arrière Droit;Al-Quwa Al-Jawiya (IRQ);450 k€
+Irak;Joueur;Osama Rashid;Milieu Défensif;Erbil (IRQ);200 k€
+Irak;Joueur;Ibrahim Bayesh;Milieu Central;Al-Riyadh (ARA);700 k€
+Irak;Joueur;Bashar Resan;Milieu Offensif;Al-Markhiya (QAT);800 k€
+Irak;Joueur;Danilo Al-Saed;Ailier;Heerenveen (P-B);1,2 M€
+Irak;Joueur;Ali Al-Hamadi;Avant-centre;Ipswich Town (ANG);2 M€
+Irak;Joueur;Mohanad Ali;Avant-centre;Al-Shorta (IRQ);600 k€
+Norvège;Infos Générales;Derniers scores: Victoire vs Kazakhstan (5-0), Victoire vs Slovénie (4-1), Défaite vs Autriche (1-5), Victoire vs Slovénie (3-0), Victoire vs Kazakhstan (2-1);-;Calendrier CDM: 16 juin vs Irak (New York) | 22 juin vs Sénégal (Washington) | 27 juin vs France (Boston);-
+Norvège;Joueur;Erling Haaland;Avant-centre;Manchester City (ANG);180 M€
+Norvège;Joueur;Martin Ødegaard;Milieu Offensif;Arsenal (ANG);90 M€
+Norvège;Joueur;Antonio Nusa;Ailier;RB Leipzig (ALL);22 M€
+Norvège;Joueur;Alexander Sørloth;Avant-centre;Atlético Madrid (ESP);25 M€
+Norvège;Joueur;Oscar Bobb;Ailier;Manchester City (ANG);25 M€
+Norvège;Joueur;Julian Ryerson;Arrière Droit;Borussia Dortmund (ALL);20 M€
+Norvège;Joueur;Leo Østigård;Défenseur Central;Stade Rennais (FRA);10 M€
+Norvège;Joueur;Kristoffer Ajer;Défenseur Central;Brentford (ANG);15 M€
+Norvège;Joueur;Sander Berge;Milieu Défensif;Fulham FC (ANG);20 M€
+Norvège;Joueur;Patrick Berg;Milieu Défensif;Bodø/Glimt (NOR);4,5 M€
+Norvège;Joueur;Ørjan Nyland;Gardien;Séville FC (ESP);1,5 M€
+Norvège;Joueur;Matias Dyngeland;Gardien;Brann (NOR);1 M€
+Norvège;Joueur;Egil Selvik;Gardien;Haugesund (NOR);800 k€
+Norvège;Joueur;Andreas Hanche-Olsen;Défenseur Central;Mayence 05 (ALL);4,5 M€
+Norvège;Joueur;David Møller Wolfe;Arrière Gauche;AZ Alkmaar (P-B);5 M€
+Norvège;Joueur;Marcus Holmgren Pedersen;Arrière Droit;Torino (ITA);5 M€
+Norvège;Joueur;Morton Thorsby;Milieu Central;Genoa (ITA);4,5 M€
+Norvège;Joueur;Hugo Vetlesen;Milieu Central;Club Bruges (BEL);7 M€
+Norvège;Joueur;Kristian Thorstvedt;Milieu Central;Sassuolo (ITA);8 M€
+Norvège;Joueur;Jørgen Strand Larsen;Avant-centre;Wolverhampton (ANG);25 M€
+Norvège;Joueur;Aron Dønnum;Ailier;Toulouse FC (FRA);4 M€
