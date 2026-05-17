@@ -52,7 +52,7 @@ const TEAM_FLAGS: Record<string, string> = {
   "Cape Verde": "🇨🇻", "DR Congo": "🇨🇩", Benin: "🇧🇯",
   Japan: "🇯🇵", "South Korea": "🇰🇷", "Saudi Arabia": "🇸🇦", Iran: "🇮🇷",
   Qatar: "🇶🇦", Australia: "🇦🇺", "New Zealand": "🇳🇿",
-  Indonesia: "🇮🇩", Uzbekistan: "🇺🇿",
+  Indonesia: "🇮🇩", Uzbekistan: "🇺🇿", Iraq: "🇮🇶", Jordan: "🇯🇴",
   // French names
   "États-Unis": "🇺🇸", "Mexique": "🇲🇽", "Brésil": "🇧🇷", "Argentine": "🇦🇷",
   "Colombie": "🇨🇴", "Équateur": "🇪🇨", "Pérou": "🇵🇪", "Chili": "🇨🇱",
@@ -70,7 +70,7 @@ const TEAM_FLAGS: Record<string, string> = {
   "Côte d'Ivoire": "🇨🇮", "Cameroun": "🇨🇲", "Algérie": "🇩🇿", "Tunisie": "🇹🇳",
   "Égypte": "🇪🇬", "Afrique du Sud": "🇿🇦", "Cap-Vert": "🇨🇻", "RD Congo": "🇨🇩", "Bénin": "🇧🇯",
   "Japon": "🇯🇵", "Corée du Sud": "🇰🇷", "Arabie Saoudite": "🇸🇦",
-  "Australie": "🇦🇺", "Nouvelle-Zélande": "🇳🇿",
+  "Australie": "🇦🇺", "Nouvelle-Zélande": "🇳🇿", "Irak": "🇮🇶", "Jordanie": "🇯🇴",
   "Indonésie": "🇮🇩", "Ouzbékistan": "🇺🇿",
 };
 

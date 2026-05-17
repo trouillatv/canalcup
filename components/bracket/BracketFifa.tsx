@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { teamFlag, toNCTime, cn } from "@/lib/utils";
+import { WC2026_GROUPS } from "@/lib/football/groups-2026";
 
 interface MatchRow {
   id: string;
@@ -208,7 +209,7 @@ function RoundColumn({
   );
 }
 
-// ─── Group-stage strip (compact, distinct from the standard view) ────────────
+// ─── Group phase — one tab per pool (A–L) ────────────────────────────────────
 
 function groupLetter(raw: string): string {
   // "Group A" / "Groupe A" / "A" → "A" ; matchday numbers → ""
@@ -216,62 +217,22 @@ function groupLetter(raw: string): string {
   return m ? m[1].toUpperCase() : "";
 }
 
-function prettyGroupName(letter: string): string {
-  return letter ? `Groupe ${letter}` : "Groupe";
-}
+function GroupTabs({ standings }: { standings: Record<string, StandingRow[]> }) {
+  const [active, setActive] = useState(WC2026_GROUPS[0]?.letter ?? "A");
 
-interface GroupView {
-  letter: string;
-  standings: StandingRow[];
-  teams: { name: string; flag: string }[];
-}
-
-function buildGroups(
-  buckets: GroupBucket[],
-  standings: Record<string, StandingRow[]>
-): GroupView[] {
-  const byLetter = new Map<string, GroupView>();
-  const get = (letter: string) => {
-    if (!byLetter.has(letter)) byLetter.set(letter, { letter, standings: [], teams: [] });
-    return byLetter.get(letter)!;
-  };
-
-  // 1) Real standings (preferred — has ranking)
+  // Live standings (if the tournament has data) keyed by group letter
+  const liveByLetter: Record<string, StandingRow[]> = {};
   for (const [name, rows] of Object.entries(standings)) {
     const letter = groupLetter(name);
-    if (!letter || rows.length === 0) continue;
-    get(letter).standings = [...rows].sort(
-      (a, b) => b.points - a.points || b.goal_diff - a.goal_diff
-    );
-  }
-
-  // 2) Composition from group-stage matches (only buckets with a real group letter)
-  for (const bucket of buckets) {
-    const letter = groupLetter(bucket.stage ?? "");
-    if (!letter) continue;
-    const g = get(letter);
-    for (const m of bucket.matches) {
-      for (const [name, flag] of [
-        [m.team_a, teamFlag(m.flag_a, m.team_a)],
-        [m.team_b, teamFlag(m.flag_b, m.team_b)],
-      ] as const) {
-        if (name && name !== "TBD" && !g.teams.some((t) => t.name === name)) {
-          g.teams.push({ name, flag });
-        }
-      }
+    if (letter && rows.length > 0) {
+      liveByLetter[letter] = [...rows].sort(
+        (a, b) => b.points - a.points || b.goal_diff - a.goal_diff
+      );
     }
   }
 
-  return [...byLetter.values()].sort((a, b) => a.letter.localeCompare(b.letter));
-}
-
-function GroupStrip({
-  buckets, standings,
-}: {
-  buckets: GroupBucket[];
-  standings: Record<string, StandingRow[]>;
-}) {
-  const groups = buildGroups(buckets, standings);
+  const group = WC2026_GROUPS.find((g) => g.letter === active) ?? WC2026_GROUPS[0];
+  const live = liveByLetter[active];
 
   return (
     <div>
@@ -281,55 +242,59 @@ function GroupStrip({
         <div className="flex-1 h-px bg-gradient-to-r from-canal-yellow/40 to-transparent" />
       </div>
 
-      {groups.length === 0 ? (
-        <div className="bg-canal-gray-mid/40 rounded-xl border border-canal-gray-light/25 p-4 text-center">
-          <p className="text-canal-gray-muted text-sm italic">
-            Tirage des groupes à venir — le tableau se remplira dès l&apos;officialisation FIFA.
-          </p>
-        </div>
-      ) : (
-        <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
-          {groups.map((g) => {
-            const hasStandings = g.standings.length > 0;
-            return (
-              <div
-                key={g.letter}
-                className="shrink-0 w-44 bg-canal-gray-mid/40 rounded-xl border border-canal-gray-light/25 p-3"
-              >
-                <p className="font-black text-canal-yellow text-[11px] uppercase tracking-widest mb-2">
-                  {prettyGroupName(g.letter)}
-                </p>
-                <div className="space-y-1">
-                  {hasStandings
-                    ? g.standings.slice(0, 4).map((row, i) => (
-                        <div
-                          key={row.team_name_fr}
-                          className={cn(
-                            "flex items-center gap-1.5 text-xs",
-                            i < 2 ? "text-white" : "text-canal-gray-muted"
-                          )}
-                        >
-                          <span className="w-3 text-center font-bold">{i + 1}</span>
-                          <span className="text-sm">{teamFlag(row.team_flag, row.team_name_fr)}</span>
-                          <span className="flex-1 min-w-0 truncate font-semibold">{row.team_name_fr}</span>
-                          <span className="font-black text-canal-yellow">{row.points}</span>
-                        </div>
-                      ))
-                    : g.teams.slice(0, 4).map((t) => (
-                        <div
-                          key={t.name}
-                          className="flex items-center gap-1.5 text-xs text-white"
-                        >
-                          <span className="text-sm">{t.flag}</span>
-                          <span className="flex-1 min-w-0 truncate font-semibold">{t.name}</span>
-                        </div>
-                      ))}
+      {/* Tabs — one per pool */}
+      <div className="flex gap-1.5 overflow-x-auto pb-2 -mx-1 px-1">
+        {WC2026_GROUPS.map((g) => (
+          <button
+            key={g.letter}
+            onClick={() => setActive(g.letter)}
+            className={cn(
+              "shrink-0 w-9 h-9 rounded-lg text-sm font-black transition-colors",
+              g.letter === active
+                ? "bg-canal-yellow text-canal-black"
+                : "bg-canal-gray-mid/60 text-canal-gray-muted hover:text-white"
+            )}
+          >
+            {g.letter}
+          </button>
+        ))}
+      </div>
+
+      {/* Selected pool */}
+      <div className="bg-canal-gray-mid/40 rounded-xl border border-canal-gray-light/25 p-4 mt-1">
+        <p className="font-black text-canal-yellow text-xs uppercase tracking-widest mb-3">
+          Groupe {group.letter}
+        </p>
+        <div className="space-y-2">
+          {live
+            ? live.slice(0, 4).map((row, i) => (
+                <div
+                  key={row.team_name_fr}
+                  className={cn(
+                    "flex items-center gap-2 text-sm",
+                    i < 2 ? "text-white" : "text-canal-gray-muted"
+                  )}
+                >
+                  <span className="w-4 text-center font-black">{i + 1}</span>
+                  <span className="text-lg">{teamFlag(row.team_flag, row.team_name_fr)}</span>
+                  <span className="flex-1 min-w-0 truncate font-semibold">{row.team_name_fr}</span>
+                  <span className="text-canal-gray-muted text-xs">{row.played} J</span>
+                  <span className="font-black text-canal-yellow w-7 text-right">{row.points}</span>
                 </div>
-              </div>
-            );
-          })}
+              ))
+            : group.teams.map((name) => (
+                <div key={name} className="flex items-center gap-2 text-sm text-white">
+                  <span className="text-lg">{teamFlag(null, name)}</span>
+                  <span className="flex-1 min-w-0 truncate font-semibold">{name}</span>
+                </div>
+              ))}
         </div>
-      )}
+        {!live && (
+          <p className="text-canal-gray-muted text-[11px] italic mt-3">
+            Classement live dès le coup d&apos;envoi du tournoi.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -337,7 +302,6 @@ function GroupStrip({
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export function BracketFifa({ data }: { data: BracketData }) {
-  const groupSection = data.phases.find((p) => p.phase === "Groupe");
   const thirdPlace = data.phases.find((p) => p.phase === "3ème place");
 
   // Ordered knockout rounds (exclude groups + 3rd-place, which is shown beside the final)
@@ -360,8 +324,8 @@ export function BracketFifa({ data }: { data: BracketData }) {
 
   return (
     <div className="space-y-10">
-      {/* Group stage — compact horizontal strip (always shown for a WC bracket) */}
-      <GroupStrip buckets={groupSection?.groups ?? []} standings={data.standings} />
+      {/* Group phase — one tab per pool (always shown for a WC bracket) */}
+      <GroupTabs standings={data.standings} />
 
       {/* Knockout bracket — the giant tree */}
       {rounds.length > 0 ? (
