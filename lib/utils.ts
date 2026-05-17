@@ -30,15 +30,12 @@ export function isToday(date: string | Date): boolean {
 }
 
 export function flagEmoji(countryCode: string): string {
-  const flags: Record<string, string> = {
-    FR: "🇫🇷", BR: "🇧🇷", AR: "🇦🇷", DE: "🇩🇪", ES: "🇪🇸",
-    PT: "🇵🇹", GB: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", IT: "🇮🇹", NL: "🇳🇱", BE: "🇧🇪",
-    HR: "🇭🇷", MA: "🇲🇦", SN: "🇸🇳", JP: "🇯🇵", KR: "🇰🇷",
-    US: "🇺🇸", MX: "🇲🇽", CO: "🇨🇴", UY: "🇺🇾", EC: "🇪🇨",
-    CH: "🇨🇭", DK: "🇩🇰", PL: "🇵🇱", AU: "🇦🇺", NG: "🇳🇬",
-    GH: "🇬🇭", CM: "🇨🇲", TN: "🇹🇳",
-  };
-  return flags[countryCode.toUpperCase()] ?? "🏳️";
+  if (!countryCode) return "🏳️";
+  const code = countryCode.toUpperCase().trim();
+  if (!/^[A-Z]{2}$/.test(code)) return "🏳️";
+  // Regional Indicator Symbols: offset from ASCII letter to emoji codepoint
+  const offset = 127397;
+  return Array.from(code).map(c => String.fromCodePoint(c.charCodeAt(0) + offset)).join("");
 }
 
 export function pointsBadge(points: number): string {
