@@ -102,8 +102,8 @@ export function MagicLinkReception() {
     if (!email) { setErrorMsg("Entre d'abord ton email."); return; }
     setForgotSent(false);
     const supabase = createClient();
-    const callbackUrl = `${window.location.origin}/auth/callback`;
-    await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: callbackUrl } });
+    const resetUrl = `${window.location.origin}/auth/reset-password`;
+    await supabase.auth.resetPasswordForEmail(email, { redirectTo: resetUrl });
     setForgotSent(true);
   };
 
