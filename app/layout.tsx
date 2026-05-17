@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { TopBar } from "@/components/layout/TopBar";
+import { BottomNav } from "@/components/layout/BottomNav";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -52,9 +53,10 @@ export default async function RootLayout({
       </head>
       <body className="bg-canal-black text-white antialiased">
         {isAuthenticated && <TopBar />}
-        <main className={isAuthenticated ? "min-h-screen pt-24 pb-4" : "min-h-screen"}>
+        <main className={isAuthenticated ? "min-h-screen pt-14 safe-bottom" : "min-h-screen"}>
           {children}
         </main>
+        {isAuthenticated && <BottomNav />}
       </body>
     </html>
   );
