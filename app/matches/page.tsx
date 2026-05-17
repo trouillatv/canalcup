@@ -3,32 +3,15 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { MatchCard } from "@/components/matches/MatchCard";
-import { MatchesTv } from "@/components/matches/MatchesTv";
-import { MatchesCompact } from "@/components/matches/MatchesCompact";
-import { ViewSwitcher } from "@/components/views/ViewSwitcher";
 import { BreakingNews } from "@/components/matches/BreakingNews";
 import type { Match, PredictionTrend, Prediction } from "@/lib/supabase/types";
 import { MOCK_MATCHES, MOCK_PREDICTION_TRENDS } from "@/lib/mock-data";
 import { Star, Trophy } from "lucide-react";
 
-const VIEW_KEY = "matches-view";
-
 export default function MatchesPage() {
   const [matches, setMatches] = useState<Match[]>(MOCK_MATCHES);
   const [trends, setTrends] = useState<Record<string, PredictionTrend>>(MOCK_PREDICTION_TRENDS);
   const [myPredictions, setMyPredictions] = useState<Record<string, Prediction>>({});
-  const [view, setView] = useState("standard");
-
-  // Persist view preference
-  useEffect(() => {
-    const saved = localStorage.getItem(VIEW_KEY);
-    if (saved) setView(saved);
-  }, []);
-
-  const handleViewChange = (v: string) => {
-    setView(v);
-    localStorage.setItem(VIEW_KEY, v);
-  };
 
   useEffect(() => {
     fetch("/api/matches")
@@ -61,17 +44,6 @@ export default function MatchesPage() {
     return { score_a: p.predicted_score_a!, score_b: p.predicted_score_b!, points: p.points_awarded };
   };
 
-  const compactPredictions: Record<string, { score_a: number; score_b: number; points?: number }> = {};
-  for (const [matchId, p] of Object.entries(myPredictions)) {
-    if (p.predicted_score_a !== undefined && p.predicted_score_b !== undefined) {
-      compactPredictions[matchId] = {
-        score_a: p.predicted_score_a!,
-        score_b: p.predicted_score_b!,
-        points: p.points_awarded,
-      };
-    }
-  }
-
   return (
     <div className="max-w-2xl mx-auto">
       <BreakingNews />
@@ -98,59 +70,41 @@ export default function MatchesPage() {
           </div>
         </div>
 
-        {/* View switcher */}
-        <div className="flex justify-end">
-          <ViewSwitcher view={view} onChange={handleViewChange} modes={["standard", "tv", "compact"]} />
-        </div>
-
-        {/* TV view */}
-        {view === "tv" && <MatchesTv matches={matches} />}
-
-        {/* Compact view */}
-        {view === "compact" && (
-          <MatchesCompact matches={matches} myPredictions={compactPredictions} />
+        {live.length > 0 && (
+          <section>
+            <h2 className="text-sm font-bold text-red-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <span className="live-dot" /> En direct
+            </h2>
+            <div className="space-y-3">
+              {live.map((m) => (
+                <MatchCard key={m.id} match={m} trend={trends[m.id]} savedPrediction={toSavedPrediction(m.id)} />
+              ))}
+            </div>
+          </section>
         )}
 
-        {/* Standard view */}
-        {view === "standard" && (
-          <>
-            {live.length > 0 && (
-              <section>
-                <h2 className="text-sm font-bold text-red-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <span className="live-dot" /> En direct
-                </h2>
-                <div className="space-y-3">
-                  {live.map((m) => (
-                    <MatchCard key={m.id} match={m} trend={trends[m.id]} savedPrediction={toSavedPrediction(m.id)} />
-                  ))}
-                </div>
-              </section>
-            )}
+        {upcoming.length > 0 && (
+          <section>
+            <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider mb-3">
+              ⚽ À venir — Pronostiquez !
+            </h2>
+            <div className="space-y-4">
+              {upcoming.map((m) => (
+                <MatchCard key={m.id} match={m} trend={trends[m.id]} savedPrediction={toSavedPrediction(m.id)} />
+              ))}
+            </div>
+          </section>
+        )}
 
-            {upcoming.length > 0 && (
-              <section>
-                <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider mb-3">
-                  ⚽ À venir — Pronostiquez !
-                </h2>
-                <div className="space-y-4">
-                  {upcoming.map((m) => (
-                    <MatchCard key={m.id} match={m} trend={trends[m.id]} savedPrediction={toSavedPrediction(m.id)} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {finished.length > 0 && (
-              <section>
-                <h2 className="text-sm font-bold text-canal-gray-muted uppercase tracking-wider mb-3">Terminés</h2>
-                <div className="space-y-3">
-                  {finished.map((m) => (
-                    <MatchCard key={m.id} match={m} savedPrediction={toSavedPrediction(m.id)} compact />
-                  ))}
-                </div>
-              </section>
-            )}
-          </>
+        {finished.length > 0 && (
+          <section>
+            <h2 className="text-sm font-bold text-canal-gray-muted uppercase tracking-wider mb-3">Terminés</h2>
+            <div className="space-y-3">
+              {finished.map((m) => (
+                <MatchCard key={m.id} match={m} savedPrediction={toSavedPrediction(m.id)} compact />
+              ))}
+            </div>
+          </section>
         )}
       </div>
     </div>

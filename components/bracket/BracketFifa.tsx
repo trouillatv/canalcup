@@ -265,34 +265,61 @@ function GroupTabs({ standings }: { standings: Record<string, StandingRow[]> }) 
         <p className="font-black text-canal-yellow text-xs uppercase tracking-widest mb-3">
           Groupe {group.letter}
         </p>
-        <div className="space-y-2">
-          {live
-            ? live.slice(0, 4).map((row, i) => (
-                <div
-                  key={row.team_name_fr}
-                  className={cn(
-                    "flex items-center gap-2 text-sm",
-                    i < 2 ? "text-white" : "text-canal-gray-muted"
-                  )}
-                >
-                  <span className="w-4 text-center font-black">{i + 1}</span>
-                  <span className="text-lg">{teamFlag(row.team_flag, row.team_name_fr)}</span>
-                  <span className="flex-1 min-w-0 truncate font-semibold">{row.team_name_fr}</span>
-                  <span className="text-canal-gray-muted text-xs">{row.played} J</span>
-                  <span className="font-black text-canal-yellow w-7 text-right">{row.points}</span>
-                </div>
-              ))
-            : group.teams.map((name) => (
+        {live ? (
+          <div className="overflow-x-auto -mx-1 px-1">
+            <table className="w-full text-xs tabular-nums min-w-[320px]">
+              <thead>
+                <tr className="text-canal-gray-muted border-b border-canal-gray-light/30">
+                  <th className="text-left font-medium pb-1 pl-1">Équipe</th>
+                  <th className="w-6 text-center font-medium pb-1" title="Joués">J</th>
+                  <th className="w-6 text-center font-medium pb-1" title="Gagnés">G</th>
+                  <th className="w-6 text-center font-medium pb-1" title="Nuls">N</th>
+                  <th className="w-6 text-center font-medium pb-1" title="Défaites">D</th>
+                  <th className="w-12 text-center font-medium pb-1" title="Buts pour : Buts contre">BP:BC</th>
+                  <th className="w-8 text-center font-black text-canal-yellow pb-1" title="Points">Pts</th>
+                </tr>
+              </thead>
+              <tbody>
+                {live.slice(0, 4).map((row, i) => (
+                  <tr
+                    key={row.team_name_fr}
+                    className={cn(
+                      "border-b border-canal-gray-light/15",
+                      i < 2 ? "text-white" : "text-canal-gray-muted"
+                    )}
+                  >
+                    <td className="py-1.5 pl-1">
+                      <span className="flex items-center gap-1.5">
+                        <span className="font-black w-3">{i + 1}</span>
+                        <span className="text-base">{teamFlag(row.team_flag, row.team_name_fr)}</span>
+                        <span className="truncate max-w-[110px] font-semibold">{row.team_name_fr}</span>
+                      </span>
+                    </td>
+                    <td className="text-center">{row.played}</td>
+                    <td className="text-center">{row.won}</td>
+                    <td className="text-center">{row.draw}</td>
+                    <td className="text-center">{row.lost}</td>
+                    <td className="text-center">{row.goals_for}:{row.goals_against}</td>
+                    <td className="text-center font-black text-canal-yellow">{row.points}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-2">
+              {group.teams.map((name) => (
                 <div key={name} className="flex items-center gap-2 text-sm text-white">
                   <span className="text-lg">{teamFlag(null, name)}</span>
                   <span className="flex-1 min-w-0 truncate font-semibold">{name}</span>
                 </div>
               ))}
-        </div>
-        {!live && (
-          <p className="text-canal-gray-muted text-[11px] italic mt-3">
-            Classement live dès le coup d&apos;envoi du tournoi.
-          </p>
+            </div>
+            <p className="text-canal-gray-muted text-[11px] italic mt-3">
+              Classement (J · G · N · D · BP:BC · Pts) dès le coup d&apos;envoi du tournoi.
+            </p>
+          </>
         )}
       </div>
     </div>
