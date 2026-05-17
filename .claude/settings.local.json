@@ -50,7 +50,9 @@
       "PowerShell(cd \"C:\\\\Users\\\\vtrouillat\\\\Documents\\\\CanalCup\"; npx tsc --noEmit 2>&1 | Where-Object { $_ -notmatch \"node_modules\" } | Select-Object -First 20)",
       "PowerShell(cd \"C:\\\\Users\\\\vtrouillat\\\\Documents\\\\CanalCup\"; npx tsc --noEmit 2>&1 | Where-Object { $_ -notmatch \"node_modules\" } | Select-Object -First 10)",
       "Bash(npm i *)",
-      "PowerShell(cd \"C:\\\\Users\\\\vtrouillat\\\\Documents\\\\CanalCup\"; npx tsc --noEmit 2>&1 | Where-Object { $_ -notmatch \"node_modules\" } | Select-Object -First 15)"
+      "PowerShell(cd \"C:\\\\Users\\\\vtrouillat\\\\Documents\\\\CanalCup\"; npx tsc --noEmit 2>&1 | Where-Object { $_ -notmatch \"node_modules\" } | Select-Object -First 15)",
+      "Bash(npx vercel *)",
+      "Bash(python -m json.tool)"
     ]
   }
 }

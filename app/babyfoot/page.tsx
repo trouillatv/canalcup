@@ -10,6 +10,22 @@ import type { BabyFootMatch, Team } from "@/lib/supabase/types";
 
 const STORAGE_KEY = "babyfoot-view";
 
+// ─── "À venir" screen ────────────────────────────────────────────────────────
+
+function ComingSoonScreen() {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 gap-6 text-center">
+      <span className="text-6xl">🎮</span>
+      <div>
+        <h2 className="canal-headline text-2xl">Tournoi Babyfoot</h2>
+        <p className="text-canal-gray-muted text-sm mt-2">
+          À venir — Le tournoi démarrera bientôt !
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ─── Standard view components ────────────────────────────────────────────────
 
 function BabyFootMatchCard({ match }: { match: BabyFootMatch }) {
@@ -157,6 +173,7 @@ export default function BabyFootPage() {
   const [matches, setMatches] = useState<BabyFootMatch[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
+  const [babyFootLive, setBabyFootLive] = useState<boolean | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -169,18 +186,37 @@ export default function BabyFootPage() {
   }, []);
 
   useEffect(() => {
-    Promise.all([fetch("/api/babyfoot"), fetch("/api/teams")])
-      .then(async ([mRes, tRes]) => {
+    Promise.all([
+      fetch("/api/babyfoot"),
+      fetch("/api/teams"),
+      fetch("/api/admin/settings"),
+    ])
+      .then(async ([mRes, tRes, sRes]) => {
         if (mRes.ok) setMatches(await mRes.json());
         if (tRes.ok) {
           const d = await tRes.json();
           setTeams(d.teams ?? d);
+        }
+        if (sRes.ok) {
+          const settings: { key: string; value: unknown }[] = await sRes.json();
+          const row = settings.find((s) => s.key === "babyfoot_live");
+          setBabyFootLive(row ? row.value === true : false);
+        } else {
+          setBabyFootLive(false);
         }
       })
       .finally(() => setLoading(false));
   }, []);
 
   const finished = matches.filter((m) => m.status === "finished");
+
+  if (!loading && babyFootLive === false) {
+    return (
+      <div className="px-4 py-4 max-w-2xl mx-auto bg-canal-black min-h-screen">
+        <ComingSoonScreen />
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto">

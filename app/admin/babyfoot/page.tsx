@@ -267,6 +267,59 @@ function CreateMatchForm({ teams, onCreate }: { teams: Team[]; onCreate: (m: Bab
   );
 }
 
+// ─── Live toggle ──────────────────────────────────────────────────────────────
+
+function BabyFootLiveToggle() {
+  const [live, setLive] = useState<boolean | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/admin/settings")
+      .then((r) => r.json())
+      .then((data: { key: string; value: unknown }[]) => {
+        const row = data.find((s) => s.key === "babyfoot_live");
+        setLive(row ? row.value === true : false);
+      });
+  }, []);
+
+  const toggle = async () => {
+    const next = !live;
+    setSaving(true);
+    const res = await fetch("/api/admin/settings", {
+      method: "PATCH",
+      headers: headers(),
+      body: JSON.stringify({ key: "babyfoot_live", value: next }),
+    });
+    if (res.ok) setLive(next);
+    setSaving(false);
+  };
+
+  if (live === null) return null;
+
+  return (
+    <div className="canal-card flex items-center justify-between gap-4">
+      <div>
+        <p className="font-bold text-white text-sm">Tournoi babyfoot</p>
+        <p className={cn("text-xs mt-0.5", live ? "text-canal-yellow" : "text-canal-gray-muted")}>
+          {live ? "✅ Activé — visible par les joueurs" : "⏸ Désactivé — affiche « À venir »"}
+        </p>
+      </div>
+      <button
+        onClick={toggle}
+        disabled={saving}
+        className={cn(
+          "px-4 py-2 rounded-xl font-black text-sm transition-all disabled:opacity-50",
+          live
+            ? "bg-canal-yellow text-canal-black hover:bg-canal-yellow-hover"
+            : "bg-canal-gray-mid text-canal-gray-muted border border-canal-gray-light hover:text-white"
+        )}
+      >
+        {saving ? "…" : live ? "Désactiver" : "Activer"}
+      </button>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AdminBabyFootPage() {
@@ -309,6 +362,8 @@ export default function AdminBabyFootPage() {
         <h1 className="canal-headline text-2xl">Admin — Tournoi Babyfoot</h1>
         <p className="text-canal-gray-muted text-sm mt-1">{matches.length} match(s) · {matches.filter(m => m.status === "finished").length} terminé(s)</p>
       </div>
+
+      <BabyFootLiveToggle />
 
       <CreateMatchForm teams={teams} onCreate={handleCreate} />
 
