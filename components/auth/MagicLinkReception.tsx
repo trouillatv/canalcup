@@ -36,7 +36,7 @@ export function MagicLinkReception() {
 
   if (status === "sent") {
     return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center px-8 text-center"
+      <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center px-8 text-center"
         style={{ background: "radial-gradient(ellipse at 50% -5%, #2A1E08 0%, #0D0B08 70%)" }}>
         <div className="space-y-6 max-w-xs">
           <span className="text-6xl block">📬</span>
@@ -65,7 +65,7 @@ export function MagicLinkReception() {
 
   return (
     <div
-      className="fixed inset-0 flex flex-col items-center justify-center px-8"
+      className="fixed inset-0 z-[60] flex flex-col items-center justify-center px-8"
       style={{ background: "radial-gradient(ellipse at 50% -5%, #2A1E08 0%, #0D0B08 70%)" }}
     >
       <div className="w-full max-w-sm space-y-10">
