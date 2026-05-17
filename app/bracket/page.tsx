@@ -159,7 +159,7 @@ function GroupStandings({ rows }: { rows: StandingRow[] }) {
 }
 
 function GroupSection({ bucket, standings }: { bucket: GroupBucket; standings: Record<string, StandingRow[]> }) {
-  const groupLabel = bucket.stage ?? "Groupe";
+  const groupLabel = bucket.stage ?? "Phase de groupes";
   const standingRows = standings[groupLabel] ?? standings[`Group ${groupLabel.replace("Groupe ", "")}`] ?? [];
 
   return (

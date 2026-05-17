@@ -76,7 +76,7 @@ export function BracketCompact({ data }: { data: BracketCompactData }) {
             {section.phase === "Groupe"
               ? section.groups.map((bucket) => (
                   <div key={bucket.stage ?? "groupe"} className="mb-3 last:mb-0">
-                    <p className="text-xs text-canal-gray-muted font-bold px-2 py-1">{bucket.stage}</p>
+                    <p className="text-xs text-canal-gray-muted font-bold px-2 py-1">{bucket.stage ?? "Phase de groupes"}</p>
                     {bucket.matches.map((m) => <CompactRow key={m.id} match={m} />)}
                   </div>
                 ))

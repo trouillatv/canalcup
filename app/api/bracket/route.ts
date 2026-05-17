@@ -14,7 +14,25 @@ export async function GET() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const matches: any[] = matchesRaw ?? [];
 
-  // Group matches by phase then by stage (for groups)
+  // Build a team → group-letter map from the standings (the only reliable
+  // source for which pool a team is in — match.stage is often a matchday number).
+  const groupLetterOf = (s?: string | null) =>
+    s?.match(/group(?:e)?\s*([a-l])\b/i)?.[1]?.toUpperCase() ??
+    s?.trim().match(/^([a-l])$/i)?.[1]?.toUpperCase() ??
+    null;
+
+  const teamToGroup: Record<string, string> = {};
+  for (const row of standings ?? []) {
+    const letter = groupLetterOf(row.group_name);
+    if (letter && row.team_name_fr) teamToGroup[row.team_name_fr] = letter;
+  }
+
+  // Resolve a real group letter for a group-stage match, or null if unknown.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const resolveGroup = (m: any): string | null =>
+    groupLetterOf(m.stage) ?? teamToGroup[m.team_a] ?? teamToGroup[m.team_b] ?? null;
+
+  // Group matches by phase then by real group (for the group phase)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const byPhase: Record<string, { stage?: string; matches: any[] }[]> = {};
 
@@ -23,7 +41,10 @@ export async function GET() {
     if (!byPhase[phase]) byPhase[phase] = [];
 
     if (phase === "Groupe") {
-      const stage = m.stage ?? "Groupe A";
+      const letter = resolveGroup(m);
+      // Only label a real pool ("Groupe A"). If unknown, leave stage undefined
+      // so views show a generic "Phase de groupes" — never a meaningless number.
+      const stage = letter ? `Groupe ${letter}` : undefined;
       let bucket = byPhase[phase].find((b) => b.stage === stage);
       if (!bucket) {
         bucket = { stage, matches: [] };
@@ -40,9 +61,11 @@ export async function GET() {
     }
   }
 
-  // Sort groups alphabetically within group phase
+  // Sort groups alphabetically; the unlabelled bucket (if any) goes last
   if (byPhase["Groupe"]) {
-    byPhase["Groupe"].sort((a, b) => (a.stage ?? "").localeCompare(b.stage ?? ""));
+    byPhase["Groupe"].sort((a, b) =>
+      (a.stage ?? "￿").localeCompare(b.stage ?? "￿")
+    );
   }
 
   // Group standings by group_name
