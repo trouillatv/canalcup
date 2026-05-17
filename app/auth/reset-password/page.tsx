@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 function ResetPasswordForm() {
@@ -12,6 +13,8 @@ function ResetPasswordForm() {
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [sessionReady, setSessionReady] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -95,30 +98,40 @@ function ResetPasswordForm() {
                 <label className="text-xs text-canal-gray-muted mb-1.5 block font-bold uppercase tracking-wider">
                   Nouveau mot de passe
                 </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="8 caractères minimum"
-                  required
-                  autoFocus
-                  disabled={!sessionReady}
-                  className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow transition-colors disabled:opacity-40"
-                />
+                <div className="relative">
+                  <input
+                    type={showPwd ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="8 caractères minimum"
+                    required
+                    autoFocus
+                    disabled={!sessionReady}
+                    className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 pr-11 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow transition-colors disabled:opacity-40"
+                  />
+                  <button type="button" onClick={() => setShowPwd(v => !v)} disabled={!sessionReady} className="absolute right-3 top-1/2 -translate-y-1/2 text-canal-gray-muted hover:text-white transition-colors disabled:opacity-40">
+                    {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="text-xs text-canal-gray-muted mb-1.5 block font-bold uppercase tracking-wider">
                   Confirmer
                 </label>
-                <input
-                  type="password"
-                  value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  disabled={!sessionReady}
-                  className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow transition-colors disabled:opacity-40"
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirm ? "text" : "password"}
+                    value={confirm}
+                    onChange={(e) => setConfirm(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    disabled={!sessionReady}
+                    className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 pr-11 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow transition-colors disabled:opacity-40"
+                  />
+                  <button type="button" onClick={() => setShowConfirm(v => !v)} disabled={!sessionReady} className="absolute right-3 top-1/2 -translate-y-1/2 text-canal-gray-muted hover:text-white transition-colors disabled:opacity-40">
+                    {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
 
               {errorMsg && <p className="text-red-400 text-sm">{errorMsg}</p>}
