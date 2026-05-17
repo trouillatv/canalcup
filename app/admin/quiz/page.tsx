@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Trash2, Sparkles, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import Link from "next/link";
+import { Trash2, Sparkles, Plus, ChevronDown, ChevronUp, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { QuizQuestion, QuizCategory, QuizDifficulty } from "@/lib/supabase/types";
 
@@ -121,11 +122,20 @@ export default function AdminQuizPage() {
 
   return (
     <div className="px-4 py-6 max-w-2xl mx-auto space-y-8">
-      <div>
-        <h1 className="canal-headline text-2xl">Admin — Questions Quiz</h1>
-        <p className="text-canal-gray-muted text-sm mt-1">
-          {questions.length} question(s) en base
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="canal-headline text-2xl">Admin — Questions Quiz</h1>
+          <p className="text-canal-gray-muted text-sm mt-1">
+            {questions.length} question(s) en base
+          </p>
+        </div>
+        <Link
+          href="/quiz-show"
+          target="_blank"
+          className="flex items-center gap-2 px-4 py-2 bg-canal-yellow text-canal-black font-black text-sm rounded-xl hover:bg-canal-yellow-hover transition-colors shrink-0"
+        >
+          <Play size={14} /> Diaporama
+        </Link>
       </div>
 
       {/* ─── Génération IA ─── */}

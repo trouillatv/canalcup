@@ -225,6 +225,8 @@ export interface QuizQuestion {
   correct_answer: "A" | "B" | "C" | "D";
   difficulty: QuizDifficulty;
   category: QuizCategory;
+  sub_category?: string;
+  explanation?: string;
 }
 
 export interface QuizAnswer {
