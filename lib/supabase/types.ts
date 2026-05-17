@@ -1,7 +1,7 @@
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
 export type FootballLevel = "expert" | "amateur" | "ambiance";
-export type MatchStatus = "upcoming" | "live" | "finished";
+export type MatchStatus = "upcoming" | "live" | "halftime" | "finished";
 export type PredictionResult = "A" | "DRAW" | "B";
 export type RevivezType = "phrase" | "fail" | "photo" | "babyfoot" | "roast";
 export type InboxEventType = "mention" | "vote_received" | "badge" | "matinale" | "roast";

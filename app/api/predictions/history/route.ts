@@ -32,15 +32,15 @@ export async function GET() {
     .order("created_at", { ascending: false });
 
   // Compute summary stats
-  const all = predictions ?? [];
-  const finished = all.filter((p) => (p.match as { status: string })?.status === "finished");
-  const totalPts = finished.reduce((s, p) => s + (p.points_awarded ?? 0), 0);
-  const exactScores = finished.filter((p) => {
-    const m = p.match as { score_a: number; score_b: number } | null;
-    return m && p.predicted_score_a === m.score_a && p.predicted_score_b === m.score_b;
-  }).length;
-  const correctResults = finished.filter((p) => (p.points_awarded ?? 0) >= 5 && (p.points_awarded ?? 0) < 10).length;
-  const pending = all.filter((p) => (p.match as { status: string })?.status === "upcoming").length;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const all = (predictions ?? []) as any[];
+  const finished = all.filter((p) => p.match?.status === "finished");
+  const totalPts = finished.reduce((s: number, p: any) => s + (p.points_awarded ?? 0), 0);
+  const exactScores = finished.filter((p: any) =>
+    p.match && p.predicted_score_a === p.match.score_a && p.predicted_score_b === p.match.score_b
+  ).length;
+  const correctResults = finished.filter((p: any) => (p.points_awarded ?? 0) >= 5 && (p.points_awarded ?? 0) < 10).length;
+  const pending = all.filter((p: any) => p.match?.status === "upcoming").length;
 
   return NextResponse.json({
     history: all,

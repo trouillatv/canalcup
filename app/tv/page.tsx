@@ -119,7 +119,7 @@ function SlideUpcoming({ events, matches }: { events: CanalCupEvent[]; matches: 
           starts_at: matchWeek.starts_at,
           teams: [matchWeek.team_a, matchWeek.team_b],
           hype_level: 3,
-          robert_phrase: null,
+          robert_phrase: undefined,
           location: matchWeek.channel,
           is_active: true,
           created_at: matchWeek.starts_at,
