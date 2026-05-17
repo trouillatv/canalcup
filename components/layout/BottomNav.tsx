@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Calendar, Trophy, Users, Tv } from "lucide-react";
+import { Home, Calendar, Trophy, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -10,7 +10,6 @@ const NAV_ITEMS = [
   { href: "/matches", icon: Calendar, label: "Matchs" },
   { href: "/leaderboard", icon: Trophy, label: "Classement" },
   { href: "/teams", icon: Users, label: "Équipes" },
-  { href: "/tv", icon: Tv, label: "TV" },
 ];
 
 export function BottomNav() {

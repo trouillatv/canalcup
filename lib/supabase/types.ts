@@ -262,3 +262,17 @@ export interface LeaderboardRow {
   total: number;
   rank: number;
 }
+
+export interface CanalCupEvent {
+  id: string;
+  type: string;
+  title: string;
+  starts_at: string;
+  ends_at?: string;
+  teams?: string[];
+  hype_level: number;
+  robert_phrase?: string;
+  location?: string;
+  is_active: boolean;
+  created_at: string;
+}
