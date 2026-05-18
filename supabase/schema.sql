@@ -223,6 +223,11 @@ create policy "Modification users" on public.users for update to authenticated u
 create policy "Lecture predictions" on public.predictions for select to authenticated using (true);
 create policy "Insertion predictions" on public.predictions for insert to authenticated
   with check (user_id in (select id from public.users where auth_id = auth.uid()));
+-- Modifier son propre pronostic (l'API fait un upsert → la branche UPDATE
+-- doit être autorisée, sinon re-pronostiquer échoue silencieusement).
+create policy "Update predictions" on public.predictions for update to authenticated
+  using      (user_id in (select id from public.users where auth_id = auth.uid()))
+  with check (user_id in (select id from public.users where auth_id = auth.uid()));
 
 -- Votes : lire tous, insérer le sien
 create policy "Lecture votes" on public.votes for select to authenticated using (true);

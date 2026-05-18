@@ -35,6 +35,7 @@ function ScorePredictInput({
   const [scoreB, setScoreB] = useState(savedPrediction?.score_b ?? 1);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(!!savedPrediction);
+  const [error, setError] = useState(false);
 
   const hasStarted = new Date(match.starts_at) <= new Date();
 
@@ -69,9 +70,16 @@ function ScorePredictInput({
 
   const handleSave = async () => {
     setSaving(true);
-    await onSave(scoreA, scoreB);
-    setSaving(false);
-    setSaved(true);
+    setError(false);
+    try {
+      await onSave(scoreA, scoreB);
+      setSaved(true);
+    } catch {
+      setError(true);
+      setSaved(false);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -125,7 +133,13 @@ function ScorePredictInput({
         </button>
       </div>
 
-      <p className="text-xs text-center text-canal-gray-muted">{resultLabel()}</p>
+      {error ? (
+        <p className="text-xs text-center text-red-400 font-bold">
+          Échec de l&apos;enregistrement — réessayez (êtes-vous connecté ?)
+        </p>
+      ) : (
+        <p className="text-xs text-center text-canal-gray-muted">{resultLabel()}</p>
+      )}
     </div>
   );
 }
@@ -136,11 +150,12 @@ export function MatchCard({ match, trend, savedPrediction, compact }: MatchCardP
   const isUpcoming = match.status === "upcoming";
 
   const handleSavePrediction = async (scoreA: number, scoreB: number) => {
-    await fetch("/api/predictions", {
+    const res = await fetch("/api/predictions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ match_id: match.id, predicted_score_a: scoreA, predicted_score_b: scoreB }),
     });
+    if (!res.ok) throw new Error(`save failed (${res.status})`);
   };
 
   return (
