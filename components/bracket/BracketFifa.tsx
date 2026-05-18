@@ -342,10 +342,7 @@ function GroupTabs({
               {tableRows.map((row, i) => (
                 <tr
                   key={row.team_name_fr}
-                  className={cn(
-                    "border-b border-canal-gray-light/15",
-                    live && i < 2 ? "text-white" : "text-canal-gray-muted"
-                  )}
+                  className="border-b border-canal-gray-light/15 text-canal-gray-muted"
                 >
                   <td className="py-1.5 pl-1">
                     <span className="flex items-center gap-1.5">
