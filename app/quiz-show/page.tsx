@@ -142,31 +142,31 @@ export default function QuizShowPage() {
     return (
       <PinGate>
         <div
-          className="fixed inset-0 flex flex-col items-center justify-center gap-12 cursor-pointer select-none"
+          className="fixed inset-0 flex flex-col items-center justify-center gap-6 sm:gap-12 px-4 cursor-pointer select-none"
           style={{ background: WARM_BG }}
           onClick={!loading ? advance : undefined}
         >
           {/* Ambient warm halo behind trophy */}
           <div className="relative flex flex-col items-center">
             <div className="absolute inset-0 -inset-x-20 bg-canal-yellow/10 rounded-full blur-3xl" />
-            <span className="text-9xl relative">🏆</span>
+            <span className="text-6xl sm:text-9xl relative">🏆</span>
           </div>
 
           <div className="text-center space-y-2">
-            <p className="font-black text-7xl text-canal-yellow uppercase tracking-widest">QUIZ</p>
-            <p className="font-black text-5xl text-white uppercase tracking-wide">CANAL CUP</p>
-            <p className="font-black text-4xl text-white/70">2026</p>
-            <p className="text-white/50 text-2xl mt-6">Coupe du Monde — Qui sait le plus ?</p>
+            <p className="font-black text-4xl sm:text-7xl text-canal-yellow uppercase tracking-widest">QUIZ</p>
+            <p className="font-black text-2xl sm:text-5xl text-white uppercase tracking-wide">CANAL CUP</p>
+            <p className="font-black text-xl sm:text-4xl text-white/70">2026</p>
+            <p className="text-white/50 text-base sm:text-2xl mt-3 sm:mt-6">Coupe du Monde — Qui sait le plus ?</p>
           </div>
 
           {loading ? (
             <div className="w-12 h-12 border-2 border-canal-yellow border-t-transparent rounded-full animate-spin" />
           ) : (
-            <div className="flex flex-col items-center gap-4">
-              <div className="px-16 py-6 bg-canal-yellow rounded-3xl shadow-[0_0_60px_rgba(255,215,0,0.4)]">
-                <p className="font-black text-canal-black text-3xl tracking-wider">DÉMARRER</p>
+            <div className="flex flex-col items-center gap-3 sm:gap-4">
+              <div className="px-8 sm:px-16 py-4 sm:py-6 bg-canal-yellow rounded-3xl shadow-[0_0_60px_rgba(255,215,0,0.4)]">
+                <p className="font-black text-canal-black text-xl sm:text-3xl tracking-wider">DÉMARRER</p>
               </div>
-              <p className="text-white/40 text-xl">
+              <p className="text-white/40 text-sm sm:text-xl text-center">
                 {questions.length} questions · Appuyez sur ESPACE
               </p>
             </div>
@@ -182,22 +182,22 @@ export default function QuizShowPage() {
     return (
       <PinGate>
         <div
-          className="fixed inset-0 flex flex-col items-center justify-center gap-12 cursor-pointer select-none"
+          className="fixed inset-0 flex flex-col items-center justify-center gap-6 sm:gap-12 px-4 cursor-pointer select-none"
           style={{ background: WARM_BG }}
           onClick={advance}
         >
           <div className="relative">
             <div className="absolute inset-0 -inset-x-24 bg-canal-yellow/15 rounded-full blur-3xl" />
-            <span className="text-9xl relative">🏆</span>
+            <span className="text-6xl sm:text-9xl relative">🏆</span>
           </div>
-          <div className="text-center space-y-4">
-            <p className="font-black text-6xl text-canal-yellow">QUIZ TERMINÉ !</p>
-            <p className="text-white/60 text-3xl">{questions.length} questions · Bravo à tous</p>
+          <div className="text-center space-y-2 sm:space-y-4">
+            <p className="font-black text-3xl sm:text-6xl text-canal-yellow">QUIZ TERMINÉ !</p>
+            <p className="text-white/60 text-lg sm:text-3xl">{questions.length} questions · Bravo à tous</p>
           </div>
-          <p className="text-white/35 text-2xl italic max-w-2xl text-center">
+          <p className="text-white/35 text-base sm:text-2xl italic max-w-2xl text-center">
             &ldquo;Robert valide les bonnes réponses. En silence.&rdquo;
           </p>
-          <p className="text-white/30 text-xl mt-4">ESPACE pour rejouer</p>
+          <p className="text-white/30 text-sm sm:text-xl mt-2 sm:mt-4">ESPACE pour rejouer</p>
         </div>
       </PinGate>
     );
@@ -219,43 +219,43 @@ export default function QuizShowPage() {
         onClick={advance}
       >
         {/* ── Header ─────────────────────────────────────────────────────── */}
-        <header className="flex items-center justify-between px-12 py-5 border-b border-white/10 shrink-0">
-          <div className="flex items-center gap-3">
-            <span className="font-black text-3xl text-canal-yellow">CANAL</span>
-            <span className="font-black text-3xl text-white">CUP</span>
-            <span className="font-black text-3xl text-white/30">QUIZ</span>
+        <header className="flex items-center justify-between px-4 sm:px-12 py-3 sm:py-5 border-b border-white/10 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3">
+            <span className="font-black text-lg sm:text-3xl text-canal-yellow">CANAL</span>
+            <span className="font-black text-lg sm:text-3xl text-white">CUP</span>
+            <span className="font-black text-lg sm:text-3xl text-white/30 hidden sm:inline">QUIZ</span>
           </div>
 
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-2">
-              <span className="text-3xl">{CATEGORY_ICONS[q.category] ?? "🎲"}</span>
-              <span className={`font-bold text-xl ${DIFFICULTY_COLORS[q.difficulty] ?? "text-white/50"}`}>
+          <div className="flex items-center gap-3 sm:gap-8">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="text-xl sm:text-3xl">{CATEGORY_ICONS[q.category] ?? "🎲"}</span>
+              <span className={`font-bold text-sm sm:text-xl ${DIFFICULTY_COLORS[q.difficulty] ?? "text-white/50"}`}>
                 {DIFFICULTY_LABELS[q.difficulty] ?? q.difficulty}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="font-black text-4xl text-white tabular-nums">{idx + 1}</span>
-              <span className="text-white/30 text-3xl">/</span>
-              <span className="text-white/30 text-3xl">{questions.length}</span>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <span className="font-black text-2xl sm:text-4xl text-white tabular-nums">{idx + 1}</span>
+              <span className="text-white/30 text-xl sm:text-3xl">/</span>
+              <span className="text-white/30 text-xl sm:text-3xl">{questions.length}</span>
             </div>
           </div>
         </header>
 
         {/* ── Question text ───────────────────────────────────────────────── */}
-        <div className="flex-1 flex flex-col justify-center px-16 gap-10 min-h-0 overflow-y-auto">
-          <p className="font-black text-4xl xl:text-5xl text-white leading-tight text-center max-w-5xl mx-auto drop-shadow-sm break-words text-balance">
+        <div className="flex-1 flex flex-col justify-center px-4 sm:px-10 lg:px-16 gap-5 sm:gap-10 min-h-0 overflow-y-auto py-4">
+          <p className="font-black text-xl sm:text-4xl xl:text-5xl text-white leading-tight text-center max-w-5xl mx-auto drop-shadow-sm break-words text-balance">
             {q.question}
           </p>
 
           {/* ── Answer grid ──────────────────────────────────────────────── */}
-          <div className="grid grid-cols-2 gap-4 max-w-6xl mx-auto w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4 max-w-6xl mx-auto w-full">
             {ANSWER_KEYS.map((key) => {
               const text = answerText(key);
               const isCorrect = key === q.correct_answer;
               const palette = ANSWER_PALETTE[key];
               const isRevealing = state === "revealing";
 
-              let boxClass = `rounded-3xl p-7 flex items-center gap-6 transition-all duration-300 ring-2 ring-transparent `;
+              let boxClass = `rounded-2xl sm:rounded-3xl p-3.5 sm:p-7 flex items-center gap-3 sm:gap-6 transition-all duration-300 ring-2 ring-transparent `;
 
               if (isRevealing) {
                 if (isCorrect) {
@@ -270,7 +270,7 @@ export default function QuizShowPage() {
               return (
                 <div key={key} className={boxClass}>
                   <span className={`
-                    font-black text-4xl xl:text-5xl w-14 text-center shrink-0 leading-none
+                    font-black text-2xl sm:text-4xl xl:text-5xl w-8 sm:w-14 text-center shrink-0 leading-none
                     ${isRevealing
                       ? isCorrect ? "text-white" : "text-white/40"
                       : palette.text
@@ -279,7 +279,7 @@ export default function QuizShowPage() {
                     {isRevealing && isCorrect ? "✓" : key}
                   </span>
                   <span className={`
-                    font-bold text-2xl xl:text-3xl leading-snug min-w-0 break-words
+                    font-bold text-base sm:text-2xl xl:text-3xl leading-snug min-w-0 break-words
                     ${isRevealing
                       ? isCorrect ? "text-white" : "text-white/40"
                       : palette.text
@@ -294,16 +294,16 @@ export default function QuizShowPage() {
         </div>
 
         {/* ── Footer ─────────────────────────────────────────────────────── */}
-        <footer className="shrink-0 px-12 pb-10 pt-4 space-y-4 border-t border-white/5">
+        <footer className="shrink-0 px-4 sm:px-12 pb-5 sm:pb-10 pt-3 sm:pt-4 space-y-3 sm:space-y-4 border-t border-white/5">
           {state === "question" && (
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-3 sm:gap-5">
               <span className={`
-                font-black text-4xl tabular-nums w-16 text-right
+                font-black text-2xl sm:text-4xl tabular-nums w-12 sm:w-16 text-right
                 ${timeLeft <= 5 ? "text-red-400 animate-pulse" : "text-white"}
               `}>
                 {timeLeft}s
               </span>
-              <div className="flex-1 h-3 bg-white/10 rounded-full overflow-hidden">
+              <div className="flex-1 h-2 sm:h-3 bg-white/10 rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-1000 ${timerColor}`}
                   style={{ width: `${timerPct}%` }}
@@ -312,8 +312,8 @@ export default function QuizShowPage() {
             </div>
           )}
 
-          <div className="flex items-center justify-between">
-            <p className="text-white/30 text-xl">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-white/30 text-xs sm:text-xl truncate">
               {state === "question"
                 ? "ESPACE → révéler la réponse"
                 : isLast
@@ -321,7 +321,7 @@ export default function QuizShowPage() {
                 : `ESPACE → question ${idx + 2}`}
             </p>
 
-            <div className="flex gap-1.5 flex-wrap max-w-xs justify-end">
+            <div className="flex gap-1.5 flex-wrap max-w-[40%] sm:max-w-xs justify-end">
               {questions.slice(0, Math.min(questions.length, 20)).map((_, i) => (
                 <div
                   key={i}
