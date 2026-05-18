@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { Fragment, useState } from "react";
-import { ChevronRight } from "lucide-react";
 import { teamFlag, toNCTime, cn } from "@/lib/utils";
 import { WC2026_GROUPS } from "@/lib/football/groups-2026";
 import { wcTeamHref } from "@/lib/football/wc-teams-index";
@@ -235,7 +234,44 @@ function groupLetter(raw: string): string {
   return m ? m[1].toUpperCase() : "";
 }
 
-function GroupTabs({ standings }: { standings: Record<string, StandingRow[]> }) {
+// Une ligne de match de poule (vrais matchs sous le tableau).
+function GroupMatchRow({ m }: { m: MatchRow }) {
+  const live = m.status === "live" || m.status === "halftime";
+  const finished = m.status === "finished";
+  const hasScore = m.score_a !== null && m.score_a !== undefined && m.score_b !== null && m.score_b !== undefined;
+  return (
+    <div className="flex items-center gap-2 text-xs py-2 border-b border-canal-gray-light/15 last:border-0">
+      <span className="w-12 shrink-0 text-[11px] text-canal-gray-muted text-center">
+        {live ? (
+          <span className="text-red-400 font-bold animate-pulse">● live</span>
+        ) : finished ? (
+          "Fini"
+        ) : (
+          toNCTime(m.starts_at)
+        )}
+      </span>
+      <span className="flex-1 flex items-center gap-1.5 justify-end min-w-0">
+        <TeamName name={m.team_a} className="text-right font-semibold" />
+        <span className="text-sm shrink-0">{teamFlag(m.flag_a, m.team_a)}</span>
+      </span>
+      <span className="shrink-0 w-12 text-center font-black tabular-nums">
+        {hasScore ? `${m.score_a}–${m.score_b}` : "—"}
+      </span>
+      <span className="flex-1 flex items-center gap-1.5 min-w-0">
+        <span className="text-sm shrink-0">{teamFlag(m.flag_b, m.team_b)}</span>
+        <TeamName name={m.team_b} className="font-semibold" />
+      </span>
+    </div>
+  );
+}
+
+function GroupTabs({
+  standings,
+  matchesByLetter,
+}: {
+  standings: Record<string, StandingRow[]>;
+  matchesByLetter: Record<string, MatchRow[]>;
+}) {
   const [active, setActive] = useState(WC2026_GROUPS[0]?.letter ?? "A");
 
   // Live standings (if the tournament has data) keyed by group letter
@@ -251,6 +287,28 @@ function GroupTabs({ standings }: { standings: Record<string, StandingRow[]> }) 
 
   const group = WC2026_GROUPS.find((g) => g.letter === active) ?? WC2026_GROUPS[0];
   const live = liveByLetter[active];
+
+  // Lignes du tableau : vrai classement si dispo, sinon les 4 équipes à 0
+  // (mêmes colonnes pour TOUTES les poules, avant comme pendant le tournoi).
+  const tableRows: StandingRow[] = live
+    ? live.slice(0, 4)
+    : group.teams.map((name, i) => ({
+        team_name_fr: name,
+        team_flag: "",
+        rank: i + 1,
+        played: 0,
+        won: 0,
+        draw: 0,
+        lost: 0,
+        goals_for: 0,
+        goals_against: 0,
+        goal_diff: 0,
+        points: 0,
+      }));
+
+  const poolMatches = [...(matchesByLetter[active] ?? [])].sort(
+    (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
+  );
 
   return (
     <div>
@@ -283,78 +341,70 @@ function GroupTabs({ standings }: { standings: Record<string, StandingRow[]> }) 
         <p className="font-black text-canal-yellow text-xs uppercase tracking-widest mb-3">
           Groupe {group.letter}
         </p>
-        {live ? (
-          <div className="overflow-x-auto -mx-1 px-1">
-            <table className="w-full text-xs tabular-nums min-w-[320px]">
-              <thead>
-                <tr className="text-canal-gray-muted border-b border-canal-gray-light/30">
-                  <th className="text-left font-medium pb-1 pl-1">Équipe</th>
-                  <th className="w-6 text-center font-medium pb-1" title="Joués">J</th>
-                  <th className="w-6 text-center font-medium pb-1" title="Gagnés">G</th>
-                  <th className="w-6 text-center font-medium pb-1" title="Nuls">N</th>
-                  <th className="w-6 text-center font-medium pb-1" title="Défaites">D</th>
-                  <th className="w-12 text-center font-medium pb-1" title="Buts pour : Buts contre">BP:BC</th>
-                  <th className="w-8 text-center font-black text-canal-yellow pb-1" title="Points">Pts</th>
+        {/* Tableau de points — mêmes colonnes pour toutes les poules */}
+        <div className="overflow-x-auto -mx-1 px-1">
+          <table className="w-full text-xs tabular-nums min-w-[320px]">
+            <thead>
+              <tr className="text-canal-gray-muted border-b border-canal-gray-light/30">
+                <th className="text-left font-medium pb-1 pl-1">Équipe</th>
+                <th className="w-6 text-center font-medium pb-1" title="Joués">J</th>
+                <th className="w-6 text-center font-medium pb-1" title="Gagnés">G</th>
+                <th className="w-6 text-center font-medium pb-1" title="Nuls">N</th>
+                <th className="w-6 text-center font-medium pb-1" title="Défaites">D</th>
+                <th className="w-12 text-center font-medium pb-1" title="Buts pour : Buts contre">BP:BC</th>
+                <th className="w-8 text-center font-black text-canal-yellow pb-1" title="Points">Pts</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tableRows.map((row, i) => (
+                <tr
+                  key={row.team_name_fr}
+                  className={cn(
+                    "border-b border-canal-gray-light/15",
+                    live && i < 2 ? "text-white" : "text-canal-gray-muted"
+                  )}
+                >
+                  <td className="py-1.5 pl-1">
+                    <span className="flex items-center gap-1.5">
+                      <span className="font-black w-3">{i + 1}</span>
+                      <span className="text-base">{teamFlag(row.team_flag || null, row.team_name_fr)}</span>
+                      <TeamName name={row.team_name_fr} className="max-w-[110px] font-semibold" />
+                    </span>
+                  </td>
+                  <td className="text-center">{row.played}</td>
+                  <td className="text-center">{row.won}</td>
+                  <td className="text-center">{row.draw}</td>
+                  <td className="text-center">{row.lost}</td>
+                  <td className="text-center">{row.goals_for}:{row.goals_against}</td>
+                  <td className="text-center font-black text-canal-yellow">{row.points}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {live.slice(0, 4).map((row, i) => (
-                  <tr
-                    key={row.team_name_fr}
-                    className={cn(
-                      "border-b border-canal-gray-light/15",
-                      i < 2 ? "text-white" : "text-canal-gray-muted"
-                    )}
-                  >
-                    <td className="py-1.5 pl-1">
-                      <span className="flex items-center gap-1.5">
-                        <span className="font-black w-3">{i + 1}</span>
-                        <span className="text-base">{teamFlag(row.team_flag, row.team_name_fr)}</span>
-                        <TeamName name={row.team_name_fr} className="max-w-[110px] font-semibold" />
-                      </span>
-                    </td>
-                    <td className="text-center">{row.played}</td>
-                    <td className="text-center">{row.won}</td>
-                    <td className="text-center">{row.draw}</td>
-                    <td className="text-center">{row.lost}</td>
-                    <td className="text-center">{row.goals_for}:{row.goals_against}</td>
-                    <td className="text-center font-black text-canal-yellow">{row.points}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <>
-            <div className="space-y-1">
-              {group.teams.map((name) => {
-                const href = wcTeamHref(name);
-                const row = (
-                  <div
-                    className={cn(
-                      "flex items-center gap-2 text-sm text-white rounded-lg px-2 py-1.5 -mx-2",
-                      href && "hover:bg-canal-yellow/10 transition-colors"
-                    )}
-                  >
-                    <span className="text-lg">{teamFlag(null, name)}</span>
-                    <span className="flex-1 min-w-0 truncate font-semibold">{name}</span>
-                    {href && <ChevronRight size={14} className="text-canal-gray-muted shrink-0" />}
-                  </div>
-                );
-                return href ? (
-                  <Link key={name} href={href} className="block">
-                    {row}
-                  </Link>
-                ) : (
-                  <div key={name}>{row}</div>
-                );
-              })}
-            </div>
-            <p className="text-canal-gray-muted text-[11px] italic mt-3">
-              Touchez une équipe pour sa fiche · classement dès le coup d&apos;envoi du tournoi.
-            </p>
-          </>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {!live && (
+          <p className="text-canal-gray-muted text-[11px] italic mt-2">
+            Classement à 0 — démarre au coup d&apos;envoi du tournoi.
+          </p>
         )}
+
+        {/* Matchs de la poule — mêmes disposition pour toutes les poules */}
+        <div className="mt-4 pt-3 border-t border-canal-gray-light/25">
+          <p className="font-black text-canal-yellow text-[11px] uppercase tracking-widest mb-1.5">
+            Matchs de la poule {group.letter}
+          </p>
+          {poolMatches.length > 0 ? (
+            <div>
+              {poolMatches.map((m) => (
+                <GroupMatchRow key={m.id} m={m} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-canal-gray-muted text-[11px] italic py-2">
+              Calendrier de la poule à venir.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -362,8 +412,32 @@ function GroupTabs({ standings }: { standings: Record<string, StandingRow[]> }) 
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
+// Normalise un nom d'équipe pour le rapprochement poule (accents/casse).
+function normTeam(n: string): string {
+  return n.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+}
+const TEAM_LETTER: Record<string, string> = {};
+for (const g of WC2026_GROUPS) for (const t of g.teams) TEAM_LETTER[normTeam(t)] = g.letter;
+
 export function BracketFifa({ data }: { data: BracketData }) {
   const thirdPlace = data.phases.find((p) => p.phase === "3ème place");
+
+  // Vrais matchs de phase de groupes, regroupés par poule (A–L). Résolution :
+  // lettre du stage du bucket/match, sinon appartenance des 2 équipes.
+  const groupPhase = data.phases.find((p) => p.phase === "Groupe");
+  const matchesByLetter: Record<string, MatchRow[]> = {};
+  for (const bucket of groupPhase?.groups ?? []) {
+    for (const m of bucket.matches) {
+      let L =
+        groupLetter(bucket.stage ?? "") ||
+        groupLetter(m.stage ?? "") ||
+        TEAM_LETTER[normTeam(m.team_a)] ||
+        TEAM_LETTER[normTeam(m.team_b)] ||
+        "";
+      if (!L) continue;
+      (matchesByLetter[L] ??= []).push(m);
+    }
+  }
 
   // Ordered knockout rounds (exclude groups + 3rd-place, which is shown beside the final)
   const knockout = data.phases
@@ -386,7 +460,7 @@ export function BracketFifa({ data }: { data: BracketData }) {
   return (
     <div className="space-y-10">
       {/* Group phase — one tab per pool (always shown for a WC bracket) */}
-      <GroupTabs standings={data.standings} />
+      <GroupTabs standings={data.standings} matchesByLetter={matchesByLetter} />
 
       {/* Knockout bracket — the giant tree */}
       {rounds.length > 0 ? (

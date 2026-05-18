@@ -39,3 +39,9 @@ next-env.d.ts
 
 # Supabase CLI
 supabase/.temp/
+
+# Python (scraper effectifs)
+__pycache__/
+*.pyc
+wc2026_squads.csv
+scrape.log

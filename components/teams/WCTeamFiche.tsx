@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, Users, Newspaper, TrendingUp } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Users, Newspaper, TrendingUp, Shirt, BarChart3 } from "lucide-react";
 import { teamFlag, cn } from "@/lib/utils";
 import { formCode, type WCTeam } from "@/lib/football/wc-teams";
 
@@ -53,17 +53,127 @@ function ResultBadge({ score }: { score: string }) {
   );
 }
 
+interface PlayerCompStat {
+  player_name: string;
+  matches: number;
+  goals: number;
+  assists: number;
+  yellow_cards: number;
+  red_cards: number;
+  motm: number;
+  avg_rating: number | null;
+}
+
+type EffectifView = "club" | "stats";
+
+// Normalisation pour rapprocher les noms entre sources (Transfermarkt ↔
+// API-Football/Gemini) : minuscules, sans accents/ponctuation.
+function normName(n: string): string {
+  return n
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, "")
+    .trim();
+}
+
+function ratingBadgeClass(r: number | null): string {
+  if (r == null) return "bg-canal-gray-mid text-canal-gray-muted";
+  if (r >= 7.5) return "bg-green-500/20 text-green-400";
+  if (r >= 6.5) return "bg-canal-yellow/15 text-canal-yellow";
+  return "bg-red-500/15 text-red-400";
+}
+
+function PlayerEffectifRow({
+  p,
+  view,
+  stat,
+}: {
+  p: WCTeam["players"][number];
+  view: EffectifView;
+  stat: PlayerCompStat | undefined;
+}) {
+  return (
+    <div className="canal-card p-3 flex items-center gap-3">
+      <div className="flex-1 min-w-0">
+        <p className="font-bold text-white text-sm truncate">{p.name}</p>
+        <p className="text-xs text-canal-gray-muted truncate">
+          {view === "club"
+            ? `${p.position ?? ""}${p.club ? ` · ${p.club}` : ""}`
+            : stat
+              ? `${stat.matches} match${stat.matches > 1 ? "s" : ""}${stat.motm ? ` · ⭐ ${stat.motm}` : ""}`
+              : `${p.position ?? ""} · pas encore joué`}
+        </p>
+      </div>
+
+      {view === "club" ? (
+        p.value && (
+          <span className="text-canal-yellow font-black text-sm shrink-0 tabular-nums">
+            {p.value}
+          </span>
+        )
+      ) : (
+        <div className="flex items-center gap-2 shrink-0 tabular-nums">
+          <span className="text-xs text-white" title="Buts">⚽ {stat?.goals ?? 0}</span>
+          <span className="text-xs text-canal-gray-muted" title="Passes décisives">🅰️ {stat?.assists ?? 0}</span>
+          <span className="text-xs" title="Cartons">
+            🟨 {stat?.yellow_cards ?? 0}{stat?.red_cards ? ` 🟥 ${stat.red_cards}` : ""}
+          </span>
+          <span
+            className={cn(
+              "text-xs font-black px-1.5 py-0.5 rounded",
+              ratingBadgeClass(stat?.avg_rating ?? null)
+            )}
+            title="Note moyenne"
+          >
+            {stat?.avg_rating != null ? stat.avg_rating.toFixed(1) : "—"}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function WCTeamFiche({ team }: { team: WCTeam }) {
+  const router = useRouter();
+  const goBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) router.back();
+    else router.push("/bracket");
+  };
   const [tab, setTab] = useState<TabKey>("effectif");
+  const [effectifView, setEffectifView] = useState<EffectifView>("club");
+  const [compStats, setCompStats] = useState<Record<string, PlayerCompStat> | null>(null);
   const grouped = groupPlayers(team.players);
+
+  // Charge les stats compétition une seule fois, à la 1re bascule "stats".
+  useEffect(() => {
+    if (effectifView !== "stats" || compStats !== null) return;
+    fetch(`/api/wc-team/${team.slug}/stats`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { players?: PlayerCompStat[] } | null) => {
+        const map: Record<string, PlayerCompStat> = {};
+        for (const s of d?.players ?? []) map[normName(s.player_name)] = s;
+        setCompStats(map);
+      })
+      .catch(() => setCompStats({}));
+  }, [effectifView, compStats, team.slug]);
+
+  const statFor = (name: string): PlayerCompStat | undefined =>
+    compStats ? compStats[normName(name)] : undefined;
+  const hasAnyStats = compStats != null && Object.keys(compStats).length > 0;
 
   return (
     <div className="px-4 py-4 space-y-5 max-w-2xl mx-auto pb-24">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link href="/bracket" className="text-canal-gray-muted hover:text-white transition-colors">
+        <button
+          onClick={goBack}
+          aria-label="Retour à l'écran précédent"
+          className="flex items-center gap-1 text-canal-gray-muted hover:text-white transition-colors"
+        >
           <ArrowLeft size={18} />
-        </Link>
+          <span className="text-sm">Retour</span>
+        </button>
         <span className="text-canal-gray-muted text-sm">Sélections · Coupe du Monde 2026</span>
       </div>
 
@@ -118,30 +228,58 @@ export function WCTeamFiche({ team }: { team: WCTeam }) {
               Effectif non disponible pour cette sélection.
             </p>
           )}
-          {grouped.map((bucket) => (
-            <section key={bucket.label}>
-              <h2 className="text-xs font-bold text-canal-yellow uppercase tracking-wider mb-2">
-                {bucket.label} ({bucket.players.length})
-              </h2>
-              <div className="space-y-1.5">
-                {bucket.players.map((p, i) => (
-                  <div key={`${p.name}-${i}`} className="canal-card p-3 flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-white text-sm truncate">{p.name}</p>
-                      <p className="text-xs text-canal-gray-muted truncate">
-                        {p.position}{p.club ? ` · ${p.club}` : ""}
-                      </p>
-                    </div>
-                    {p.value && (
-                      <span className="text-canal-yellow font-black text-sm shrink-0 tabular-nums">
-                        {p.value}
-                      </span>
+
+          {grouped.length > 0 && (
+            <>
+              {/* Bascule Club ↔ Stats compétition */}
+              <div className="flex gap-1 bg-canal-gray rounded-xl p-1">
+                {([
+                  { key: "club", label: "Club & valeur", icon: Shirt },
+                  { key: "stats", label: "Stats compétition", icon: BarChart3 },
+                ] as const).map(({ key, label, icon: Icon }) => (
+                  <button
+                    key={key}
+                    onClick={() => setEffectifView(key)}
+                    className={cn(
+                      "flex-1 py-2 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5",
+                      effectifView === key
+                        ? "bg-canal-yellow text-canal-black"
+                        : "text-canal-gray-muted hover:text-white"
                     )}
-                  </div>
+                  >
+                    <Icon size={13} />
+                    <span className="truncate">{label}</span>
+                  </button>
                 ))}
               </div>
-            </section>
-          ))}
+
+              {effectifView === "stats" && !hasAnyStats && (
+                <p className="canal-card text-center text-canal-gray-muted text-xs py-3">
+                  {compStats == null
+                    ? "Chargement des statistiques…"
+                    : "Statistiques cumulées disponibles dès le coup d'envoi de la compétition (buts, notes, cartons par joueur)."}
+                </p>
+              )}
+
+              {grouped.map((bucket) => (
+                <section key={bucket.label}>
+                  <h2 className="text-xs font-bold text-canal-yellow uppercase tracking-wider mb-2">
+                    {bucket.label} ({bucket.players.length})
+                  </h2>
+                  <div className="space-y-1.5">
+                    {bucket.players.map((p, i) => (
+                      <PlayerEffectifRow
+                        key={`${p.name}-${i}`}
+                        p={p}
+                        view={effectifView}
+                        stat={statFor(p.name)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </>
+          )}
         </div>
       )}
 
