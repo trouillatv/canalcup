@@ -1,38 +1,114 @@
-// Cron quotidien — génère la matinale et la stocke en base
-// Déclencher à 6h00 NC (19h00 UTC la veille)
-// Vercel Cron : "0 19 * * *" ou appel manuel depuis l'admin
+// Cron quotidien — génère la Matinale à partir de VRAIES données Supabase
+// puis la stocke (1 ligne / jour, réutilisée par tous : règle « génère une
+// fois, stocke, réutilise »). Vercel Cron : "0 19 * * *" (≈ 6h NC).
+//
+// Idempotent : si la matinale du jour existe déjà, on ne régénère pas
+// (évite double coût Gemini / écrasement).
+//
+// Texte (title/body/fail/fun_fact/ai_comment) : Gemini si MOCK_AI=false +
+// GEMINI_API_KEY, sinon MOCK. scores_summary / leaderboard_summary viennent
+// TOUJOURS des vraies données (calculées ici), indépendamment du MOCK.
 
 import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { generateMorningBrief } from "@/services/ai/generators/morning-brief";
 
 export async function GET(request: Request) {
-  // Sécurité : vérifier le header Vercel Cron ou une clé secrète
   const authHeader = request.headers.get("authorization");
   if (process.env.NODE_ENV === "production" && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
   }
 
+  const supabase = createAdminClient();
+  const today = new Date().toISOString().split("T")[0];
+
+  // Déjà générée aujourd'hui → on renvoie l'existante (idempotent).
+  const { data: existing } = await supabase
+    .from("morning_briefs").select("id").eq("date", today).maybeSingle();
+  if (existing) {
+    return NextResponse.json({ success: true, date: today, skipped: "already exists" });
+  }
+
+  // ── Contexte réel ──────────────────────────────────────────────────────────
+  const since = new Date(Date.now() - 36 * 3600_000).toISOString();
+
+  const { data: finished } = await supabase
+    .from("matches")
+    .select("team_a, team_b, score_a, score_b, starts_at")
+    .eq("status", "finished")
+    .gte("starts_at", since)
+    .order("starts_at", { ascending: true });
+
+  const scoresSummary = finished?.length
+    ? finished
+        .map((m) => `${m.team_a} ${m.score_a ?? 0}–${m.score_b ?? 0} ${m.team_b}`)
+        .join(" · ")
+    : "Pas encore de match joué — le tournoi n'a pas commencé.";
+
+  const { data: topTeams } = await supabase
+    .from("teams")
+    .select("name, total_points")
+    .order("total_points", { ascending: false })
+    .limit(5);
+
+  const leaderboardSummary = topTeams?.length
+    ? topTeams.map((t, i) => `${i + 1}. ${t.name} (${t.total_points ?? 0} pts)`).join("  ")
+    : "Classement à venir — aucun point distribué.";
+
+  const failTeam =
+    topTeams && topTeams.length > 1 ? topTeams[topTeams.length - 1].name : "—";
+
+  const { data: nextMatch } = await supabase
+    .from("matches")
+    .select("team_a, team_b, starts_at")
+    .eq("status", "upcoming")
+    .gte("starts_at", new Date().toISOString())
+    .order("starts_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  const matchTonight = nextMatch
+    ? `${nextMatch.team_a} vs ${nextMatch.team_b}`
+    : "Aucun match au programme dans l'immédiat.";
+
+  // ── Génération (Gemini ou MOCK) ────────────────────────────────────────────
+  let brief;
   try {
-    const today = new Date().toISOString().split("T")[0];
-
-    // Données contextuelles — en prod, récupérer depuis Supabase
-    const context = {
+    brief = await generateMorningBrief({
       date: today,
-      scores: "À récupérer depuis les matchs de la veille",
-      leaderboard: "À récupérer depuis le classement actuel",
-      failTeam: "À récupérer depuis les pronostics ratés",
-      matchTonight: "À récupérer depuis le match du jour",
-    };
-
-    const brief = await generateMorningBrief(context);
-
-    // En prod : insérer dans Supabase morning_briefs
-    // const supabase = await createClient();
-    // await supabase.from("morning_briefs").upsert({ date: today, ...brief });
-
-    return NextResponse.json({ success: true, date: today, brief });
+      scores: scoresSummary,
+      leaderboard: leaderboardSummary,
+      failTeam,
+      matchTonight,
+    });
   } catch (error) {
-    console.error("[CRON morning-brief]", error);
+    console.error("[CRON morning-brief] génération KO", error);
     return NextResponse.json({ error: "Erreur génération" }, { status: 500 });
   }
+
+  // ── Persistance (1 ligne / jour) ───────────────────────────────────────────
+  const { error: upsertError } = await supabase.from("morning_briefs").upsert(
+    {
+      date: today,
+      title: brief.title,
+      body: brief.body,
+      scores_summary: scoresSummary,
+      leaderboard_summary: leaderboardSummary,
+      fail_of_day: brief.fail_of_day,
+      fun_fact: brief.fun_fact,
+      ai_comment: brief.ai_comment,
+    },
+    { onConflict: "date" }
+  );
+
+  if (upsertError) {
+    console.error("[CRON morning-brief] upsert KO", upsertError);
+    return NextResponse.json(
+      { error: "Erreur persistance", details: upsertError.message },
+      { status: 500 }
+    );
+  }
+
+  console.log(`[CRON morning-brief] matinale ${today} générée + stockée`);
+  return NextResponse.json({ success: true, date: today, persisted: true });
 }
