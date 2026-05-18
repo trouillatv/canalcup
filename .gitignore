@@ -45,3 +45,10 @@ __pycache__/
 *.pyc
 wc2026_squads.csv
 scrape.log
+# Cache HTML local du scraping sélection (jamais commité)
+docs/script/cache/
+# Sorties de run régénérables (le JSON validé est promu manuellement)
+docs/script/output/wc-teams-enriched.json
+docs/script/output/selection-stats-report.json
+docs/script/output/enrichment-state.json
+docs/script/_*.html

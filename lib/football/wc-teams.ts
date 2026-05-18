@@ -13,6 +13,18 @@ export interface WCPlayer {
   position: string | null;
   club: string | null;
   value: string | null;
+  // Stats sélection (optionnelles — remplies par le script Python
+  // docs/script/enrich_transfermarkt_selection_stats.py après validation
+  // manuelle). Absentes tant que data/wc-teams.json n'est pas enrichi :
+  // l'UI dégrade proprement, l'app n'en dépend jamais.
+  caps?: number | null;
+  selection_goals?: number | null;
+  selection_yellow_cards?: number | null;
+  selection_red_cards?: number | null;
+  age?: number | null;
+  birth_date?: string | null;
+  stats_source?: string | null;
+  stats_updated_at?: string | null;
 }
 
 export interface WCTeam {

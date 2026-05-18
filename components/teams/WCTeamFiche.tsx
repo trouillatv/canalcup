@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Users, Newspaper, TrendingUp, Shirt, BarChart3 } from "lucide-react";
+import { ArrowLeft, Users, Newspaper, TrendingUp, Shirt, BarChart3, Award } from "lucide-react";
 import { teamFlag, cn } from "@/lib/utils";
 import { formCode, type WCTeam } from "@/lib/football/wc-teams";
 
@@ -64,7 +64,15 @@ interface PlayerCompStat {
   avg_rating: number | null;
 }
 
-type EffectifView = "club" | "stats";
+type EffectifView = "club" | "stats" | "selection";
+
+function fmtDate(iso?: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return isNaN(d.getTime())
+    ? ""
+    : d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+}
 
 // Normalisation pour rapprocher les noms entre sources (Transfermarkt ↔
 // API-Football/Gemini) : minuscules, sans accents/ponctuation.
@@ -93,26 +101,55 @@ function PlayerEffectifRow({
   view: EffectifView;
   stat: PlayerCompStat | undefined;
 }) {
+  const hasSel = p.caps != null || p.selection_goals != null;
+  const subtitle =
+    view === "club"
+      ? `${p.position ?? ""}${p.club ? ` · ${p.club}` : ""}`
+      : view === "selection"
+        ? `${p.position ?? ""}${p.club ? ` · ${p.club}` : ""}${p.age ? ` · ${p.age} ans` : ""}`
+        : stat
+          ? `${stat.matches} match${stat.matches > 1 ? "s" : ""}${stat.motm ? ` · ⭐ ${stat.motm}` : ""}`
+          : `${p.position ?? ""} · pas encore joué`;
+
   return (
     <div className="canal-card p-3 flex items-center gap-3">
       <div className="flex-1 min-w-0">
         <p className="font-bold text-white text-sm truncate">{p.name}</p>
-        <p className="text-xs text-canal-gray-muted truncate">
-          {view === "club"
-            ? `${p.position ?? ""}${p.club ? ` · ${p.club}` : ""}`
-            : stat
-              ? `${stat.matches} match${stat.matches > 1 ? "s" : ""}${stat.motm ? ` · ⭐ ${stat.motm}` : ""}`
-              : `${p.position ?? ""} · pas encore joué`}
-        </p>
+        <p className="text-xs text-canal-gray-muted truncate">{subtitle}</p>
       </div>
 
-      {view === "club" ? (
+      {view === "club" && (
         p.value && (
           <span className="text-canal-yellow font-black text-sm shrink-0 tabular-nums">
             {p.value}
           </span>
         )
-      ) : (
+      )}
+
+      {view === "selection" && (
+        <div className="flex items-center gap-3 shrink-0 tabular-nums">
+          {hasSel ? (
+            <>
+              <span className="text-xs text-white" title="Sélections (caps)">
+                🎽 {p.caps ?? "—"}
+              </span>
+              <span className="text-xs text-canal-yellow font-bold" title="Buts en sélection">
+                ⚽ {p.selection_goals ?? 0}
+              </span>
+              {(p.selection_yellow_cards != null || p.selection_red_cards != null) && (
+                <span className="text-xs" title="Cartons en sélection">
+                  🟨 {p.selection_yellow_cards ?? 0}
+                  {p.selection_red_cards ? ` 🟥 ${p.selection_red_cards}` : ""}
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="text-xs text-canal-gray-muted">—</span>
+          )}
+        </div>
+      )}
+
+      {view === "stats" && (
         <div className="flex items-center gap-2 shrink-0 tabular-nums">
           <span className="text-xs text-white" title="Buts">⚽ {stat?.goals ?? 0}</span>
           <span className="text-xs text-canal-gray-muted" title="Passes décisives">🅰️ {stat?.assists ?? 0}</span>
@@ -161,6 +198,17 @@ export function WCTeamFiche({ team }: { team: WCTeam }) {
   const statFor = (name: string): PlayerCompStat | undefined =>
     compStats ? compStats[normName(name)] : undefined;
   const hasAnyStats = compStats != null && Object.keys(compStats).length > 0;
+
+  // Stats sélection : présentes uniquement si data/wc-teams.json a été enrichi
+  // (script Python, après validation). Sinon dégradation propre.
+  const selEnriched = team.players.filter((p) => p.caps != null);
+  const hasSelection = selEnriched.length > 0;
+  const selSource = selEnriched.find((p) => p.stats_source)?.stats_source ?? "Transfermarkt";
+  const selUpdatedAt = selEnriched
+    .map((p) => p.stats_updated_at)
+    .filter(Boolean)
+    .sort()
+    .pop();
 
   return (
     <div className="px-4 py-4 space-y-5 max-w-2xl mx-auto pb-24">
@@ -235,6 +283,7 @@ export function WCTeamFiche({ team }: { team: WCTeam }) {
               <div className="flex gap-1 bg-canal-gray rounded-xl p-1">
                 {([
                   { key: "club", label: "Club & valeur", icon: Shirt },
+                  { key: "selection", label: "Stats sélection", icon: Award },
                   { key: "stats", label: "Stats compétition", icon: BarChart3 },
                 ] as const).map(({ key, label, icon: Icon }) => (
                   <button
@@ -258,6 +307,20 @@ export function WCTeamFiche({ team }: { team: WCTeam }) {
                   {compStats == null
                     ? "Chargement des statistiques…"
                     : "Statistiques cumulées disponibles dès le coup d'envoi de la compétition (buts, notes, cartons par joueur)."}
+                </p>
+              )}
+
+              {effectifView === "selection" && !hasSelection && (
+                <p className="canal-card text-center text-canal-gray-muted text-xs py-3">
+                  Stats sélection (caps, buts en sélection) à venir — enrichissement
+                  Transfermarkt pas encore importé pour cette équipe.
+                </p>
+              )}
+
+              {effectifView === "selection" && hasSelection && (
+                <p className="text-center text-canal-gray-muted text-[11px]">
+                  Source&nbsp;: {selSource}
+                  {selUpdatedAt ? ` · MAJ ${fmtDate(selUpdatedAt)}` : ""}
                 </p>
               )}
 

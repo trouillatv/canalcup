@@ -8,6 +8,11 @@ TV, match center.
 > intégration directe à l'app. Produit un JSON vérifiable **avant** tout
 > import Supabase.
 
+> 🔗 Pour l'enrichissement **stats de sélection** (caps/buts sélection,
+> âge) via Transfermarkt + le mode incrémental « après chaque match »,
+> voir **`README_selection_stats.md`** (script
+> `enrich_transfermarkt_selection_stats.py`).
+
 ---
 
 ## Fichiers
