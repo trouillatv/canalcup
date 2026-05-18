@@ -1,0 +1,64 @@
+# Met à jour les effectifs (data/wc-teams.json) depuis Transfermarkt.
+#
+# Tourne en CI (PAS sur Vercel : Python + ~10-20 min + IP datacenter).
+# Le garde-fou est scripts/wc-csv-to-json.js : si le scrape est bloqué/cassé
+# il sort en code 1 → le job échoue → AUCUN commit → données préservées.
+# Un commit sur main déclenche le redeploy Vercel.
+#
+# Cadence : hebdomadaire + déclenchement manuel (« ponctuel ») via l'onglet
+# Actions → Run workflow.
+
+name: Mise à jour effectifs WC2026
+
+on:
+  schedule:
+    - cron: "0 4 * * 1" # tous les lundis 04:00 UTC
+  workflow_dispatch: {}
+
+# Une seule exécution à la fois (évite deux scrapes concurrents).
+concurrency:
+  group: update-squads
+  cancel-in-progress: false
+
+jobs:
+  squads:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # commit/push de data/wc-teams.json
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Dépendances scraper
+        run: pip install --quiet requests beautifulsoup4 lxml
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Scrape Transfermarkt → CSV
+        # Échoue seulement si 0 joueur (exit 1 du script). Un scrape partiel
+        # passe ici mais sera arrêté par le garde-fou du transform.
+        run: python docs/script/scrape_wc2026.py -o wc2026_squads.csv --quiet
+
+      - name: Transform + garde-fou → data/wc-teams.json
+        # Exit 1 si < 35 sélections valides → le job échoue, pas de commit.
+        run: node scripts/wc-csv-to-json.js wc2026_squads.csv
+
+      - name: Commit si effectifs modifiés
+        run: |
+          rm -f wc2026_squads.csv
+          if git diff --quiet -- data/wc-teams.json data/wc-teams-index.json; then
+            echo "Aucun changement d'effectif — rien à committer."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/wc-teams.json data/wc-teams-index.json
+          git commit -m "chore: maj effectifs WC2026 depuis Transfermarkt (auto)"
+          git push
