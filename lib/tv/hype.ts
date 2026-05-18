@@ -241,9 +241,15 @@ export function getHypeLevelBadge(level: number): { label: string; colorClass: s
 export function formatCountdown(ms: number): string {
   if (ms <= 0) return "MAINTENANT";
   const totalSec = Math.floor(ms / 1000);
+  const days = Math.floor(totalSec / 86400);
   const hours = Math.floor(totalSec / 3600);
   const mins = Math.floor((totalSec % 3600) / 60);
   const secs = totalSec % 60;
+  // Match à plus d'un jour : jours + heures (sinon on afficherait "50h 12min")
+  if (days >= 1) {
+    const hoursInDay = Math.floor((totalSec % 86400) / 3600);
+    return `${days}j ${hoursInDay}h`;
+  }
   if (hours >= 2) return `${hours}h ${mins.toString().padStart(2, "0")}min`;
   if (hours === 1) return `1h ${mins.toString().padStart(2, "0")}min`;
   if (mins > 0) return `${mins}:${secs.toString().padStart(2, "0")}`;
