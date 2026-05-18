@@ -1,48 +1,64 @@
-"use client";
+// Server Component : données récupérées côté serveur (un seul rendu, pas de
+// flash mock ni de double fetch client). MatchCard reste un composant client
+// pour la saisie interactive du pronostic.
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { MatchCard } from "@/components/matches/MatchCard";
 import { BreakingNews } from "@/components/matches/BreakingNews";
-import type { Match, PredictionTrend, Prediction } from "@/lib/supabase/types";
-import { MOCK_MATCHES, MOCK_PREDICTION_TRENDS } from "@/lib/mock-data";
+import { getMatches, getPredictionTrends } from "@/lib/data/matches";
+import { createClient } from "@/lib/supabase/server";
 import { Star, Trophy } from "lucide-react";
 
-export default function MatchesPage() {
-  const [matches, setMatches] = useState<Match[]>(MOCK_MATCHES);
-  const [trends, setTrends] = useState<Record<string, PredictionTrend>>(MOCK_PREDICTION_TRENDS);
-  const [myPredictions, setMyPredictions] = useState<Record<string, Prediction>>({});
+// Données live + pronostics par utilisateur → toujours frais.
+export const dynamic = "force-dynamic";
 
-  useEffect(() => {
-    fetch("/api/matches")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.matches?.length) setMatches(d.matches);
-        if (d.trends) setTrends(d.trends);
-      })
-      .catch(() => {});
+type SavedMap = Record<string, { score_a: number; score_b: number; points?: number }>;
 
-    fetch("/api/predictions")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.predictions) {
-          const map: Record<string, Prediction> = {};
-          for (const p of d.predictions) map[p.match_id] = p;
-          setMyPredictions(map);
-        }
-      })
-      .catch(() => {});
-  }, []);
+async function getMyPredictions(): Promise<SavedMap> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return {};
+
+    const { data: profile } = await supabase
+      .from("users")
+      .select("id")
+      .eq("auth_id", user.id)
+      .single();
+    if (!profile) return {};
+
+    const { data: preds } = await supabase
+      .from("predictions")
+      .select("match_id, predicted_score_a, predicted_score_b, points_awarded")
+      .eq("user_id", profile.id);
+
+    const map: SavedMap = {};
+    for (const p of preds ?? []) {
+      if (p.predicted_score_a == null || p.predicted_score_b == null) continue;
+      map[p.match_id] = {
+        score_a: p.predicted_score_a,
+        score_b: p.predicted_score_b,
+        points: p.points_awarded,
+      };
+    }
+    return map;
+  } catch {
+    return {};
+  }
+}
+
+export default async function MatchesPage() {
+  const [matches, trends, myPredictions] = await Promise.all([
+    getMatches(),
+    getPredictionTrends(),
+    getMyPredictions(),
+  ]);
 
   const upcoming = matches.filter((m) => m.status === "upcoming");
   const live = matches.filter((m) => m.status === "live");
   const finished = matches.filter((m) => m.status === "finished");
-
-  const toSavedPrediction = (matchId: string) => {
-    const p = myPredictions[matchId];
-    if (!p || p.predicted_score_a === undefined || p.predicted_score_b === undefined) return undefined;
-    return { score_a: p.predicted_score_a!, score_b: p.predicted_score_b!, points: p.points_awarded };
-  };
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -77,7 +93,7 @@ export default function MatchesPage() {
             </h2>
             <div className="space-y-3">
               {live.map((m) => (
-                <MatchCard key={m.id} match={m} trend={trends[m.id]} savedPrediction={toSavedPrediction(m.id)} />
+                <MatchCard key={m.id} match={m} trend={trends[m.id]} savedPrediction={myPredictions[m.id]} />
               ))}
             </div>
           </section>
@@ -90,7 +106,7 @@ export default function MatchesPage() {
             </h2>
             <div className="space-y-4">
               {upcoming.map((m) => (
-                <MatchCard key={m.id} match={m} trend={trends[m.id]} savedPrediction={toSavedPrediction(m.id)} />
+                <MatchCard key={m.id} match={m} trend={trends[m.id]} savedPrediction={myPredictions[m.id]} />
               ))}
             </div>
           </section>
@@ -101,7 +117,7 @@ export default function MatchesPage() {
             <h2 className="text-sm font-bold text-canal-gray-muted uppercase tracking-wider mb-3">Terminés</h2>
             <div className="space-y-3">
               {finished.map((m) => (
-                <MatchCard key={m.id} match={m} savedPrediction={toSavedPrediction(m.id)} compact />
+                <MatchCard key={m.id} match={m} savedPrediction={myPredictions[m.id]} compact />
               ))}
             </div>
           </section>
