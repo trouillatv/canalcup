@@ -4,11 +4,12 @@ import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Timer, CheckCircle, XCircle, Zap } from "lucide-react";
 import type { QuizQuestion } from "@/lib/supabase/types";
+import { quizPoints, QUIZ_TIMER_SECONDS } from "@/lib/scoring";
 
 type GameState = "idle" | "question" | "answered" | "finished" | "loading";
 
 const ANSWERS = ["A", "B", "C", "D"] as const;
-const TIMER_SECONDS = 15;
+const TIMER_SECONDS = QUIZ_TIMER_SECONDS;
 
 export default function QuizLivePage() {
   const [state, setState] = useState<GameState>("idle");
@@ -24,14 +25,24 @@ export default function QuizLivePage() {
   const answerQuestion = useCallback(
     (answer: string) => {
       if (state !== "question") return;
-      const isCorrect = answer === currentQ.correct_answer;
+      const isCorrect = answer !== "" && answer === currentQ.correct_answer;
+      const responseTimeMs = (TIMER_SECONDS - timeLeft) * 1000;
+      const pts = quizPoints(isCorrect, responseTimeMs);
       setSelected(answer);
       setState("answered");
       setResults((r) => [...r, isCorrect]);
-      if (isCorrect) {
-        const bonus = timeLeft >= 10 ? 5 : 3;
-        setScore((s) => s + bonus);
-      }
+      setScore((s) => s + pts);
+      // Persistance Supabase — best-effort, n'altère jamais le jeu. Le serveur
+      // refait foi (relit la bonne réponse, recalcule les points).
+      fetch("/api/quiz/answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question_id: currentQ.id,
+          answer,
+          response_time_ms: responseTimeMs,
+        }),
+      }).catch(() => {});
     },
     [state, currentQ, timeLeft]
   );

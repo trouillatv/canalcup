@@ -23,6 +23,7 @@ export function TopBar() {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
 
   useEffect(() => {
     const supabase = createClient();
@@ -40,8 +41,15 @@ export function TopBar() {
     checkRole();
   }, []);
 
-  // Ferme le menu à chaque changement de route
-  useEffect(() => { setMenuOpen(false); }, [pathname]);
+  // Ferme le menu + rafraîchit le compteur de courriers non lus à chaque
+  // changement de route (ex. après lecture de l'inbox, le badge se met à jour).
+  useEffect(() => {
+    setMenuOpen(false);
+    fetch("/api/inbox/unread")
+      .then((r) => r.json())
+      .then((d) => setUnread(d.count ?? 0))
+      .catch(() => {});
+  }, [pathname]);
 
   const handleLogout = async () => {
     await fetch("/auth/signout", { method: "POST" });
@@ -113,21 +121,29 @@ export function TopBar() {
             <p className="text-xs text-canal-gray-muted font-bold uppercase tracking-wider">Navigation</p>
           </div>
 
-          {MENU_ITEMS.map(({ href, icon: Icon, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-colors",
-                pathname === href || pathname.startsWith(href + "/")
-                  ? "bg-canal-yellow/10 text-canal-yellow"
-                  : "text-canal-gray-muted hover:text-white hover:bg-canal-gray-mid"
-              )}
-            >
-              <Icon size={18} />
-              {label}
-            </Link>
-          ))}
+          {MENU_ITEMS.map(({ href, icon: Icon, label }) => {
+            const showBadge = href === "/inbox" && unread > 0;
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-colors",
+                  pathname === href || pathname.startsWith(href + "/")
+                    ? "bg-canal-yellow/10 text-canal-yellow"
+                    : "text-canal-gray-muted hover:text-white hover:bg-canal-gray-mid"
+                )}
+              >
+                <Icon size={18} />
+                <span className="flex-1">{label}</span>
+                {showBadge && (
+                  <span className="min-w-5 h-5 px-1.5 rounded-full bg-canal-yellow text-canal-black text-xs font-black flex items-center justify-center tabular-nums">
+                    {unread > 99 ? "99+" : unread}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
 
           {isAdmin && (
             <>

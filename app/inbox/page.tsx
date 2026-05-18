@@ -54,7 +54,14 @@ export default function InboxPage() {
   useEffect(() => {
     fetch("/api/inbox")
       .then((r) => r.json())
-      .then((data: InboxEvent[]) => setEvents(data))
+      .then((data: InboxEvent[]) => {
+        setEvents(data);
+        // Snapshot affiché : on garde le surlignage "nouveau" cette fois-ci,
+        // puis on marque lu en base — le badge du TopBar retombe à 0 ensuite.
+        if (data.some((e) => !e.is_read)) {
+          fetch("/api/inbox/read", { method: "POST" }).catch(() => {});
+        }
+      })
       .finally(() => setLoading(false));
 
     fetch("/api/predictions/missing")

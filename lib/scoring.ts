@@ -67,6 +67,16 @@ export function calculatePoints(
   return 0;
 }
 
+// Quiz Live — barème : +5 si bonne réponse en moins de 5s, +3 sinon,
+// 0 si fausse réponse ou timeout. Source unique partagée client + serveur.
+export const QUIZ_TIMER_SECONDS = 15;
+export const QUIZ_FAST_THRESHOLD_MS = 5000;
+
+export function quizPoints(isCorrect: boolean, responseTimeMs: number): number {
+  if (!isCorrect) return 0;
+  return responseTimeMs <= QUIZ_FAST_THRESHOLD_MS ? 5 : 3;
+}
+
 // Recalculate and update points for all predictions on a finished match
 // Called by the cron after match finishes
 export function scoreLabel(points: number): string {
