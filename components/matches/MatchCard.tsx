@@ -7,6 +7,7 @@ import type { Match, PredictionTrend } from "@/lib/supabase/types";
 import { getResult, scoreLabel } from "@/lib/scoring";
 import { Star, Clock, ChevronRight, Check, Lock } from "lucide-react";
 import { Countdown } from "./Countdown";
+import { TeamLink } from "@/components/teams/TeamLink";
 
 interface SavedPrediction {
   score_a: number;
@@ -167,7 +168,7 @@ export function MatchCard({ match, trend, savedPrediction, compact }: MatchCardP
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1 flex flex-col items-center gap-1">
           <span className="text-3xl">{teamFlag(match.flag_a, match.team_a)}</span>
-          <span className="text-sm font-bold text-white text-center leading-tight">{match.team_a}</span>
+          <TeamLink name={match.team_a} className="text-sm font-bold text-white text-center leading-tight max-w-full" />
         </div>
 
         <div className="flex flex-col items-center gap-1">
@@ -187,7 +188,7 @@ export function MatchCard({ match, trend, savedPrediction, compact }: MatchCardP
 
         <div className="flex-1 flex flex-col items-center gap-1">
           <span className="text-3xl">{teamFlag(match.flag_b, match.team_b)}</span>
-          <span className="text-sm font-bold text-white text-center leading-tight">{match.team_b}</span>
+          <TeamLink name={match.team_b} className="text-sm font-bold text-white text-center leading-tight max-w-full" />
         </div>
       </div>
 

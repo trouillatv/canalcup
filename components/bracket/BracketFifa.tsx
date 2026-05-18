@@ -4,23 +4,7 @@ import Link from "next/link";
 import { Fragment, useState } from "react";
 import { teamFlag, toNCTime, cn } from "@/lib/utils";
 import { WC2026_GROUPS } from "@/lib/football/groups-2026";
-import { wcTeamHref } from "@/lib/football/wc-teams-index";
-
-// Nom d'équipe : lien vers la fiche détaillée si des données docs existent,
-// sinon texte simple (jamais de lien mort).
-function TeamName({ name, className }: { name: string; className?: string }) {
-  const href = wcTeamHref(name);
-  const label = <span className={cn("truncate", className)}>{name}</span>;
-  if (!href) return label;
-  return (
-    <Link
-      href={href}
-      className={cn("truncate hover:text-canal-yellow transition-colors", className)}
-    >
-      {name}
-    </Link>
-  );
-}
+import { TeamLink } from "@/components/teams/TeamLink";
 
 interface MatchRow {
   id: string;
@@ -90,14 +74,13 @@ function BracketTeamLine({
   return (
     <div className={cn("flex items-center gap-2 px-2.5 py-1.5", dim && "opacity-40")}>
       <span className="text-xl leading-none shrink-0">{flag}</span>
-      <span
+      <TeamLink
+        name={name}
         className={cn(
-          "flex-1 min-w-0 truncate text-sm font-bold",
+          "flex-1 min-w-0 text-sm font-bold",
           isWinner ? "text-canal-yellow" : "text-white"
         )}
-      >
-        {name}
-      </span>
+      />
       <span
         className={cn(
           "shrink-0 w-6 text-center text-sm font-black tabular-nums",
@@ -251,7 +234,7 @@ function GroupMatchRow({ m }: { m: MatchRow }) {
         )}
       </span>
       <span className="flex-1 flex items-center gap-1.5 justify-end min-w-0">
-        <TeamName name={m.team_a} className="text-right font-semibold" />
+        <TeamLink name={m.team_a} className="text-right font-semibold" />
         <span className="text-sm shrink-0">{teamFlag(m.flag_a, m.team_a)}</span>
       </span>
       <span className="shrink-0 w-12 text-center font-black tabular-nums">
@@ -259,7 +242,7 @@ function GroupMatchRow({ m }: { m: MatchRow }) {
       </span>
       <span className="flex-1 flex items-center gap-1.5 min-w-0">
         <span className="text-sm shrink-0">{teamFlag(m.flag_b, m.team_b)}</span>
-        <TeamName name={m.team_b} className="font-semibold" />
+        <TeamLink name={m.team_b} className="font-semibold" />
       </span>
     </div>
   );
@@ -368,7 +351,7 @@ function GroupTabs({
                     <span className="flex items-center gap-1.5">
                       <span className="font-black w-3">{i + 1}</span>
                       <span className="text-base">{teamFlag(row.team_flag || null, row.team_name_fr)}</span>
-                      <TeamName name={row.team_name_fr} className="max-w-[110px] font-semibold" />
+                      <TeamLink name={row.team_name_fr} className="max-w-[110px] font-semibold" />
                     </span>
                   </td>
                   <td className="text-center">{row.played}</td>
@@ -428,7 +411,7 @@ export function BracketFifa({ data }: { data: BracketData }) {
   const matchesByLetter: Record<string, MatchRow[]> = {};
   for (const bucket of groupPhase?.groups ?? []) {
     for (const m of bucket.matches) {
-      let L =
+      const L =
         groupLetter(bucket.stage ?? "") ||
         groupLetter(m.stage ?? "") ||
         TEAM_LETTER[normTeam(m.team_a)] ||
@@ -448,10 +431,41 @@ export function BracketFifa({ data }: { data: BracketData }) {
       return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
     });
 
-  const rounds = knockout.map((p) => ({
-    phase: p.phase,
-    matches: p.groups[0]?.matches ?? [],
-  }));
+  const realRounds = knockout
+    .map((p) => ({ phase: p.phase, matches: p.groups[0]?.matches ?? [] }))
+    .filter((r) => r.matches.length > 0);
+
+  // Échafaudage WC2026 (32 qualifiés) : on affiche TOUJOURS l'arbre à
+  // élimination directe, même si les équipes ne sont pas encore connues.
+  const SCAFFOLD: { phase: string; count: number }[] = [
+    { phase: "Seizièmes", count: 16 },
+    { phase: "Huitièmes", count: 8 },
+    { phase: "Quarts", count: 4 },
+    { phase: "Demis", count: 2 },
+    { phase: "Finale", count: 1 },
+  ];
+  const placeholder = (phase: string, i: number): MatchRow => ({
+    id: `tbd-${phase}-${i}`,
+    team_a: "",
+    team_b: "",
+    status: "upcoming",
+    starts_at: "",
+  });
+
+  const isScaffold = realRounds.length === 0;
+  const rounds = isScaffold
+    ? SCAFFOLD.map((s) => ({
+        phase: s.phase,
+        matches: Array.from({ length: s.count }, (_, i) => placeholder(s.phase, i)),
+      }))
+    : realRounds;
+
+  const effectiveThird =
+    thirdPlace && (thirdPlace.groups[0]?.matches.length ?? 0) > 0
+      ? thirdPlace.groups[0].matches
+      : isScaffold
+        ? [placeholder("3eme", 0)]
+        : [];
 
   // Bracket height scales with the widest round so connectors stay aligned
   const maxMatches = Math.max(1, ...rounds.map((r) => r.matches.length));
@@ -462,9 +476,8 @@ export function BracketFifa({ data }: { data: BracketData }) {
       {/* Group phase — one tab per pool (always shown for a WC bracket) */}
       <GroupTabs standings={data.standings} matchesByLetter={matchesByLetter} />
 
-      {/* Knockout bracket — the giant tree */}
-      {rounds.length > 0 ? (
-        <div>
+      {/* Knockout bracket — toujours affiché (échafaudé si équipes inconnues) */}
+      <div>
           <div className="flex items-center gap-3 mb-4">
             <span className="text-2xl">🏆</span>
             <h3 className="font-black text-lg text-white uppercase tracking-widest">
@@ -473,6 +486,11 @@ export function BracketFifa({ data }: { data: BracketData }) {
             <div className="flex-1 h-px bg-gradient-to-r from-canal-yellow/50 to-transparent" />
             <span className="text-canal-gray-muted text-xs italic shrink-0 sm:hidden">← défiler →</span>
           </div>
+          {isScaffold && (
+            <p className="text-canal-gray-muted text-xs italic mb-3">
+              Équipes déterminées à l&apos;issue de la phase de groupes — structure du tableau ci-dessous.
+            </p>
+          )}
 
           <div className="overflow-x-auto pb-4">
             <div
@@ -494,12 +512,12 @@ export function BracketFifa({ data }: { data: BracketData }) {
                           {round.matches.map((m) => (
                             <BracketTreeCard key={m.id} match={m} big />
                           ))}
-                          {thirdPlace && (thirdPlace.groups[0]?.matches.length ?? 0) > 0 && (
+                          {effectiveThird.length > 0 && (
                             <div>
                               <p className="text-center text-canal-gray-muted text-[11px] uppercase tracking-widest font-bold mb-2">
                                 🥉 Petite finale
                               </p>
-                              {thirdPlace.groups[0].matches.map((m) => (
+                              {effectiveThird.map((m) => (
                                 <BracketTreeCard key={m.id} match={m} />
                               ))}
                             </div>
@@ -524,17 +542,6 @@ export function BracketFifa({ data }: { data: BracketData }) {
             </div>
           </div>
         </div>
-      ) : (
-        <div className="text-center py-16">
-          <span className="text-5xl">🏆</span>
-          <p className="text-canal-gray-muted text-lg mt-4">
-            Le tableau final s&apos;affichera dès la fin de la phase de groupes.
-          </p>
-          <p className="text-canal-gray-muted text-sm mt-1 italic">
-            "La phase de groupes décide des combats. Patience."
-          </p>
-        </div>
-      )}
     </div>
   );
 }

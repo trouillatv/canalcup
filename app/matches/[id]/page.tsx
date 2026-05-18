@@ -4,9 +4,10 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { FullMatchDetail, MatchEvent, LineupPlayer, PlayerMatchStat, StandingRow } from "@/services/football/types";
-import { MapPin, User, RefreshCw, Clock, Sparkles, Star, BarChart3 } from "lucide-react";
+import { MapPin, User, RefreshCw, Clock, Sparkles, Star } from "lucide-react";
 import { MatchReactions } from "@/components/matches/MatchReactions";
 import { Countdown } from "@/components/matches/Countdown";
+import { TeamLink } from "@/components/teams/TeamLink";
 
 type Tab = "timeline" | "lineups" | "stats" | "notes" | "pronos" | "standings";
 
@@ -50,7 +51,7 @@ function ScoreBoard({ detail }: { detail: FullMatchDetail }) {
       <div className="flex items-center justify-between gap-4 my-4">
         <div className="flex-1 flex flex-col items-center gap-2">
           <span className="text-6xl">{match.flag_a}</span>
-          <span className="text-sm font-black text-white text-center leading-tight">{match.team_a}</span>
+          <TeamLink name={match.team_a} className="text-sm font-black text-white text-center leading-tight max-w-full" />
         </div>
 
         <div className="flex items-center gap-3">
@@ -70,7 +71,7 @@ function ScoreBoard({ detail }: { detail: FullMatchDetail }) {
 
         <div className="flex-1 flex flex-col items-center gap-2">
           <span className="text-6xl">{match.flag_b}</span>
-          <span className="text-sm font-black text-white text-center leading-tight">{match.team_b}</span>
+          <TeamLink name={match.team_b} className="text-sm font-black text-white text-center leading-tight max-w-full" />
         </div>
       </div>
 
