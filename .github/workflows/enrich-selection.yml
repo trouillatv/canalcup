@@ -1,0 +1,98 @@
+# Enrichit data/wc-teams.json avec les stats de SÉLECTION (caps, buts en
+# sélection, âge) — mode incrémental « après chaque match fini ».
+#
+# Cron EXTERNE GitHub Actions — JAMAIS Vercel / route Next.js / frontend.
+#
+# « Regarde les fins de matchs » : le script lit la table Supabase `matches`
+# (status = 'finished'), identifie les 2 sélections du match, et ne ré-enrichit
+# QUE celles-ci si nécessaire (anti-doublon via enrichment-state.json). Le cron
+# horaire ne fait que sonder assez souvent pour traiter un match < 1 h après
+# sa fin ; toute la logique « match fini » est dans le script, pas dans le cron.
+#
+# Garde-fou (comme update-squads.yml) : on ne promeut data/wc-teams.json que si
+# la sortie est un JSON valide d'au moins 50 équipes ET a réellement changé.
+# Sinon : aucun commit, données préservées, l'app n'est jamais bloquée.
+
+name: Stats sélection WC2026 (incrémental)
+
+on:
+  schedule:
+    # Toutes les heures (UTC). Pendant la Coupe (11/06–19/07/2026) ça traite
+    # chaque match < 1 h après sa fin. Hors tournoi : aucun match fini →
+    # le script no-op proprement (coût quasi nul). Densifier en "*/30 * * * *"
+    # si on veut une latence plus courte.
+    - cron: "25 * * * *"
+  workflow_dispatch: {}
+
+# Une seule exécution à la fois (jamais 2 scrapes TM concurrents).
+concurrency:
+  group: enrich-selection
+  cancel-in-progress: false
+
+jobs:
+  enrich:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # promotion (commit) de data/wc-teams.json
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Dépendances scraper
+        run: pip install --quiet requests beautifulsoup4 lxml
+
+      # Persiste cache HTML + état anti-doublon entre runs (runners éphémères).
+      # Sans ça, chaque run reprocesserait tous les matchs finis (rescrape
+      # inutile). restore-keys → on récupère le cache du run précédent.
+      - name: Restaurer cache scrape + état
+        uses: actions/cache@v4
+        with:
+          path: |
+            docs/script/cache
+            docs/script/output/enrichment-state.json
+          key: enrich-selection-${{ github.run_id }}
+          restore-keys: |
+            enrich-selection-
+
+      - name: Enrichissement incrémental (matchs finis)
+        env:
+          SUPABASE_PAT: ${{ secrets.SUPABASE_PAT }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+        # Le script ne casse jamais : si Supabase/TM indispo → log + exit 0.
+        run: python docs/script/enrich_transfermarkt_selection_stats.py --mode incremental -v
+
+      - name: Garde-fou + promotion data/wc-teams.json
+        run: |
+          OUT=docs/script/output/wc-teams-enriched.json
+          if [ ! -s "$OUT" ]; then
+            echo "Pas de sortie enrichie — rien à promouvoir."
+            exit 0
+          fi
+          # Sanity : JSON valide et >= 50 équipes (sinon on ne touche à rien).
+          node -e '
+            const fs=require("fs");
+            const a=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));
+            if(!Array.isArray(a)||a.length<50){console.error("garde-fou: <50 équipes");process.exit(1);}
+          ' "$OUT"
+          cp "$OUT" data/wc-teams.json
+          if git diff --quiet -- data/wc-teams.json; then
+            echo "Aucun changement de stats sélection — rien à committer."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/wc-teams.json
+          git commit -m "chore: maj stats sélection WC2026 (incrémental, matchs finis)"
+          git push
+
+      - name: Rapport en artefact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selection-stats-report
+          path: docs/script/output/selection-stats-report.json
+          if-no-files-found: ignore

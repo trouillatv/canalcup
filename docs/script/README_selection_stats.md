@@ -63,30 +63,26 @@ Transfermarkt ni du scraping.
 
 ## Cron externe (phase incremental, dès le 11/06)
 
-Jamais Vercel/Next.js. Exemple **GitHub Actions** (toutes les 2 h) :
+Jamais Vercel/Next.js. **Workflow réel câblé** :
+**`.github/workflows/enrich-selection.yml`** (cron horaire + déclenchement
+manuel via l'onglet Actions). Calqué sur `update-squads.yml` :
+`concurrency` (jamais 2 scrapes concurrents), garde-fou (promotion de
+`data/wc-teams.json` seulement si JSON valide ≥ 50 équipes ET modifié,
+sinon aucun commit), `actions/cache` pour persister cache HTML + état
+anti-doublon entre runs éphémères, rapport en artefact.
 
-```yaml
-# .github/workflows/enrich-selection.yml
-on:
-  schedule: [{ cron: "0 */2 * * *" }]   # cron EXTERNE GitHub, pas Vercel
-jobs:
-  enrich:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: "3.13" }
-      - run: pip install requests beautifulsoup4 lxml
-      - env:
-          SUPABASE_PAT: ${{ secrets.SUPABASE_PAT }}
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-        run: python docs/script/enrich_transfermarkt_selection_stats.py --mode incremental
-      # puis : étape de validation/commit du JSON promu, selon ta préférence
-```
+**« Regarde les fins de matchs »** : toute la logique est dans le script —
+il lit la table Supabase `matches` (`status='finished'`), prend les 2
+sélections du match, anti-doublon via `enrichment-state.json`. Le cron
+horaire ne fait que sonder assez souvent pour traiter un match < 1 h après
+sa fin (densifiable en `*/30 * * * *`).
 
-Alternatives équivalentes : cron OS, VPS, tâche planifiée. Le script lit
-les matchs finis via l'API Management Supabase (`SUPABASE_PAT`), comme
-`scripts/migrate.js`.
+**Secrets repo à créer** (Settings → Secrets and variables → Actions) :
+`SUPABASE_PAT`, `NEXT_PUBLIC_SUPABASE_URL`. Le script lit les matchs finis
+via l'API Management Supabase (comme `scripts/migrate.js`).
+
+Alternatives équivalentes si besoin : cron OS, VPS, tâche planifiée — même
+commande `--mode incremental`.
 
 ## Conformité Transfermarkt (strict)
 
