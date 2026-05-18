@@ -2526,15 +2526,15 @@
         "value": "€3.00m"
       },
       {
-        "name": "Alexander Schlager",
-        "position": "Gardien",
-        "club": "Red Bull Salzburg",
-        "value": "€2.50m"
-      },
-      {
         "name": "Tobias Lawal",
         "position": "Gardien",
         "club": "KRC Genk",
+        "value": "€2.50m"
+      },
+      {
+        "name": "Alexander Schlager",
+        "position": "Gardien",
+        "club": "Red Bull Salzburg",
         "value": "€2.50m"
       },
       {
@@ -2562,6 +2562,12 @@
         "value": "€15.00m"
       },
       {
+        "name": "Stefan Posch",
+        "position": "Défenseur central",
+        "club": "1.FSV Mainz 05",
+        "value": "€10.00m"
+      },
+      {
         "name": "David Alaba",
         "position": "Défenseur central",
         "club": "Real Madrid",
@@ -2571,12 +2577,6 @@
         "name": "Marco Friedl",
         "position": "Défenseur central",
         "club": "SV Werder Bremen",
-        "value": "€10.00m"
-      },
-      {
-        "name": "Stefan Posch",
-        "position": "Défenseur central",
-        "club": "1.FSV Mainz 05",
         "value": "€10.00m"
       },
       {
@@ -8267,7 +8267,7 @@
       {
         "name": "Stéphane Lambese",
         "position": "Arrière droit",
-        "club": "Football Club Fleury 91",
+        "club": "FC Fleury 91",
         "value": "€300k"
       },
       {
@@ -14657,15 +14657,15 @@
         "value": "€6.50m"
       },
       {
-        "name": "Simon Sohm",
-        "position": "Milieu central",
-        "club": "Bologna FC 1909",
-        "value": "€4.00m"
-      },
-      {
         "name": "Vincent Sierro",
         "position": "Milieu central",
         "club": "Al-Shabab FC",
+        "value": "€4.00m"
+      },
+      {
+        "name": "Simon Sohm",
+        "position": "Milieu central",
+        "club": "Bologna FC 1909",
         "value": "€4.00m"
       },
       {
