@@ -9,7 +9,13 @@ export const revalidate = 300;
 
 export default async function MatinalePage() {
   const [brief, matches] = await Promise.all([getTodayBrief(), getMatches()]);
-  const tonightMatches = matches.filter((m) => m.status === "upcoming").slice(0, 3);
+  // Prochains matchs RÉELS : à venir ET dont le coup d'envoi n'est pas passé.
+  // (sinon les vieux matchs du seed, statut "upcoming" mais date passée,
+  // remontaient en tête → "matinale sur un très vieux match").
+  const now = Date.now();
+  const tonightMatches = matches
+    .filter((m) => m.status === "upcoming" && new Date(m.starts_at).getTime() >= now)
+    .slice(0, 3);
 
   return (
     <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto">

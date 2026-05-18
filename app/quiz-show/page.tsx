@@ -242,8 +242,8 @@ export default function QuizShowPage() {
         </header>
 
         {/* ── Question text ───────────────────────────────────────────────── */}
-        <div className="flex-1 flex flex-col justify-center px-16 gap-10">
-          <p className="font-black text-5xl text-white leading-tight text-center max-w-5xl mx-auto drop-shadow-sm">
+        <div className="flex-1 flex flex-col justify-center px-16 gap-10 min-h-0 overflow-y-auto">
+          <p className="font-black text-4xl xl:text-5xl text-white leading-tight text-center max-w-5xl mx-auto drop-shadow-sm break-words text-balance">
             {q.question}
           </p>
 
@@ -270,7 +270,7 @@ export default function QuizShowPage() {
               return (
                 <div key={key} className={boxClass}>
                   <span className={`
-                    font-black text-5xl w-14 text-center shrink-0 leading-none
+                    font-black text-4xl xl:text-5xl w-14 text-center shrink-0 leading-none
                     ${isRevealing
                       ? isCorrect ? "text-white" : "text-white/40"
                       : palette.text
@@ -279,7 +279,7 @@ export default function QuizShowPage() {
                     {isRevealing && isCorrect ? "✓" : key}
                   </span>
                   <span className={`
-                    font-bold text-3xl leading-snug
+                    font-bold text-2xl xl:text-3xl leading-snug min-w-0 break-words
                     ${isRevealing
                       ? isCorrect ? "text-white" : "text-white/40"
                       : palette.text

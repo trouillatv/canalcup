@@ -83,10 +83,12 @@ function ScorePredictInput({
           <span className="text-xs text-canal-gray-muted truncate max-w-[64px] text-center">{match.team_a}</span>
           <input
             type="number"
+            inputMode="numeric"
             min={0}
             max={20}
             value={scoreA}
-            onChange={(e) => { setSaved(false); setScoreA(Math.max(0, parseInt(e.target.value) || 0)); }}
+            onFocus={(e) => e.currentTarget.select()}
+            onChange={(e) => { setSaved(false); setScoreA(Math.min(20, Math.max(0, parseInt(e.target.value, 10) || 0))); }}
             className="w-14 h-10 text-center text-2xl font-black text-white bg-canal-gray-mid border border-canal-gray-light rounded-xl focus:border-canal-yellow outline-none"
           />
         </div>
@@ -98,10 +100,12 @@ function ScorePredictInput({
           <span className="text-xs text-canal-gray-muted truncate max-w-[64px] text-center">{match.team_b}</span>
           <input
             type="number"
+            inputMode="numeric"
             min={0}
             max={20}
             value={scoreB}
-            onChange={(e) => { setSaved(false); setScoreB(Math.max(0, parseInt(e.target.value) || 0)); }}
+            onFocus={(e) => e.currentTarget.select()}
+            onChange={(e) => { setSaved(false); setScoreB(Math.min(20, Math.max(0, parseInt(e.target.value, 10) || 0))); }}
             className="w-14 h-10 text-center text-2xl font-black text-white bg-canal-gray-mid border border-canal-gray-light rounded-xl focus:border-canal-yellow outline-none"
           />
         </div>
