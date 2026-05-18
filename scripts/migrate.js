@@ -23,9 +23,28 @@ if (!PAT || !REF) {
   process.exit(1);
 }
 
-const query = process.argv.slice(2).join(" ");
+// IMPORTANT (Windows) : ne JAMAIS passer du SQL accenté en argument de ligne
+// de commande — le code page console corrompt le non-ASCII en U+FFFD avant
+// que Node le voie (cf. corruption des questions quiz, 2026-05). Pour tout
+// SQL contenant des accents, utiliser le mode fichier qui lit en UTF-8 :
+//   node scripts/migrate.js --file supabase/seed_quiz_worldcup.sql
+const args = process.argv.slice(2);
+let query;
+if (args[0] === "--file" || args[0] === "-f") {
+  const sqlPath = args[1] && path.isAbsolute(args[1])
+    ? args[1]
+    : path.join(process.cwd(), args[1] || "");
+  if (!args[1] || !fs.existsSync(sqlPath)) {
+    console.error("Fichier SQL introuvable:", args[1]);
+    process.exit(1);
+  }
+  query = fs.readFileSync(sqlPath, "utf8");
+} else {
+  query = args.join(" ");
+}
 if (!query) {
-  console.error("Usage: node scripts/migrate.js \"ALTER TABLE ...\"");
+  console.error('Usage: node scripts/migrate.js "ALTER TABLE ..."');
+  console.error('   ou: node scripts/migrate.js --file chemin/vers/fichier.sql  (recommandé si accents)');
   process.exit(1);
 }
 
