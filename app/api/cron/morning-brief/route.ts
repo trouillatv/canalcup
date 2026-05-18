@@ -12,6 +12,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateMorningBrief } from "@/services/ai/generators/morning-brief";
+import { broadcastInboxEvent } from "@/lib/data/inbox";
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -109,6 +110,16 @@ export async function GET(request: Request) {
     );
   }
 
-  console.log(`[CRON morning-brief] matinale ${today} générée + stockée`);
-  return NextResponse.json({ success: true, date: today, persisted: true });
+  // Producteur inbox : 1 courrier 'matinale' par utilisateur. S'exécute une
+  // seule fois par jour grâce à l'early-return idempotent ci-dessus.
+  const notified = await broadcastInboxEvent({
+    type: "matinale",
+    title: brief.title,
+    message: brief.fun_fact || brief.body.slice(0, 140),
+  });
+
+  console.log(
+    `[CRON morning-brief] matinale ${today} générée + stockée — ${notified} courriers inbox`
+  );
+  return NextResponse.json({ success: true, date: today, persisted: true, notified });
 }

@@ -45,11 +45,13 @@ export async function getLeaderboard(): Promise<LeaderboardRow[]> {
       { data: bonusPoints },
       { data: quizPoints },
       { data: babyPoints },
+      { data: votePoints },
     ] = await Promise.all([
       supabase.from("predictions").select("team_id, points_awarded"),
       supabase.from("bonus_predictions").select("team_id, points_awarded"),
       supabase.from("quiz_answers").select("team_id, points_awarded"),
       supabase.from("babyfoot_matches").select("team_a_id, team_b_id, score_a, score_b, status"),
+      supabase.from("votes").select("target_team_id, value"),
     ]);
 
     const rows: LeaderboardRow[] = teams.map((team) => {
@@ -67,15 +69,19 @@ export async function getLeaderboard(): Promise<LeaderboardRow[]> {
           (m.team_a_id === team.id && (m.score_a ?? 0) > (m.score_b ?? 0)) ||
           (m.team_b_id === team.id && (m.score_b ?? 0) > (m.score_a ?? 0))
         )).length * 10;
+      // Votes reçus par l'équipe (somme des `value` des votes la ciblant).
+      const vp = (votePoints ?? [])
+        .filter((r) => r.target_team_id === team.id)
+        .reduce((s: number, r: { value: number }) => s + (r.value ?? 0), 0);
 
-      const total = pp + bp_bonus + qp + bp;
+      const total = pp + bp_bonus + qp + bp + vp;
 
       return {
         team: team as Team,
         points_predictions: pp,
         points_quiz: qp,
         points_babyfoot: bp,
-        points_votes: 0,
+        points_votes: vp,
         points_bonus: bp_bonus,
         total,
         rank: 0,
