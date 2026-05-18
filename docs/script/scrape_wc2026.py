@@ -245,21 +245,36 @@ def find_team_url(session: requests.Session, query: str) -> Optional[str]:
     if not soup:
         return None
 
-    # Les résultats sont groupés en boxes ; on prend la section "National
-    # teams" (titre contient "national")
-    for box in soup.select("div.box"):
-        header = box.find(["h2", "h3"])
-        if not header:
-            continue
-        if "national" not in header.get_text(strip=True).lower():
-            continue
+    # Transfermarkt ne sépare plus les sélections : elles figurent dans la
+    # box « Search results: Clubs » et la sélection nationale est le 1er
+    # résultat /verein/ pour une requête = nom de pays (vérifié sur de
+    # multiples nations : FRA 3377, GER 3262, BRA 3439, JPN 3435, USA 3505…).
+    boxes = soup.select("div.box")
+
+    def first_verein(box) -> Optional[str]:
         link = box.select_one('a[href*="/verein/"]')
         if not link or not link.get("href"):
-            continue
+            return None
         m = re.match(r"^/([^/]+)/[^/]+/verein/(\d+)", link["href"])
-        if m:
-            slug, tm_id = m.group(1), m.group(2)
-            return f"{BASE}/{slug}/kader/verein/{tm_id}/saison_id/2025/plus/1"
+        if not m:
+            return None
+        slug, tm_id = m.group(1), m.group(2)
+        return f"{BASE}/{slug}/kader/verein/{tm_id}/saison_id/2025/plus/1"
+
+    # 1) box dont le titre contient « clubs » (cas nominal actuel)
+    for box in boxes:
+        header = box.find(["h2", "h3"])
+        if header and "clubs" in header.get_text(strip=True).lower():
+            url = first_verein(box)
+            if url:
+                return url
+
+    # 2) repli : 1re box exposant un lien /verein/ (robustesse si le libellé
+    #    du titre change encore)
+    for box in boxes:
+        url = first_verein(box)
+        if url:
+            return url
     return None
 
 
@@ -297,20 +312,26 @@ def parse_squad(soup: BeautifulSoup, selection: str, group: str) -> list[Player]
                 if tds:
                     position_en = tds[-1].get_text(strip=True)
 
-        # --- Club (icône avec attribut title) ---
-        club_img = row.select_one("img.tiny_wappen")
+        # --- Club : cellule contenant un lien /verein/ (le logo n'a plus de
+        #     classe 'tiny_wappen'). Nom via title/alt de l'image, sinon
+        #     texte du lien. ---
         club = ""
-        if club_img:
-            club = club_img.get("title") or club_img.get("alt") or ""
+        club_link = row.select_one('td a[href*="/verein/"]')
+        if club_link:
+            club_img = club_link.find("img")
+            if club_img:
+                club = (club_img.get("title") or club_img.get("alt") or "").strip()
+            if not club:
+                club = club_link.get_text(strip=True)
 
-        # --- Pays du club (drapeau adjacent au logo du club) ---
+        # --- Pays du club : drapeau dans la même cellule si présent ---
         club_country = ""
-        if club_img:
-            parent_td = club_img.find_parent("td")
+        if club_link:
+            parent_td = club_link.find_parent("td")
             if parent_td:
                 flag = parent_td.find("img", class_="flaggenrahmen")
                 if flag:
-                    club_country = flag.get("title") or flag.get("alt") or ""
+                    club_country = (flag.get("title") or flag.get("alt") or "").strip()
 
         # --- Valeur marchande (dernière cellule alignée à droite) ---
         mv_cell = row.select_one("td.rechts.hauptlink") or row.select("td.rechts")
