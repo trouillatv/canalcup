@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MapPin, Clock, Trophy, ChevronRight } from "lucide-react";
+import { MapPin, Clock, Trophy, ChevronRight, Gamepad2 } from "lucide-react";
 import { getChallenges } from "@/lib/data/challenges";
 import { cn } from "@/lib/utils";
 import type { Challenge, ChallengeStatus } from "@/lib/supabase/types";
@@ -49,6 +49,40 @@ function ChallengeCard({ challenge }: { challenge: Challenge }) {
   );
 }
 
+// Babyfoot = animation à part entière, mais feature dédiée avec son propre
+// scoring (babyfoot_matches → leaderboard). On l'expose ici en simple carte
+// vers /babyfoot — surtout PAS une ligne `challenges` (sinon double comptage
+// via score_events). Lien sortant, zéro impact scoring.
+function BabyfootCard() {
+  return (
+    <Link href="/babyfoot" className="block">
+      <div className="canal-card hover:border-canal-yellow/40 transition-colors">
+        <div className="flex items-start gap-3">
+          <span className="text-3xl shrink-0">🎮</span>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-black text-white text-base leading-tight">Tournoi Babyfoot</h3>
+              <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full text-canal-yellow bg-canal-yellow/10">
+                Tournoi dédié
+              </span>
+            </div>
+            <p className="text-canal-gray-muted text-sm mt-1 line-clamp-2">
+              Le football parallèle de la Canal Cup. Moins de VAR, plus de chaos.
+            </p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-canal-gray-muted">
+              <span className="flex items-center gap-1"><Gamepad2 size={12} /> Bracket & classement babyfoot</span>
+              <span className="flex items-center gap-1 text-canal-yellow font-bold">
+                <Trophy size={12} /> Compté au classement général
+              </span>
+            </div>
+          </div>
+          <ChevronRight size={18} className="text-canal-gray-muted shrink-0 self-center" />
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 export default async function AnimationsPage() {
   const challenges = await getChallenges();
   const phase1 = challenges.filter((c) => c.phase === 1);
@@ -63,14 +97,13 @@ export default async function AnimationsPage() {
         </p>
       </div>
 
-      {phase1.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider">
-            🎬 Au programme
-          </h2>
-          {phase1.map((c) => <ChallengeCard key={c.id} challenge={c} />)}
-        </section>
-      )}
+      <section className="space-y-3">
+        <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider">
+          🎬 Au programme
+        </h2>
+        <BabyfootCard />
+        {phase1.map((c) => <ChallengeCard key={c.id} challenge={c} />)}
+      </section>
 
       {phase2.length > 0 && (
         <section className="space-y-3">
@@ -82,8 +115,8 @@ export default async function AnimationsPage() {
       )}
 
       {challenges.length === 0 && (
-        <p className="text-canal-gray-muted text-sm text-center py-12">
-          Aucune animation pour l&apos;instant.
+        <p className="text-canal-gray-muted text-sm text-center py-4">
+          Les autres activités seront annoncées prochainement.
         </p>
       )}
     </div>
