@@ -146,6 +146,25 @@ def build_team_query_map() -> dict[str, str]:
     return qmap
 
 
+# ── Override kader direct (collisions de sous-chaîne de la recherche TM) ──────
+# La recherche floue TM + heuristique « 1ᵉʳ /verein/ de la box clubs » tombe
+# sur un homonyme quand le nom du pays est une sous-chaîne d'un club :
+#   « Mali » → FC fa·MALI·cao (club PT) au lieu de la sélection malienne
+#   « Oman » → r·OMAN·ien      (= la Roumanie !) au lieu d'Oman
+# Pour ces cas, on court-circuite resolve_kader_url avec l'URL kader exacte
+# de la sélection nationale (slug, id verein TM relevés dans les résultats).
+# Clé = norm(nom équipe source). N'affecte QUE ces équipes — aucun impact
+# sur les 47 déjà résolues correctement.
+TEAM_KADER_OVERRIDE: dict[str, tuple[str, str]] = {
+    "mali": ("mali", "3674"),
+    "oman": ("oman", "14165"),
+}
+
+
+def kader_url_for(slug: str, tm_id: str) -> str:
+    return f"{TM_BASE}/{slug}/kader/verein/{tm_id}/saison_id/2025/plus/1"
+
+
 # ── Couche HTTP polie : robots + cache + retry + délai ───────────────────────
 class Fetcher:
     def __init__(self, delay: tuple[float, float], use_cache: bool, refresh: bool):
@@ -404,8 +423,13 @@ def enrich_team(
 ) -> int:
     """Enrichit en place les joueurs d'une équipe. Renvoie le nb enrichis."""
     tname = team.get("name", "?")
-    query = qmap.get(norm(tname), tname)
-    kader_url = resolve_kader_url(fetcher, query)
+    override = TEAM_KADER_OVERRIDE.get(norm(tname))
+    if override:
+        kader_url = kader_url_for(*override)
+        LOG.info("[%s] override kader direct → %s", tname, kader_url)
+    else:
+        query = qmap.get(norm(tname), tname)
+        kader_url = resolve_kader_url(fetcher, query)
     if not kader_url:
         report["teams_failed"].append({"team": tname, "reason": "kader introuvable"})
         LOG.warning("[%s] page effectif TM introuvable (query=%s)", tname, query)
