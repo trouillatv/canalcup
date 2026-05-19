@@ -4,6 +4,8 @@ import type { Team, LeaderboardRow } from "@/lib/supabase/types";
 import {
   SCORE_EVENT_CATEGORIES_IN_TOTAL,
   weightedContribution,
+  mergeScoringConfig,
+  type ScoringConfigOverride,
 } from "@/lib/scoring/config";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -65,8 +67,13 @@ type DbClient = any;
  */
 export async function computeTeamScores(
   supabase: DbClient,
-  teamIds: string[]
+  teamIds: string[],
+  // Override = preview/dry-run admin UNIQUEMENT (config en mémoire). Les
+  // appelants officiels (getLeaderboard/getTeams/...) n'en passent pas →
+  // config par défaut. Ne modifie JAMAIS la base.
+  configOverride?: ScoringConfigOverride
 ): Promise<Map<string, TeamBreakdown>> {
+  const cfg = mergeScoringConfig(configOverride);
   const [
     { data: predPoints },
     { data: bonusPoints },
@@ -143,10 +150,10 @@ export async function computeTeamScores(
 
     // Pondération (config unique). Pilier pronostics = predictions + bonus.
     const weighted = {
-      pronostics: weightedContribution("pronostics", predRaw + bonusRaw),
-      quiz: weightedContribution("quiz", quizRaw),
-      babyfoot: weightedContribution("babyfoot", babyRaw),
-      animations: weightedContribution("animations", animRaw),
+      pronostics: weightedContribution("pronostics", predRaw + bonusRaw, cfg),
+      quiz: weightedContribution("quiz", quizRaw, cfg),
+      babyfoot: weightedContribution("babyfoot", babyRaw, cfg),
+      animations: weightedContribution("animations", animRaw, cfg),
     };
     // total = somme des contributions ARRONDIES → les colonnes du
     // classement s'additionnent exactement au total (zéro confusion).

@@ -44,14 +44,55 @@ export const EXPECTED_MAX_RAW: Record<Pillar, number> = {
 // natives et ne doivent JAMAIS être recomptés via score_events.
 export const SCORE_EVENT_CATEGORIES_IN_TOTAL = ["challenges", "social", "bonus"] as const;
 
-export function pillarCoefficient(p: Pillar): number {
-  const max = EXPECTED_MAX_RAW[p] || 1;
-  return (PILLAR_WEIGHTS[p] * SCORING_BASE) / max;
+// ── Config résolue + override (preview/dry-run admin) ────────────────────────
+// La config OFFICIELLE = DEFAULT_SCORING_CONFIG (constantes ci-dessus). Le
+// preview admin passe un override (expectedMaxRaw simulé) à computeTeamScores
+// SANS rien écrire : on rejoue la même fonction avec une config en mémoire.
+export interface ScoringConfig {
+  base: number;
+  weights: Record<Pillar, number>;
+  expectedMaxRaw: Record<Pillar, number>;
+}
+
+export const DEFAULT_SCORING_CONFIG: ScoringConfig = {
+  base: SCORING_BASE,
+  weights: PILLAR_WEIGHTS,
+  expectedMaxRaw: EXPECTED_MAX_RAW,
+};
+
+export interface ScoringConfigOverride {
+  base?: number;
+  weights?: Partial<Record<Pillar, number>>;
+  expectedMaxRaw?: Partial<Record<Pillar, number>>;
+}
+
+export function mergeScoringConfig(override?: ScoringConfigOverride): ScoringConfig {
+  if (!override) return DEFAULT_SCORING_CONFIG;
+  return {
+    base: override.base ?? DEFAULT_SCORING_CONFIG.base,
+    weights: { ...DEFAULT_SCORING_CONFIG.weights, ...(override.weights ?? {}) },
+    expectedMaxRaw: {
+      ...DEFAULT_SCORING_CONFIG.expectedMaxRaw,
+      ...(override.expectedMaxRaw ?? {}),
+    },
+  };
+}
+
+export function pillarCoefficient(
+  p: Pillar,
+  cfg: ScoringConfig = DEFAULT_SCORING_CONFIG
+): number {
+  const max = cfg.expectedMaxRaw[p] || 1;
+  return (cfg.weights[p] * cfg.base) / max;
 }
 
 /** Contribution pondérée (entière) d'un brut pour un pilier. */
-export function weightedContribution(p: Pillar, raw: number): number {
-  return Math.round(pillarCoefficient(p) * raw);
+export function weightedContribution(
+  p: Pillar,
+  raw: number,
+  cfg: ScoringConfig = DEFAULT_SCORING_CONFIG
+): number {
+  return Math.round(pillarCoefficient(p, cfg) * raw);
 }
 
 /** Poids du pilier en % (affichage). */
