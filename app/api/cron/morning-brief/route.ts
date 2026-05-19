@@ -13,6 +13,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateMorningBrief } from "@/services/ai/generators/morning-brief";
 import { broadcastInboxEvent } from "@/lib/data/inbox";
+import { computeTeamScores } from "@/lib/data/teams";
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -46,18 +47,19 @@ export async function GET(request: Request) {
         .join(" · ")
     : "Pas encore de match joué — le tournoi n'a pas commencé.";
 
-  const { data: topTeams } = await supabase
-    .from("teams")
-    .select("name, total_points")
-    .order("total_points", { ascending: false })
-    .limit(5);
+  // Classement = score CALCULÉ (source unique), jamais teams.total_points
+  // (dette de seed). Même agrégateur que getLeaderboard / les pages équipes.
+  const { data: allTeams } = await supabase.from("teams").select("id, name");
+  const scores = await computeTeamScores(supabase, (allTeams ?? []).map((t) => t.id));
+  const ranked = (allTeams ?? [])
+    .map((t) => ({ name: t.name, total: scores.get(t.id)?.total ?? 0 }))
+    .sort((a, b) => b.total - a.total);
 
-  const leaderboardSummary = topTeams?.length
-    ? topTeams.map((t, i) => `${i + 1}. ${t.name} (${t.total_points ?? 0} pts)`).join("  ")
+  const leaderboardSummary = ranked.some((t) => t.total > 0)
+    ? ranked.slice(0, 5).map((t, i) => `${i + 1}. ${t.name} (${t.total} pts)`).join("  ")
     : "Classement à venir — aucun point distribué.";
 
-  const failTeam =
-    topTeams && topTeams.length > 1 ? topTeams[topTeams.length - 1].name : "—";
+  const failTeam = ranked.length > 1 ? ranked[ranked.length - 1].name : "—";
 
   const { data: nextMatch } = await supabase
     .from("matches")

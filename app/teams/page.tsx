@@ -4,8 +4,9 @@ import { TeamCard } from "@/components/teams/TeamCard";
 export const revalidate = 60;
 
 export default async function TeamsPage() {
-  const teams = await getTeams();
-  const sorted = [...teams].sort((a, b) => b.total_points - a.total_points);
+  // getTeams() renvoie déjà trié par score CALCULÉ (source unique) —
+  // plus aucun tri sur teams.total_points (dette de seed).
+  const sorted = await getTeams();
 
   return (
     <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto">
