@@ -30,11 +30,15 @@ export const PILLAR_WEIGHTS: Record<Pillar, number> = {
 
 // Max brut attendu par pilier sur TOUTE la Coupe. Unique paramètre de
 // calibration — à ajuster ICI avant lancement, figé ensuite.
+// Calibré pour un événement « grand » (~20 actifs/équipe, nombreuses
+// sessions quiz + défis). Biais volontaire : pronos haut = garde-fou
+// anti-écrasement (mieux vaut surestimer le pilier dominant). Vérifiable
+// via /admin/scoring (preview) — NE PLUS MODIFIER après le coup d'envoi.
 export const EXPECTED_MAX_RAW: Record<Pillar, number> = {
-  pronostics: 3000,
-  quiz: 1500,
-  babyfoot: 300,
-  animations: 500,
+  pronostics: 7000,
+  quiz: 6000,
+  babyfoot: 500,
+  animations: 700,
   votes: 1, // inutilisé (poids 0) — évite la division par 0
 };
 
