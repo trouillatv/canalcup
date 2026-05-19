@@ -39,6 +39,11 @@ export async function getLeaderboard(): Promise<LeaderboardRow[]> {
       .select("*");
     if (error || !teams?.length) return MOCK_LEADERBOARD;
 
+    // NOTE (différé) : les animations écrivent dans `score_events` (cf.
+    // /api/admin/challenges). Étape ultérieure = sommer score_events ici
+    // (avec pondération par catégorie pour éviter la domination pronostics).
+    // Volontairement non câblé pour l'instant — pas de double comptage.
+
     // Fetch all scoring tables in parallel
     const [
       { data: predPoints },

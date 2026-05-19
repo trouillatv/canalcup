@@ -13,6 +13,13 @@ export type UserRole = "user" | "admin" | "event_admin" | "super_admin";
 export type TeamRole = "captain" | "member";
 export type TournamentPhase = "group_stage" | "round_of_16" | "quarter_final" | "semi_final" | "final";
 export type BonusPredictionType = "winner" | "top_scorer";
+export type ChallengeCategory = "challenges" | "social";
+export type ChallengeStatus = "upcoming" | "live" | "finished" | "hidden";
+export type ChallengeEntryStatus = "pending" | "approved" | "hidden";
+export type ScoreCategory = "predictions" | "quiz" | "challenges" | "babyfoot" | "social" | "bonus";
+export type ScoreSourceType =
+  | "challenge_entry" | "manual_admin" | "quiz_answer"
+  | "babyfoot_match" | "prediction" | "vote" | "award";
 
 // ─── Core entities ────────────────────────────────────────────────────────────
 
@@ -250,6 +257,58 @@ export interface InboxEvent {
   message: string;
   type: InboxEventType;
   is_read: boolean;
+  created_at: string;
+}
+
+// ─── Challenges & scoring ────────────────────────────────────────────────────
+
+export interface Challenge {
+  id: string;
+  slug: string;
+  title: string;
+  emoji: string;
+  description: string;
+  rules?: string;
+  location?: string;
+  duration_minutes?: number;
+  max_points: number;
+  category: ChallengeCategory;
+  phase: number;
+  status: ChallengeStatus;
+  sort_order: number;
+  created_at: string;
+  // Relations
+  entries?: ChallengeEntry[];
+}
+
+export interface ChallengeEntry {
+  id: string;
+  challenge_id: string;
+  team_id: string;
+  user_id?: string;
+  title?: string;
+  content?: string;
+  image_url?: string;
+  points_awarded: number;
+  status: ChallengeEntryStatus;
+  created_at: string;
+  // Relations
+  team?: Team;
+  challenge?: Challenge;
+}
+
+// Source de scoring générique — toute activité écrit ici (jamais directement
+// dans teams.total_points). Sommé par le leaderboard dans une étape ultérieure.
+export interface ScoreEvent {
+  id: string;
+  team_id: string;
+  user_id?: string;
+  category: ScoreCategory;
+  source_type: ScoreSourceType;
+  source_id?: string;
+  raw_points: number;
+  label: string;
+  description?: string;
   created_at: string;
 }
 

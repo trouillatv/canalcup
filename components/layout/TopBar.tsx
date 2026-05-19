@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, Tv, Inbox, Newspaper, Gamepad2 } from "lucide-react";
+import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, Tv, Inbox, Newspaper, Gamepad2, PartyPopper } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ const MENU_ITEMS = [
   { href: "/matches",    icon: Calendar,  label: "Matchs & Pronostics" },
   { href: "/teams",      icon: Users,     label: "Équipes" },
   { href: "/babyfoot",   icon: Gamepad2,  label: "Babyfoot" },
+  { href: "/animations", icon: PartyPopper, label: "Animations" },
   { href: "/inbox",      icon: Inbox,     label: "Inbox" },
   { href: "/revivez",    icon: Newspaper, label: "Revivez" },
   { href: "/tv",         icon: Tv,        label: "Mode TV" },
@@ -154,6 +155,7 @@ export function TopBar() {
                 { href: "/admin/quiz", label: "Quiz" },
                 { href: "/admin/matches", label: "Matchs" },
                 { href: "/admin/teams", label: "Équipes" },
+                { href: "/admin/challenges", label: "Animations" },
                 { href: "/admin/babyfoot", label: "Babyfoot — matchs" },
                 { href: "/admin/babyfoot/teams", label: "Babyfoot — équipes" },
                 { href: "/admin/users", label: "Utilisateurs" },

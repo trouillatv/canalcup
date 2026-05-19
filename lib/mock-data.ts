@@ -1,7 +1,8 @@
 // Données mock complètes pour développement sans Supabase
 import type {
   Team, Match, MorningBrief, RevivezPost,
-  BabyFootMatch, QuizQuestion, InboxEvent, LeaderboardRow, PredictionTrend
+  BabyFootMatch, QuizQuestion, InboxEvent, LeaderboardRow, PredictionTrend,
+  Challenge, ChallengeEntry
 } from "./supabase/types";
 
 export const MOCK_TEAMS: Team[] = [
@@ -264,6 +265,96 @@ export const MOCK_LEADERBOARD: LeaderboardRow[] = [
     team: MOCK_TEAMS[2],
     points_predictions: 30, points_quiz: 12, points_babyfoot: 12, points_votes: 7, points_bonus: 0,
     total: 61, rank: 3,
+  },
+];
+
+export const MOCK_CHALLENGES: Challenge[] = [
+  {
+    id: "77777777-0000-0000-0000-000000000001",
+    slug: "qui-est-ce-joueur", title: "Qui est ce joueur ?", emoji: "🕵️",
+    description: "Reconnaissez le joueur de Coupe du Monde à partir d'indices de plus en plus évidents. La culture foot du bureau au grand jour.",
+    rules: "L'animateur projette une silhouette puis des indices (club, sélection, poste). Chaque équipe écrit sa réponse. Bonne réponse aux premiers indices = plus de points.",
+    location: "Salle de projection", duration_minutes: 20, max_points: 40,
+    category: "challenges", phase: 1, status: "upcoming", sort_order: 10,
+    created_at: "2026-06-01T00:00:00Z",
+  },
+  {
+    id: "77777777-0000-0000-0000-000000000002",
+    slug: "reconnaitre-hymne", title: "Reconnaître l'hymne", emoji: "🎵",
+    description: "Un extrait d'hymne national, une nation à deviner. Les supporters s'enflamment, les experts doutent.",
+    rules: "L'animateur diffuse un extrait d'hymne. La première équipe à lever la main et répondre juste marque.",
+    location: "Salle de projection", duration_minutes: 15, max_points: 30,
+    category: "challenges", phase: 1, status: "upcoming", sort_order: 20,
+    created_at: "2026-06-01T00:00:00Z",
+  },
+  {
+    id: "77777777-0000-0000-0000-000000000003",
+    slug: "le-commentateur", title: "Le Commentateur Canal+", emoji: "🎙️",
+    description: "Commentez une action de légende façon Canal+. 30 secondes pour faire vibrer la salle (et le jury).",
+    rules: "Chaque équipe désigne un commentateur. Action muette projetée, commentaire en direct. Le jury note la prestation.",
+    location: "Scène principale", duration_minutes: 25, max_points: 50,
+    category: "challenges", phase: 1, status: "upcoming", sort_order: 30,
+    created_at: "2026-06-01T00:00:00Z",
+  },
+  {
+    id: "77777777-0000-0000-0000-000000000004",
+    slug: "concours-jongle", title: "Concours de jongle", emoji: "⚽",
+    description: "Le défi le plus simple du monde. En théorie. Un ballon, vos pieds, la pression de tout l'open space.",
+    rules: "Un représentant par équipe. Nombre de jongles enchaînées sans faute.",
+    location: "Hall / extérieur", duration_minutes: 20, max_points: 40,
+    category: "challenges", phase: 1, status: "upcoming", sort_order: 40,
+    created_at: "2026-06-01T00:00:00Z",
+  },
+  {
+    id: "77777777-0000-0000-0000-000000000005",
+    slug: "le-bureau-parle", title: "Le Bureau Parle", emoji: "🗣️",
+    description: "Le grand quiz oral collaboratif : foot, Canal+, culture G. Toute l'équipe répond, dans la bonne humeur.",
+    rules: "Questions posées à l'oral à chaque équipe à tour de rôle. Réponse juste = points.",
+    location: "Salle de réunion", duration_minutes: 30, max_points: 60,
+    category: "challenges", phase: 1, status: "upcoming", sort_order: 50,
+    created_at: "2026-06-01T00:00:00Z",
+  },
+  {
+    id: "77777777-0000-0000-0000-000000000006",
+    slug: "photo-supporters", title: "Photo des supporters", emoji: "📸",
+    description: "La plus belle photo d'équipe supporter du tournoi. Créativité, ambiance, esprit Canal Cup.",
+    rules: "Phase 2 — Chaque équipe soumet une photo. Vote des autres équipes + coup de cœur du jury.",
+    location: "Partout", duration_minutes: undefined, max_points: 30,
+    category: "social", phase: 2, status: "upcoming", sort_order: 60,
+    created_at: "2026-06-01T00:00:00Z",
+  },
+  {
+    id: "77777777-0000-0000-0000-000000000007",
+    slug: "musee-canal-cup", title: "Musée Canal Cup", emoji: "🏛️",
+    description: "L'archive vivante du tournoi : meilleurs moments, fails légendaires, citations cultes. 0 point, 100% de plaisir.",
+    rules: "Phase 2 — Galerie consultable, sans scoring. La mémoire collective de la Canal Cup.",
+    location: "En ligne", duration_minutes: undefined, max_points: 0,
+    category: "social", phase: 2, status: "upcoming", sort_order: 70,
+    created_at: "2026-06-01T00:00:00Z",
+  },
+];
+
+export const MOCK_CHALLENGE_ENTRIES: ChallengeEntry[] = [
+  {
+    id: "88888888-0000-0000-0000-000000000001",
+    challenge_id: "77777777-0000-0000-0000-000000000001",
+    team_id: "11111111-0000-0000-0000-000000000001",
+    title: "Réponse : Kylian Mbappé", points_awarded: 40, status: "approved",
+    created_at: "2026-06-12T15:00:00Z", team: MOCK_TEAMS[0],
+  },
+  {
+    id: "88888888-0000-0000-0000-000000000002",
+    challenge_id: "77777777-0000-0000-0000-000000000001",
+    team_id: "11111111-0000-0000-0000-000000000002",
+    title: "Réponse : Vinícius Jr", points_awarded: 20, status: "approved",
+    created_at: "2026-06-12T15:01:00Z", team: MOCK_TEAMS[1],
+  },
+  {
+    id: "88888888-0000-0000-0000-000000000003",
+    challenge_id: "77777777-0000-0000-0000-000000000005",
+    team_id: "11111111-0000-0000-0000-000000000003",
+    title: "Manche 1 — 8/10 bonnes réponses", points_awarded: 0, status: "pending",
+    created_at: "2026-06-13T11:00:00Z", team: MOCK_TEAMS[2],
   },
 ];
 
