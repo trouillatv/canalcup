@@ -165,6 +165,29 @@ def kader_url_for(slug: str, tm_id: str) -> str:
     return f"{TM_BASE}/{slug}/kader/verein/{tm_id}/saison_id/2025/plus/1"
 
 
+# ── Alias joueur source → nom Transfermarkt (cas non rapprochables auto) ──────
+# Uniquement quand le MÊME joueur est listé sous une autre forme sur TM et que
+# ni le nom exact normalisé ni le nom de famille ne suffisent :
+#   - « ł » (U+0142) non décomposé par NFD → norm() le supprime (Bułka→buka)
+#   - translittération (Matviyenko/Matvienko, Konoplia/Konoplya)
+#   - prénom/nom inversés (Nene Dorgeles ↔ Dorgeles Nene)
+#   - mononyme TM (Nouhou Tolo → Nouhou)
+# Consulté EN DERNIER recours dans enrich_team : ne se déclenche que pour ces
+# paires (équipe, joueur) qui échouent déjà → aucun impact sur les autres.
+# (team_fr, nom_source) → nom_tel_que_sur_TM
+PLAYER_ALIAS: list[tuple[str, str, str]] = [
+    ("Pologne",  "Marcin Bułka",      "Marcin Bulka"),
+    ("Ukraine",  "Mykola Matviyenko", "Mykola Matvienko"),
+    ("Ukraine",  "Yukhym Konoplia",   "Yukhym Konoplya"),
+    ("Mali",     "Nene Dorgeles",     "Dorgeles Nene"),
+    ("Cameroun", "Nouhou Tolo",       "Nouhou"),
+]
+# Index normalisé : (norm équipe, norm joueur source) → norm nom TM cible.
+_ALIAS_INDEX: dict[tuple[str, str], str] = {
+    (norm(tm), norm(src)): norm(dst) for tm, src, dst in PLAYER_ALIAS
+}
+
+
 # ── Couche HTTP polie : robots + cache + retry + délai ───────────────────────
 class Fetcher:
     def __init__(self, delay: tuple[float, float], use_cache: bool, refresh: bool):
@@ -453,6 +476,11 @@ def enrich_team(
             match = next(
                 (v for k, v in tm_index.items() if last and k.endswith(last)), None
             )
+        if not match:
+            # dernier recours : alias explicite (orthographe/ordre TM connu)
+            alias = _ALIAS_INDEX.get((norm(tname), norm(pname)))
+            if alias:
+                match = tm_index.get(alias)
         if not match:
             report["players_not_found"].append({"team": tname, "player": pname})
             continue
