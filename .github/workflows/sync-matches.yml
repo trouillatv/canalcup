@@ -1,0 +1,77 @@
+# Ping /api/cron/sync-matches toutes les ~15 min PENDANT la Coupe du Monde.
+#
+# Pourquoi : le cron Vercel (plan Hobby) est plafonné à 1×/jour
+# ("0 8 * * *"). Or ce endpoint fait tout le temps réel : scores live,
+# matchs terminés, SETTLEMENT des pronos, classement. Sans ce ping
+# externe, points & classement accusent jusqu'à ~24 h de retard.
+#
+# Cron EXTERNE GitHub Actions — gratuit, même pattern que
+# enrich-selection.yml. Ne touche PAS au code de l'app : il appelle
+# juste l'endpoint déjà sécurisé (Authorization: Bearer CRON_SECRET).
+# L'endpoint est idempotent (claim atomique is_settled) → re-ping sûr.
+#
+# Secrets repo requis (Settings → Secrets and variables → Actions) :
+#   - CRON_SECRET  : même valeur que la var d'env Vercel CRON_SECRET
+#   - APP_BASE_URL : URL prod (ex. https://canalcup.vercel.app — sans / final)
+#
+# Fenêtre : 11/06/2026 → 19/07/2026. Hors fenêtre, le job sort en
+# succès sans rien appeler (garde de date ci-dessous) → ne tourne pas
+# toute l'année. Échec d'appel = NON bloquant (exit 0, log seulement).
+
+name: Sync matchs WC2026 (live, externe)
+
+on:
+  schedule:
+    # Toutes les 15 min (UTC). GitHub Actions = best-effort : sous charge
+    # le déclenchement peut être différé de quelques minutes (acceptable
+    # ici, l'endpoint est idempotent).
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+# Jamais 2 syncs concurrents (cohabite avec le cron Vercel quotidien).
+concurrency:
+  group: sync-matches
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Garde de fenêtre Coupe du Monde
+        id: window
+        run: |
+          TODAY="$(date -u +%Y-%m-%d)"
+          START="2026-06-11"
+          END="2026-07-19"
+          if [[ "$TODAY" < "$START" || "$TODAY" > "$END" ]]; then
+            echo "[$TODAY] hors fenêtre CdM ($START → $END) — skip."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "[$TODAY] dans la fenêtre CdM — sync."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Ping /api/cron/sync-matches
+        if: steps.window.outputs.run == 'true'
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+        # Échec NON bloquant : on log le code HTTP + le corps, on sort 0
+        # quoi qu'il arrive (un sync raté sera rattrapé au ping suivant).
+        run: |
+          if [ -z "$CRON_SECRET" ] || [ -z "$APP_BASE_URL" ]; then
+            echo "::warning::CRON_SECRET ou APP_BASE_URL manquant — skip."
+            exit 0
+          fi
+          URL="${APP_BASE_URL%/}/api/cron/sync-matches"
+          echo "→ GET $URL ($(date -u +%H:%M:%SZ))"
+          CODE=$(curl -sS -m 90 -o /tmp/sync.out -w "%{http_code}" \
+            -H "Authorization: Bearer $CRON_SECRET" "$URL" || echo "000")
+          echo "HTTP $CODE"
+          echo "--- réponse ---"; cat /tmp/sync.out 2>/dev/null | head -c 2000; echo
+          if [ "$CODE" != "200" ]; then
+            echo "::warning::sync HTTP $CODE (non bloquant — rattrapé au prochain ping)"
+          fi
+          exit 0
