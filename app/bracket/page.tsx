@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Trophy } from "lucide-react";
 import { teamFlag, toNCDate, toNCTime } from "@/lib/utils";
@@ -215,16 +216,22 @@ function BracketStandard({ data }: { data: BracketData }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function BracketPage() {
+function BracketPageInner() {
+  const groupParam = useSearchParams().get("group");
   const [data, setData] = useState<BracketData | null>(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("standard");
 
-  // Persist view preference
+  // Deep-link "?group=X" (depuis une fiche équipe) → vue fifa sur la poule.
+  // Sinon, préférence de vue persistée.
   useEffect(() => {
+    if (groupParam) {
+      setView("fifa");
+      return;
+    }
     const saved = localStorage.getItem(VIEW_KEY);
     if (saved) setView(saved);
-  }, []);
+  }, [groupParam]);
 
   const handleViewChange = (v: string) => {
     setView(v);
@@ -265,7 +272,7 @@ export default function BracketPage() {
         {data && (
           <>
             {view === "standard" && <BracketStandard data={data} />}
-            {view === "fifa" && <BracketFifa data={data} />}
+            {view === "fifa" && <BracketFifa data={data} initialGroup={groupParam} />}
             {view === "compact" && <BracketCompact data={data} />}
           </>
         )}
@@ -278,5 +285,13 @@ export default function BracketPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function BracketPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-canal-black" />}>
+      <BracketPageInner />
+    </Suspense>
   );
 }

@@ -258,11 +258,18 @@ function GroupMatchRow({ m }: { m: MatchRow }) {
 function GroupTabs({
   standings,
   matchesByLetter,
+  initialGroup,
 }: {
   standings: Record<string, StandingRow[]>;
   matchesByLetter: Record<string, MatchRow[]>;
+  initialGroup?: string | null;
 }) {
-  const [active, setActive] = useState(WC2026_GROUPS[0]?.letter ?? "A");
+  const [active, setActive] = useState(() => {
+    const wanted = (initialGroup ?? "").toUpperCase();
+    return WC2026_GROUPS.some((g) => g.letter === wanted)
+      ? wanted
+      : WC2026_GROUPS[0]?.letter ?? "A";
+  });
 
   // Live standings (if the tournament has data) keyed by group letter
   const liveByLetter: Record<string, StandingRow[]> = {};
@@ -410,7 +417,7 @@ function normTeam(n: string): string {
 const TEAM_LETTER: Record<string, string> = {};
 for (const g of WC2026_GROUPS) for (const t of g.teams) TEAM_LETTER[normTeam(t)] = g.letter;
 
-export function BracketFifa({ data }: { data: BracketData }) {
+export function BracketFifa({ data, initialGroup }: { data: BracketData; initialGroup?: string | null }) {
   const thirdPlace = data.phases.find((p) => p.phase === "3ème place");
 
   // Vrais matchs de phase de groupes, regroupés par poule (A–L). Résolution :
@@ -482,7 +489,7 @@ export function BracketFifa({ data }: { data: BracketData }) {
   return (
     <div className="space-y-10">
       {/* Group phase — one tab per pool (always shown for a WC bracket) */}
-      <GroupTabs standings={data.standings} matchesByLetter={matchesByLetter} />
+      <GroupTabs standings={data.standings} matchesByLetter={matchesByLetter} initialGroup={initialGroup} />
 
       {/* Knockout bracket — toujours affiché (échafaudé si équipes inconnues) */}
       <div>

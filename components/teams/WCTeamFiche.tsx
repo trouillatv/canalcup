@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ArrowLeft, Users, Newspaper, TrendingUp, Shirt, BarChart3, Award } from "lucide-react";
 import { teamFlag, cn } from "@/lib/utils";
 import { formCode, type WCTeam } from "@/lib/football/wc-teams";
+import { groupLetterForTeam } from "@/lib/football/groups-2026";
 
 type TabKey = "effectif" | "infos" | "forme";
 
@@ -186,6 +188,8 @@ export function WCTeamFiche({ team }: { team: WCTeam }) {
   const [effectifView, setEffectifView] = useState<EffectifView>("club");
   const [compStats, setCompStats] = useState<Record<string, PlayerCompStat> | null>(null);
   const grouped = groupPlayers(team.players);
+  // Poule officielle (bracket) de l'équipe — null si hors tirage des 48.
+  const poolLetter = groupLetterForTeam(team.name);
 
   // Charge les stats compétition une seule fois, à la 1re bascule "stats".
   useEffect(() => {
@@ -236,8 +240,18 @@ export function WCTeamFiche({ team }: { team: WCTeam }) {
           <div className="flex-1 min-w-0">
             <h1 className="canal-headline text-xl truncate">{team.name}</h1>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
-              {team.group && (
-                <span className="text-canal-yellow text-xs font-bold">Poule {team.group}</span>
+              {poolLetter ? (
+                <Link
+                  href={`/bracket?group=${poolLetter}`}
+                  className="text-canal-yellow text-xs font-bold hover:underline underline-offset-2"
+                  title={`Voir la poule ${poolLetter} dans le tableau de la Coupe`}
+                >
+                  Poule {poolLetter} →
+                </Link>
+              ) : (
+                team.group && (
+                  <span className="text-canal-yellow text-xs font-bold">Poule {team.group}</span>
+                )
               )}
               {team.squadValue && (
                 <span className="text-canal-gray-muted text-xs">

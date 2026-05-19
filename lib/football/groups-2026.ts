@@ -37,3 +37,33 @@ for (const g of WC2026_GROUPS) {
 export function groupOfTeam(teamFr: string): string | null {
   return TEAM_TO_GROUP[teamFr] ?? null;
 }
+
+// Rapprochement robuste (accents/casse/alias) — pour relier une fiche
+// équipe (nom docs) à sa poule officielle. Renvoie null si l'équipe n'est
+// pas dans le tirage des 48 (ex. sélections hors phase finale).
+function normTeamName(n: string): string {
+  return n
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+const TEAM_TO_GROUP_NORM: Record<string, string> = {};
+for (const g of WC2026_GROUPS) {
+  for (const t of g.teams) TEAM_TO_GROUP_NORM[normTeamName(t)] = g.letter;
+}
+// Noms divergents entre la donnée docs (data/wc-teams.json) et le tirage.
+const TEAM_NAME_ALIASES: Record<string, string> = {
+  [normTeamName("Tchéquie")]: normTeamName("République Tchèque"),
+};
+
+export function groupLetterForTeam(name: string): string | null {
+  if (!name) return null;
+  const key = normTeamName(name);
+  return (
+    TEAM_TO_GROUP_NORM[key] ??
+    TEAM_TO_GROUP_NORM[TEAM_NAME_ALIASES[key] ?? ""] ??
+    null
+  );
+}
