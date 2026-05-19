@@ -50,19 +50,64 @@ async function syncScoreEvent(
     maxPts > 0
       ? Math.min(PARTICIPATION_MIN_POINTS, maxPts)
       : PARTICIPATION_MIN_POINTS;
-  const rawPoints = Math.max(entry.points_awarded ?? 0, floor);
-  if (rawPoints <= 0) return; // sécurité si plancher désactivé (=0) et 0 attribué
+  const total = Math.max(entry.points_awarded ?? 0, floor);
+  if (total <= 0) return; // sécurité si plancher désactivé (=0) et 0 attribué
 
-  await supabase.from("score_events").insert({
-    team_id: entry.team_id,
-    user_id: entry.user_id ?? null,
-    category: ch?.category === "social" ? "social" : "challenges",
-    source_type: "challenge_entry",
-    source_id: entry.id,
-    raw_points: rawPoints,
-    label: ch?.title ?? "Animation",
-    description: entry.title ?? null,
-  });
+  const category = ch?.category === "social" ? "social" : "challenges";
+  const label = ch?.title ?? "Animation";
+  const description = entry.title ?? null;
+
+  // Participants (phase 2.A) : si la table en a, on distribue à parts
+  // entières égales ; chacun crédite SON équipe Canal Cup.
+  const { data: parts } = await supabase
+    .from("challenge_entry_participants")
+    .select("user_id, user:users(team_id)")
+    .eq("entry_id", entry.id);
+  const participants = (parts ?? []) as Array<{
+    user_id: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    user: any;
+  }>;
+
+  if (participants.length === 0) {
+    // Aucune participation enregistrée (entry "team-level" historique) →
+    // 1 ligne au team_id de l'entry, comportement préservé.
+    await supabase.from("score_events").insert({
+      team_id: entry.team_id,
+      user_id: entry.user_id ?? null,
+      category,
+      source_type: "challenge_entry",
+      source_id: entry.id,
+      raw_points: total,
+      label,
+      description,
+    });
+    return;
+  }
+
+  // N participants → division entière égale. N inclut TOUS les membres
+  // (même sans team_id) pour préserver l'équité de groupe ; les membres
+  // sans équipe perdent leur part (pas d'équipe à créditer).
+  const N = participants.length;
+  const share = Math.floor(total / N);
+  if (share <= 0) return; // total < N → personne ne récupère de part entière
+
+  const rows = participants
+    .filter((p) => p.user?.team_id)
+    .map((p) => ({
+      team_id: p.user.team_id as string,
+      user_id: p.user_id,
+      category,
+      source_type: "challenge_entry",
+      source_id: entry.id,
+      raw_points: share,
+      label,
+      description,
+    }));
+
+  if (rows.length > 0) {
+    await supabase.from("score_events").insert(rows);
+  }
 }
 
 // GET — challenges + participations (triées par sort_order puis date).
@@ -80,14 +125,38 @@ export async function GET(req: Request) {
   return NextResponse.json({ challenges: challenges ?? [], entries: entries ?? [] });
 }
 
-// POST — créer une participation manuelle.
+// POST — créer une participation manuelle (avec participants optionnels).
 export async function POST(req: Request) {
   if (!guard(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const supabase = createAdminClient();
-  const { challenge_id, team_id, title, content } = await req.json();
+  const { challenge_id, team_id, title, content, participant_user_ids } = await req.json();
 
   if (!challenge_id || !team_id) {
     return NextResponse.json({ error: "challenge_id et team_id requis" }, { status: 400 });
+  }
+
+  // Liste de participants déduit/dédoublonnée (phase 2.A). Validation
+  // anti-multi pour les défis solo AVANT d'insérer l'entry (zéro orphelin).
+  const ids = Array.isArray(participant_user_ids)
+    ? [...new Set(
+        (participant_user_ids as unknown[]).filter(
+          (x): x is string => typeof x === "string" && x.length > 0
+        )
+      )]
+    : [];
+  if (ids.length > 1) {
+    const { data: ch } = await supabase
+      .from("challenges")
+      .select("allows_group")
+      .eq("id", challenge_id)
+      .single();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (!(ch as any)?.allows_group) {
+      return NextResponse.json(
+        { error: "Ce défi est en solo — un seul participant autorisé." },
+        { status: 400 }
+      );
+    }
   }
 
   const { data, error } = await supabase
@@ -104,6 +173,13 @@ export async function POST(req: Request) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if (ids.length > 0) {
+    await supabase
+      .from("challenge_entry_participants")
+      .insert(ids.map((user_id) => ({ entry_id: data.id, user_id })));
+  }
+
   return NextResponse.json(data, { status: 201 });
 }
 
@@ -126,16 +202,39 @@ export async function PATCH(req: Request) {
     return NextResponse.json(data);
   }
 
-  // Participation : points et/ou statut.
-  const { entry_id, points_awarded, status } = body;
+  // Participation : points, statut et/ou liste de participants.
+  const { entry_id, points_awarded, status, participant_user_ids } = body;
   if (!entry_id) return NextResponse.json({ error: "entry_id requis" }, { status: 400 });
 
   const { data: current } = await supabase
     .from("challenge_entries")
-    .select("id, challenge:challenges(max_points)")
+    .select("id, challenge:challenges(max_points, allows_group)")
     .eq("id", entry_id)
     .single();
   if (!current) return NextResponse.json({ error: "Participation introuvable" }, { status: 404 });
+
+  // Remplacement éventuel des participants (phase 2.A). Validé contre
+  // allows_group avant toute écriture.
+  if (Array.isArray(participant_user_ids)) {
+    const ids = [...new Set(
+      (participant_user_ids as unknown[]).filter(
+        (x): x is string => typeof x === "string" && x.length > 0
+      )
+    )];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (ids.length > 1 && !(current as any).challenge?.allows_group) {
+      return NextResponse.json(
+        { error: "Ce défi est en solo — un seul participant autorisé." },
+        { status: 400 }
+      );
+    }
+    await supabase.from("challenge_entry_participants").delete().eq("entry_id", entry_id);
+    if (ids.length > 0) {
+      await supabase
+        .from("challenge_entry_participants")
+        .insert(ids.map((user_id) => ({ entry_id, user_id })));
+    }
+  }
 
   const updates: Record<string, unknown> = {};
   if (points_awarded !== undefined) {
@@ -148,11 +247,15 @@ export async function PATCH(req: Request) {
   }
   if (status !== undefined) updates.status = status;
 
-  const { error: uErr } = await supabase
-    .from("challenge_entries")
-    .update(updates)
-    .eq("id", entry_id);
-  if (uErr) return NextResponse.json({ error: uErr.message }, { status: 500 });
+  // Update conditionnel : un PATCH "participants seulement" ne touche pas
+  // aux colonnes scalaires de l'entry mais déclenche quand même syncScoreEvent.
+  if (Object.keys(updates).length > 0) {
+    const { error: uErr } = await supabase
+      .from("challenge_entries")
+      .update(updates)
+      .eq("id", entry_id);
+    if (uErr) return NextResponse.json({ error: uErr.message }, { status: 500 });
+  }
 
   await syncScoreEvent(supabase, entry_id);
 
