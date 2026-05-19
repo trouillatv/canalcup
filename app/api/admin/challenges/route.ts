@@ -17,7 +17,7 @@ function guard(req: Request): boolean {
 }
 
 const ENTRY_SELECT =
-  "*, team:teams(id, name, slogan, color), challenge:challenges(id, slug, title, category, max_points)";
+  "*, team:teams(id, name, slogan, color), challenge:challenges(id, slug, title, category, max_points, allows_group), participants:challenge_entry_participants(user_id, user:users(id, display_name, name, team_id))";
 
 // Recalcule la ligne score_events d'une participation depuis son état courant.
 async function syncScoreEvent(
@@ -115,14 +115,28 @@ export async function GET(req: Request) {
   if (!guard(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const supabase = createAdminClient();
 
-  const [{ data: challenges, error: cErr }, { data: entries, error: eErr }] = await Promise.all([
+  const [
+    { data: challenges, error: cErr },
+    { data: entries, error: eErr },
+    { data: users },
+  ] = await Promise.all([
     supabase.from("challenges").select("*").order("sort_order", { ascending: true }),
     supabase.from("challenge_entries").select(ENTRY_SELECT).order("created_at", { ascending: false }),
+    // Users light : sert au picker de participants côté UI admin (phase 2.B).
+    supabase
+      .from("users")
+      .select("id, name, display_name, team_id, team:teams(id, name, color)")
+      .eq("profile_completed", true)
+      .order("display_name"),
   ]);
 
   if (cErr) return NextResponse.json({ error: cErr.message }, { status: 500 });
   if (eErr) return NextResponse.json({ error: eErr.message }, { status: 500 });
-  return NextResponse.json({ challenges: challenges ?? [], entries: entries ?? [] });
+  return NextResponse.json({
+    challenges: challenges ?? [],
+    entries: entries ?? [],
+    users: users ?? [],
+  });
 }
 
 // POST — créer une participation manuelle (avec participants optionnels).
@@ -190,11 +204,21 @@ export async function PATCH(req: Request) {
   const supabase = createAdminClient();
   const body = await req.json();
 
-  // Statut d'une activité (live/finished/upcoming/hidden).
-  if (body.challenge_id && body.status && !body.entry_id) {
+  // Édition d'une activité (statut et/ou allows_group). Phase 2.B : on
+  // accepte une mise à jour partielle — au moins un champ doit être présent.
+  if (body.challenge_id && !body.entry_id) {
+    const upd: Record<string, unknown> = {};
+    if (body.status !== undefined) upd.status = body.status;
+    if (body.allows_group !== undefined) upd.allows_group = !!body.allows_group;
+    if (Object.keys(upd).length === 0) {
+      return NextResponse.json(
+        { error: "Aucun champ à mettre à jour (status ou allows_group requis)" },
+        { status: 400 }
+      );
+    }
     const { data, error } = await supabase
       .from("challenges")
-      .update({ status: body.status })
+      .update(upd)
       .eq("id", body.challenge_id)
       .select("*")
       .single();

@@ -276,6 +276,8 @@ export interface Challenge {
   phase: number;
   status: ChallengeStatus;
   sort_order: number;
+  // Phase 2.A : si false → solo (1 participant) ; si true → groupe possible.
+  allows_group?: boolean;
   created_at: string;
   // Relations
   entries?: ChallengeEntry[];
@@ -295,6 +297,10 @@ export interface ChallengeEntry {
   // Relations
   team?: Team;
   challenge?: Challenge;
+  // Phase 2.A : participants au sens "groupes par activité". Pour les
+  // entries solo, contient 1 ligne (= user_id de l'entry). Pour les
+  // entries team-level historiques sans user_id, peut être vide.
+  participants?: { user_id: string; user?: { id: string; display_name?: string | null; name?: string | null; team_id?: string | null } | null }[];
 }
 
 // Source de scoring générique — toute activité écrit ici (jamais directement
