@@ -106,7 +106,7 @@ function PlayerEffectifRow({
     view === "club"
       ? `${p.position ?? ""}${p.club ? ` · ${p.club}` : ""}`
       : view === "selection"
-        ? `${p.position ?? ""}${p.club ? ` · ${p.club}` : ""}${p.age ? ` · ${p.age} ans` : ""}`
+        ? `${p.position ?? ""}${p.club ? ` · ${p.club}` : ""}`
         : stat
           ? `${stat.matches} match${stat.matches > 1 ? "s" : ""}${stat.motm ? ` · ⭐ ${stat.motm}` : ""}`
           : `${p.position ?? ""} · pas encore joué`;
@@ -128,6 +128,11 @@ function PlayerEffectifRow({
 
       {view === "selection" && (
         <div className="flex items-center gap-3 shrink-0 tabular-nums">
+          {p.age != null && (
+            <span className="text-xs text-canal-gray-muted" title="Âge">
+              🎂 {p.age} ans
+            </span>
+          )}
           {hasSel ? (
             <>
               <span className="text-xs text-white" title="Sélections (caps)">
@@ -143,9 +148,9 @@ function PlayerEffectifRow({
                 </span>
               )}
             </>
-          ) : (
+          ) : p.age == null ? (
             <span className="text-xs text-canal-gray-muted">—</span>
-          )}
+          ) : null}
         </div>
       )}
 
