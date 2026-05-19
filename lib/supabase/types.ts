@@ -314,14 +314,24 @@ export interface ScoreEvent {
 
 // ─── Leaderboard ─────────────────────────────────────────────────────────────
 
+// Pondéré (G2) : `points_*` = BRUT par pilier (tooltip/détail) ; `weighted`
+// = contributions pondérées affichées au classement (leur somme = `total`).
+// votes = métrique sociale, JAMAIS dans `total`.
 export interface LeaderboardRow {
   team: Team;
-  points_predictions: number;
-  points_quiz: number;
-  points_babyfoot: number;
-  points_votes: number;
-  points_bonus: number;
-  total: number;
+  points_predictions: number; // brut pronos (predictions seules)
+  points_bonus: number; // brut bonus (sous-ensemble du pilier pronostics)
+  points_quiz: number; // brut quiz
+  points_babyfoot: number; // brut babyfoot
+  points_animations: number; // brut animations/challenges/photos (score_events)
+  points_votes: number; // brut votes — SOCIAL, hors total principal
+  weighted: {
+    pronostics: number; // pondéré (predictions + bonus)
+    quiz: number;
+    babyfoot: number;
+    animations: number;
+  };
+  total: number; // = somme des contributions pondérées
   rank: number;
 }
 

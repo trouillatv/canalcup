@@ -4,6 +4,7 @@ import type {
   BabyFootMatch, QuizQuestion, InboxEvent, LeaderboardRow, PredictionTrend,
   Challenge, ChallengeEntry
 } from "./supabase/types";
+import { weightedContribution } from "./scoring/config";
 
 export const MOCK_TEAMS: Team[] = [
   {
@@ -250,22 +251,29 @@ export const MOCK_INBOX: InboxEvent[] = [
   },
 ];
 
+function mockRow(
+  team: Team, rank: number,
+  pred: number, bonus: number, quiz: number, baby: number, anim: number, votes: number
+): LeaderboardRow {
+  const weighted = {
+    pronostics: weightedContribution("pronostics", pred + bonus),
+    quiz: weightedContribution("quiz", quiz),
+    babyfoot: weightedContribution("babyfoot", baby),
+    animations: weightedContribution("animations", anim),
+  };
+  return {
+    team, rank,
+    points_predictions: pred, points_bonus: bonus, points_quiz: quiz,
+    points_babyfoot: baby, points_animations: anim, points_votes: votes,
+    weighted,
+    total: weighted.pronostics + weighted.quiz + weighted.babyfoot + weighted.animations,
+  };
+}
+
 export const MOCK_LEADERBOARD: LeaderboardRow[] = [
-  {
-    team: MOCK_TEAMS[0],
-    points_predictions: 50, points_quiz: 20, points_babyfoot: 10, points_votes: 7, points_bonus: 0,
-    total: 87, rank: 1,
-  },
-  {
-    team: MOCK_TEAMS[1],
-    points_predictions: 35, points_quiz: 15, points_babyfoot: 15, points_votes: 7, points_bonus: 0,
-    total: 72, rank: 2,
-  },
-  {
-    team: MOCK_TEAMS[2],
-    points_predictions: 30, points_quiz: 12, points_babyfoot: 12, points_votes: 7, points_bonus: 0,
-    total: 61, rank: 3,
-  },
+  mockRow(MOCK_TEAMS[0], 1, 1600, 40, 820, 160, 260, 30),
+  mockRow(MOCK_TEAMS[1], 2, 1200, 20, 700, 200, 180, 25),
+  mockRow(MOCK_TEAMS[2], 3, 900, 10, 500, 120, 120, 20),
 ];
 
 export const MOCK_CHALLENGES: Challenge[] = [

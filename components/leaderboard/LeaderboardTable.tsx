@@ -7,6 +7,10 @@ interface LeaderboardTableProps {
   compact?: boolean;
 }
 
+// Colonnes = contributions PONDÉRÉES (leur somme = Total, zéro confusion).
+// Brut visible au survol (title) ; détail complet sur la fiche équipe
+// (la ligne est un lien vers /teams/[id] → ScoreBreakdown). Votes exclus
+// (métrique sociale, affichée séparément ailleurs).
 export function LeaderboardTable({ rows, compact }: LeaderboardTableProps) {
   return (
     <div className="space-y-2">
@@ -14,10 +18,10 @@ export function LeaderboardTable({ rows, compact }: LeaderboardTableProps) {
         <div className="flex text-xs text-canal-gray-muted px-4 py-1">
           <span className="w-8" />
           <span className="flex-1">Équipe</span>
-          <span className="w-12 text-right">Pronos</span>
-          <span className="w-10 text-right">Bonus</span>
-          <span className="w-10 text-right">Quiz</span>
-          <span className="w-10 text-right">Baby</span>
+          <span className="w-11 text-right" title="Pronostics (predictions + bonus), pondéré 35%">Pronos</span>
+          <span className="w-11 text-right" title="Quiz, pondéré 20%">Quiz</span>
+          <span className="w-11 text-right" title="Babyfoot, pondéré 20%">Baby</span>
+          <span className="w-11 text-right" title="Animations / défis / photos, pondéré 25%">Anim</span>
           <span className="w-14 text-right font-bold text-canal-yellow">Total</span>
         </div>
       )}
@@ -53,19 +57,46 @@ export function LeaderboardTable({ rows, compact }: LeaderboardTableProps) {
 
             {!compact && (
               <>
-                <span className="w-12 text-right text-sm text-white">{row.points_predictions}</span>
-                <span className="w-10 text-right text-sm text-white">{row.points_bonus ?? 0}</span>
-                <span className="w-10 text-right text-sm text-white">{row.points_quiz}</span>
-                <span className="w-10 text-right text-sm text-white">{row.points_babyfoot}</span>
+                <span
+                  className="w-11 text-right text-sm text-white tabular-nums"
+                  title={`${row.points_predictions + row.points_bonus} pts bruts`}
+                >
+                  {row.weighted.pronostics}
+                </span>
+                <span
+                  className="w-11 text-right text-sm text-white tabular-nums"
+                  title={`${row.points_quiz} pts bruts`}
+                >
+                  {row.weighted.quiz}
+                </span>
+                <span
+                  className="w-11 text-right text-sm text-white tabular-nums"
+                  title={`${row.points_babyfoot} pts bruts`}
+                >
+                  {row.weighted.babyfoot}
+                </span>
+                <span
+                  className="w-11 text-right text-sm text-white tabular-nums"
+                  title={`${row.points_animations} pts bruts`}
+                >
+                  {row.weighted.animations}
+                </span>
               </>
             )}
 
-            <span className="w-14 text-right font-black text-canal-yellow text-lg">
+            <span className="w-14 text-right font-black text-canal-yellow text-lg tabular-nums">
               {row.total}
             </span>
           </div>
         </Link>
       ))}
+
+      {!compact && (
+        <p className="text-[11px] text-canal-gray-muted px-4 pt-1">
+          Colonnes = points pondérés (somme = Total). Survol/fiche équipe pour
+          le détail brut. Les votes (social) ne comptent pas au classement.
+        </p>
+      )}
     </div>
   );
 }

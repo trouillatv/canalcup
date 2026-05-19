@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTeamById, getLeaderboard } from "@/lib/data/teams";
 import { pointsBadge } from "@/lib/utils";
+import { ScoreBreakdown } from "@/components/scoring/ScoreBreakdown";
 import { Users, Star, Trophy } from "lucide-react";
 
 export const revalidate = 60;
@@ -43,18 +44,8 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
           <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider mb-3">
             <Trophy size={14} className="inline mr-1" />Décomposition des points
           </h2>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: "Pronostics", value: lbRow.points_predictions },
-              { label: "Quiz", value: lbRow.points_quiz },
-              { label: "Babyfoot", value: lbRow.points_babyfoot },
-              { label: "Votes", value: lbRow.points_votes },
-            ].map(({ label, value }) => (
-              <div key={label} className="canal-card text-center">
-                <p className="text-canal-yellow font-black text-2xl">{value}</p>
-                <p className="text-canal-gray-muted text-xs mt-1">{label}</p>
-              </div>
-            ))}
+          <div className="canal-card">
+            <ScoreBreakdown row={lbRow} />
           </div>
         </section>
       )}

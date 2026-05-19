@@ -1,6 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { MOCK_TEAMS, MOCK_LEADERBOARD } from "@/lib/mock-data";
 import type { Team, LeaderboardRow } from "@/lib/supabase/types";
+import {
+  SCORE_EVENT_CATEGORIES_IN_TOTAL,
+  weightedContribution,
+} from "@/lib/scoring/config";
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  SOURCE UNIQUE DE VÉRITÉ DU SCORE ÉQUIPE
@@ -11,22 +15,43 @@ import type { Team, LeaderboardRow } from "@/lib/supabase/types";
 //  recalculé ici depuis les tables de scoring granulaires, via la MÊME
 //  fonction → mêmes points partout, toujours.
 //
-//  score_events (scoring des animations) : volontairement PAS encore sommé
-//  ici tant que la pondération globale n'est pas validée (éviter que les
-//  pronos écrasent tout / double comptage). Point d'extension balisé plus
-//  bas (TODO score_events) — branchement futur = 2 lignes.
+//  PONDÉRATION (G2) : chaque pilier est normalisé puis pondéré selon
+//  lib/scoring/config (35 % pronos / 20 quiz / 20 baby / 25 anim / 0 votes).
+//  total = Σ contributions pondérées → les pronos ne peuvent pas écraser.
+//  Anti double comptage : pronos/quiz/baby/votes lus dans leurs tables
+//  natives ; animations UNIQUEMENT depuis score_events (catégories de
+//  l'allowlist) ; toute catégorie inconnue est ignorée + warning. Les
+//  votes restent calculés (métrique sociale) mais EXCLUS du total.
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface TeamBreakdown {
-  pp: number; // pronos
-  bonus: number; // bonus_predictions (ex. perfect streak)
-  qp: number; // quiz
-  bp: number; // babyfoot (10 pts / victoire)
-  vp: number; // votes reçus
-  total: number;
+  // Bruts par pilier (tooltip / fiche / détail)
+  predRaw: number; // pronos (predictions)
+  bonusRaw: number; // bonus_predictions (ex. perfect streak)
+  quizRaw: number; // quiz
+  babyRaw: number; // babyfoot (10 pts / victoire)
+  animRaw: number; // animations/challenges/photos (score_events allowlist)
+  voteRaw: number; // votes reçus — SOCIAL, hors total
+  // Contributions pondérées (colonnes du classement ; somme = total)
+  weighted: {
+    pronostics: number; // predictions + bonus
+    quiz: number;
+    babyfoot: number;
+    animations: number;
+  };
+  total: number; // = somme des 4 contributions pondérées
 }
 
-const ZERO: TeamBreakdown = { pp: 0, bonus: 0, qp: 0, bp: 0, vp: 0, total: 0 };
+const ZERO: TeamBreakdown = {
+  predRaw: 0,
+  bonusRaw: 0,
+  quizRaw: 0,
+  babyRaw: 0,
+  animRaw: 0,
+  voteRaw: 0,
+  weighted: { pronostics: 0, quiz: 0, babyfoot: 0, animations: 0 },
+  total: 0,
+};
 
 // Accepte aussi bien le client serveur (cookies) que le client admin
 // (service role, ex. crons) — mêmes points calculés quel que soit l'appelant.
@@ -48,18 +73,16 @@ export async function computeTeamScores(
     { data: quizPoints },
     { data: babyPoints },
     { data: votePoints },
+    { data: scoreEvents },
   ] = await Promise.all([
     supabase.from("predictions").select("team_id, points_awarded"),
     supabase.from("bonus_predictions").select("team_id, points_awarded"),
     supabase.from("quiz_answers").select("team_id, points_awarded"),
     supabase.from("babyfoot_matches").select("team_a_id, team_b_id, score_a, score_b, status"),
     supabase.from("votes").select("target_team_id, value"),
+    // Animations : UNIQUEMENT score_events (allowlist de catégories).
+    supabase.from("score_events").select("team_id, category, raw_points"),
   ]);
-  // TODO(score_events) — quand la pondération globale sera validée :
-  //   const { data: sePoints } = await supabase
-  //     .from("score_events").select("team_id, points");
-  //   puis ajouter `se` au total ci-dessous. NON câblé pour l'instant
-  //   (pas de double comptage tant que la pondération n'est pas décidée).
 
   type PointRow = { team_id: string | null; points_awarded: number | null };
   type BabyRow = {
@@ -70,35 +93,76 @@ export async function computeTeamScores(
     status: string | null;
   };
   type VoteRow = { target_team_id: string | null; value: number | null };
+  type SeRow = { team_id: string | null; category: string | null; raw_points: number | null };
 
   const preds = (predPoints ?? []) as PointRow[];
   const bonuses = (bonusPoints ?? []) as PointRow[];
   const quizzes = (quizPoints ?? []) as PointRow[];
   const babies = (babyPoints ?? []) as BabyRow[];
   const votes = (votePoints ?? []) as VoteRow[];
+  const events = (scoreEvents ?? []) as SeRow[];
+
+  // Garde-fou anti double comptage : on ne somme que les catégories de
+  // l'allowlist (pilier animations). Toute autre catégorie est IGNORÉE du
+  // total et signalée une fois (un futur ajout ne fausse pas le score).
+  const allowed = new Set<string>(SCORE_EVENT_CATEGORIES_IN_TOTAL);
+  const unknownCats = new Set<string>();
+  for (const e of events) {
+    if (e.category && !allowed.has(e.category)) unknownCats.add(e.category);
+  }
+  if (unknownCats.size > 0) {
+    console.warn(
+      `[scoring] score_events catégories hors allowlist ignorées du total : ${[...unknownCats].join(", ")}`
+    );
+  }
 
   const map = new Map<string, TeamBreakdown>();
   for (const id of teamIds) {
-    const pp = preds
+    const predRaw = preds
       .filter((r) => r.team_id === id)
       .reduce((s, r) => s + (r.points_awarded ?? 0), 0);
-    const bonus = bonuses
+    const bonusRaw = bonuses
       .filter((r) => r.team_id === id)
       .reduce((s, r) => s + (r.points_awarded ?? 0), 0);
-    const qp = quizzes
+    const quizRaw = quizzes
       .filter((r) => r.team_id === id)
       .reduce((s, r) => s + (r.points_awarded ?? 0), 0);
-    const bp =
+    const babyRaw =
       babies.filter(
         (m) =>
           m.status === "finished" &&
           ((m.team_a_id === id && (m.score_a ?? 0) > (m.score_b ?? 0)) ||
             (m.team_b_id === id && (m.score_b ?? 0) > (m.score_a ?? 0)))
       ).length * 10;
-    const vp = votes
+    const voteRaw = votes
       .filter((r) => r.target_team_id === id)
       .reduce((s, r) => s + (r.value ?? 0), 0);
-    map.set(id, { pp, bonus, qp, bp, vp, total: pp + bonus + qp + bp + vp });
+    const animRaw = events
+      .filter((e) => e.team_id === id && e.category != null && allowed.has(e.category))
+      .reduce((s, e) => s + (e.raw_points ?? 0), 0);
+
+    // Pondération (config unique). Pilier pronostics = predictions + bonus.
+    const weighted = {
+      pronostics: weightedContribution("pronostics", predRaw + bonusRaw),
+      quiz: weightedContribution("quiz", quizRaw),
+      babyfoot: weightedContribution("babyfoot", babyRaw),
+      animations: weightedContribution("animations", animRaw),
+    };
+    // total = somme des contributions ARRONDIES → les colonnes du
+    // classement s'additionnent exactement au total (zéro confusion).
+    const total =
+      weighted.pronostics + weighted.quiz + weighted.babyfoot + weighted.animations;
+
+    map.set(id, {
+      predRaw,
+      bonusRaw,
+      quizRaw,
+      babyRaw,
+      animRaw,
+      voteRaw,
+      weighted,
+      total,
+    });
   }
   return map;
 }
@@ -175,11 +239,13 @@ export async function getLeaderboard(): Promise<LeaderboardRow[]> {
         // total_points aligné sur le calcul, même si un composant lit
         // row.team.total_points directement.
         team: { ...team, total_points: b.total } as Team,
-        points_predictions: b.pp,
-        points_quiz: b.qp,
-        points_babyfoot: b.bp,
-        points_votes: b.vp,
-        points_bonus: b.bonus,
+        points_predictions: b.predRaw,
+        points_bonus: b.bonusRaw,
+        points_quiz: b.quizRaw,
+        points_babyfoot: b.babyRaw,
+        points_animations: b.animRaw,
+        points_votes: b.voteRaw,
+        weighted: b.weighted,
         total: b.total,
         rank: 0,
       };
