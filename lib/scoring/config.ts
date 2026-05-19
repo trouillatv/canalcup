@@ -44,6 +44,14 @@ export const EXPECTED_MAX_RAW: Record<Pillar, number> = {
 // natives et ne doivent JAMAIS être recomptés via score_events.
 export const SCORE_EVENT_CATEGORIES_IN_TOTAL = ["challenges", "social", "bonus"] as const;
 
+// Plancher de PARTICIPATION : une participation à un défi/animation
+// APPROUVÉE rapporte au moins ce nombre de points, même si l'admin n'en
+// attribue pas — pour encourager à participer (pas que la performance).
+// Levier admin pour donner 0 : ne PAS approuver (pending/hidden). Plafonné
+// par le max_points du défi (un petit défi ne dépasse pas son cap). 0 =
+// désactivé. Tunable comme le reste (figer avant lancement).
+export const PARTICIPATION_MIN_POINTS = 5;
+
 // ── Config résolue + override (preview/dry-run admin) ────────────────────────
 // La config OFFICIELLE = DEFAULT_SCORING_CONFIG (constantes ci-dessus). Le
 // preview admin passe un override (expectedMaxRaw simulé) à computeTeamScores

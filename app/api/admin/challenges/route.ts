@@ -10,6 +10,7 @@
 
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { PARTICIPATION_MIN_POINTS } from "@/lib/scoring/config";
 
 function guard(req: Request): boolean {
   return req.headers.get("x-admin-secret") === process.env.ADMIN_SECRET;
@@ -25,7 +26,7 @@ async function syncScoreEvent(
 ) {
   const { data: entry } = await supabase
     .from("challenge_entries")
-    .select("id, team_id, user_id, title, points_awarded, status, challenge:challenges(title, category)")
+    .select("id, team_id, user_id, title, points_awarded, status, challenge:challenges(title, category, max_points)")
     .eq("id", entryId)
     .single();
 
@@ -39,7 +40,18 @@ async function syncScoreEvent(
   if (!entry) return;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ch = (entry as any).challenge;
-  if (entry.status !== "approved" || (entry.points_awarded ?? 0) <= 0) return;
+  // Non approuvée = 0 (levier admin pour ne rien donner : pending/hidden).
+  if (entry.status !== "approved") return;
+
+  // Approuvée → au moins le plancher de participation, plafonné par le
+  // max_points du défi (un petit défi ne dépasse pas son cap).
+  const maxPts = Number(ch?.max_points ?? 0);
+  const floor =
+    maxPts > 0
+      ? Math.min(PARTICIPATION_MIN_POINTS, maxPts)
+      : PARTICIPATION_MIN_POINTS;
+  const rawPoints = Math.max(entry.points_awarded ?? 0, floor);
+  if (rawPoints <= 0) return; // sécurité si plancher désactivé (=0) et 0 attribué
 
   await supabase.from("score_events").insert({
     team_id: entry.team_id,
@@ -47,7 +59,7 @@ async function syncScoreEvent(
     category: ch?.category === "social" ? "social" : "challenges",
     source_type: "challenge_entry",
     source_id: entry.id,
-    raw_points: entry.points_awarded,
+    raw_points: rawPoints,
     label: ch?.title ?? "Animation",
     description: entry.title ?? null,
   });
