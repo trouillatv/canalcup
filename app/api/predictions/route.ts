@@ -21,6 +21,12 @@ export async function POST(req: Request) {
     .eq("auth_id", user.id)
     .single();
   if (!profile) return NextResponse.json({ error: "Profil introuvable" }, { status: 404 });
+  if (!profile.team_id) {
+    return NextResponse.json(
+      { error: "Tu n'as pas encore d'équipe — rejoins une équipe pour pouvoir pronostiquer." },
+      { status: 400 }
+    );
+  }
 
   // Get match to validate timing and maybe calculate points immediately
   const { data: match } = await supabase.from("matches").select("*").eq("id", match_id).single();
