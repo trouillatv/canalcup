@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { LeaderboardRow } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
 
@@ -22,10 +23,11 @@ export function LeaderboardTable({ rows, compact }: LeaderboardTableProps) {
       )}
 
       {rows.map((row) => (
-        <div
+        <Link
           key={row.team.id}
+          href={`/teams/${row.team.id}`}
           className={cn(
-            "canal-card",
+            "canal-card block hover:bg-canal-gray-mid transition-colors",
             row.rank === 1 && "border border-canal-yellow/30",
             compact && "p-3"
           )}
@@ -62,7 +64,7 @@ export function LeaderboardTable({ rows, compact }: LeaderboardTableProps) {
               {row.total}
             </span>
           </div>
-        </div>
+        </Link>
       ))}
     </div>
   );

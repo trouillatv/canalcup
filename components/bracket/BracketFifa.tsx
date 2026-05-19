@@ -73,13 +73,12 @@ function BracketTeamLine({
 }) {
   return (
     <div className={cn("flex items-center gap-2 px-2.5 py-1.5", dim && "opacity-40")}>
-      <span className="text-xl leading-none shrink-0">{flag}</span>
       <TeamLink
         name={name}
-        className={cn(
-          "flex-1 min-w-0 text-sm font-bold",
-          isWinner ? "text-canal-yellow" : "text-white"
-        )}
+        flag={flag}
+        flagClassName="text-xl"
+        className={cn("text-sm font-bold", isWinner ? "text-canal-yellow" : "text-white")}
+        wrapperClassName="flex-1 min-w-0"
       />
       <span
         className={cn(
@@ -233,17 +232,25 @@ function GroupMatchRow({ m }: { m: MatchRow }) {
           toNCTime(m.starts_at)
         )}
       </span>
-      <span className="flex-1 flex items-center gap-1.5 justify-end min-w-0">
-        <TeamLink name={m.team_a} className="text-right font-semibold" />
-        <span className="text-sm shrink-0">{teamFlag(m.flag_a, m.team_a)}</span>
-      </span>
+      <TeamLink
+        name={m.team_a}
+        flag={teamFlag(m.flag_a, m.team_a)}
+        flagSide="right"
+        flagClassName="text-sm"
+        className="text-right font-semibold"
+        wrapperClassName="flex-1 justify-end"
+      />
       <span className="shrink-0 w-12 text-center font-black tabular-nums">
         {hasScore ? `${m.score_a}–${m.score_b}` : "—"}
       </span>
-      <span className="flex-1 flex items-center gap-1.5 min-w-0">
-        <span className="text-sm shrink-0">{teamFlag(m.flag_b, m.team_b)}</span>
-        <TeamLink name={m.team_b} className="font-semibold" />
-      </span>
+      <TeamLink
+        name={m.team_b}
+        flag={teamFlag(m.flag_b, m.team_b)}
+        flagSide="left"
+        flagClassName="text-sm"
+        className="font-semibold"
+        wrapperClassName="flex-1"
+      />
     </div>
   );
 }
@@ -347,8 +354,12 @@ function GroupTabs({
                   <td className="py-1.5 pl-1">
                     <span className="flex items-center gap-1.5">
                       <span className="font-black w-3">{i + 1}</span>
-                      <span className="text-base">{teamFlag(row.team_flag || null, row.team_name_fr)}</span>
-                      <TeamLink name={row.team_name_fr} className="max-w-[110px] font-semibold" />
+                      <TeamLink
+                        name={row.team_name_fr}
+                        flag={teamFlag(row.team_flag || null, row.team_name_fr)}
+                        flagClassName="text-base"
+                        className="max-w-[110px] font-semibold"
+                      />
                     </span>
                   </td>
                   <td className="text-center">{row.played}</td>

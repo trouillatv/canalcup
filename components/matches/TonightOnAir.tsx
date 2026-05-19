@@ -3,6 +3,7 @@ import { teamFlag, toNCTime } from "@/lib/utils";
 import { getChannelConfig } from "@/lib/channels";
 import { cn } from "@/lib/utils";
 import { Tv2 } from "lucide-react";
+import { TeamLink } from "@/components/teams/TeamLink";
 
 interface TonightOnAirProps {
   matches: Match[];
@@ -34,19 +35,26 @@ export function TonightOnAir({ matches, title = "Ce soir en direct" }: TonightOn
                   : "bg-red-950/20 border-red-900/30"
               )}
             >
-              {/* Drapeaux */}
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <span className="text-2xl">{teamFlag(match.flag_a, match.team_a)}</span>
-                <span className="text-canal-gray-muted text-xs font-bold">vs</span>
-                <span className="text-2xl">{teamFlag(match.flag_b, match.team_b)}</span>
-              </div>
-
-              {/* Info match */}
+              {/* Info match — chaque équipe (drapeau + nom) cliquable */}
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-white text-sm truncate">
-                  {match.team_a} — {match.team_b}
-                </p>
-                <p className="text-canal-gray-muted text-xs">
+                <div className="flex items-center gap-1.5 text-sm font-bold text-white min-w-0">
+                  <TeamLink
+                    name={match.team_a}
+                    flag={teamFlag(match.flag_a, match.team_a)}
+                    flagClassName="text-2xl"
+                    className="truncate"
+                    wrapperClassName="min-w-0"
+                  />
+                  <span className="text-canal-gray-muted text-xs font-bold shrink-0">vs</span>
+                  <TeamLink
+                    name={match.team_b}
+                    flag={teamFlag(match.flag_b, match.team_b)}
+                    flagClassName="text-2xl"
+                    className="truncate"
+                    wrapperClassName="min-w-0"
+                  />
+                </div>
+                <p className="text-canal-gray-muted text-xs mt-0.5">
                   🕐 {toNCTime(match.starts_at)} NC
                 </p>
               </div>

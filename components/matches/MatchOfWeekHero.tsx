@@ -3,6 +3,7 @@ import { teamFlag, toNCDate, toNCTime } from "@/lib/utils";
 import { getChannelConfig } from "@/lib/channels";
 import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TeamLink } from "@/components/teams/TeamLink";
 
 interface MatchOfWeekHeroProps {
   match: Match;
@@ -31,9 +32,15 @@ export function MatchOfWeekHero({ match, tagline }: MatchOfWeekHeroProps) {
 
       {/* Teams + score */}
       <div className="flex items-center justify-between gap-3">
-        <div className="flex flex-col items-center gap-2 flex-1">
-          <span className="text-5xl">{teamFlag(match.flag_a, match.team_a)}</span>
-          <span className="font-black text-white text-base text-center">{match.team_a}</span>
+        <div className="flex flex-col items-center flex-1">
+          <TeamLink
+            name={match.team_a}
+            flag={teamFlag(match.flag_a, match.team_a)}
+            stacked
+            flagClassName="text-5xl"
+            className="font-black text-white text-base text-center"
+            wrapperClassName="gap-2"
+          />
         </div>
 
         <div className="flex flex-col items-center gap-1 px-2">
@@ -52,9 +59,15 @@ export function MatchOfWeekHero({ match, tagline }: MatchOfWeekHeroProps) {
           </div>
         </div>
 
-        <div className="flex flex-col items-center gap-2 flex-1">
-          <span className="text-5xl">{teamFlag(match.flag_b, match.team_b)}</span>
-          <span className="font-black text-white text-base text-center">{match.team_b}</span>
+        <div className="flex flex-col items-center flex-1">
+          <TeamLink
+            name={match.team_b}
+            flag={teamFlag(match.flag_b, match.team_b)}
+            stacked
+            flagClassName="text-5xl"
+            className="font-black text-white text-base text-center"
+            wrapperClassName="gap-2"
+          />
         </div>
       </div>
 

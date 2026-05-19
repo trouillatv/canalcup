@@ -49,9 +49,15 @@ function ScoreBoard({ detail }: { detail: FullMatchDetail }) {
       </div>
 
       <div className="flex items-center justify-between gap-4 my-4">
-        <div className="flex-1 flex flex-col items-center gap-2">
-          <span className="text-6xl">{match.flag_a}</span>
-          <TeamLink name={match.team_a} className="text-sm font-black text-white text-center leading-tight max-w-full" />
+        <div className="flex-1 flex flex-col items-center">
+          <TeamLink
+            name={match.team_a}
+            flag={match.flag_a}
+            stacked
+            flagClassName="text-6xl"
+            className="text-sm font-black text-white text-center leading-tight max-w-full"
+            wrapperClassName="gap-2 max-w-full"
+          />
         </div>
 
         <div className="flex items-center gap-3">
@@ -69,9 +75,15 @@ function ScoreBoard({ detail }: { detail: FullMatchDetail }) {
           )}
         </div>
 
-        <div className="flex-1 flex flex-col items-center gap-2">
-          <span className="text-6xl">{match.flag_b}</span>
-          <TeamLink name={match.team_b} className="text-sm font-black text-white text-center leading-tight max-w-full" />
+        <div className="flex-1 flex flex-col items-center">
+          <TeamLink
+            name={match.team_b}
+            flag={match.flag_b}
+            stacked
+            flagClassName="text-6xl"
+            className="text-sm font-black text-white text-center leading-tight max-w-full"
+            wrapperClassName="gap-2 max-w-full"
+          />
         </div>
       </div>
 

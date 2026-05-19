@@ -35,7 +35,7 @@ function ScorePredictInput({
   const [scoreB, setScoreB] = useState(savedPrediction?.score_b ?? 1);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(!!savedPrediction);
-  const [error, setError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const hasStarted = new Date(match.starts_at) <= new Date();
 
@@ -70,12 +70,12 @@ function ScorePredictInput({
 
   const handleSave = async () => {
     setSaving(true);
-    setError(false);
+    setErrorMsg(null);
     try {
       await onSave(scoreA, scoreB);
       setSaved(true);
-    } catch {
-      setError(true);
+    } catch (e) {
+      setErrorMsg(e instanceof Error ? e.message : "Échec de l'enregistrement.");
       setSaved(false);
     } finally {
       setSaving(false);
@@ -133,10 +133,8 @@ function ScorePredictInput({
         </button>
       </div>
 
-      {error ? (
-        <p className="text-xs text-center text-red-400 font-bold">
-          Échec de l&apos;enregistrement — réessayez (êtes-vous connecté ?)
-        </p>
+      {errorMsg ? (
+        <p className="text-xs text-center text-red-400 font-bold">{errorMsg}</p>
       ) : (
         <p className="text-xs text-center text-canal-gray-muted">{resultLabel()}</p>
       )}
@@ -150,12 +148,30 @@ export function MatchCard({ match, trend, savedPrediction, compact }: MatchCardP
   const isUpcoming = match.status === "upcoming";
 
   const handleSavePrediction = async (scoreA: number, scoreB: number) => {
-    const res = await fetch("/api/predictions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ match_id: match.id, predicted_score_a: scoreA, predicted_score_b: scoreB }),
-    });
-    if (!res.ok) throw new Error(`save failed (${res.status})`);
+    let res: Response;
+    try {
+      res = await fetch("/api/predictions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ match_id: match.id, predicted_score_a: scoreA, predicted_score_b: scoreB }),
+        credentials: "same-origin",
+      });
+    } catch {
+      throw new Error("Réseau indisponible — vérifie ta connexion puis réessaie.");
+    }
+    if (res.ok) return;
+    let serverMsg = "";
+    try {
+      serverMsg = (await res.json())?.error ?? "";
+    } catch {
+      /* corps non JSON */
+    }
+    if (res.status === 401) {
+      throw new Error(
+        "Session expirée — tu n'es plus connecté. Recharge la page et reconnecte-toi via le lien magique reçu par mail."
+      );
+    }
+    throw new Error(serverMsg || `Échec (HTTP ${res.status}) — réessaie.`);
   };
 
   return (
@@ -185,9 +201,15 @@ export function MatchCard({ match, trend, savedPrediction, compact }: MatchCardP
 
       {/* Match display */}
       <div className="flex items-center justify-between gap-4">
-        <div className="flex-1 flex flex-col items-center gap-1">
-          <span className="text-3xl">{teamFlag(match.flag_a, match.team_a)}</span>
-          <TeamLink name={match.team_a} className="text-sm font-bold text-white text-center leading-tight max-w-full" />
+        <div className="flex-1 flex flex-col items-center">
+          <TeamLink
+            name={match.team_a}
+            flag={teamFlag(match.flag_a, match.team_a)}
+            stacked
+            flagClassName="text-3xl"
+            className="text-sm font-bold text-white text-center leading-tight max-w-full"
+            wrapperClassName="max-w-full"
+          />
         </div>
 
         <div className="flex flex-col items-center gap-1">
@@ -205,9 +227,15 @@ export function MatchCard({ match, trend, savedPrediction, compact }: MatchCardP
           )}
         </div>
 
-        <div className="flex-1 flex flex-col items-center gap-1">
-          <span className="text-3xl">{teamFlag(match.flag_b, match.team_b)}</span>
-          <TeamLink name={match.team_b} className="text-sm font-bold text-white text-center leading-tight max-w-full" />
+        <div className="flex-1 flex flex-col items-center">
+          <TeamLink
+            name={match.team_b}
+            flag={teamFlag(match.flag_b, match.team_b)}
+            stacked
+            flagClassName="text-3xl"
+            className="text-sm font-bold text-white text-center leading-tight max-w-full"
+            wrapperClassName="max-w-full"
+          />
         </div>
       </div>
 
