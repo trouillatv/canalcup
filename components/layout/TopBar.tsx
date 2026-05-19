@@ -83,12 +83,16 @@ export function TopBar() {
           </Link>
         </div>
 
-        {/* Actions */}
+        {/* Actions — avatar cliquable → /profile */}
         <div className="flex items-center gap-1">
           {user && (
-            <div className="w-7 h-7 rounded-full bg-canal-yellow flex items-center justify-center">
+            <Link
+              href="/profile"
+              aria-label="Mon profil"
+              className="w-7 h-7 rounded-full bg-canal-yellow flex items-center justify-center hover:bg-canal-yellow-hover transition-colors ring-2 ring-transparent hover:ring-canal-yellow/40"
+            >
               <span className="text-canal-black font-black text-xs">{userInitial}</span>
-            </div>
+            </Link>
           )}
         </div>
       </header>
