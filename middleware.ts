@@ -67,15 +67,24 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Pages utilisateur → vérifier profil complété
+  // Pages utilisateur → vérifier profil complété ET cohérent. Un profil
+  // marqué complété mais sans équipe/service/niveau/nom (legacy ou edge)
+  // est renvoyé en onboarding : sinon il ne peut pas pronostiquer.
   const { data: profile } = await supabase
     .from("users")
-    .select("profile_completed")
+    .select("profile_completed, team_id, service_id, football_level, display_name, name")
     .eq("auth_id", user.id)
     .single();
 
-  if (!profile?.profile_completed) {
-    return NextResponse.redirect(new URL("/onboarding", request.url));
+  const incomplete =
+    !profile?.profile_completed ||
+    !profile.team_id ||
+    !profile.service_id ||
+    !profile.football_level ||
+    !((profile.display_name ?? "").trim() || (profile.name ?? "").trim());
+
+  if (incomplete) {
+    return NextResponse.redirect(new URL("/onboarding?incomplete=1", request.url));
   }
 
   return supabaseResponse;

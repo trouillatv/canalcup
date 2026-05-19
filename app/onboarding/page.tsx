@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Service, FootballLevel } from "@/lib/supabase/types";
-import { User, Briefcase, ChevronRight } from "lucide-react";
+import { User, Briefcase, Users, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const FOOTBALL_LEVELS: { value: FootballLevel; label: string; desc: string; emoji: string }[] = [
@@ -12,6 +12,13 @@ const FOOTBALL_LEVELS: { value: FootballLevel; label: string; desc: string; emoj
   { value: "amateur", label: "Amateur", desc: "Je regarde les grands matchs et je connais les équipes", emoji: "📺" },
   { value: "ambiance", label: "Je viens pour l'ambiance", desc: "Le foot ? Je viens pour les petits fours et l'équipe", emoji: "🎉" },
 ];
+
+interface TeamLite {
+  id: string;
+  name: string;
+  color?: string | null;
+  logo_url?: string | null;
+}
 
 function slugify(str: string): string {
   return str
@@ -26,17 +33,44 @@ function slugify(str: string): string {
 export default function OnboardingPage() {
   const router = useRouter();
   const [services, setServices] = useState<Service[]>([]);
+  const [teams, setTeams] = useState<TeamLite[]>([]);
   const [displayName, setDisplayName] = useState("");
   const [serviceId, setServiceId] = useState("");
   const [footballLevel, setFootballLevel] = useState<FootballLevel | "">("");
+  const [teamId, setTeamId] = useState("");
+  const [returning, setReturning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/services").then(r => r.json()).then(setServices);
+    fetch("/api/services").then((r) => r.json()).then(setServices).catch(() => {});
+    fetch("/api/teams").then((r) => r.json()).then(setTeams).catch(() => {});
+
+    // Pré-remplir si l'utilisateur a déjà commencé (renvoyé ici car profil
+    // incomplet : il ne doit pas re-saisir ce qui est déjà connu).
+    (async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: row } = await supabase
+        .from("users")
+        .select("display_name, name, service_id, football_level, team_id, profile_completed")
+        .eq("auth_id", user.id)
+        .single();
+      if (!row) return;
+      if (row.display_name || row.name) setDisplayName(row.display_name ?? row.name ?? "");
+      if (row.service_id) setServiceId(row.service_id);
+      if (row.football_level) setFootballLevel(row.football_level as FootballLevel);
+      if (row.team_id) setTeamId(row.team_id);
+      // "returning" = a déjà des données mais profil pas (ou plus) complété.
+      if (!row.profile_completed && (row.display_name || row.name || row.service_id || row.team_id)) {
+        setReturning(true);
+      }
+    })();
   }, []);
 
-  const isValid = displayName.trim().length >= 2 && serviceId && footballLevel;
+  const isValid =
+    displayName.trim().length >= 2 && !!serviceId && !!footballLevel && !!teamId;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,15 +82,18 @@ export default function OnboardingPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/"); return; }
 
-    const slug = slugify(displayName.trim());
+    const trimmed = displayName.trim();
+    const slug = slugify(trimmed);
 
     const { error: updateErr } = await supabase
       .from("users")
       .update({
-        display_name: displayName.trim(),
+        name: trimmed,
+        display_name: trimmed,
         user_slug: slug,
         service_id: serviceId,
         football_level: footballLevel,
+        team_id: teamId,
         profile_completed: true,
         onboarding_step: 1,
         updated_at: new Date().toISOString(),
@@ -64,7 +101,11 @@ export default function OnboardingPage() {
       .eq("auth_id", user.id);
 
     if (updateErr) {
-      setError("Erreur lors de l'enregistrement. Réessayez.");
+      // La contrainte DB users_profile_complete_chk refuse tout profil
+      // incomplet — message clair plutôt qu'une erreur opaque.
+      setError(
+        "Profil incomplet ou erreur d'enregistrement — vérifie pseudo, service, niveau et équipe, puis réessaie."
+      );
       setSaving(false);
       return;
     }
@@ -88,6 +129,16 @@ export default function OnboardingPage() {
             Dernière étape avant de jouer. 30 secondes max.
           </p>
         </div>
+
+        {returning && (
+          <div className="rounded-xl border border-canal-yellow/40 bg-canal-yellow/10 px-4 py-3 text-center">
+            <p className="text-canal-yellow font-bold text-sm">Profil incomplet</p>
+            <p className="text-canal-gray-muted text-xs mt-0.5">
+              Il manque des infos obligatoires (notamment ton <b>équipe</b>) pour
+              pouvoir pronostiquer. Complète et valide.
+            </p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
 
@@ -134,6 +185,40 @@ export default function OnboardingPage() {
                   <span className="text-center leading-tight">{s.name}</span>
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Équipe — OBLIGATOIRE (sinon impossible de pronostiquer) */}
+          <div>
+            <label className="text-xs text-canal-yellow font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Users size={12} /> Ton équipe Canal Cup
+            </label>
+            <div className="space-y-2">
+              {teams.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTeamId(t.id)}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all",
+                    teamId === t.id
+                      ? "bg-canal-yellow/10 border-canal-yellow text-white"
+                      : "bg-canal-gray-mid border-canal-gray-light text-canal-gray-muted hover:text-white"
+                  )}
+                >
+                  <span
+                    className="w-3 h-3 rounded-full flex-shrink-0 border border-white/20"
+                    style={{ backgroundColor: t.color ?? "#888" }}
+                  />
+                  <span className="font-bold text-sm flex-1 truncate">{t.name}</span>
+                  {teamId === t.id && (
+                    <span className="text-canal-yellow font-black text-sm">✓</span>
+                  )}
+                </button>
+              ))}
+              {teams.length === 0 && (
+                <p className="text-canal-gray-muted text-xs">Chargement des équipes…</p>
+              )}
             </div>
           </div>
 
