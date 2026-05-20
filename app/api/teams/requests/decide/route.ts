@@ -52,9 +52,9 @@ export async function POST(req: Request) {
   }
 
   if (decision === "approve") {
-    // Cap 3 (race-safe re-check)
+    // Cap 3 (race-safe re-check via team_memberships).
     const { count } = await admin
-      .from("users")
+      .from("team_memberships")
       .select("*", { count: "exact", head: true })
       .eq("team_id", team.id);
     if ((count ?? 0) >= TEAM_MAX_MEMBERS) {
@@ -64,32 +64,63 @@ export async function POST(req: Request) {
       );
     }
 
-    // Le demandeur a-t-il déjà été placé dans la MÊME équipe entre temps ?
-    // (un membre simple peut switcher d'équipe → on accepte si différent.)
-    const { data: requester } = await admin
-      .from("users")
-      .select("team_id")
-      .eq("id", joinReq.user_id)
-      .single();
-    if (!requester) {
-      return NextResponse.json({ error: "Demandeur introuvable." }, { status: 404 });
-    }
-    if (requester.team_id === team.id) {
+    // Déjà membre (race ou demande dupliquée) ?
+    const { data: existingMembership } = await admin
+      .from("team_memberships")
+      .select("user_id")
+      .eq("user_id", joinReq.user_id)
+      .eq("team_id", team.id)
+      .maybeSingle();
+    if (existingMembership) {
       return NextResponse.json(
-        { error: "Ce user est déjà dans cette équipe." },
+        { error: "Ce user est déjà membre de cette équipe." },
         { status: 400 }
       );
     }
 
+    // Devient-il principale ? Oui SSI le demandeur n'a pas encore de primary.
+    const { data: existingPrimary } = await admin
+      .from("team_memberships")
+      .select("team_id")
+      .eq("user_id", joinReq.user_id)
+      .eq("is_primary", true)
+      .maybeSingle();
+    const willBePrimary = !existingPrimary;
+
+    // Insertion membership (member, is_primary calculé).
+    const { error: memErr } = await admin
+      .from("team_memberships")
+      .insert({
+        user_id: joinReq.user_id,
+        team_id: team.id,
+        role: "member",
+        is_primary: willBePrimary,
+      });
+    if (memErr) return NextResponse.json({ error: memErr.message }, { status: 500 });
+
+    // Sync users (équipe principale + profil complété si tous les autres
+    // champs sont là — la contrainte CHECK relâchée autorise team_id NULL).
+    const userUpdate: Record<string, unknown> = {
+      profile_completed: true,
+      updated_at: new Date().toISOString(),
+    };
+    if (willBePrimary) {
+      userUpdate.team_id = team.id;
+      userUpdate.team_role = "member";
+    }
     const { error: upErr } = await admin
       .from("users")
-      .update({
-        team_id: team.id,
-        profile_completed: true,
-        updated_at: new Date().toISOString(),
-      })
+      .update(userUpdate)
       .eq("id", joinReq.user_id);
-    if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
+    if (upErr) {
+      // Best-effort : on retire la membership qu'on vient de poser.
+      await admin
+        .from("team_memberships")
+        .delete()
+        .eq("user_id", joinReq.user_id)
+        .eq("team_id", team.id);
+      return NextResponse.json({ error: upErr.message }, { status: 500 });
+    }
   }
 
   const { error: rErr } = await admin

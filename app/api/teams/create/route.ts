@@ -42,12 +42,22 @@ export async function POST(req: Request) {
     .eq("auth_id", user.id)
     .single();
   if (!profile) return NextResponse.json({ error: "Profil introuvable" }, { status: 404 });
-  if (profile.team_id) {
+
+  // Multi-équipes (Phase B) : un user peut être dans N équipes. Il ne
+  // peut pas être captain de PLUSIEURS équipes en revanche (sinon
+  // multiplication des contrôles + créer/leave/transferer ingérable).
+  const { data: ownCaptain } = await admin
+    .from("teams")
+    .select("id")
+    .eq("created_by_user_id", profile.id)
+    .maybeSingle();
+  if (ownCaptain) {
     return NextResponse.json(
-      { error: "Tu fais déjà partie d'une équipe — un user = une équipe." },
+      { error: "Tu es déjà captain d'une équipe — un user = max 1 équipe créée." },
       { status: 400 }
     );
   }
+  // Pas de demande pending d'adhésion en parallèle (UX claire).
   const { data: pending } = await admin
     .from("team_join_requests")
     .select("id")
@@ -56,10 +66,18 @@ export async function POST(req: Request) {
     .maybeSingle();
   if (pending) {
     return NextResponse.json(
-      { error: "Tu as déjà une demande en attente — annule-la avant de créer." },
+      { error: "Tu as une demande d'adhésion en attente — annule-la avant de créer." },
       { status: 400 }
     );
   }
+  // L'équipe créée devient-elle la principale ? Oui SSI l'user n'en a pas.
+  const { data: existingPrimary } = await admin
+    .from("team_memberships")
+    .select("team_id")
+    .eq("user_id", profile.id)
+    .eq("is_primary", true)
+    .maybeSingle();
+  const willBePrimary = !existingPrimary;
 
   // Génération code unique avec retries (index partiel sur invite_code).
   let team = null;
@@ -92,22 +110,42 @@ export async function POST(req: Request) {
     );
   }
 
-  // L'auteur devient membre + captain. profile_completed=true si les
-  // autres champs requis sont déjà là (sinon la contrainte CHECK rejette).
+  // Insertion de la membership (captain). is_primary calculé plus haut :
+  // true SSI l'user n'avait pas encore d'équipe principale.
+  const { error: memErr } = await admin
+    .from("team_memberships")
+    .insert({
+      user_id: profile.id,
+      team_id: team.id,
+      role: "captain",
+      is_primary: willBePrimary,
+    });
+  if (memErr) {
+    await admin.from("teams").delete().eq("id", team.id);
+    return NextResponse.json({ error: memErr.message }, { status: 500 });
+  }
+
+  // users.team_id = miroir de l'équipe principale (Phase A). On le met à
+  // jour SEULEMENT si cette équipe vient de devenir la principale.
+  // profile_completed=true est OK car contrainte relâchée (team_id optionnel).
+  const userUpdate: Record<string, unknown> = {
+    profile_completed: true,
+    updated_at: new Date().toISOString(),
+  };
+  if (willBePrimary) {
+    userUpdate.team_id = team.id;
+    userUpdate.team_role = "captain";
+  }
   const { error: upErr } = await admin
     .from("users")
-    .update({
-      team_id: team.id,
-      team_role: "captain",
-      profile_completed: true,
-      updated_at: new Date().toISOString(),
-    })
+    .update(userUpdate)
     .eq("id", profile.id);
   if (upErr) {
-    // Best-effort rollback : on retire l'équipe juste créée.
+    // Best-effort rollback : membership + team.
+    await admin.from("team_memberships").delete().eq("user_id", profile.id).eq("team_id", team.id);
     await admin.from("teams").delete().eq("id", team.id);
     return NextResponse.json({ error: upErr.message }, { status: 500 });
   }
 
-  return NextResponse.json({ team });
+  return NextResponse.json({ team, is_primary: willBePrimary });
 }

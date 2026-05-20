@@ -24,29 +24,15 @@ export async function POST(req: Request) {
   const admin = createAdminClient();
   const { data: profile } = await admin
     .from("users")
-    .select("id, team_id")
+    .select("id")
     .eq("auth_id", user.id)
     .single();
   if (!profile) return NextResponse.json({ error: "Profil introuvable" }, { status: 404 });
 
-  // Un captain ne peut pas changer d'équipe (sinon il oprhelinerait
-  // l'équipe qu'il a créée — MVP "no quit team" pour les créateurs).
-  // Pour un simple membre, on AUTORISE de demander à rejoindre une AUTRE
-  // équipe : c'est un switch (l'ancienne perd un membre à l'approbation).
-  if (profile.team_id) {
-    const { data: ownTeam } = await admin
-      .from("teams")
-      .select("id")
-      .eq("created_by_user_id", profile.id)
-      .maybeSingle();
-    if (ownTeam) {
-      return NextResponse.json(
-        { error: "Tu es captain d'une équipe — un captain ne peut pas changer d'équipe." },
-        { status: 400 }
-      );
-    }
-  }
-
+  // Multi-équipes (Phase B) : on autorise N memberships. Restrictions :
+  //   - 1 seule demande pending à la fois (UX claire)
+  //   - pas déjà membre de l'équipe cible (vérif team_memberships)
+  //   - cap 3 membres / équipe (re-checké à l'approve)
   const { data: existing } = await admin
     .from("team_join_requests")
     .select("id, team_id")
@@ -69,17 +55,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Code d'invitation invalide." }, { status: 404 });
   }
 
-  // Switch sur la MÊME équipe = no-op inutile.
-  if (profile.team_id === team.id) {
+  // Déjà membre de cette équipe ?
+  const { data: alreadyMember } = await admin
+    .from("team_memberships")
+    .select("user_id")
+    .eq("user_id", profile.id)
+    .eq("team_id", team.id)
+    .maybeSingle();
+  if (alreadyMember) {
     return NextResponse.json(
       { error: "Tu fais déjà partie de cette équipe." },
       { status: 400 }
     );
   }
 
-  // Cap 3 membres — refuse en amont (re-vérifié à l'approve pour la race).
+  // Cap 3 membres — compté via team_memberships (source de vérité multi-team).
   const { count } = await admin
-    .from("users")
+    .from("team_memberships")
     .select("*", { count: "exact", head: true })
     .eq("team_id", team.id);
   if ((count ?? 0) >= TEAM_MAX_MEMBERS) {
