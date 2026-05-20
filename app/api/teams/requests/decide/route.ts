@@ -64,7 +64,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // Le demandeur a-t-il rejoint une autre équipe entre temps ?
+    // Le demandeur a-t-il déjà été placé dans la MÊME équipe entre temps ?
+    // (un membre simple peut switcher d'équipe → on accepte si différent.)
     const { data: requester } = await admin
       .from("users")
       .select("team_id")
@@ -73,9 +74,9 @@ export async function POST(req: Request) {
     if (!requester) {
       return NextResponse.json({ error: "Demandeur introuvable." }, { status: 404 });
     }
-    if (requester.team_id) {
+    if (requester.team_id === team.id) {
       return NextResponse.json(
-        { error: "Ce user a déjà rejoint une autre équipe." },
+        { error: "Ce user est déjà dans cette équipe." },
         { status: 400 }
       );
     }

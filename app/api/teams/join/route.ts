@@ -28,8 +28,23 @@ export async function POST(req: Request) {
     .eq("auth_id", user.id)
     .single();
   if (!profile) return NextResponse.json({ error: "Profil introuvable" }, { status: 404 });
+
+  // Un captain ne peut pas changer d'équipe (sinon il oprhelinerait
+  // l'équipe qu'il a créée — MVP "no quit team" pour les créateurs).
+  // Pour un simple membre, on AUTORISE de demander à rejoindre une AUTRE
+  // équipe : c'est un switch (l'ancienne perd un membre à l'approbation).
   if (profile.team_id) {
-    return NextResponse.json({ error: "Tu es déjà dans une équipe." }, { status: 400 });
+    const { data: ownTeam } = await admin
+      .from("teams")
+      .select("id")
+      .eq("created_by_user_id", profile.id)
+      .maybeSingle();
+    if (ownTeam) {
+      return NextResponse.json(
+        { error: "Tu es captain d'une équipe — un captain ne peut pas changer d'équipe." },
+        { status: 400 }
+      );
+    }
   }
 
   const { data: existing } = await admin
@@ -52,6 +67,14 @@ export async function POST(req: Request) {
     .maybeSingle();
   if (!team) {
     return NextResponse.json({ error: "Code d'invitation invalide." }, { status: 404 });
+  }
+
+  // Switch sur la MÊME équipe = no-op inutile.
+  if (profile.team_id === team.id) {
+    return NextResponse.json(
+      { error: "Tu fais déjà partie de cette équipe." },
+      { status: 400 }
+    );
   }
 
   // Cap 3 membres — refuse en amont (re-vérifié à l'approve pour la race).

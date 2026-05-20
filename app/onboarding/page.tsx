@@ -12,6 +12,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { Service, FootballLevel } from "@/lib/supabase/types";
 import {
@@ -51,6 +52,9 @@ function OnboardingInner() {
   const [inviteCode, setInviteCode] = useState(inviteFromUrl);
   const [pending, setPending] = useState<{ team_name: string } | null>(null);
   const [returning, setReturning] = useState(false);
+  // État équipe actuelle de l'user (pour adapter l'UI : un user déjà
+  // en équipe ne doit plus voir "Créer", juste "Rejoindre une autre").
+  const [currentTeam, setCurrentTeam] = useState<{ name: string; isCaptain: boolean } | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,7 +72,7 @@ function OnboardingInner() {
         if (!user) return;
         const { data: row, error: rowErr } = await supabase
           .from("users")
-          .select("id, display_name, name, service_id, football_level, team_id, profile_completed")
+          .select("id, display_name, name, service_id, football_level, team_id, team_role, profile_completed, team:teams(id, name, created_by_user_id)")
           .eq("auth_id", user.id)
           .maybeSingle();
         if (rowErr || !row) return;
@@ -77,6 +81,15 @@ function OnboardingInner() {
         if (row.football_level) setFootballLevel(row.football_level as FootballLevel);
         if (!row.profile_completed && (row.display_name || row.name || row.service_id)) {
           setReturning(true);
+        }
+        // L'user a déjà une équipe ? On adapte l'UI : pas de "Créer",
+        // seulement "Rejoindre une autre équipe par code" (sauf captain).
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const team = (row as any).team;
+        if (row.team_id && team) {
+          const isCaptain = team.created_by_user_id === row.id;
+          setCurrentTeam({ name: team.name, isCaptain });
+          setTeamMode("join"); // on force le mode join visuellement
         }
 
         // Demande pending → écran d'attente (lecture directe via supabase
@@ -100,11 +113,22 @@ function OnboardingInner() {
 
   const fieldsOk =
     displayName.trim().length >= 2 && !!serviceId && !!footballLevel;
-  const teamOk =
-    teamMode === "create"
+  // Adapt teamOk selon l'état :
+  //  - currentTeam + captain → aucune action team possible → invalide
+  //  - currentTeam + simple membre → on attend uniquement le code switch
+  //  - pas d'équipe → toggle Créer/Rejoindre habituel
+  let teamOk = false;
+  if (currentTeam?.isCaptain) {
+    teamOk = false;
+  } else if (currentTeam) {
+    teamOk = inviteCode.trim().length >= 4;
+  } else {
+    teamOk = teamMode === "create"
       ? teamName.trim().length >= 2
       : inviteCode.trim().length >= 4;
+  }
   const isValid = fieldsOk && teamOk;
+  const captainLocked = !!currentTeam?.isCaptain;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -309,61 +333,103 @@ function OnboardingInner() {
             </div>
           </div>
 
-          {/* Équipe — créer OU rejoindre */}
+          {/* Équipe — UI adaptée selon l'état actuel de l'user :
+              - aucune équipe → toggle Créer / Rejoindre
+              - équipe + captain → bloqué (orphelinerait l'équipe)
+              - équipe + membre simple → uniquement le code pour SWITCHER */}
           <div>
             <label className="text-xs text-canal-yellow font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
               <Users size={12} /> Ton équipe Canal Cup
             </label>
-            <div className="flex gap-1 bg-canal-gray-mid border border-canal-gray-light rounded-xl p-1 mb-3">
-              <button
-                type="button"
-                onClick={() => setTeamMode("create")}
-                className={cn(
-                  "flex-1 py-2 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5",
-                  teamMode === "create" ? "bg-canal-yellow text-canal-black" : "text-canal-gray-muted hover:text-white"
-                )}
-              >
-                <Plus size={12} /> Créer
-              </button>
-              <button
-                type="button"
-                onClick={() => setTeamMode("join")}
-                className={cn(
-                  "flex-1 py-2 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5",
-                  teamMode === "join" ? "bg-canal-yellow text-canal-black" : "text-canal-gray-muted hover:text-white"
-                )}
-              >
-                <Ticket size={12} /> Rejoindre
-              </button>
-            </div>
 
-            {teamMode === "create" ? (
-              <>
-                <input
-                  type="text"
-                  value={teamName}
-                  onChange={(e) => setTeamName(e.target.value)}
-                  placeholder='Nom de ton équipe (ex : "Les Frites")'
-                  maxLength={60}
-                  className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow transition-colors"
-                />
-                <p className="text-[11px] text-canal-gray-muted mt-1.5 leading-snug">
-                  Tu deviens captain. Tu pourras inviter jusqu&apos;à 2 coéquipiers avec ton code d&apos;invitation.
-                </p>
-              </>
+            {currentTeam ? (
+              currentTeam.isCaptain ? (
+                <div className="rounded-xl border border-canal-yellow/30 bg-canal-yellow/5 px-4 py-3 text-center">
+                  <p className="text-canal-yellow font-bold text-sm">
+                    Tu es captain de {currentTeam.name}
+                  </p>
+                  <p className="text-canal-gray-muted text-xs mt-1 leading-snug">
+                    Un captain ne peut pas changer d&apos;équipe (sinon elle se retrouve orpheline).
+                    Va sur ton profil pour gérer ton équipe (code d&apos;invitation, demandes).
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="rounded-xl bg-canal-gray-mid/60 border border-canal-gray-light px-3 py-2 mb-3 text-center">
+                    <p className="text-xs text-canal-gray-muted">
+                      Tu es dans <span className="text-white font-bold">{currentTeam.name}</span>.
+                    </p>
+                    <p className="text-[11px] text-canal-gray-muted mt-0.5 leading-snug">
+                      Pour changer d&apos;équipe, saisis le code d&apos;une autre équipe.
+                    </p>
+                  </div>
+                  <input
+                    type="text"
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                    placeholder="Code d'invitation (ex : ABC123)"
+                    maxLength={12}
+                    className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder:text-canal-gray-muted text-sm font-mono tracking-widest text-center uppercase focus:outline-none focus:border-canal-yellow transition-colors"
+                  />
+                  <p className="text-[11px] text-canal-gray-muted mt-1.5 leading-snug">
+                    Le code vient d&apos;un autre captain. Tu seras déplacé(e) dans la nouvelle équipe une fois la demande validée.
+                  </p>
+                </>
+              )
             ) : (
               <>
-                <input
-                  type="text"
-                  value={inviteCode}
-                  onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                  placeholder="Code d'invitation (ex : ABC123)"
-                  maxLength={12}
-                  className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder:text-canal-gray-muted text-sm font-mono tracking-widest text-center uppercase focus:outline-none focus:border-canal-yellow transition-colors"
-                />
-                <p className="text-[11px] text-canal-gray-muted mt-1.5 leading-snug">
-                  Le code vient du créateur de l&apos;équipe. Demande validée par le captain avant que tu puisses pronostiquer.
-                </p>
+                <div className="flex gap-1 bg-canal-gray-mid border border-canal-gray-light rounded-xl p-1 mb-3">
+                  <button
+                    type="button"
+                    onClick={() => setTeamMode("create")}
+                    className={cn(
+                      "flex-1 py-2 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5",
+                      teamMode === "create" ? "bg-canal-yellow text-canal-black" : "text-canal-gray-muted hover:text-white"
+                    )}
+                  >
+                    <Plus size={12} /> Créer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTeamMode("join")}
+                    className={cn(
+                      "flex-1 py-2 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5",
+                      teamMode === "join" ? "bg-canal-yellow text-canal-black" : "text-canal-gray-muted hover:text-white"
+                    )}
+                  >
+                    <Ticket size={12} /> Rejoindre
+                  </button>
+                </div>
+
+                {teamMode === "create" ? (
+                  <>
+                    <input
+                      type="text"
+                      value={teamName}
+                      onChange={(e) => setTeamName(e.target.value)}
+                      placeholder='Nom de ton équipe (ex : "Les Frites")'
+                      maxLength={60}
+                      className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow transition-colors"
+                    />
+                    <p className="text-[11px] text-canal-gray-muted mt-1.5 leading-snug">
+                      Tu deviens captain. Tu pourras inviter jusqu&apos;à 2 coéquipiers avec ton code d&apos;invitation.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      value={inviteCode}
+                      onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                      placeholder="Code d'invitation (ex : ABC123)"
+                      maxLength={12}
+                      className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder:text-canal-gray-muted text-sm font-mono tracking-widest text-center uppercase focus:outline-none focus:border-canal-yellow transition-colors"
+                    />
+                    <p className="text-[11px] text-canal-gray-muted mt-1.5 leading-snug">
+                      Le code vient du créateur de l&apos;équipe. Demande validée par le captain avant que tu puisses pronostiquer.
+                    </p>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -374,14 +440,29 @@ function OnboardingInner() {
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={!isValid || saving}
-            className="w-full py-4 bg-canal-yellow text-canal-black font-black text-base rounded-xl flex items-center justify-center gap-2 hover:bg-canal-yellow-hover transition-colors disabled:opacity-40"
-          >
-            {saving ? "Enregistrement…" : teamMode === "create" ? "Créer mon équipe ⚽" : "Envoyer ma demande 🎟"}
-            {!saving && (teamMode === "create" ? <Check size={16} /> : <ChevronRight size={18} />)}
-          </button>
+          {captainLocked ? (
+            <Link
+              href="/profile"
+              className="w-full py-4 bg-canal-yellow text-canal-black font-black text-base rounded-xl flex items-center justify-center gap-2 hover:bg-canal-yellow-hover transition-colors"
+            >
+              Aller à mon profil →
+            </Link>
+          ) : (
+            <button
+              type="submit"
+              disabled={!isValid || saving}
+              className="w-full py-4 bg-canal-yellow text-canal-black font-black text-base rounded-xl flex items-center justify-center gap-2 hover:bg-canal-yellow-hover transition-colors disabled:opacity-40"
+            >
+              {saving
+                ? "Enregistrement…"
+                : currentTeam
+                  ? "Demander à rejoindre 🎟"
+                  : teamMode === "create"
+                    ? "Créer mon équipe ⚽"
+                    : "Envoyer ma demande 🎟"}
+              {!saving && (teamMode === "create" && !currentTeam ? <Check size={16} /> : <ChevronRight size={18} />)}
+            </button>
+          )}
         </form>
       </div>
     </div>

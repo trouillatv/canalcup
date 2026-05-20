@@ -216,6 +216,15 @@ export function ProfileEditForm({
         </p>
       )}
 
+      {/* Confirmation persistante : visible 5s après chaque sauvegarde
+          réussie, pour que le user ait un vrai retour (le bouton vert
+          tout seul passe trop inaperçu sur mobile). */}
+      {savedAt && Date.now() - savedAt < 5000 && (
+        <p className="text-green-400 text-sm text-center flex items-center justify-center gap-1.5 bg-green-900/20 border border-green-700/40 rounded-xl py-2">
+          <Check size={14} /> Profil enregistré
+        </p>
+      )}
+
       <button
         type="submit"
         disabled={!isValid || !dirty || saving}
