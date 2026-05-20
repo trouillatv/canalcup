@@ -6,10 +6,14 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // pas de O/0/I/l/1
-function generateInviteCode(len = 6): string {
+// Format produit : 3 LETTRES majuscules + 3 CHIFFRES (ex. "ABC123").
+// Lecture facile, mémorisable, identifiable d'un coup d'œil.
+const LETTERS = "ABCDEFGHJKMNPQRSTUVWXYZ"; // sans I/O (lisibilité)
+const DIGITS = "23456789"; // sans 0/1 (lisibilité)
+function generateInviteCode(): string {
   let s = "";
-  for (let i = 0; i < len; i++) s += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
+  for (let i = 0; i < 3; i++) s += LETTERS[Math.floor(Math.random() * LETTERS.length)];
+  for (let i = 0; i < 3; i++) s += DIGITS[Math.floor(Math.random() * DIGITS.length)];
   return s;
 }
 

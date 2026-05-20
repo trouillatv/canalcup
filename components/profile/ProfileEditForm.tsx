@@ -12,7 +12,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import type { Service, FootballLevel } from "@/lib/supabase/types";
 import { User, Briefcase, Mail, Save, Check, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -77,30 +76,23 @@ export function ProfileEditForm({
     setError(null);
     setSavedAt(null);
 
-    const supabase = createClient();
-    // .select().single() pour DÉTECTER si l'update a vraiment touché 1 ligne.
-    // Sans select, une update bloquée par RLS renvoie data:null sans error
-    // → on croit que c'est sauvé alors que rien n'a bougé. Avec select+single,
-    // 0 ligne touchée → error PGRST116 → on surface vraiment l'échec.
-    const { data: updated, error: upErr } = await supabase
-      .from("users")
-      .update({
+    // Passage par un endpoint serveur (admin client) plutôt que supabase
+    // côté client : robustesse + erreur explicite si quelque chose bloque
+    // (au lieu d'un faux succès silencieux).
+    const res = await fetch("/api/profile/update", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({
         name: name.trim(),
         display_name: displayName.trim(),
-        user_slug: slugify(displayName),
         service_id: serviceId,
         football_level: footballLevel,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", profile.id)
-      .select("id, name, display_name")
-      .single();
-
-    if (upErr || !updated) {
-      setError(
-        upErr?.message ??
-          "Aucune ligne mise à jour — la base a refusé silencieusement (RLS ?). Recharge la page et réessaie."
-      );
+      }),
+    });
+    if (!res.ok) {
+      const b = await res.json().catch(() => ({}));
+      setError(b?.error ?? `Échec (HTTP ${res.status}).`);
       setSaving(false);
       return;
     }
