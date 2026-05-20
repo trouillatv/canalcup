@@ -15,6 +15,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ProfileEditForm } from "@/components/profile/ProfileEditForm";
+import { TeamCaptainPanel } from "@/components/teams/TeamCaptainPanel";
 import { UserCircle2, Trophy, Users2, Sparkles } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -120,6 +121,11 @@ export default async function ProfilePage() {
           classement).
         </p>
       </section>
+
+      {/* Panneau Captain — visible UNIQUEMENT pour les créateurs d'équipe.
+          Affiche les équipes créées, le code/lien d'invitation à partager,
+          le nb de places restantes, et les demandes pending à valider. */}
+      <TeamCaptainPanel />
 
       {/* Rappel pédagogique */}
       <section className="canal-card border border-canal-yellow/30 bg-canal-yellow/5">
