@@ -43,28 +43,49 @@ export default function OnboardingPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/services").then((r) => r.json()).then(setServices).catch(() => {});
-    fetch("/api/teams").then((r) => r.json()).then(setTeams).catch(() => {});
+    // Hardening : si /api/services ou /api/teams renvoient une erreur JSON
+    // (ex. { error: "..." }) au lieu d'un array, .map() planterait l'app.
+    // On garde uniquement les arrays ; sinon on log et on reste à [].
+    fetch("/api/services")
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d)) setServices(d);
+        else console.warn("[/api/services] réponse non-array", d);
+      })
+      .catch((e) => console.warn("[/api/services] fetch KO", e));
+    fetch("/api/teams")
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d)) setTeams(d);
+        else if (Array.isArray(d?.teams)) setTeams(d.teams);
+        else console.warn("[/api/teams] réponse non-array", d);
+      })
+      .catch((e) => console.warn("[/api/teams] fetch KO", e));
 
     // Pré-remplir si l'utilisateur a déjà commencé (renvoyé ici car profil
     // incomplet : il ne doit pas re-saisir ce qui est déjà connu).
+    // try/catch global : un crash de supabase ne doit jamais casser la page.
     (async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data: row } = await supabase
-        .from("users")
-        .select("display_name, name, service_id, football_level, team_id, profile_completed")
-        .eq("auth_id", user.id)
-        .single();
-      if (!row) return;
-      if (row.display_name || row.name) setDisplayName(row.display_name ?? row.name ?? "");
-      if (row.service_id) setServiceId(row.service_id);
-      if (row.football_level) setFootballLevel(row.football_level as FootballLevel);
-      if (row.team_id) setTeamId(row.team_id);
-      // "returning" = a déjà des données mais profil pas (ou plus) complété.
-      if (!row.profile_completed && (row.display_name || row.name || row.service_id || row.team_id)) {
-        setReturning(true);
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data: row, error } = await supabase
+          .from("users")
+          .select("display_name, name, service_id, football_level, team_id, profile_completed")
+          .eq("auth_id", user.id)
+          .maybeSingle();
+        if (error || !row) return;
+        if (row.display_name || row.name) setDisplayName(row.display_name ?? row.name ?? "");
+        if (row.service_id) setServiceId(row.service_id);
+        if (row.football_level) setFootballLevel(row.football_level as FootballLevel);
+        if (row.team_id) setTeamId(row.team_id);
+        // "returning" = a déjà des données mais profil pas (ou plus) complété.
+        if (!row.profile_completed && (row.display_name || row.name || row.service_id || row.team_id)) {
+          setReturning(true);
+        }
+      } catch (e) {
+        console.warn("[onboarding prefill] KO", e);
       }
     })();
   }, []);

@@ -125,7 +125,7 @@ export async function GET(req: Request) {
     // Users light : sert au picker de participants côté UI admin (phase 2.B).
     supabase
       .from("users")
-      .select("id, name, display_name, team_id, team:teams(id, name, color)")
+      .select("id, name, display_name, team_id, team:teams(id, name)")
       .eq("profile_completed", true)
       .order("display_name"),
   ]);
