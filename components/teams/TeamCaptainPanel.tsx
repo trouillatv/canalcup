@@ -150,7 +150,8 @@ export function TeamCaptainPanel() {
                     </code>
                     <button
                       onClick={() => copy(t.invite_code!, `code-${t.id}`)}
-                      className="px-3 py-2 rounded-lg bg-canal-gray border border-canal-gray-light text-canal-gray-muted hover:text-white text-xs font-bold flex items-center gap-1"
+                      title="Copier le code"
+                      className="px-3 py-2 rounded-lg bg-canal-yellow/15 text-canal-yellow border border-canal-yellow/30 hover:bg-canal-yellow/25 text-xs font-bold flex items-center gap-1 transition-colors"
                     >
                       {copied === `code-${t.id}` ? <Check size={12} /> : <Copy size={12} />}
                       {copied === `code-${t.id}` ? "OK" : "Code"}

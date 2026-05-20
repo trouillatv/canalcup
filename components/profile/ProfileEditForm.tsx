@@ -78,7 +78,11 @@ export function ProfileEditForm({
     setSavedAt(null);
 
     const supabase = createClient();
-    const { error: upErr } = await supabase
+    // .select().single() pour DÉTECTER si l'update a vraiment touché 1 ligne.
+    // Sans select, une update bloquée par RLS renvoie data:null sans error
+    // → on croit que c'est sauvé alors que rien n'a bougé. Avec select+single,
+    // 0 ligne touchée → error PGRST116 → on surface vraiment l'échec.
+    const { data: updated, error: upErr } = await supabase
       .from("users")
       .update({
         name: name.trim(),
@@ -88,12 +92,14 @@ export function ProfileEditForm({
         football_level: footballLevel,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", profile.id);
+      .eq("id", profile.id)
+      .select("id, name, display_name")
+      .single();
 
-    if (upErr) {
-      // La contrainte CHECK refuse aussi tout désordre — message clair.
+    if (upErr || !updated) {
       setError(
-        "Échec de la sauvegarde — vérifie que tous les champs sont remplis (nom, pseudo, service, niveau)."
+        upErr?.message ??
+          "Aucune ligne mise à jour — la base a refusé silencieusement (RLS ?). Recharge la page et réessaie."
       );
       setSaving(false);
       return;
