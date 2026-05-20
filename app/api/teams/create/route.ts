@@ -21,7 +21,9 @@ export async function POST(req: Request) {
   let body: { name?: string; slogan?: string };
   try { body = await req.json(); } catch { body = {}; }
   const name = (body.name ?? "").trim();
-  const slogan = (body.slogan ?? "").trim() || null;
+  // teams.slogan est NOT NULL en base — on défaut à chaîne vide (le user
+  // pourra l'éditer plus tard ; éviter le crash NOT NULL à la création).
+  const slogan = (body.slogan ?? "").trim();
   if (name.length < 2 || name.length > 60) {
     return NextResponse.json(
       { error: "Nom d'équipe invalide (2 à 60 caractères)." },
