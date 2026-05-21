@@ -9,7 +9,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { QrCode, ExternalLink, RefreshCw } from "lucide-react";
+import { QrCode, ExternalLink, RefreshCw, Share2, Check } from "lucide-react";
 
 interface Counter {
   slug: string;
@@ -35,6 +35,7 @@ export default function AdminQrPage() {
   const [counter, setCounter] = useState<Counter | null>(null);
   const [loading, setLoading] = useState(true);
   const [origin, setOrigin] = useState<string>("");
+  const [shareState, setShareState] = useState<"idle" | "sharing" | "copied">("idle");
 
   useEffect(() => {
     setOrigin(
@@ -64,6 +65,60 @@ export default function AdminQrPage() {
   const qrImageUrl = targetUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?size=600x600&margin=20&data=${encodeURIComponent(targetUrl)}`
     : "";
+
+  // Partager : on tente d'abord de partager le PNG du QR (utile sur mobile
+  // pour l'envoyer dans WhatsApp avec l'aperçu visuel). Si l'API Web Share
+  // ne supporte pas les fichiers (desktop, vieux navigateurs), on retombe
+  // sur le partage d'URL. Dernier filet : copie dans le presse-papier.
+  const handleShare = async () => {
+    if (!targetUrl || shareState === "sharing") return;
+    setShareState("sharing");
+    const shareData: ShareData = {
+      title: "Canal Cup — Calendrier WC2026",
+      text: "Scanne le QR ou ouvre ce lien pour le calendrier complet de la Coupe du Monde 2026.",
+      url: targetUrl,
+    };
+    try {
+      // Tentative 1 : partager l'image du QR comme fichier (mobile uniquement).
+      if (qrImageUrl && typeof navigator !== "undefined" && "share" in navigator) {
+        try {
+          const res = await fetch(qrImageUrl);
+          if (res.ok) {
+            const blob = await res.blob();
+            const file = new File([blob], "canalcup-qr-welcome.png", { type: blob.type || "image/png" });
+            const withFile: ShareData = { ...shareData, files: [file] };
+            // canShare retourne false sur desktop / si type non supporté → on tombe sur le else.
+            if (navigator.canShare && navigator.canShare(withFile)) {
+              await navigator.share(withFile);
+              setShareState("idle");
+              return;
+            }
+          }
+        } catch {
+          /* on retombera sur le partage d'URL */
+        }
+      }
+      // Tentative 2 : partage d'URL.
+      if (typeof navigator !== "undefined" && "share" in navigator) {
+        await navigator.share(shareData);
+        setShareState("idle");
+        return;
+      }
+      // Tentative 3 : copie dans le presse-papier. Cast nécessaire car TS
+      // a narrow navigator à `never` après les checks "share" in navigator.
+      const clip = (typeof navigator !== "undefined" ? (navigator as Navigator).clipboard : undefined);
+      if (clip) {
+        await clip.writeText(targetUrl);
+        setShareState("copied");
+        setTimeout(() => setShareState("idle"), 2500);
+        return;
+      }
+      setShareState("idle");
+    } catch {
+      // L'utilisateur a annulé le sheet de partage → pas une erreur.
+      setShareState("idle");
+    }
+  };
 
   return (
     <div className="px-4 py-6 max-w-2xl mx-auto space-y-6">
@@ -114,6 +169,29 @@ export default function AdminQrPage() {
             Télécharger le QR en PNG haute déf
           </a>
         )}
+
+        {/* Partager — Web Share API natif (sheet iOS/Android) avec fallback
+            copie URL si non supporté. Bouton plein largeur sous le QR. */}
+        <button
+          onClick={handleShare}
+          disabled={!targetUrl || shareState === "sharing"}
+          className="w-full flex items-center justify-center gap-2 py-3 mt-2 bg-canal-yellow text-canal-black font-black rounded-xl hover:bg-canal-yellow-hover transition-colors disabled:opacity-40"
+        >
+          {shareState === "copied" ? (
+            <>
+              <Check size={16} /> Lien copié !
+            </>
+          ) : (
+            <>
+              <Share2 size={16} />
+              {shareState === "sharing" ? "Partage…" : "Partager le QR"}
+            </>
+          )}
+        </button>
+        <p className="text-[11px] text-canal-gray-muted italic text-center">
+          Sur mobile : ouvre le sheet WhatsApp / SMS / Mail avec le QR en
+          pièce jointe. Sur desktop : copie le lien dans le presse-papier.
+        </p>
       </section>
 
       <section className="canal-card space-y-2">
