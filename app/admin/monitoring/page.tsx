@@ -78,10 +78,20 @@ function StatusPill({ state }: { state: "ok" | "missing" | "error" | "running" |
   );
 }
 
+// Toutes les dates affichées sur cette page sont converties en heure
+// Nouvelle-Calédonie (UTC+11) — c'est l'heure locale des admins et de
+// l'événement Canal Cup. Le serveur stocke en UTC, la conversion se
+// fait à l'affichage.
 function formatTime(iso: string | null): string {
   if (!iso) return "—";
   try {
-    return new Date(iso).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    return new Date(iso).toLocaleString("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Pacific/Noumea",
+    });
   } catch { return iso; }
 }
 
@@ -156,6 +166,11 @@ export default function AdminMonitoringPage() {
           </h1>
           <p className="text-canal-gray-muted text-sm mt-1">
             Santé des intégrations externes — clés, quotas, crons, scraping.
+            <span className="block mt-0.5 text-[10px] italic">
+              Toutes les heures en{" "}
+              <span className="text-canal-yellow font-bold not-italic">Nouvelle-Calédonie</span>{" "}
+              (UTC+11)
+            </span>
             {data && <span className="block mt-0.5 text-[11px]">Snapshot : {formatTime(data.ts)}</span>}
           </p>
         </div>
