@@ -9,7 +9,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Timer, CheckCircle, XCircle, Zap, Hourglass, Trophy } from "lucide-react";
-import { QUIZ_TIMER_SECONDS } from "@/lib/scoring";
+import { QUIZ_TIMER_SECONDS, QUIZ_MIN_RESPONSE_MS } from "@/lib/scoring";
 
 const ANSWERS = ["A", "B", "C", "D"] as const;
 const POLL_INTERVAL_MS = 2000;
@@ -142,6 +142,8 @@ export default function QuizLivePage() {
 
   // Auto-submit "" (timeout) si l'utilisateur n'a pas répondu à temps,
   // pour qu'il voie "Temps écoulé — 0 pt" et qu'on persiste 0 côté DB.
+  // On ne déclenche QUE si on est passé la phase countdown ET qu'on a
+  // dépassé started_at + TIMER_SECONDS.
   useEffect(() => {
     if (session.status !== "question") return;
     if (outcome) return;
@@ -201,9 +203,17 @@ export default function QuizLivePage() {
 
   // Question active
   const q = session.question;
-  const elapsedMs = Math.max(0, Date.now() - new Date(session.started_at).getTime());
+  const rawElapsed = Date.now() - new Date(session.started_at).getTime();
+  // rawElapsed < 0 = countdown en cours (started_at est dans le futur)
+  const inCountdown = rawElapsed < 0;
+  const countdownLeft = inCountdown ? Math.ceil(-rawElapsed / 1000) : 0;
+  const elapsedMs = Math.max(0, rawElapsed);
   const timeLeft = Math.max(0, Math.ceil((TIMER_SECONDS * 1000 - elapsedMs) / 1000));
   const timedOut = elapsedMs > TIMER_SECONDS * 1000;
+  // Filet anti-précharge côté UI : on bloque les boutons tant que
+  // QUIZ_MIN_RESPONSE_MS ne s'est pas écoulé. Le serveur fait la vérif
+  // canonique de toute façon.
+  const tooEarly = !inCountdown && rawElapsed < QUIZ_MIN_RESPONSE_MS;
   const timerPct = Math.max(0, (timeLeft / TIMER_SECONDS) * 100);
   const timerColor = timeLeft <= 5 ? "bg-red-500" : timeLeft <= 10 ? "bg-yellow-400" : "bg-canal-yellow";
 
@@ -218,7 +228,40 @@ export default function QuizLivePage() {
   };
 
   const wasAnswered = !!outcome;
-  const locked = wasAnswered || submitting || timedOut;
+  const locked = wasAnswered || submitting || timedOut || inCountdown || tooEarly;
+
+  // Phase COUNTDOWN : on cache la question, on affiche un grand "3 / 2 / 1"
+  // au centre. Empêche le doigt préchargé sur une lettre.
+  if (inCountdown) {
+    return (
+      <div className="px-4 py-4 max-w-2xl mx-auto flex flex-col gap-5">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-canal-gray-muted">
+            Question{" "}
+            <span className="text-white font-bold">{session.question_index + 1}</span>
+            {session.total > 0 && <span> / {session.total}</span>}
+          </span>
+          <span className="text-xs uppercase tracking-wider text-canal-yellow font-black">
+            Préparation…
+          </span>
+        </div>
+        <div className="canal-card flex flex-col items-center justify-center py-16 gap-3">
+          <p className="text-canal-gray-muted text-sm uppercase tracking-wider">
+            Prochaine question dans
+          </p>
+          <p
+            key={countdownLeft /* relance l'anim à chaque tick */}
+            className="text-canal-yellow font-black text-8xl tabular-nums animate-pulse"
+          >
+            {countdownLeft}
+          </p>
+          <p className="text-canal-gray-muted text-xs mt-2 italic">
+            Mains sur les genoux 👀
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 py-4 max-w-2xl mx-auto flex flex-col gap-5">

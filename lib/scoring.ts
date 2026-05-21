@@ -73,6 +73,16 @@ export function calculatePoints(
 export const QUIZ_TIMER_SECONDS = 20;
 export const QUIZ_FAST_THRESHOLD_MS = 5000;
 
+// Anti-triche / anti-précharge
+// QUIZ_COUNTDOWN_MS : à chaque start/next, started_at est fixé dans le futur
+// (now + countdown). Le client affiche "3… 2… 1…" et désactive les boutons
+// pendant ce délai. Empêche d'avoir le doigt préchargé sur une lettre.
+// QUIZ_MIN_RESPONSE_MS : sous ce seuil après started_at, le serveur refuse
+// la réponse. Filet anti-bot / anti-clic instantané (un humain ne peut pas
+// lire une question + cliquer en < 250ms).
+export const QUIZ_COUNTDOWN_MS = 3000;
+export const QUIZ_MIN_RESPONSE_MS = 250;
+
 export function quizPoints(isCorrect: boolean, responseTimeMs: number): number {
   if (!isCorrect) return 0;
   return responseTimeMs <= QUIZ_FAST_THRESHOLD_MS ? 5 : 3;

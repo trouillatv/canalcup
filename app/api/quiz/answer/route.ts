@@ -10,7 +10,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { quizPoints, QUIZ_TIMER_SECONDS } from "@/lib/scoring";
+import { quizPoints, QUIZ_TIMER_SECONDS, QUIZ_MIN_RESPONSE_MS } from "@/lib/scoring";
 
 export async function POST(req: Request) {
   try {
@@ -71,7 +71,25 @@ export async function POST(req: Request) {
     }
 
     const startedAt = new Date(session.started_at).getTime();
-    const elapsedMs = Math.max(0, Date.now() - startedAt);
+    const nowMs = Date.now();
+    const rawElapsed = nowMs - startedAt; // peut être NÉGATIF pendant le countdown
+    const isTimeoutAnswer = answer === "";
+
+    // Anti-précharge : refuse les réponses arrivées avant started_at
+    // (countdown encore en cours côté joueur).
+    if (rawElapsed < 0 && !isTimeoutAnswer) {
+      return NextResponse.json(
+        { ok: false, error: "Le compte à rebours n'est pas terminé." },
+        { status: 400 }
+      );
+    }
+
+    // Anti-bot / anti-clic instantané : un humain ne peut pas lire +
+    // cliquer en moins de QUIZ_MIN_RESPONSE_MS. On accepte la réponse
+    // (UX : pas d'erreur visible) mais on l'enregistre avec 0 pt.
+    const tooFast = rawElapsed >= 0 && rawElapsed < QUIZ_MIN_RESPONSE_MS && !isTimeoutAnswer;
+
+    const elapsedMs = Math.max(0, rawElapsed);
     // Petite tolérance : +500ms pour absorber la latence réseau
     // (sinon un click à 19.9s pourrait arriver à 20.1s côté serveur).
     const TIMEOUT_MS = QUIZ_TIMER_SECONDS * 1000 + 500;
@@ -79,8 +97,8 @@ export async function POST(req: Request) {
     const response_time_ms = Math.min(elapsedMs, QUIZ_TIMER_SECONDS * 1000);
     void rawRt; // ignore le client (anti-triche)
 
-    const is_correct = answer !== "" && answer === question.correct_answer;
-    const points = timedOut ? 0 : quizPoints(is_correct, response_time_ms);
+    const is_correct = !isTimeoutAnswer && answer === question.correct_answer;
+    const points = timedOut || tooFast ? 0 : quizPoints(is_correct, response_time_ms);
 
     // Joueur sans équipe : on le laisse jouer mais rien n'est compté au classement.
     if (!profile.team_id) {

@@ -8,6 +8,14 @@
 
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { QUIZ_COUNTDOWN_MS } from "@/lib/scoring";
+
+// Pour chaque start/next, started_at est posé dans le FUTUR (now + countdown).
+// Ça force un compte à rebours visible côté joueur, et l'API answer refuse
+// toute réponse avant started_at. Anti-précharge du doigt.
+function futureStartedAt(): string {
+  return new Date(Date.now() + QUIZ_COUNTDOWN_MS).toISOString();
+}
 
 function guard(req: Request): boolean {
   return req.headers.get("x-admin-secret") === process.env.ADMIN_SECRET;
@@ -57,7 +65,7 @@ export async function POST(req: Request) {
       .insert({
         current_question_id: ids[0],
         question_index: 0,
-        started_at: new Date().toISOString(),
+        started_at: futureStartedAt(),
         status: "question",
       })
       .select("*")
@@ -94,7 +102,7 @@ export async function POST(req: Request) {
       .update({
         current_question_id: ids[nextIndex],
         question_index: nextIndex,
-        started_at: new Date().toISOString(),
+        started_at: futureStartedAt(),
         status: "question",
       })
       .eq("id", session.id)
