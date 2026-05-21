@@ -60,11 +60,41 @@ type KeyStatus =
   | { state: "missing" }
   | { state: "error"; detail: string };
 
-async function checkGemini(): Promise<KeyStatus> {
+// Cache process-local 10 sec : les sondes externes (Gemini /models +
+// API-Football /status) sont CHÈRES (latence 500ms-2s). Si l'admin
+// laisse le toggle auto-refresh 30s actif, on ne tape PAS les API à
+// chaque tick — un refresh récent vaut une vérité partagée.
+const probeCache = new Map<string, { ts: number; value: unknown }>();
+const PROBE_TTL_MS = 10_000;
+
+function cached<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const hit = probeCache.get(key);
+  if (hit && Date.now() - hit.ts < PROBE_TTL_MS) {
+    return Promise.resolve(hit.value as T);
+  }
+  return fn().then((v) => {
+    probeCache.set(key, { ts: Date.now(), value: v });
+    return v;
+  });
+}
+
+// Timeout 2 sec sur les sondes externes pour éviter qu'un endpoint
+// fantôme bloque le rendu de la page entière.
+async function fetchWithTimeout(url: string, opts: RequestInit = {}, ms = 2000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...opts, signal: ctrl.signal });
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function checkGeminiUncached(): Promise<KeyStatus> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return { state: "missing" };
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`,
       { method: "GET" }
     );
@@ -77,6 +107,7 @@ async function checkGemini(): Promise<KeyStatus> {
     return { state: "error", detail: e instanceof Error ? e.message : "fail" };
   }
 }
+const checkGemini = () => cached("gemini", checkGeminiUncached);
 
 interface FootballStatus {
   key: KeyStatus;
@@ -89,11 +120,11 @@ interface FootballStatus {
   };
 }
 
-async function checkApiFootball(): Promise<FootballStatus> {
+async function checkApiFootballUncached(): Promise<FootballStatus> {
   const key = process.env.API_FOOTBALL_KEY;
   if (!key) return { key: { state: "missing" } };
   try {
-    const res = await fetch("https://v3.football.api-sports.io/status", {
+    const res = await fetchWithTimeout("https://v3.football.api-sports.io/status", {
       headers: { "x-apisports-key": key },
     });
     if (!res.ok) {
@@ -116,6 +147,7 @@ async function checkApiFootball(): Promise<FootballStatus> {
     return { key: { state: "error", detail: e instanceof Error ? e.message : "fail" } };
   }
 }
+const checkApiFootball = () => cached<FootballStatus>("apif", checkApiFootballUncached);
 
 async function lastScrapingDate(): Promise<{ file: string; mtime: string } | null> {
   // L'enrichissement joueurs est un Python externe qui produit
