@@ -44,6 +44,8 @@ export function MyTeamsPanel() {
   const [copied, setCopied] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState("");
+  const [newTeamName, setNewTeamName] = useState("");
+  const [showCreate, setShowCreate] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -102,6 +104,33 @@ export function MyTeamsPanel() {
   };
   const decide = (reqId: string, decision: "approve" | "reject") =>
     callAction("/api/teams/requests/decide", { request_id: reqId, decision }, `decide-${reqId}`);
+
+  const createTeam = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = newTeamName.trim();
+    if (name.length < 2) return;
+    setBusy("create");
+    setErr(null);
+    try {
+      const res = await fetch("/api/teams/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ name }),
+      });
+      if (!res.ok) {
+        const b = await res.json().catch(() => ({}));
+        setErr(b?.error ?? `HTTP ${res.status}`);
+      } else {
+        setNewTeamName("");
+        setShowCreate(false);
+      }
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Erreur réseau");
+    }
+    setBusy(null);
+    await refresh();
+  };
 
   const joinByCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -314,14 +343,46 @@ export function MyTeamsPanel() {
       {/* Actions globales */}
       <div className="pt-2 border-t border-canal-gray-light/30 space-y-2">
         <p className="text-[11px] text-canal-gray-muted font-bold uppercase tracking-wider">
-          Ajouter une équipe
+          {teams.length === 0 ? "Créer ou rejoindre une équipe" : "Ajouter une équipe"}
         </p>
-        <Link
-          href="/onboarding"
-          className="w-full text-sm font-bold text-canal-black bg-canal-yellow rounded-xl px-3 py-2.5 flex items-center justify-center gap-1.5 hover:bg-canal-yellow-hover transition-colors"
-        >
-          <Plus size={14} /> Créer une autre équipe
-        </Link>
+
+        {/* Création directe — formulaire inline, plus de détour /onboarding */}
+        {!showCreate ? (
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="w-full text-sm font-bold text-canal-black bg-canal-yellow rounded-xl px-3 py-2.5 flex items-center justify-center gap-1.5 hover:bg-canal-yellow-hover transition-colors"
+          >
+            <Plus size={14} /> {teams.length === 0 ? "Créer mon équipe" : "Créer une autre équipe"}
+          </button>
+        ) : (
+          <form onSubmit={createTeam} className="flex gap-2">
+            <input
+              type="text"
+              value={newTeamName}
+              onChange={(e) => setNewTeamName(e.target.value)}
+              placeholder='Nom de l&apos;équipe (ex : Les Frites)'
+              maxLength={60}
+              autoFocus
+              className="flex-1 bg-canal-gray-mid border border-canal-gray-light rounded-xl px-3 py-2 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow"
+            />
+            <button
+              type="submit"
+              disabled={newTeamName.trim().length < 2 || busy === "create"}
+              className="px-3 py-2 rounded-xl bg-canal-yellow text-canal-black hover:bg-canal-yellow-hover text-xs font-black flex items-center gap-1 disabled:opacity-40 transition-colors"
+            >
+              <Plus size={12} /> {busy === "create" ? "…" : "Créer"}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowCreate(false); setNewTeamName(""); setErr(null); }}
+              className="px-2 py-2 text-xs text-canal-gray-muted hover:text-white"
+            >
+              ✕
+            </button>
+          </form>
+        )}
+
         <form onSubmit={joinByCode} className="flex gap-2">
           <input
             type="text"

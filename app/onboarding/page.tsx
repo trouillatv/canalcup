@@ -512,6 +512,19 @@ function OnboardingInner() {
             </p>
           )}
 
+          {/* Diagnostic : pourquoi le bouton est grisé ? */}
+          {!isValid && (
+            <p className="text-canal-gray-muted text-[11px] text-center italic">
+              {displayName.trim().length < 2
+                ? "Renseigne ton pseudo (2 caractères min)"
+                : !serviceId
+                  ? "Choisis ton service"
+                  : !footballLevel
+                    ? "Choisis ton niveau foot"
+                    : "—"}
+            </p>
+          )}
+
           {captainLocked ? (
             <Link
               href="/profile"
