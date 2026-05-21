@@ -12,6 +12,8 @@ import {
   Square,
   RotateCcw,
   Radio,
+  Trophy,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { QuizQuestion, QuizCategory, QuizDifficulty } from "@/lib/supabase/types";
@@ -24,6 +26,37 @@ interface LiveSessionState {
   question_index?: number;
   total?: number;
   started_at?: string;
+}
+
+interface LeaderboardRow {
+  user_id: string;
+  name: string;
+  team_id: string;
+  team_name: string;
+  total_points: number;
+  correct: number;
+  answered: number;
+}
+interface TeamRow {
+  team_id: string;
+  name: string;
+  total_points: number;
+  players: number;
+  correct: number;
+  answered: number;
+}
+interface ResultsPayload {
+  session: {
+    id: string;
+    status: "question" | "finished";
+    started_at: string;
+    ended_at: string | null;
+    question_index: number;
+    total: number;
+  } | null;
+  questionsAnswered: number;
+  leaderboard: LeaderboardRow[];
+  teams: TeamRow[];
 }
 
 const CATEGORIES: QuizCategory[] = ["foot", "culture", "canal", "general"];
@@ -84,6 +117,11 @@ export default function AdminQuizPage() {
   const [liveActing, setLiveActing] = useState<null | "start" | "next" | "end" | "reset">(null);
   const [liveError, setLiveError] = useState<string | null>(null);
 
+  // Résultats du quiz (live + récap final)
+  const [results, setResults] = useState<ResultsPayload | null>(null);
+  const [resultsTab, setResultsTab] = useState<"players" | "teams">("players");
+  const [resultsExpanded, setResultsExpanded] = useState(true);
+
   const fetchQuestions = useCallback(async () => {
     setLoading(true);
     const res = await fetch("/api/admin/quiz");
@@ -115,11 +153,27 @@ export default function AdminQuizPage() {
     fetchQuestions();
   }, [fetchQuestions]);
 
+  const fetchResults = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/quiz/results", {
+        credentials: "same-origin",
+        headers: { "x-admin-secret": ADMIN_SECRET },
+      });
+      if (!res.ok) return;
+      const d: ResultsPayload = await res.json();
+      setResults(d);
+    } catch { /* silencieux */ }
+  }, []);
+
   useEffect(() => {
     fetchLive();
-    const t = setInterval(fetchLive, 3000);
+    fetchResults();
+    const t = setInterval(() => {
+      fetchLive();
+      fetchResults();
+    }, 3000);
     return () => clearInterval(t);
-  }, [fetchLive]);
+  }, [fetchLive, fetchResults]);
 
   const callLive = useCallback(
     async (action: "start" | "next" | "end" | "reset") => {
@@ -298,6 +352,153 @@ export default function AdminQuizPage() {
           +5 pts si bonne réponse en &lt;5s, +3 sinon, 0 si faux ou timeout.
         </p>
       </section>
+
+      {/* ─── Résultats (live + récap final) ─── */}
+      {results && results.session && (results.leaderboard.length > 0 || results.session.status === "finished") && (
+        <section className="canal-card space-y-3">
+          <button
+            onClick={() => setResultsExpanded((v) => !v)}
+            className="flex items-center justify-between w-full"
+          >
+            <div className="flex items-center gap-2">
+              <Trophy size={16} className="text-canal-yellow" />
+              <h2 className="font-bold text-white">
+                Résultats
+                {results.session.status === "finished" && (
+                  <span className="text-canal-gray-muted font-normal text-xs ml-2">
+                    — quiz terminé
+                  </span>
+                )}
+              </h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-canal-gray-muted">
+                {results.leaderboard.length} joueur(s) · {results.questionsAnswered} q.
+              </span>
+              {resultsExpanded ? (
+                <ChevronUp size={16} className="text-canal-gray-muted" />
+              ) : (
+                <ChevronDown size={16} className="text-canal-gray-muted" />
+              )}
+            </div>
+          </button>
+
+          {resultsExpanded && (
+            <>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setResultsTab("players")}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors",
+                    resultsTab === "players"
+                      ? "bg-canal-yellow text-canal-black"
+                      : "bg-canal-gray-mid text-canal-gray-muted border border-canal-gray-light"
+                  )}
+                >
+                  <Trophy size={12} /> Joueurs
+                </button>
+                <button
+                  onClick={() => setResultsTab("teams")}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors",
+                    resultsTab === "teams"
+                      ? "bg-canal-yellow text-canal-black"
+                      : "bg-canal-gray-mid text-canal-gray-muted border border-canal-gray-light"
+                  )}
+                >
+                  <Users size={12} /> Équipes
+                </button>
+              </div>
+
+              {resultsTab === "players" && (
+                <div className="space-y-1.5 max-h-80 overflow-y-auto">
+                  {results.leaderboard.length === 0 ? (
+                    <p className="text-canal-gray-muted text-xs italic">
+                      Pas encore de réponses.
+                    </p>
+                  ) : (
+                    results.leaderboard.map((row, i) => (
+                      <div
+                        key={row.user_id}
+                        className="flex items-center gap-3 px-3 py-2 bg-canal-gray-mid rounded-lg border border-canal-gray-light"
+                      >
+                        <span
+                          className={cn(
+                            "w-7 text-center font-black text-sm shrink-0",
+                            i === 0
+                              ? "text-canal-yellow"
+                              : i === 1
+                              ? "text-canal-gray-light"
+                              : i === 2
+                              ? "text-orange-400"
+                              : "text-canal-gray-muted"
+                          )}
+                        >
+                          {i + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-white truncate">
+                            {row.name}
+                          </p>
+                          <p className="text-xs text-canal-gray-muted truncate">
+                            {row.team_name} · {row.correct}/{row.answered} ✓
+                          </p>
+                        </div>
+                        <span className="font-black text-canal-yellow text-base tabular-nums shrink-0">
+                          {row.total_points} pt{row.total_points > 1 ? "s" : ""}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {resultsTab === "teams" && (
+                <div className="space-y-1.5 max-h-80 overflow-y-auto">
+                  {results.teams.length === 0 ? (
+                    <p className="text-canal-gray-muted text-xs italic">
+                      Pas encore de réponses.
+                    </p>
+                  ) : (
+                    results.teams.map((row, i) => (
+                      <div
+                        key={row.team_id}
+                        className="flex items-center gap-3 px-3 py-2 bg-canal-gray-mid rounded-lg border border-canal-gray-light"
+                      >
+                        <span
+                          className={cn(
+                            "w-7 text-center font-black text-sm shrink-0",
+                            i === 0
+                              ? "text-canal-yellow"
+                              : i === 1
+                              ? "text-canal-gray-light"
+                              : i === 2
+                              ? "text-orange-400"
+                              : "text-canal-gray-muted"
+                          )}
+                        >
+                          {i + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-white truncate">
+                            {row.name}
+                          </p>
+                          <p className="text-xs text-canal-gray-muted truncate">
+                            {row.players} joueur(s) · {row.correct}/{row.answered} ✓
+                          </p>
+                        </div>
+                        <span className="font-black text-canal-yellow text-base tabular-nums shrink-0">
+                          {row.total_points} pt{row.total_points > 1 ? "s" : ""}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </section>
+      )}
 
       {/* ─── Ajout manuel ─── */}
       <section className="canal-card space-y-4">
