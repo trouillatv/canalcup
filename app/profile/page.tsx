@@ -14,7 +14,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProfileEditForm } from "@/components/profile/ProfileEditForm";
-import { LogoutButton } from "@/components/profile/LogoutButton";
 import { MyTeamsPanel } from "@/components/teams/MyTeamsPanel";
 import { UserCircle2, Users2, Sparkles } from "lucide-react";
 
@@ -203,10 +202,7 @@ export default async function ProfilePage() {
         </p>
       </section>
 
-      {/* Déconnexion */}
-      <section className="pt-2">
-        <LogoutButton />
-      </section>
+      {/* Déconnexion : déplacée dans la TopBar (icône à droite de l'avatar). */}
     </div>
   );
 }

@@ -84,16 +84,28 @@ export function TopBar() {
           </Link>
         </div>
 
-        {/* Actions — avatar cliquable → /profile */}
-        <div className="flex items-center gap-1">
+        {/* Actions — avatar cliquable → /profile + logout direct.
+            Le logout est visible en permanence (Vincent a explicitement
+            demandé qu'il ne soit pas planqué dans le drawer). */}
+        <div className="flex items-center gap-1.5">
           {user && (
-            <Link
-              href="/profile"
-              aria-label="Mon profil"
-              className="w-7 h-7 rounded-full bg-canal-yellow flex items-center justify-center hover:bg-canal-yellow-hover transition-colors ring-2 ring-transparent hover:ring-canal-yellow/40"
-            >
-              <span className="text-canal-black font-black text-xs">{userInitial}</span>
-            </Link>
+            <>
+              <Link
+                href="/profile"
+                aria-label="Mon profil"
+                className="w-7 h-7 rounded-full bg-canal-yellow flex items-center justify-center hover:bg-canal-yellow-hover transition-colors ring-2 ring-transparent hover:ring-canal-yellow/40"
+              >
+                <span className="text-canal-black font-black text-xs">{userInitial}</span>
+              </Link>
+              <button
+                onClick={handleLogout}
+                aria-label="Se déconnecter"
+                title="Se déconnecter"
+                className="p-1.5 rounded-lg text-canal-gray-muted hover:text-red-400 hover:bg-canal-gray-mid transition-colors"
+              >
+                <LogOut size={16} />
+              </button>
+            </>
           )}
         </div>
       </header>
@@ -180,16 +192,8 @@ export function TopBar() {
             </>
           )}
 
-          {/* Déconnexion */}
-          <div className="pt-4 mt-2 border-t border-canal-gray-light">
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm text-canal-gray-muted hover:text-red-400 hover:bg-canal-gray-mid transition-colors"
-            >
-              <LogOut size={18} />
-              Se déconnecter
-            </button>
-          </div>
+          {/* Le bouton de déconnexion vit désormais dans la TopBar
+              (icône LogOut à droite de l'avatar) — plus de doublon ici. */}
         </nav>
       </div>
     </>
