@@ -21,8 +21,23 @@ function isApiRoute(pathname: string): boolean {
   return pathname.startsWith("/api/");
 }
 
+// Assets statiques servis depuis /public — le matcher Next n'exclut que
+// `_next/*`, `favicon.ico` et 2-3 entrées hard-codées, donc des fichiers
+// type `/CDM-2026.jpeg` passent par le middleware et se font rediriger
+// vers `/` pour les non-authentifiés (= l'image apparaît comme cassée).
+// On bypass dès le début pour toutes les extensions classiques.
+const ASSET_EXT_RE = /\.(jpe?g|png|gif|webp|svg|ico|css|woff2?|ttf|map|txt|xml|mp4|webm|mp3|pdf|json)$/i;
+function isAssetPath(pathname: string): boolean {
+  return ASSET_EXT_RE.test(pathname);
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Assets statiques : on laisse Next servir tel quel, jamais d'auth.
+  if (isAssetPath(pathname)) {
+    return NextResponse.next({ request });
+  }
 
   if (isPublic(pathname)) {
     return NextResponse.next({ request });
