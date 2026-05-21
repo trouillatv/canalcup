@@ -8,15 +8,21 @@
 // Le compteur est incrémenté côté serveur avant de retourner la réponse
 // (RPC qr_increment).
 
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
-async function countVisit(): Promise<void> {
+// Cookie présent = on a déjà vu ce navigateur récemment → on incrémente
+// seulement les vues totales, pas les scans uniques.
+const VISITOR_COOKIE = "cc_qr_welcome";
+const VISITOR_TTL_DAYS = 30;
+
+async function countVisit(isNewVisitor: boolean): Promise<void> {
   try {
     const supabase = createAdminClient();
-    await supabase.rpc("qr_increment", { p_slug: "welcome" });
+    const rpc = isNewVisitor ? "qr_increment_unique" : "qr_increment";
+    await supabase.rpc(rpc, { p_slug: "welcome" });
   } catch {
     /* compteur en panne ≠ page cassée */
   }
@@ -61,13 +67,34 @@ const HTML = `<!DOCTYPE html>
 </body>
 </html>`;
 
-export async function GET(): Promise<Response> {
-  await countVisit();
-  return new NextResponse(HTML, {
+export async function GET(req: NextRequest): Promise<Response> {
+  const existing = req.cookies.get(VISITOR_COOKIE)?.value;
+  const isNewVisitor = !existing;
+  await countVisit(isNewVisitor);
+
+  const res = new NextResponse(HTML, {
     status: 200,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
       "Cache-Control": "no-store",
     },
   });
+
+  if (isNewVisitor) {
+    // UUID v4 minimaliste — pas besoin de crypto-secure pour un cookie d'unicité.
+    const id =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2) + Date.now().toString(36);
+    res.cookies.set({
+      name: VISITOR_COOKIE,
+      value: id,
+      maxAge: 60 * 60 * 24 * VISITOR_TTL_DAYS,
+      path: "/p/welcome",
+      sameSite: "lax",
+      httpOnly: false, // pas sensible — l'utilisateur peut le voir/supprimer
+    });
+  }
+
+  return res;
 }

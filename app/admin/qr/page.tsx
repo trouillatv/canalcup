@@ -14,6 +14,7 @@ import { QrCode, ExternalLink, RefreshCw, Share2, Check } from "lucide-react";
 interface Counter {
   slug: string;
   count: number;
+  unique_count: number;
   last_scan_at: string | null;
 }
 
@@ -210,22 +211,40 @@ export default function AdminQrPage() {
         {loading ? (
           <p className="text-canal-gray-muted text-sm">Chargement…</p>
         ) : (
-          <div className="flex items-baseline gap-2">
-            <span className="text-canal-yellow font-black text-5xl tabular-nums">
-              {counter?.count ?? 0}
-            </span>
-            <span className="text-canal-gray-muted text-sm">
-              ouverture{(counter?.count ?? 0) > 1 ? "s" : ""} de la page
-            </span>
+          <div className="grid grid-cols-2 gap-3">
+            {/* Scans uniques (chiffre principal, ce qui compte vraiment) */}
+            <div className="bg-canal-gray-mid rounded-xl px-3 py-3 border border-canal-yellow/30">
+              <p className="text-[10px] uppercase tracking-wider text-canal-yellow font-bold">
+                Scans uniques
+              </p>
+              <p className="text-canal-yellow font-black text-4xl tabular-nums leading-tight mt-1">
+                {counter?.unique_count ?? 0}
+              </p>
+              <p className="text-[10px] text-canal-gray-muted mt-0.5">
+                appareils distincts (30j)
+              </p>
+            </div>
+            {/* Vues totales (refresh inclus, secondaire) */}
+            <div className="bg-canal-gray-mid rounded-xl px-3 py-3 border border-canal-gray-light">
+              <p className="text-[10px] uppercase tracking-wider text-canal-gray-muted font-bold">
+                Vues totales
+              </p>
+              <p className="text-white font-black text-4xl tabular-nums leading-tight mt-1">
+                {counter?.count ?? 0}
+              </p>
+              <p className="text-[10px] text-canal-gray-muted mt-0.5">
+                refresh inclus
+              </p>
+            </div>
           </div>
         )}
-        <p className="text-xs text-canal-gray-muted">
-          Dernier scan : <span className="text-white">{formatTime(counter?.last_scan_at ?? null)}</span>
+        <p className="text-xs text-canal-gray-muted pt-1">
+          Dernière ouverture : <span className="text-white">{formatTime(counter?.last_scan_at ?? null)}</span>
         </p>
-        <p className="text-[11px] text-canal-gray-muted italic pt-1">
-          Note : chaque ouverture de page compte (un refresh = +1). Pas de
-          déduplication par utilisateur — donne un ordre de grandeur, pas un
-          compte unique.
+        <p className="text-[11px] text-canal-gray-muted italic">
+          Dédup via cookie navigateur 30 jours. Un même appareil qui scanne
+          plusieurs fois ne compte qu&apos;une fois en &laquo;&nbsp;scans uniques&nbsp;&raquo;.
+          Si l&apos;utilisateur efface ses cookies, il sera recompté.
         </p>
       </section>
     </div>

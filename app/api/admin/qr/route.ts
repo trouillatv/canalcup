@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("qr_counters")
-    .select("slug, count, last_scan_at, created_at")
+    .select("slug, count, unique_count, last_scan_at, created_at")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -23,6 +23,7 @@ export async function GET(req: Request) {
   return NextResponse.json({
     slug,
     count: data?.count ?? 0,
+    unique_count: data?.unique_count ?? 0,
     last_scan_at: data?.last_scan_at ?? null,
     created_at: data?.created_at ?? null,
   });
