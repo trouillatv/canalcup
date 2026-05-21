@@ -1,16 +1,25 @@
-// watch-match.js — boucle de refresh d'un match LIVE depuis API-Football,
-// avec budget de quota intelligent.
+// watch-match.js — boucle de refresh d'un match LIVE avec budget intelligent.
 //
 // Usage :
-//   node scripts/watch-match.js <match-uuid> [intervalSec=60]
+//   node scripts/watch-match.js <match-uuid> [--matches=1] [--budget=90]
 //
-// Stratégie quota (api-football Free = 100 req/jour) :
-//   - 1 req = 1 appel /fixtures?id + 1 appel /fixtures/events (= 2 calls).
-//   - Intervalle par défaut 60 sec → 2 req/min × 90 min = 180 calls/match.
-//     ⇒ recommandation : 90 sec d'intervalle pour un match (120 calls).
-//   - Plus prudent en jour de WC (4 matchs) : interval ≥ 180 sec.
-//   - Le script s'arrête automatiquement si le match passe à FINISHED.
-//   - Fallback TheSportsDB si API-Football renvoie 429 ou erreur.
+// Stratégie quota (API-Football Free = 100 req/jour, on garde 10 de marge) :
+//
+//   budget_per_day      = 90 calls (paramétrable via --budget)
+//   matches_per_day     = N (paramétrable via --matches)
+//   calls_per_match     = budget / N
+//   match_duration_min  = 100 (90 + injuries + extra time)
+//   interval_seconds    = ceil((match_duration_min × 60) / calls_per_match)
+//
+// Exemples :
+//   1 match/jour    → 90 calls → 1 toutes 67s   (interval ≈ 70s)
+//   4 matchs/jour   → 22 calls → 1 toutes 273s  (interval ≈ 280s = 4min40)
+//   6 matchs/jour   → 15 calls → 1 toutes 400s  (interval ≈ 7min)
+//
+// Compos = 1 sync UNIQUE au début (statique). Pas comptée dans le budget loop.
+// Events = re-syncés à chaque tick (mêmes calls que score → ne double pas).
+//
+// Le script s'arrête automatiquement si le match passe à FINISHED.
 
 const fs = require("fs");
 const path = require("path");
@@ -29,11 +38,21 @@ const KEY = process.env.API_FOOTBALL_KEY;
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const matchUuid = process.argv[2];
-const intervalSec = Math.max(30, parseInt(process.argv[3] ?? "60", 10) || 60);
+const args = process.argv.slice(2);
+const matchUuid = args.find((a) => !a.startsWith("--"));
+const arg = (name, def) => {
+  const v = args.find((a) => a.startsWith(`--${name}=`));
+  return v ? Number(v.split("=")[1]) : def;
+};
+const MATCHES_PER_DAY = Math.max(1, arg("matches", 1));
+const BUDGET_PER_DAY = Math.max(10, arg("budget", 90));
+const MATCH_MINUTES = 100; // 90 + injuries
+
+const callsPerMatch = Math.floor(BUDGET_PER_DAY / MATCHES_PER_DAY);
+const intervalSec = Math.max(30, Math.ceil((MATCH_MINUTES * 60) / callsPerMatch));
 
 if (!matchUuid) {
-  console.error("Usage : node scripts/watch-match.js <match-uuid> [intervalSec=60]");
+  console.error("Usage : node scripts/watch-match.js <match-uuid> [--matches=1] [--budget=90]");
   process.exit(1);
 }
 if (!KEY || !URL || !SERVICE) {
@@ -46,7 +65,6 @@ const sb = createClient(URL, SERVICE, {
 });
 
 let callCount = 0;
-let usingFallback = false;
 
 async function apif(p) {
   callCount += 1;
@@ -70,11 +88,44 @@ function mapEventType(t, d) {
   return "goal";
 }
 
-async function tickApif(apifId, homeTeamApifId) {
-  // 1 appel fixtures (score, minute, status) + 1 appel events.
+async function syncLineupsOnce(matchUuid, apifId, homeTeamApifId) {
+  const ln = await apif(`/fixtures/lineups?fixture=${apifId}`);
+  const raw = ln.response ?? [];
+  if (raw.length < 2) {
+    console.log("  Compos non dispo (compétition mineure ?).");
+    return 0;
+  }
+  const players = [];
+  for (const teamData of raw) {
+    const side = teamData.team?.id === homeTeamApifId ? "home" : "away";
+    (teamData.startXI ?? []).forEach((p) => players.push({
+      match_id: matchUuid, team_side: side,
+      player_name: p.player?.name ?? "",
+      player_id: p.player?.id ? String(p.player.id) : null,
+      shirt_number: p.player?.number ?? 0,
+      position: p.player?.pos ?? null,
+      formation_position: p.player?.grid ?? null,
+      is_starting: true,
+    }));
+    (teamData.substitutes ?? []).forEach((p) => players.push({
+      match_id: matchUuid, team_side: side,
+      player_name: p.player?.name ?? "",
+      player_id: p.player?.id ? String(p.player.id) : null,
+      shirt_number: p.player?.number ?? 0,
+      position: p.player?.pos ?? null,
+      is_starting: false,
+    }));
+  }
+  await sb.from("match_lineups").delete().eq("match_id", matchUuid);
+  if (players.length > 0) await sb.from("match_lineups").insert(players);
+  return players.length;
+}
+
+async function tickApif(apifId, homeTeamApifId, matchUuid) {
+  // 2 calls : fixture (score+minute) + events.
   const fx = await apif(`/fixtures?id=${apifId}`);
   const f = fx.response?.[0];
-  if (!f) { console.log("  ⚠ fixture introuvable côté API"); return null; }
+  if (!f) return null;
 
   const ev = await apif(`/fixtures/events?fixture=${apifId}`);
   const apifEvents = ev.response ?? [];
@@ -82,27 +133,39 @@ async function tickApif(apifId, homeTeamApifId) {
   const isLive = ["1H", "HT", "2H", "ET", "P", "LIVE", "BT"].includes(f.fixture.status.short);
   const isFinished = ["FT", "AET", "PEN"].includes(f.fixture.status.short);
 
+  await sb
+    .from("matches")
+    .update({
+      score_a: f.goals.home, score_b: f.goals.away,
+      minute: f.fixture.status.elapsed,
+      status: isFinished ? "finished" : isLive ? "live" : "upcoming",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", matchUuid);
+
+  const events = apifEvents.map((e) => ({
+    match_id: matchUuid,
+    minute: e.time?.elapsed ?? 0,
+    extra_minute: e.time?.extra ?? null,
+    type: mapEventType(e.type, e.detail),
+    team_side: e.team?.id === homeTeamApifId ? "home" : "away",
+    player_name: e.player?.name ?? "",
+    assist_player_name: e.assist?.name ?? null,
+    detail: e.detail ?? null,
+  }));
+  await sb.from("match_events").delete().eq("match_id", matchUuid);
+  if (events.length > 0) await sb.from("match_events").insert(events);
+
   return {
     score_a: f.goals.home, score_b: f.goals.away,
     minute: f.fixture.status.elapsed,
     status: isFinished ? "finished" : isLive ? "live" : "upcoming",
     statusShort: f.fixture.status.short,
-    events: apifEvents.map((e) => ({
-      match_id: matchUuid,
-      minute: e.time?.elapsed ?? 0,
-      extra_minute: e.time?.extra ?? null,
-      type: mapEventType(e.type, e.detail),
-      team_side: e.team?.id === homeTeamApifId ? "home" : "away",
-      player_name: e.player?.name ?? "",
-      assist_player_name: e.assist?.name ?? null,
-      detail: e.detail ?? null,
-      source: "api-football",
-    })),
+    eventsCount: events.length,
   };
 }
 
 (async () => {
-  // 1. Charge le match (et son apif_id) depuis Supabase.
   const { data: match } = await sb
     .from("matches")
     .select("id, team_a, team_b, apif_id, external_id, status")
@@ -111,21 +174,31 @@ async function tickApif(apifId, homeTeamApifId) {
   if (!match) { console.error(`Match ${matchUuid} introuvable.`); process.exit(1); }
   const apifId = match.apif_id || match.external_id;
   if (!apifId) {
-    console.error("Match sans apif_id ni external_id. Re-lance scripts/seed-live-test-match.js.");
+    console.error("Match sans apif_id ni external_id. Relance seed-live-test-match.js.");
     process.exit(1);
   }
 
-  // 2. On a besoin du homeTeamApifId pour mapper home/away. On le déduit
-  //    du 1er fetch puis on cache.
-  console.log(`⏱  Watch '${match.team_a} vs ${match.team_b}' — refresh ${intervalSec}s`);
+  // ────────── budget summary ──────────
+  console.log("═══════════════════════════════════════════════");
+  console.log(`Watch: ${match.team_a} vs ${match.team_b}`);
+  console.log(`Budget: ${BUDGET_PER_DAY} calls/jour ÷ ${MATCHES_PER_DAY} match(s)/jour = ${callsPerMatch} calls/match`);
+  console.log(`Match: ${MATCH_MINUTES} min → interval ≈ ${intervalSec}s (${Math.floor(intervalSec/60)}min ${intervalSec%60}s)`);
+  console.log(`Chaque tick = 2 calls (fixture + events) → conso doublée`);
+  console.log("⚠ pour rester strictement dans le budget, double l'interval :");
+  console.log(`  recommandé : --matches=${MATCHES_PER_DAY*2} (=interval ${intervalSec*2}s)`);
+  console.log("═══════════════════════════════════════════════");
   console.log("");
 
+  // Init : récup team home ID + sync compos UNE FOIS
   const first = await apif(`/fixtures?id=${apifId}`);
   const homeTeamApifId = first.response?.[0]?.teams?.home?.id;
   if (!homeTeamApifId) {
-    console.error("Impossible de récupérer l'id de l'équipe domicile.");
+    console.error("Impossible de récupérer l'id de l'équipe home.");
     process.exit(1);
   }
+  const lineupCount = await syncLineupsOnce(matchUuid, apifId, homeTeamApifId);
+  console.log(`✅ Compos synced (1 sync, ${lineupCount} joueurs). Calls=${callCount}`);
+  console.log("");
 
   let prevEventsCount = 0;
   let consecutiveErrors = 0;
@@ -133,38 +206,21 @@ async function tickApif(apifId, homeTeamApifId) {
 
   while (true) {
     try {
-      const snap = await tickApif(apifId, homeTeamApifId);
+      const snap = await tickApif(apifId, homeTeamApifId, matchUuid);
       consecutiveErrors = 0;
       if (snap) {
-        await sb
-          .from("matches")
-          .update({
-            score_a: snap.score_a, score_b: snap.score_b,
-            minute: snap.minute, status: snap.status,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", matchUuid);
-
-        // Réécrit les events (idempotent — petit volume, OK).
-        await sb.from("match_events").delete().eq("match_id", matchUuid);
-        if (snap.events.length > 0) {
-          await sb.from("match_events").insert(snap.events);
-        }
-
-        const newEvents = snap.events.length - prevEventsCount;
+        const newEvents = snap.eventsCount - prevEventsCount;
         const elapsedMin = Math.floor((Date.now() - startedAt) / 60000);
-        const prefix = usingFallback ? "[fallback]" : "[api-foot]";
+        const remaining = Math.max(0, BUDGET_PER_DAY - callCount);
         console.log(
-          `${prefix} ${snap.statusShort} ${snap.minute ?? "?"}' — ` +
+          `${snap.statusShort} ${snap.minute ?? "?"}' — ` +
             `${snap.score_a}–${snap.score_b} — ` +
-            `${snap.events.length} events${newEvents > 0 ? ` (+${newEvents})` : ""} — ` +
-            `calls=${callCount} — watch=${elapsedMin}min`
+            `${snap.eventsCount} events${newEvents > 0 ? ` (🆕+${newEvents})` : ""} — ` +
+            `calls=${callCount} (reste ${remaining}) — watch=${elapsedMin}min`
         );
-        prevEventsCount = snap.events.length;
-
+        prevEventsCount = snap.eventsCount;
         if (snap.status === "finished") {
-          console.log("");
-          console.log("🏁 Match terminé. Watch stoppé.");
+          console.log("\n🏁 Match terminé. Watch stoppé.");
           break;
         }
       }
@@ -172,18 +228,13 @@ async function tickApif(apifId, homeTeamApifId) {
       consecutiveErrors += 1;
       console.warn(`⚠ ${e.message} (errors=${consecutiveErrors})`);
       if (e.message.includes("quota_exceeded")) {
-        console.warn("→ Quota API-Football dépassé. Passer en fallback TheSportsDB n'est pas implémenté ici.");
-        console.warn("  On stoppe la watch pour ne pas spammer.");
+        console.warn("→ Quota API-Football dépassé. Stop.");
         break;
       }
-      if (consecutiveErrors >= 5) {
-        console.warn("Trop d'erreurs consécutives. On stoppe.");
-        break;
-      }
+      if (consecutiveErrors >= 5) { console.warn("Stop (trop d'erreurs)."); break; }
     }
     await new Promise((r) => setTimeout(r, intervalSec * 1000));
   }
 
-  console.log("");
-  console.log(`Total calls API-Football : ${callCount} (quota free = 100/jour)`);
+  console.log(`\nTotal calls : ${callCount} / ${BUDGET_PER_DAY} budgétés`);
 })();

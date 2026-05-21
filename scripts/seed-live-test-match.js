@@ -71,10 +71,27 @@ function mapEventType(apifType, apifDetail) {
   }
   console.log(`   ${fixtures.length} match(s) en direct trouvé(s).`);
 
-  // Prend le premier match LIVE (statuts à inclure)
-  const f = fixtures.find((x) =>
-    ["1H", "HT", "2H", "ET", "P", "LIVE", "BT"].includes(x.fixture.status.short)
-  ) ?? fixtures[0];
+  // Préférence : compétitions MAJEURES (lineups + stats dispos sur Free).
+  // ID API-Football des principales compétitions :
+  //   2=UCL  3=UEL  39=Premier League  140=La Liga  61=Ligue 1
+  //   78=Bundesliga  135=Serie A  4=Euro  1=WC  848=UEFA Conference
+  //   71=Brésil A  88=Eredivisie  39=Premier (England)
+  const MAJOR_LEAGUE_IDS = new Set([
+    1, 2, 3, 4, 39, 40, 61, 71, 78, 88, 94, 135, 140, 848, 235,
+  ]);
+
+  const liveStatuses = ["1H", "HT", "2H", "ET", "P", "LIVE", "BT"];
+  const liveFixtures = fixtures.filter((x) => liveStatuses.includes(x.fixture.status.short));
+
+  // Priorité 1 : un match d'une compétition majeure
+  let f = liveFixtures.find((x) => MAJOR_LEAGUE_IDS.has(x.league?.id));
+  if (f) {
+    console.log(`   ✨ Compétition majeure détectée → priorité`);
+  } else {
+    f = liveFixtures[0] ?? fixtures[0];
+    console.log(`   ⚠ Pas de compétition majeure live, fallback sur ${f.league?.name}`);
+    console.log(`     (compos/stats peuvent ne pas être dispos sur API-Football Free)`);
+  }
 
   const apifId = f.fixture.id;
   const startsAt = new Date(f.fixture.date).toISOString();
@@ -140,10 +157,11 @@ function mapEventType(apifType, apifDetail) {
     console.log(`✅ Match inséré (id=${matchUuid}).`);
   }
 
+  const homeId = f.teams.home.id;
+
   // Sync events
   try {
     const ev = await apif(`/fixtures/events?fixture=${apifId}`);
-    const homeId = f.teams.home.id;
     const events = (ev.response ?? []).map((e) => ({
       match_id: matchUuid,
       minute: e.time?.elapsed ?? 0,
@@ -153,7 +171,8 @@ function mapEventType(apifType, apifDetail) {
       player_name: e.player?.name ?? "",
       assist_player_name: e.assist?.name ?? null,
       detail: e.detail ?? null,
-      source: "api-football",
+      // source: 'api-football' — colonne non garantie selon le schéma.
+      // Si tu veux la tracer, ajoute via migration et décommente.
     }));
     await sb.from("match_events").delete().eq("match_id", matchUuid);
     if (events.length > 0) {
@@ -165,6 +184,90 @@ function mapEventType(apifType, apifDetail) {
     }
   } catch (e) {
     console.warn("⚠ events KO :", e.message);
+  }
+
+  // Sync lineups (compos)
+  try {
+    const ln = await apif(`/fixtures/lineups?fixture=${apifId}`);
+    const raw = ln.response ?? [];
+    if (raw.length >= 2) {
+      const players = [];
+      for (let i = 0; i < 2; i++) {
+        const teamData = raw[i];
+        const side = teamData.team?.id === homeId ? "home" : "away";
+        // startXI (titulaires)
+        (teamData.startXI ?? []).forEach((p) => {
+          players.push({
+            match_id: matchUuid,
+            team_side: side,
+            player_name: p.player?.name ?? "",
+            player_id: p.player?.id ? String(p.player.id) : null,
+            shirt_number: p.player?.number ?? 0,
+            position: p.player?.pos ?? null,
+            formation_position: p.player?.grid ?? null,
+            is_starting: true,
+            source: "api-football",
+          });
+        });
+        // substitutes
+        (teamData.substitutes ?? []).forEach((p) => {
+          players.push({
+            match_id: matchUuid,
+            team_side: side,
+            player_name: p.player?.name ?? "",
+            player_id: p.player?.id ? String(p.player.id) : null,
+            shirt_number: p.player?.number ?? 0,
+            position: p.player?.pos ?? null,
+            is_starting: false,
+            source: "api-football",
+          });
+        });
+      }
+      await sb.from("match_lineups").delete().eq("match_id", matchUuid);
+      if (players.length > 0) {
+        const { error } = await sb.from("match_lineups").insert(players);
+        if (error) console.warn("⚠ insert lineups :", error.message);
+        else console.log(`✅ ${players.length} joueurs (compos) insérés.`);
+      }
+    } else {
+      console.log("   Compos non disponibles pour ce match (compétition mineure ?).");
+    }
+  } catch (e) {
+    console.warn("⚠ lineups KO :", e.message);
+  }
+
+  // Sync stats (possession, tirs, corners, etc.)
+  try {
+    const st = await apif(`/fixtures/statistics?fixture=${apifId}`);
+    const raw = st.response ?? [];
+    if (raw.length >= 2) {
+      const homeTeamData = raw.find((r) => r.team?.id === homeId) ?? raw[0];
+      const awayTeamData = raw.find((r) => r.team?.id !== homeId) ?? raw[1];
+      const homeMap = new Map((homeTeamData.statistics ?? []).map((s) => [s.type, s.value]));
+      const awayMap = new Map((awayTeamData.statistics ?? []).map((s) => [s.type, s.value]));
+      const allKeys = new Set([...homeMap.keys(), ...awayMap.keys()]);
+      const stats = [];
+      for (const k of allKeys) {
+        stats.push({
+          match_id: matchUuid,
+          stat_type: k,
+          home_value: String(homeMap.get(k) ?? "0"),
+          away_value: String(awayMap.get(k) ?? "0"),
+          source: "api-football",
+          updated_at: new Date().toISOString(),
+        });
+      }
+      await sb.from("match_stats").delete().eq("match_id", matchUuid);
+      if (stats.length > 0) {
+        const { error } = await sb.from("match_stats").insert(stats);
+        if (error) console.warn("⚠ insert stats :", error.message);
+        else console.log(`✅ ${stats.length} stats (possession, tirs, …) insérées.`);
+      }
+    } else {
+      console.log("   Stats non disponibles pour ce match.");
+    }
+  } catch (e) {
+    console.warn("⚠ stats KO :", e.message);
   }
 
   console.log("");
