@@ -169,6 +169,7 @@ export function TopBar() {
                 <p className="text-xs text-canal-yellow font-bold uppercase tracking-wider">Admin</p>
               </div>
               {[
+                { href: "/admin", label: "📊 Dashboard" },
                 { href: "/admin/quiz", label: "Quiz" },
                 { href: "/admin/challenges", label: "Animations" },
                 { href: "/admin/babyfoot", label: "Babyfoot — matchs" },
