@@ -12,11 +12,10 @@
 // renseignés tant que profile_completed=true.
 
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ProfileEditForm } from "@/components/profile/ProfileEditForm";
-import { TeamCaptainPanel } from "@/components/teams/TeamCaptainPanel";
-import { UserCircle2, Trophy, Users2, Sparkles } from "lucide-react";
+import { MyTeamsPanel } from "@/components/teams/MyTeamsPanel";
+import { UserCircle2, Users2, Sparkles } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -89,43 +88,12 @@ export default async function ProfilePage() {
         <ProfileEditForm profile={profile} services={services ?? []} />
       </section>
 
-      {/* Équipe Canal Cup — read-only */}
-      <section className="canal-card">
-        <p className="text-xs text-canal-yellow font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
-          <Trophy size={14} /> Mon équipe Canal Cup
-        </p>
-        <div className="flex items-center gap-3">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {(profile as any).team ? (
-            <>
-              <span
-                className="w-3 h-3 rounded-full border border-white/20 shrink-0"
-                /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                style={{ backgroundColor: (profile as any).team.color ?? "#888" }}
-              />
-              <Link
-                /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                href={`/teams/${(profile as any).team.id}`}
-                className="font-bold text-white hover:text-canal-yellow transition-colors flex-1 truncate"
-              >
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                {(profile as any).team.name}
-              </Link>
-            </>
-          ) : (
-            <span className="text-canal-gray-muted text-sm italic">Pas d&apos;équipe</span>
-          )}
-        </div>
-        <p className="text-[11px] text-canal-gray-muted mt-2">
-          Changer d&apos;équipe = contacter un admin (impact direct sur le
-          classement).
-        </p>
-      </section>
-
-      {/* Panneau Captain — visible UNIQUEMENT pour les créateurs d'équipe.
-          Affiche les équipes créées, le code/lien d'invitation à partager,
-          le nb de places restantes, et les demandes pending à valider. */}
-      <TeamCaptainPanel />
+      {/* Mes équipes Canal Cup (Phase C multi-team) — remplace l'ancienne
+          section "Mon équipe" + le TeamCaptainPanel séparé. Un seul panneau
+          unifié qui liste TOUTES les équipes du user, marque la principale,
+          expose les actions (set-primary, quitter, copier code/lien,
+          approuver/rejeter demandes), et permet de créer/rejoindre. */}
+      <MyTeamsPanel />
 
       {/* Rappel pédagogique */}
       <section className="canal-card border border-canal-yellow/30 bg-canal-yellow/5">
