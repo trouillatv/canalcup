@@ -133,65 +133,71 @@ function OnboardingInner() {
     setSaving(true);
     setError(null);
 
-    // 1. Sauvegarde le profil via un endpoint server-side qui fait un
-    //    UPSERT (crée la row si manquante, ce qui arrive pour les signups
-    //    tout frais sans trigger DB). profile_completed=true posé ici.
-    const baseRes = await fetch("/api/profile/onboard", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "same-origin",
-      body: JSON.stringify({
-        display_name: displayName.trim(),
-        service_id: serviceId,
-        football_level: footballLevel,
-      }),
+    // Helper : fetch avec timeout 15s, surfacing toute erreur réseau
+    // (sinon un endpoint qui hang fait croire que rien ne se passe).
+    const fetchOrFail = async (url: string, body: unknown): Promise<{ ok: true; data: unknown } | { ok: false; msg: string }> => {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 15000);
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify(body),
+          signal: ctrl.signal,
+        });
+        clearTimeout(t);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const errMsg = (data as { error?: string })?.error ?? `HTTP ${res.status}`;
+          return { ok: false, msg: errMsg };
+        }
+        return { ok: true, data };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "erreur réseau";
+        return { ok: false, msg: msg === "The operation was aborted." ? "Délai dépassé — réessaie." : msg };
+      }
+    };
+
+    // 1. Sauvegarde le profil via UPSERT serveur.
+    const baseRes = await fetchOrFail("/api/profile/onboard", {
+      display_name: displayName.trim(),
+      service_id: serviceId,
+      football_level: footballLevel,
     });
     if (!baseRes.ok) {
-      const b = await baseRes.json().catch(() => ({}));
-      setError(b?.error ?? `Impossible d'enregistrer ton profil (HTTP ${baseRes.status}).`);
+      setError(`Profil : ${baseRes.msg}`);
       setSaving(false);
       return;
     }
 
-    // 2. Équipe = FACULTATIVE. Si l'user a rempli teamName ou inviteCode,
-    //    on tente. Sinon on saute direct à l'accueil.
+    // 2. Équipe = FACULTATIVE.
     const wantsCreate = teamMode === "create" && teamName.trim().length >= 2 && !currentTeam;
     const wantsJoin = teamMode === "join" && inviteCode.trim().length >= 4;
 
     if (wantsCreate) {
-      const res = await fetch("/api/teams/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: teamName.trim() }),
-        credentials: "same-origin",
-      });
-      if (!res.ok) {
-        const b = await res.json().catch(() => ({}));
-        setError(b?.error ?? `Échec de la création d'équipe — tu peux la créer plus tard depuis ton profil (HTTP ${res.status}).`);
+      const r = await fetchOrFail("/api/teams/create", { name: teamName.trim() });
+      if (!r.ok) {
+        setError(`Équipe : ${r.msg} (tu peux la créer plus tard depuis ton profil)`);
         setSaving(false);
         return;
       }
     } else if (wantsJoin) {
-      const res = await fetch("/api/teams/join", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invite_code: inviteCode.trim().toUpperCase() }),
-        credentials: "same-origin",
-      });
-      if (!res.ok) {
-        const b = await res.json().catch(() => ({}));
-        setError(b?.error ?? `Code invalide — tu peux rejoindre une équipe plus tard depuis ton profil (HTTP ${res.status}).`);
+      const r = await fetchOrFail("/api/teams/join", { invite_code: inviteCode.trim().toUpperCase() });
+      if (!r.ok) {
+        setError(`Code invalide : ${r.msg} (tu peux rejoindre plus tard depuis ton profil)`);
         setSaving(false);
         return;
       }
-      const d = await res.json();
+      const d = r.data as { team?: { name?: string } };
       setPending({ team_name: d?.team?.name ?? "ton équipe" });
       setSaving(false);
       return;
     }
 
-    router.push("/");
-    router.refresh();
+    // Navigation hard : window.location évite les soucis de router.push
+    // qui ne reflète pas immédiatement le nouvel état d'auth.
+    window.location.href = "/";
   };
 
   // ─── Écran d'attente (demande pending) ─────────────────────────────────────
