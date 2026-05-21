@@ -15,10 +15,25 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 // Schedules définies dans vercel.json. À garder en sync (ou parser le
 // fichier au runtime, mais c'est en .json donc statique).
-const CRON_SCHEDULES: Record<string, { expr: string; label: string }> = {
-  "morning-brief": { expr: "0 19 * * *", label: "tous les jours 6h NC (19h UTC)" },
-  "sync-matches": { expr: "0 8 * * *", label: "tous les jours 19h NC (8h UTC)" },
-  "daily-content": { expr: "30 12 * * *", label: "tous les jours 23h30 NC (12h30 UTC)" },
+const CRON_SCHEDULES: Record<string, { expr: string; label: string; what: string }> = {
+  "morning-brief": {
+    expr: "0 19 * * *",
+    label: "tous les jours 6h NC (19h UTC)",
+    what:
+      "Génère la Matinale du jour (Gemini ou MOCK) à partir des scores de la veille + classement + match du soir. Persiste 1 ligne dans morning_briefs, diffuse 1 courrier inbox 'matinale' à chaque utilisateur. Idempotent (skip si déjà générée).",
+  },
+  "sync-matches": {
+    expr: "0 8 * * *",
+    label: "tous les jours 19h NC (8h UTC)",
+    what:
+      "Sync les fixtures WC2026 et les scores live depuis API-Football (si clé) sinon TheSportsDB. Met à jour standings, déclenche le 'settle' des matchs FT (calcul des points pronostics finalisés).",
+  },
+  "daily-content": {
+    expr: "30 12 * * *",
+    label: "tous les jours 23h30 NC (12h30 UTC)",
+    what:
+      "Génère 3 contenus IA après les matchs du soir : fun fact, mot du coach, wall of shame. Diffuse 1 courrier inbox 'roast' à chaque utilisateur (anti-doublon journalier). Tracke le coût Gemini.",
+  },
 };
 
 // Parser cron simple : ne supporte que 'M H * * *' (quotidien à H:M UTC).
@@ -142,6 +157,7 @@ export async function GET(req: Request) {
   const crons: Record<string, {
     schedule: string;
     schedule_label: string;
+    what: string;
     next_run: string | null;
     last_run: {
       started_at: string;
@@ -156,7 +172,7 @@ export async function GET(req: Request) {
   }> = {};
 
   for (const job of KNOWN_JOBS) {
-    const meta = CRON_SCHEDULES[job] ?? { expr: "—", label: "inconnu" };
+    const meta = CRON_SCHEDULES[job] ?? { expr: "—", label: "inconnu", what: "" };
     const nextRun = parseNextRun(meta.expr);
 
     const { data: recentRuns } = await supabase
@@ -179,6 +195,7 @@ export async function GET(req: Request) {
     crons[job] = {
       schedule: meta.expr,
       schedule_label: meta.label,
+      what: meta.what,
       next_run: nextRun?.toISOString() ?? null,
       last_run: last
         ? {

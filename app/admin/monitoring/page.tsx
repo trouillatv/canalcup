@@ -26,6 +26,7 @@ interface CronRun {
 interface CronInfo {
   schedule: string;
   schedule_label: string;
+  what: string;
   next_run: string | null;
   last_run: {
     started_at: string;
@@ -306,6 +307,13 @@ export default function AdminMonitoringPage() {
                         </Button>
                       </div>
                     </div>
+
+                    {/* Ce que fait le cron — rappel en italique */}
+                    {c.what && (
+                      <p className="text-[11px] text-canal-gray-muted leading-relaxed italic border-l-2 border-canal-yellow/30 pl-2">
+                        {c.what}
+                      </p>
+                    )}
 
                     {/* Schedule + next run */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
