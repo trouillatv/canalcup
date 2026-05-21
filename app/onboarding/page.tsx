@@ -57,6 +57,13 @@ function OnboardingInner() {
   const [currentTeam, setCurrentTeam] = useState<{ name: string; isCaptain: boolean } | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Section équipe collapsable : visible UNIQUEMENT si l'user a un
+  // ?invite=xxx dans l'URL (cas QR code partagé) ou s'il clique
+  // explicitement "Je veux choisir une équipe maintenant". Sinon
+  // l'équipe est invisible et le user passe direct.
+  const [showTeamSection, setShowTeamSection] = useState(
+    !!inviteFromUrl || !!currentTeam
+  );
 
   // Charge services + pré-remplit le profil + détecte une demande pending.
   useEffect(() => {
@@ -90,6 +97,7 @@ function OnboardingInner() {
           const isCaptain = team.created_by_user_id === row.id;
           setCurrentTeam({ name: team.name, isCaptain });
           setTeamMode("join"); // on force le mode join visuellement
+          setShowTeamSection(true);
         }
 
         // Demande pending → écran d'attente (lecture directe via supabase
@@ -111,23 +119,12 @@ function OnboardingInner() {
     })();
   }, []);
 
-  const fieldsOk =
+  // L'équipe est désormais FACULTATIVE. Le formulaire est valide dès
+  // que les 3 champs perso sont remplis. Si l'user remplit la section
+  // équipe en plus, elle sera traitée — sinon il atterrit sur l'accueil
+  // et pourra créer/rejoindre une équipe plus tard depuis /profile.
+  const isValid =
     displayName.trim().length >= 2 && !!serviceId && !!footballLevel;
-  // Adapt teamOk selon l'état :
-  //  - currentTeam + captain → aucune action team possible → invalide
-  //  - currentTeam + simple membre → on attend uniquement le code switch
-  //  - pas d'équipe → toggle Créer/Rejoindre habituel
-  let teamOk = false;
-  if (currentTeam?.isCaptain) {
-    teamOk = false;
-  } else if (currentTeam) {
-    teamOk = inviteCode.trim().length >= 4;
-  } else {
-    teamOk = teamMode === "create"
-      ? teamName.trim().length >= 2
-      : inviteCode.trim().length >= 4;
-  }
-  const isValid = fieldsOk && teamOk;
   const captainLocked = !!currentTeam?.isCaptain;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -136,35 +133,32 @@ function OnboardingInner() {
     setSaving(true);
     setError(null);
 
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/"); return; }
-
-    const trimmedName = displayName.trim();
-    const slug = slugify(trimmedName);
-
-    // 1. Champs perso. Pas de team_id ni profile_completed=true ici :
-    //    la création/jointure d'équipe gère le reste côté serveur.
-    const { error: upErr } = await supabase
-      .from("users")
-      .update({
-        name: trimmedName,
-        display_name: trimmedName,
-        user_slug: slug,
+    // 1. Sauvegarde le profil via un endpoint server-side qui fait un
+    //    UPSERT (crée la row si manquante, ce qui arrive pour les signups
+    //    tout frais sans trigger DB). profile_completed=true posé ici.
+    const baseRes = await fetch("/api/profile/onboard", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({
+        display_name: displayName.trim(),
         service_id: serviceId,
         football_level: footballLevel,
-        onboarding_step: 1,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("auth_id", user.id);
-    if (upErr) {
-      setError("Impossible d'enregistrer ton profil — réessaie.");
+      }),
+    });
+    if (!baseRes.ok) {
+      const b = await baseRes.json().catch(() => ({}));
+      setError(b?.error ?? `Impossible d'enregistrer ton profil (HTTP ${baseRes.status}).`);
       setSaving(false);
       return;
     }
 
-    // 2. Création / Rejoindre.
-    if (teamMode === "create") {
+    // 2. Équipe = FACULTATIVE. Si l'user a rempli teamName ou inviteCode,
+    //    on tente. Sinon on saute direct à l'accueil.
+    const wantsCreate = teamMode === "create" && teamName.trim().length >= 2 && !currentTeam;
+    const wantsJoin = teamMode === "join" && inviteCode.trim().length >= 4;
+
+    if (wantsCreate) {
       const res = await fetch("/api/teams/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -173,31 +167,31 @@ function OnboardingInner() {
       });
       if (!res.ok) {
         const b = await res.json().catch(() => ({}));
-        setError(b?.error ?? `Échec de la création (HTTP ${res.status}).`);
+        setError(b?.error ?? `Échec de la création d'équipe — tu peux la créer plus tard depuis ton profil (HTTP ${res.status}).`);
         setSaving(false);
         return;
       }
-      router.push("/");
-      router.refresh();
-      return;
-    }
-
-    // Rejoindre via code
-    const res = await fetch("/api/teams/join", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ invite_code: inviteCode.trim().toUpperCase() }),
-      credentials: "same-origin",
-    });
-    if (!res.ok) {
-      const b = await res.json().catch(() => ({}));
-      setError(b?.error ?? `Code invalide ou équipe complète (HTTP ${res.status}).`);
+    } else if (wantsJoin) {
+      const res = await fetch("/api/teams/join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invite_code: inviteCode.trim().toUpperCase() }),
+        credentials: "same-origin",
+      });
+      if (!res.ok) {
+        const b = await res.json().catch(() => ({}));
+        setError(b?.error ?? `Code invalide — tu peux rejoindre une équipe plus tard depuis ton profil (HTTP ${res.status}).`);
+        setSaving(false);
+        return;
+      }
+      const d = await res.json();
+      setPending({ team_name: d?.team?.name ?? "ton équipe" });
       setSaving(false);
       return;
     }
-    const d = await res.json();
-    setPending({ team_name: d?.team?.name ?? "ton équipe" });
-    setSaving(false);
+
+    router.push("/");
+    router.refresh();
   };
 
   // ─── Écran d'attente (demande pending) ─────────────────────────────────────
@@ -375,13 +369,42 @@ function OnboardingInner() {
             </div>
           </div>
 
-          {/* Équipe — UI adaptée selon l'état actuel de l'user :
-              - aucune équipe → toggle Créer / Rejoindre
-              - équipe + captain → bloqué (orphelinerait l'équipe)
-              - équipe + membre simple → uniquement le code pour SWITCHER */}
+          {/* Équipe — FACULTATIVE. Repliée par défaut. L'user peut la
+              configurer plus tard depuis /profile ; elle ne devient
+              obligatoire qu'au moment où il veut s'inscrire à une
+              animation ou pronostiquer. */}
+          {!showTeamSection ? (
+            <div className="rounded-xl border border-dashed border-canal-gray-light bg-canal-gray-mid/40 px-4 py-3 space-y-1.5">
+              <p className="text-xs text-canal-yellow font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <Users size={12} /> Équipe — facultatif
+              </p>
+              <p className="text-[11px] text-canal-gray-muted leading-snug">
+                Tu peux entrer dans l&apos;app sans équipe. Tu auras besoin
+                d&apos;en avoir une UNIQUEMENT pour pronostiquer ou t&apos;inscrire
+                à une animation. Tu peux la créer plus tard depuis ton
+                profil.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowTeamSection(true)}
+                className="text-xs text-canal-yellow underline mt-1"
+              >
+                Configurer mon équipe maintenant
+              </button>
+            </div>
+          ) : (
           <div>
             <label className="text-xs text-canal-yellow font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
               <Users size={12} /> Ton équipe Canal Cup
+              {!currentTeam && (
+                <button
+                  type="button"
+                  onClick={() => { setShowTeamSection(false); setTeamName(""); setInviteCode(""); }}
+                  className="ml-auto text-[10px] font-normal text-canal-gray-muted underline normal-case"
+                >
+                  passer
+                </button>
+              )}
             </label>
 
             {currentTeam ? (
@@ -475,6 +498,7 @@ function OnboardingInner() {
               </>
             )}
           </div>
+          )}
 
           {error && (
             <p className="text-red-400 text-xs text-center flex items-center justify-center gap-1.5">
@@ -497,12 +521,14 @@ function OnboardingInner() {
             >
               {saving
                 ? "Enregistrement…"
-                : currentTeam
-                  ? "Demander à rejoindre 🎟"
-                  : teamMode === "create"
-                    ? "Créer mon équipe ⚽"
-                    : "Envoyer ma demande 🎟"}
-              {!saving && (teamMode === "create" && !currentTeam ? <Check size={16} /> : <ChevronRight size={18} />)}
+                : !showTeamSection
+                  ? "C'est parti !"
+                  : currentTeam
+                    ? "Demander à rejoindre 🎟"
+                    : teamMode === "create"
+                      ? "Créer mon équipe ⚽"
+                      : "Envoyer ma demande 🎟"}
+              {!saving && <ChevronRight size={18} />}
             </button>
           )}
         </form>
