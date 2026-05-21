@@ -38,10 +38,15 @@ interface CronInfo {
   is_never: boolean;
   errors_last_7d: number;
   runs: CronRun[];
+  consumption: {
+    last: { gemini_cost_eur?: number; apif_calls?: number };
+    total: { gemini_cost_eur: number; apif_calls: number; runs_count: number };
+  };
 }
 interface Monitoring {
   ts: string;
   keys: { gemini: KeyStatus; api_football: KeyStatus };
+  consumption_total: { gemini_cost_eur: number; apif_calls: number; runs_count: number };
   quota: {
     api_football: {
       current: number;
@@ -174,6 +179,48 @@ export default function AdminMonitoringPage() {
         <p className="text-canal-gray-muted text-sm italic">Chargement…</p>
       ) : (
         <>
+          {/* ─── Consommation totale (Gemini + API-Football) ─── */}
+          <section className="canal-card border border-canal-yellow/30 bg-gradient-to-br from-canal-yellow/5 to-transparent space-y-3">
+            <h2 className="text-xs text-canal-yellow font-bold uppercase tracking-wider flex items-center gap-1.5">
+              💸 Consommation totale (depuis le début)
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="bg-canal-gray-mid rounded-xl px-3 py-3 border border-canal-yellow/40">
+                <p className="text-[10px] uppercase tracking-wider text-canal-yellow font-bold">
+                  Gemini (IA)
+                </p>
+                <p className="text-canal-yellow font-black text-2xl tabular-nums leading-tight mt-1">
+                  {data.consumption_total.gemini_cost_eur.toFixed(4)} €
+                </p>
+                <p className="text-[10px] text-canal-gray-muted mt-0.5">
+                  budget 30 € · reste {(30 - data.consumption_total.gemini_cost_eur).toFixed(2)} €
+                </p>
+              </div>
+              <div className="bg-canal-gray-mid rounded-xl px-3 py-3 border border-canal-gray-light">
+                <p className="text-[10px] uppercase tracking-wider text-canal-gray-muted font-bold">
+                  API-Football
+                </p>
+                <p className="text-white font-black text-2xl tabular-nums leading-tight mt-1">
+                  {data.consumption_total.apif_calls}
+                </p>
+                <p className="text-[10px] text-canal-gray-muted mt-0.5">
+                  calls cumulés via crons
+                </p>
+              </div>
+              <div className="bg-canal-gray-mid rounded-xl px-3 py-3 border border-canal-gray-light col-span-2 sm:col-span-1">
+                <p className="text-[10px] uppercase tracking-wider text-canal-gray-muted font-bold">
+                  Runs cron OK
+                </p>
+                <p className="text-white font-black text-2xl tabular-nums leading-tight mt-1">
+                  {data.consumption_total.runs_count}
+                </p>
+                <p className="text-[10px] text-canal-gray-muted mt-0.5">
+                  tous crons confondus
+                </p>
+              </div>
+            </div>
+          </section>
+
           {/* ─── Clés API ─── */}
           <section className="canal-card space-y-3">
             <h2 className="text-xs text-canal-yellow font-bold uppercase tracking-wider flex items-center gap-1.5">
@@ -338,6 +385,46 @@ export default function AdminMonitoringPage() {
                       <div>
                         <p className="text-canal-gray-muted">Prochain prévu</p>
                         <p className="text-white tabular-nums">{formatTime(c.next_run)}</p>
+                      </div>
+                    </div>
+
+                    {/* Conso : dernier run + total */}
+                    <div className="bg-canal-gray-mid/50 rounded-lg px-2.5 py-2 border border-canal-gray-light/30">
+                      <p className="text-[10px] text-canal-gray-muted uppercase tracking-wider mb-1">Consommation</p>
+                      <div className="grid grid-cols-2 gap-2 text-[11px]">
+                        <div>
+                          <p className="text-canal-gray-muted">Dernier run</p>
+                          <p className="text-white tabular-nums">
+                            {c.consumption.last.gemini_cost_eur !== undefined && (
+                              <span className="block">
+                                Gemini : <span className="text-canal-yellow">{c.consumption.last.gemini_cost_eur.toFixed(4)} €</span>
+                              </span>
+                            )}
+                            {c.consumption.last.apif_calls !== undefined && (
+                              <span className="block">
+                                API-Foot : <span className="text-canal-yellow">{c.consumption.last.apif_calls} calls</span>
+                              </span>
+                            )}
+                            {c.consumption.last.gemini_cost_eur === undefined &&
+                              c.consumption.last.apif_calls === undefined && (
+                                <span className="italic text-canal-gray-muted">—</span>
+                              )}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-canal-gray-muted">Total depuis début</p>
+                          <p className="text-white tabular-nums">
+                            <span className="block">
+                              Gemini : <span className="text-canal-yellow">{c.consumption.total.gemini_cost_eur.toFixed(4)} €</span>
+                            </span>
+                            <span className="block">
+                              API-Foot : <span className="text-canal-yellow">{c.consumption.total.apif_calls} calls</span>
+                            </span>
+                            <span className="block text-[10px] text-canal-gray-muted">
+                              sur {c.consumption.total.runs_count} run{c.consumption.total.runs_count > 1 ? "s" : ""} OK
+                            </span>
+                          </p>
+                        </div>
                       </div>
                     </div>
 

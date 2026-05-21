@@ -15,6 +15,7 @@ import { generateMorningBrief } from "@/services/ai/generators/morning-brief";
 import { broadcastInboxEvent } from "@/lib/data/inbox";
 import { computeTeamScores } from "@/lib/data/teams";
 import { runCron } from "@/lib/monitoring/cron-log";
+import { getSessionTotal } from "@/services/ai/cost-tracker";
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -25,6 +26,7 @@ export async function GET(request: Request) {
   return runCron("morning-brief", async () => {
   const supabase = createAdminClient();
   const today = new Date().toISOString().split("T")[0];
+  const costBefore = getSessionTotal();
 
   // Déjà générée aujourd'hui → on renvoie l'existante (idempotent).
   const { data: existing } = await supabase
@@ -112,6 +114,13 @@ export async function GET(request: Request) {
     message: brief.fun_fact || brief.body.slice(0, 140),
   });
 
-  return { meta: { date: today, persisted: true, notified } };
+  return {
+    meta: {
+      date: today,
+      persisted: true,
+      notified,
+      gemini_cost_eur: Math.max(0, getSessionTotal() - costBefore),
+    },
+  };
   });
 }

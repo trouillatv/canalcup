@@ -165,10 +165,15 @@ export async function GET(req: Request) {
       status: "running" | "success" | "failure";
       hours_ago: number;
     } | null;
-    is_late: boolean; // dernier run > 25h ago pour un cron quotidien
-    is_never: boolean; // jamais exécuté
+    is_late: boolean;
+    is_never: boolean;
     errors_last_7d: number;
-    runs: unknown[]; // 5 derniers détaillés (compat existant)
+    runs: unknown[];
+    // Conso meta : dernier run + cumul depuis toujours.
+    consumption: {
+      last: { gemini_cost_eur?: number; apif_calls?: number };
+      total: { gemini_cost_eur: number; apif_calls: number; runs_count: number };
+    };
   }> = {};
 
   for (const job of KNOWN_JOBS) {
@@ -192,6 +197,24 @@ export async function GET(req: Request) {
       .eq("status", "failure")
       .gte("started_at", sevenDaysAgo);
 
+    // Cumul depuis le début : on parcourt TOUS les runs success de ce job
+    // et on somme les champs meta.gemini_cost_eur et meta.apif_calls.
+    const { data: allRuns } = await supabase
+      .from("cron_runs")
+      .select("meta")
+      .eq("job", job)
+      .eq("status", "success");
+    let totalGemini = 0;
+    let totalApifCalls = 0;
+    for (const r of allRuns ?? []) {
+      const m = (r.meta ?? {}) as Record<string, unknown>;
+      const g = m.gemini_cost_eur;
+      const a = m.apif_calls;
+      if (typeof g === "number") totalGemini += g;
+      if (typeof a === "number") totalApifCalls += a;
+    }
+    const lastMeta = (last?.meta ?? {}) as Record<string, unknown>;
+
     crons[job] = {
       schedule: meta.expr,
       schedule_label: meta.label,
@@ -209,6 +232,17 @@ export async function GET(req: Request) {
       is_never: last === null,
       errors_last_7d: errorsCount ?? 0,
       runs: recentRuns ?? [],
+      consumption: {
+        last: {
+          gemini_cost_eur: typeof lastMeta.gemini_cost_eur === "number" ? lastMeta.gemini_cost_eur : undefined,
+          apif_calls: typeof lastMeta.apif_calls === "number" ? lastMeta.apif_calls : undefined,
+        },
+        total: {
+          gemini_cost_eur: Math.round(totalGemini * 10000) / 10000,
+          apif_calls: totalApifCalls,
+          runs_count: (allRuns ?? []).length,
+        },
+      },
     };
   }
 
@@ -263,11 +297,26 @@ export async function GET(req: Request) {
     },
   };
 
+  // Total agrégé tous crons confondus
+  const grandTotal = Object.values(crons).reduce(
+    (acc, c) => ({
+      gemini_cost_eur: acc.gemini_cost_eur + c.consumption.total.gemini_cost_eur,
+      apif_calls: acc.apif_calls + c.consumption.total.apif_calls,
+      runs_count: acc.runs_count + c.consumption.total.runs_count,
+    }),
+    { gemini_cost_eur: 0, apif_calls: 0, runs_count: 0 }
+  );
+
   return NextResponse.json({
     ts: new Date().toISOString(),
     keys: {
       gemini,
       api_football: football.key,
+    },
+    consumption_total: {
+      gemini_cost_eur: Math.round(grandTotal.gemini_cost_eur * 10000) / 10000,
+      apif_calls: grandTotal.apif_calls,
+      runs_count: grandTotal.runs_count,
     },
     quota: {
       api_football: football.quota ?? null,
