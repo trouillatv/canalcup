@@ -195,6 +195,32 @@ export async function GET(req: Request) {
     };
   }
 
+  // On charge les sondes externes EN PARALLÈLE avant de construire le
+  // comparatif (qui en a besoin pour le scraping last_used).
+  const [gemini, football, scraping] = await Promise.all([
+    checkGemini(),
+    checkApiFootball(),
+    lastScrapingDate(),
+  ]);
+
+  // Dernière utilisation de chaque source data — pour le comparatif.
+  // api-football et thesportsdb sont appelées par le cron sync-matches
+  // (et accessoirement par les scripts manuels qui modifient matches).
+  // On prend le max entre le dernier run sync-matches OK et le dernier
+  // updated_at sur matches (cas script manuel récent).
+  const lastSyncRun = crons["sync-matches"]?.last_run?.started_at ?? null;
+  const { data: lastMatchTouched } = await supabase
+    .from("matches")
+    .select("updated_at")
+    .order("updated_at", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+  const lastApifUsage = (() => {
+    const dates = [lastSyncRun, lastMatchTouched?.updated_at].filter(Boolean) as string[];
+    if (dates.length === 0) return null;
+    return dates.sort().reverse()[0];
+  })();
+
   // Comparatif des sources
   const dataSources = {
     "api-football": {
@@ -202,26 +228,23 @@ export async function GET(req: Request) {
       features: ["Live scores", "Compos", "Stats", "Events détaillés", "Notes joueur"],
       cost: "100 req/jour (Free)",
       latency: "≤ 30 sec",
+      last_used: lastApifUsage,
     },
     thesportsdb: {
       enabled: true,
       features: ["Fixtures", "Scores finaux", "Timeline basique"],
       cost: "Illimité gratuit",
       latency: "5-15 min",
+      last_used: lastSyncRun, // co-appelée par sync-matches
     },
     scraping_python: {
       enabled: true,
       features: ["Enrichissement joueurs WC2026 (multi-sources)"],
       cost: "Manuel — node docs/script/enrich_players.py",
       latency: "Ponctuel",
+      last_used: scraping?.mtime ?? null,
     },
   };
-
-  const [gemini, football, scraping] = await Promise.all([
-    checkGemini(),
-    checkApiFootball(),
-    lastScrapingDate(),
-  ]);
 
   return NextResponse.json({
     ts: new Date().toISOString(),

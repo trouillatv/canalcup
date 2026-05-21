@@ -51,7 +51,7 @@ interface Monitoring {
   };
   crons: Record<string, CronInfo>;
   scraping_last: { file: string; mtime: string } | null;
-  data_sources: Record<string, { enabled: boolean; features: string[]; cost: string; latency: string }>;
+  data_sources: Record<string, { enabled: boolean; features: string[]; cost: string; latency: string; last_used: string | null }>;
   env: { mock_ai: boolean; node_env: string };
 }
 
@@ -98,6 +98,7 @@ export default function AdminMonitoringPage() {
   const [data, setData] = useState<Monitoring | null>(null);
   const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [triggering, setTriggering] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -106,6 +107,29 @@ export default function AdminMonitoringPage() {
     } catch { /* silencieux */ }
     setLoading(false);
   }, []);
+
+  const triggerCron = useCallback(async (job: string) => {
+    if (!confirm(`Lancer manuellement /api/cron/${job} ?\n\nCela peut consommer du quota API-Football si c'est sync-matches.`)) return;
+    setTriggering(job);
+    try {
+      const res = await fetch("/api/admin/monitoring/trigger", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ job }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(`Échec : ${d?.error ?? `HTTP ${res.status}`}`);
+      } else {
+        alert(`OK ! Status ${d.status}\n\n${JSON.stringify(d.response, null, 2).slice(0, 500)}`);
+      }
+    } catch (e) {
+      alert(`Erreur réseau : ${e instanceof Error ? e.message : ""}`);
+    }
+    setTriggering(null);
+    fetchData();
+  }, [fetchData]);
 
   useEffect(() => {
     fetchData();
@@ -251,7 +275,7 @@ export default function AdminMonitoringPage() {
                       : "border border-canal-gray-light/40";
                 return (
                   <div key={job} className={cn("rounded-xl p-3 space-y-2.5", cardBorder)}>
-                    {/* En-tête : nom + statut global */}
+                    {/* En-tête : nom + statut global + trigger */}
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <p className="text-sm font-bold text-white">
                         /api/cron/{job}
@@ -271,6 +295,15 @@ export default function AdminMonitoringPage() {
                             {c.errors_last_7d} ⚠ /7j
                           </span>
                         )}
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => triggerCron(job)}
+                          loading={triggering === job}
+                          loadingText="…"
+                        >
+                          ▶ Lancer
+                        </Button>
                       </div>
                     </div>
 
@@ -381,6 +414,12 @@ export default function AdminMonitoringPage() {
                   </p>
                   <p className="text-[11px] text-canal-gray-muted">
                     <span className="text-white font-bold">Latence :</span> {src.latency}
+                  </p>
+                  <p className="text-[11px] text-canal-gray-muted">
+                    <span className="text-white font-bold">Dernière utilisation :</span>{" "}
+                    <span className={src.last_used ? "text-white tabular-nums" : "text-canal-gray-muted italic"}>
+                      {src.last_used ? formatTime(src.last_used) : "jamais"}
+                    </span>
                   </p>
                 </div>
               ))}
