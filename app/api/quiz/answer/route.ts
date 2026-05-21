@@ -1,10 +1,15 @@
 // POST /api/quiz/answer → enregistre une réponse de quiz dans quiz_answers.
-// Le serveur fait autorité : il relit la bonne réponse en base et recalcule
-// is_correct + points (jamais de confiance au client). Une seule prise en
-// compte par question/joueur — rejouer ne refarme pas de points au classement.
+// Live show : le serveur fait autorité. Il :
+//  - vérifie qu'une session quiz est ACTIVE (sinon refuse).
+//  - vérifie que question_id == session.current_question_id (sinon refuse).
+//  - calcule response_time_ms = now - session.started_at côté SERVEUR
+//    (anti-triche : le client ne peut pas mentir sur sa rapidité).
+//  - clamp : si > QUIZ_TIMER_SECONDS, points forcés à 0 (timeout).
+// Une seule prise en compte par question/joueur — rejouer ne refarme pas.
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { quizPoints, QUIZ_TIMER_SECONDS } from "@/lib/scoring";
 
 export async function POST(req: Request) {
@@ -43,12 +48,39 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "Question introuvable" }, { status: 404 });
     }
 
-    const response_time_ms =
-      typeof rawRt === "number" && Number.isFinite(rawRt)
-        ? Math.max(0, Math.round(rawRt))
-        : QUIZ_TIMER_SECONDS * 1000;
+    // Anti-triche : on récupère la session active + on calcule le temps
+    // côté serveur. Le response_time_ms du client est ignoré.
+    const admin = createAdminClient();
+    const { data: session } = await admin
+      .from("quiz_session")
+      .select("id, current_question_id, started_at, status")
+      .is("ended_at", null)
+      .maybeSingle();
+
+    if (!session || session.status !== "question") {
+      return NextResponse.json(
+        { ok: false, error: "Aucune session quiz active." },
+        { status: 400 }
+      );
+    }
+    if (session.current_question_id !== question_id) {
+      return NextResponse.json(
+        { ok: false, error: "Cette question n'est plus la question active." },
+        { status: 400 }
+      );
+    }
+
+    const startedAt = new Date(session.started_at).getTime();
+    const elapsedMs = Math.max(0, Date.now() - startedAt);
+    // Petite tolérance : +500ms pour absorber la latence réseau
+    // (sinon un click à 19.9s pourrait arriver à 20.1s côté serveur).
+    const TIMEOUT_MS = QUIZ_TIMER_SECONDS * 1000 + 500;
+    const timedOut = elapsedMs > TIMEOUT_MS;
+    const response_time_ms = Math.min(elapsedMs, QUIZ_TIMER_SECONDS * 1000);
+    void rawRt; // ignore le client (anti-triche)
+
     const is_correct = answer !== "" && answer === question.correct_answer;
-    const points = quizPoints(is_correct, response_time_ms);
+    const points = timedOut ? 0 : quizPoints(is_correct, response_time_ms);
 
     // Joueur sans équipe : on le laisse jouer mais rien n'est compté au classement.
     if (!profile.team_id) {

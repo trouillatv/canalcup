@@ -69,7 +69,8 @@ export function calculatePoints(
 
 // Quiz Live — barème : +5 si bonne réponse en moins de 5s, +3 sinon,
 // 0 si fausse réponse ou timeout. Source unique partagée client + serveur.
-export const QUIZ_TIMER_SECONDS = 15;
+// 20s par question (passé de 15 → 20 pour le live show, mai 2026).
+export const QUIZ_TIMER_SECONDS = 20;
 export const QUIZ_FAST_THRESHOLD_MS = 5000;
 
 export function quizPoints(isCorrect: boolean, responseTimeMs: number): number {

@@ -2,11 +2,29 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Trash2, Plus, ChevronDown, ChevronUp, Play } from "lucide-react";
+import {
+  Trash2,
+  Plus,
+  ChevronDown,
+  ChevronUp,
+  Play,
+  SkipForward,
+  Square,
+  RotateCcw,
+  Radio,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { QuizQuestion, QuizCategory, QuizDifficulty } from "@/lib/supabase/types";
 
 const ADMIN_SECRET = process.env.NEXT_PUBLIC_ADMIN_SECRET ?? "";
+
+interface LiveSessionState {
+  status: "idle" | "question";
+  question?: { id: string; question: string };
+  question_index?: number;
+  total?: number;
+  started_at?: string;
+}
 
 const CATEGORIES: QuizCategory[] = ["foot", "culture", "canal", "general"];
 const DIFFICULTIES: QuizDifficulty[] = ["easy", "medium", "hard"];
@@ -61,6 +79,11 @@ export default function AdminQuizPage() {
   // Expanded question
   const [expanded, setExpanded] = useState<string | null>(null);
 
+  // Live Show control panel
+  const [live, setLive] = useState<LiveSessionState>({ status: "idle" });
+  const [liveActing, setLiveActing] = useState<null | "start" | "next" | "end" | "reset">(null);
+  const [liveError, setLiveError] = useState<string | null>(null);
+
   const fetchQuestions = useCallback(async () => {
     setLoading(true);
     const res = await fetch("/api/admin/quiz");
@@ -69,7 +92,79 @@ export default function AdminQuizPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchQuestions(); }, [fetchQuestions]);
+  const fetchLive = useCallback(async () => {
+    try {
+      const res = await fetch("/api/quiz/session", { credentials: "same-origin" });
+      if (!res.ok) return;
+      const d = await res.json();
+      if (d.status === "question" && d.question) {
+        setLive({
+          status: "question",
+          question: { id: d.question.id, question: d.question.question },
+          question_index: d.question_index ?? 0,
+          total: d.total ?? 0,
+          started_at: d.started_at,
+        });
+      } else {
+        setLive({ status: "idle" });
+      }
+    } catch { /* silencieux */ }
+  }, []);
+
+  useEffect(() => {
+    fetchQuestions();
+  }, [fetchQuestions]);
+
+  useEffect(() => {
+    fetchLive();
+    const t = setInterval(fetchLive, 3000);
+    return () => clearInterval(t);
+  }, [fetchLive]);
+
+  const callLive = useCallback(
+    async (action: "start" | "next" | "end" | "reset") => {
+      setLiveActing(action);
+      setLiveError(null);
+      try {
+        const res = await fetch("/api/admin/quiz/session", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-admin-secret": ADMIN_SECRET,
+          },
+          body: JSON.stringify({ action }),
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setLiveError(d?.error || `Erreur (HTTP ${res.status})`);
+        }
+      } catch (e) {
+        setLiveError(e instanceof Error ? e.message : "Erreur réseau");
+      }
+      setLiveActing(null);
+      fetchLive();
+    },
+    [fetchLive]
+  );
+
+  const onStart = () => {
+    if (!confirm("Lancer le quiz live ? Tous les joueurs verront la 1ère question.")) return;
+    callLive("start");
+  };
+  const onNext = () => callLive("next");
+  const onEnd = () => {
+    if (!confirm("Terminer le quiz live ?")) return;
+    callLive("end");
+  };
+  const onReset = () => {
+    if (
+      !confirm(
+        "⚠️ Reset : termine la session ET supprime TOUTES les réponses quiz déjà enregistrées (impacte le classement). Continuer ?"
+      )
+    )
+      return;
+    callLive("reset");
+  };
 
   const handleManualSave = async () => {
     if (!form.question || !form.answer_a || !form.answer_b || !form.answer_c || !form.answer_d) return;
@@ -109,6 +204,100 @@ export default function AdminQuizPage() {
           <Play size={14} /> Diaporama
         </Link>
       </div>
+
+      {/* ─── Live Show — pilotage ─── */}
+      <section className="canal-card space-y-4 border border-canal-yellow/30">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Radio
+              size={16}
+              className={cn(
+                live.status === "question" ? "text-red-400 animate-pulse" : "text-canal-gray-muted"
+              )}
+            />
+            <h2 className="font-bold text-white">Quiz Live</h2>
+          </div>
+          <span
+            className={cn(
+              "text-xs font-black px-2 py-0.5 rounded-full",
+              live.status === "question"
+                ? "bg-red-500/20 text-red-400 border border-red-500/40"
+                : "bg-canal-gray-mid text-canal-gray-muted border border-canal-gray-light"
+            )}
+          >
+            {live.status === "question" ? "● LIVE" : "Arrêté"}
+          </span>
+        </div>
+
+        {live.status === "question" && live.question && (
+          <div className="bg-canal-gray-mid border border-canal-gray-light rounded-lg p-3 space-y-1">
+            <p className="text-xs text-canal-gray-muted">
+              Question{" "}
+              <span className="text-white font-bold">
+                {(live.question_index ?? 0) + 1}
+              </span>
+              {live.total ? ` / ${live.total}` : ""} — en cours
+            </p>
+            <p className="text-sm font-bold text-white leading-snug">
+              {live.question.question}
+            </p>
+          </div>
+        )}
+
+        {liveError && (
+          <p className="text-xs text-red-400 bg-red-950/30 border border-red-500/40 rounded-lg px-3 py-2">
+            {liveError}
+          </p>
+        )}
+
+        <div className="grid grid-cols-2 gap-2">
+          {live.status === "idle" ? (
+            <button
+              onClick={onStart}
+              disabled={liveActing !== null || questions.length === 0}
+              className="col-span-2 flex items-center justify-center gap-2 py-3 bg-canal-yellow text-canal-black font-black rounded-xl hover:bg-canal-yellow-hover transition-colors disabled:opacity-40"
+            >
+              <Play size={14} />
+              {liveActing === "start" ? "Lancement…" : "Lancer le quiz"}
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={onNext}
+                disabled={liveActing !== null}
+                className="flex items-center justify-center gap-2 py-3 bg-canal-yellow text-canal-black font-black rounded-xl hover:bg-canal-yellow-hover transition-colors disabled:opacity-40"
+              >
+                <SkipForward size={14} />
+                {liveActing === "next" ? "…" : "Question suivante"}
+              </button>
+              <button
+                onClick={onEnd}
+                disabled={liveActing !== null}
+                className="flex items-center justify-center gap-2 py-3 bg-canal-gray-mid text-white font-black rounded-xl border border-canal-gray-light hover:bg-canal-gray-light transition-colors disabled:opacity-40"
+              >
+                <Square size={14} />
+                {liveActing === "end" ? "…" : "Terminer"}
+              </button>
+            </>
+          )}
+          <button
+            onClick={onReset}
+            disabled={liveActing !== null}
+            className="col-span-2 flex items-center justify-center gap-2 py-2.5 bg-red-950/40 text-red-400 font-bold text-sm rounded-xl border border-red-500/40 hover:bg-red-950/60 transition-colors disabled:opacity-40"
+          >
+            <RotateCcw size={13} />
+            {liveActing === "reset"
+              ? "Reset en cours…"
+              : "Reset (efface toutes les réponses & points quiz)"}
+          </button>
+        </div>
+
+        <p className="text-xs text-canal-gray-muted leading-relaxed">
+          Les joueurs voient les questions sur{" "}
+          <code className="text-canal-yellow">/quiz-live</code>. 20s par question.
+          +5 pts si bonne réponse en &lt;5s, +3 sinon, 0 si faux ou timeout.
+        </p>
+      </section>
 
       {/* ─── Ajout manuel ─── */}
       <section className="canal-card space-y-4">
