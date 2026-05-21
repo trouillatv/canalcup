@@ -2,6 +2,11 @@
 // rejette une demande pending. Si approve : pose users.team_id et
 // profile_completed=true sur le demandeur ; vérifie le cap de membres
 // (double vérif au cas où plusieurs approbations en parallèle).
+//
+// MODE BINÔME (Vincent 2026-05) : un user ne peut être que dans UNE
+// SEULE équipe à la fois. À l'approve, on retire automatiquement
+// l'user de ses autres team_memberships. Si une équipe quittée se
+// retrouve sans membre → on la supprime (pas de team orpheline).
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -77,16 +82,46 @@ export async function POST(req: Request) {
       );
     }
 
-    // Devient-il principale ? Oui SSI le demandeur n'a pas encore de primary.
-    const { data: existingPrimary } = await admin
+    // MODE BINÔME — un user = une seule équipe. On retire toutes ses
+    // autres memberships et on supprime les équipes qui se retrouvent
+    // vides (typiquement : équipe qu'il avait créée avec lui seul dedans).
+    const { data: priorMemberships } = await admin
       .from("team_memberships")
       .select("team_id")
-      .eq("user_id", joinReq.user_id)
-      .eq("is_primary", true)
-      .maybeSingle();
-    const willBePrimary = !existingPrimary;
+      .eq("user_id", joinReq.user_id);
+    const otherTeamIds = (priorMemberships ?? [])
+      .map((m) => m.team_id as string)
+      .filter((tid) => tid !== team.id);
 
-    // Insertion membership (member, is_primary calculé).
+    if (otherTeamIds.length > 0) {
+      // 1. Retire l'user de ses autres équipes.
+      await admin
+        .from("team_memberships")
+        .delete()
+        .eq("user_id", joinReq.user_id)
+        .in("team_id", otherTeamIds);
+
+      // 2. Pour chaque équipe quittée, compter les membres restants.
+      //    Si 0 → supprimer l'équipe (et ses join_requests via cascade).
+      for (const tid of otherTeamIds) {
+        const { count: remaining } = await admin
+          .from("team_memberships")
+          .select("*", { count: "exact", head: true })
+          .eq("team_id", tid);
+        if ((remaining ?? 0) === 0) {
+          // Nettoie les demandes pending pour cette team avant le delete
+          // (au cas où la FK n'est pas en CASCADE).
+          await admin.from("team_join_requests").delete().eq("team_id", tid);
+          await admin.from("teams").delete().eq("id", tid);
+        }
+      }
+    }
+
+    // Nouvel insert : devient principale par défaut puisque, en mode
+    // binôme, c'est sa seule équipe.
+    const willBePrimary = true;
+
+    // Insertion membership (member, is_primary = true).
     const { error: memErr } = await admin
       .from("team_memberships")
       .insert({
