@@ -112,5 +112,22 @@ export async function GET() {
     };
   });
 
-  return NextResponse.json({ teams });
+  // 5. Mes demandes SORTANTES en attente (équipes où je veux entrer).
+  //    Important pour l'UX : sinon après avoir saisi un code, l'user ne
+  //    voyait RIEN dans son profil et croyait que rien ne s'était passé.
+  const { data: outgoingRaw } = await admin
+    .from("team_join_requests")
+    .select("id, team_id, created_at, team:teams(id, name)")
+    .eq("user_id", me.id)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+  const outgoing = (outgoingRaw ?? []).map((r) => ({
+    id: r.id,
+    team_id: r.team_id,
+    created_at: r.created_at,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    team_name: ((r as any).team?.name as string | undefined) ?? "—",
+  }));
+
+  return NextResponse.json({ teams, pending_outgoing: outgoing });
 }

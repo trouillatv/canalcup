@@ -38,12 +38,21 @@ interface MyTeam {
   }>;
 }
 
+interface PendingOutgoing {
+  id: string;
+  team_id: string;
+  team_name: string;
+  created_at: string;
+}
+
 export function MyTeamsPanel() {
   const [teams, setTeams] = useState<MyTeam[]>([]);
+  const [pendingOutgoing, setPendingOutgoing] = useState<PendingOutgoing[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState("");
   const [newTeamName, setNewTeamName] = useState("");
   // Onglet actif dans la box "Actions globales" en bas du panneau.
@@ -63,6 +72,7 @@ export function MyTeamsPanel() {
       } else {
         const d = await res.json();
         setTeams(d.teams ?? []);
+        setPendingOutgoing(d.pending_outgoing ?? []);
       }
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Erreur réseau");
@@ -141,6 +151,7 @@ export function MyTeamsPanel() {
     if (!joinCode.trim()) return;
     setBusy("join");
     setErr(null);
+    setOkMsg(null);
     try {
       const res = await fetch("/api/teams/join", {
         method: "POST",
@@ -148,11 +159,37 @@ export function MyTeamsPanel() {
         credentials: "same-origin",
         body: JSON.stringify({ invite_code: joinCode.trim().toUpperCase() }),
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErr(data?.error ?? `HTTP ${res.status}`);
+      } else {
+        setJoinCode("");
+        const teamName = data?.team?.name ?? "l'équipe";
+        setOkMsg(`✅ Demande envoyée à ${teamName}. Le captain doit la valider.`);
+        // Le message disparaît après 8s pour ne pas polluer ad vitam.
+        setTimeout(() => setOkMsg((cur) => (cur && cur.includes(teamName) ? null : cur)), 8000);
+      }
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Erreur réseau");
+    }
+    setBusy(null);
+    await refresh();
+  };
+
+  const cancelRequest = async (requestId: string) => {
+    if (!confirm("Annuler ta demande ?")) return;
+    setBusy(`cancel-${requestId}`);
+    setErr(null);
+    try {
+      const res = await fetch("/api/teams/requests/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ request_id: requestId }),
+      });
       if (!res.ok) {
         const b = await res.json().catch(() => ({}));
         setErr(b?.error ?? `HTTP ${res.status}`);
-      } else {
-        setJoinCode("");
       }
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Erreur réseau");
@@ -181,6 +218,42 @@ export function MyTeamsPanel() {
         <p className="text-red-400 text-xs flex items-center gap-1.5">
           <AlertCircle size={12} /> {err}
         </p>
+      )}
+
+      {okMsg && (
+        <p className="text-green-400 text-xs bg-green-950/20 border border-green-500/30 rounded-lg px-2.5 py-1.5">
+          {okMsg}
+        </p>
+      )}
+
+      {/* Demandes pending SORTANTES — équipes où j'attends une validation. */}
+      {pendingOutgoing.length > 0 && (
+        <div className="space-y-1.5">
+          {pendingOutgoing.map((p) => (
+            <div
+              key={`outgoing-${p.id}`}
+              className="bg-canal-yellow/5 border border-canal-yellow/30 rounded-xl px-3 py-2 flex items-center gap-2"
+            >
+              <span className="text-base">⏳</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-white truncate">
+                  Demande à {p.team_name}
+                </p>
+                <p className="text-[11px] text-canal-gray-muted">
+                  En attente — le captain doit valider
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => cancelRequest(p.id)}
+                disabled={busy === `cancel-${p.id}`}
+                className="text-xs font-bold text-canal-gray-muted hover:text-red-400 border border-canal-gray-light rounded-lg px-2 py-1 disabled:opacity-50"
+              >
+                Annuler
+              </button>
+            </div>
+          ))}
+        </div>
       )}
 
       {loading && teams.length === 0 ? (
