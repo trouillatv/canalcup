@@ -11,8 +11,9 @@
 
 import { createClient } from "@/lib/supabase/server";
 
-// Vincent a 2 e-mails. Les deux sont admin.
-const DEFAULT_ADMIN_EMAILS = ["trouillatv@gmail.com", "vincent.trouillat@canal-plus.com"];
+// Seul le compte gmail est admin. L'email canal-plus.com sert à tester
+// le parcours en tant que participant lambda.
+const DEFAULT_ADMIN_EMAILS = ["trouillatv@gmail.com"];
 
 export async function isAdminRequest(req: Request): Promise<boolean> {
   // 1. Voie legacy : secret partagé (scripts, cron, automation externe).
