@@ -24,13 +24,22 @@ export default async function ProfilePage() {
   const { data: { user: authUser } } = await supabase.auth.getUser();
   if (!authUser) redirect("/");
 
-  const { data: profile } = await supabase
+  // Pas de join sur teams ici : MyTeamsPanel fait son propre fetch des
+  // memberships (plus complet et déjà testé). La jointure embedded
+  // PostgREST a été retirée car elle remontait des null silencieux
+  // côté prod (cookie stale ou RLS atypique), forçant un redirect
+  // /onboarding alors que la ligne user existe.
+  const { data: profile, error: profErr } = await supabase
     .from("users")
     .select(
-      "id, name, display_name, user_slug, email, service_id, football_level, team_id, team:teams(id, name)"
+      "id, name, display_name, user_slug, email, service_id, football_level, team_id"
     )
     .eq("auth_id", authUser.id)
-    .single();
+    .maybeSingle();
+  if (profErr) {
+    // Surface la vraie erreur via app/error.tsx au lieu d'un redirect aveugle.
+    throw new Error(`Lecture profil KO : ${profErr.message}`);
+  }
   if (!profile) redirect("/onboarding");
 
   const { data: services } = await supabase
