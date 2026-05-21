@@ -78,6 +78,32 @@ export async function GET(request: Request) {
     ? `${nextMatch.team_a} vs ${nextMatch.team_b}`
     : "Aucun match au programme dans l'immédiat.";
 
+  // Mode PRÉ-TOURNOI : aucun match Canal Cup n'a encore été joué.
+  // → on bascule sur un prompt dédié (hype + règles + fun fact ouverture WC)
+  //   au lieu du prompt classique qui suppose des scores à commenter.
+  const noMatchYet = (finished?.length ?? 0) === 0;
+  let preLaunch: { matchOpener: string; teamsCount: number } | undefined;
+  if (noMatchYet) {
+    // Match d'ouverture de la WC2026 = 1er match upcoming dans matches
+    const { data: opener } = await supabase
+      .from("matches")
+      .select("team_a, team_b, starts_at")
+      .eq("status", "upcoming")
+      .order("starts_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    const openerStr = opener
+      ? `${opener.team_a} vs ${opener.team_b} le ${new Date(opener.starts_at).toLocaleString("fr-FR", {
+          timeZone: "Pacific/Noumea",
+          day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit",
+        })} (heure NC)`
+      : "le match d'ouverture";
+    const { count: teamsCount } = await supabase
+      .from("teams")
+      .select("*", { count: "exact", head: true });
+    preLaunch = { matchOpener: openerStr, teamsCount: teamsCount ?? 0 };
+  }
+
   // ── Génération (Gemini ou MOCK) ────────────────────────────────────────────
   const brief = await generateMorningBrief({
     date: today,
@@ -85,6 +111,7 @@ export async function GET(request: Request) {
     leaderboard: leaderboardSummary,
     failTeam,
     matchTonight,
+    preLaunch,
   });
 
   // ── Persistance (1 ligne / jour) ───────────────────────────────────────────
