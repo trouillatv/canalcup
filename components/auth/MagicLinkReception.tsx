@@ -98,7 +98,15 @@ export function MagicLinkReception() {
     setErrorMsg("");
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({ email, password });
+    // emailRedirectTo : URL où l'utilisateur atterrit après clic sur
+    // le lien de confirmation. /auth/callback gère l'allowlist et le
+    // routing /onboarding.
+    const redirectTo = `${window.location.origin}/auth/callback`;
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: redirectTo },
+    });
 
     if (error) {
       setStatus("error");
@@ -110,6 +118,17 @@ export function MagicLinkReception() {
       return;
     }
 
+    // Supabase n'envoie de session que si "Confirm email" est DÉSACTIVÉ
+    // dans le dashboard. Avec Confirm email activé (recommandé), data.session
+    // est null et le compte reste en attente jusqu'au clic sur le lien email.
+    if (!data.session) {
+      setStatus("sent");
+      return;
+    }
+
+    // Fallback : si Confirm email est désactivé, on auto-checke l'allowlist
+    // et on redirige direct (legacy comportement, ne devrait plus servir
+    // en prod).
     await checkAllowlistAndRedirect();
   };
 
@@ -166,7 +185,35 @@ export function MagicLinkReception() {
           </div>
 
           <div className="p-6">
-            {tab === "login" ? (
+            {/* État "email de confirmation envoyé" après signup réussi.
+                Remplace le formulaire pour que l'utilisateur n'ait pas
+                le réflexe de cliquer encore sur "Créer un compte". */}
+            {tab === "signup" && status === "sent" ? (
+              <div className="space-y-4 text-center py-4">
+                <div className="text-5xl">📬</div>
+                <div className="space-y-1">
+                  <p className="text-white font-black text-base">
+                    Vérifie ta boîte mail
+                  </p>
+                  <p className="text-canal-gray-muted text-sm leading-relaxed">
+                    Un lien de confirmation a été envoyé à{" "}
+                    <span className="text-white font-bold break-all">{email}</span>.
+                    Clique dessus pour activer ton compte.
+                  </p>
+                </div>
+                <p className="text-[11px] text-canal-gray-muted italic leading-snug">
+                  Pas reçu après 2 min ? Regarde dans les indésirables, ou
+                  recommence l&apos;inscription.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { setStatus("idle"); setPassword(""); setConfirm(""); }}
+                  className="w-full py-2.5 bg-canal-gray-mid text-canal-gray-muted text-xs font-bold rounded-xl border border-canal-gray-light hover:text-white transition-colors"
+                >
+                  Recommencer avec un autre email
+                </button>
+              </div>
+            ) : tab === "login" ? (
               <form onSubmit={handleLogin} className="space-y-4">
                 <div>
                   <label className="text-xs text-canal-gray-muted mb-1.5 block font-bold uppercase tracking-wider">Email</label>
