@@ -73,7 +73,7 @@ export default async function ProfilePage() {
     <div className="px-4 py-4 space-y-5 max-w-md mx-auto">
       <header>
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-canal-yellow flex items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-canal-yellow flex items-center justify-center" aria-hidden>
             <span className="text-canal-black font-black text-xl">
               {(profile.display_name ?? profile.name ?? profile.email ?? "?")[0].toUpperCase()}
             </span>
@@ -83,17 +83,20 @@ export default async function ProfilePage() {
               {profile.display_name ?? profile.name ?? "Mon profil"}
             </h1>
             <p className="text-canal-gray-muted text-xs truncate">
-              {profile.user_slug ? `/u/${profile.user_slug}` : "—"} · {profile.email}
+              {profile.email}
             </p>
           </div>
         </div>
       </header>
 
       {/* Édition perso */}
-      <section className="canal-card space-y-1">
-        <p className="text-xs text-canal-yellow font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+      <section className="canal-card space-y-1" aria-labelledby="profile-info-heading">
+        <h2
+          id="profile-info-heading"
+          className="text-xs text-canal-yellow font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5"
+        >
           <UserCircle2 size={14} /> Mes infos
-        </p>
+        </h2>
         <ProfileEditForm profile={profile} services={services ?? []} />
       </section>
 
@@ -105,10 +108,13 @@ export default async function ProfilePage() {
       <MyTeamsPanel />
 
       {/* Rappel pédagogique */}
-      <section className="canal-card border border-canal-yellow/30 bg-canal-yellow/5">
-        <p className="text-xs text-canal-yellow font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5">
+      <section className="canal-card border border-canal-yellow/30 bg-canal-yellow/5" aria-labelledby="pronos-heading">
+        <h2
+          id="pronos-heading"
+          className="text-xs text-canal-yellow font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5"
+        >
           <Sparkles size={14} /> Pronostics personnels
-        </p>
+        </h2>
         <p className="text-xs text-canal-gray-muted leading-relaxed">
           Tes pronostics sont <span className="text-white font-bold">à toi</span>{" "}
           — pas de groupe au-dessus. Tes points pronos alimentent ton équipe Canal
@@ -118,10 +124,13 @@ export default async function ProfilePage() {
       </section>
 
       {/* Groupes par activité (phase 2.C) */}
-      <section className="canal-card">
-        <p className="text-xs text-canal-yellow font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+      <section className="canal-card" aria-labelledby="groups-heading">
+        <h2
+          id="groups-heading"
+          className="text-xs text-canal-yellow font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5"
+        >
           <Users2 size={14} /> Mes groupes par activité
-        </p>
+        </h2>
         {myGroups.length === 0 ? (
           <p className="text-canal-gray-muted text-sm italic">
             Pas (encore) de groupe. Quand tu participeras à une animation

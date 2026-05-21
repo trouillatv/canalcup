@@ -13,11 +13,13 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  Crown, Star, StarOff, Copy, Check, Users, UserCheck, UserX,
+  Crown, Star, StarOff, Check, Users, UserCheck, UserX,
   RefreshCw, LogOut, Plus, Ticket, AlertCircle, Share2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TEAM_MAX_MEMBERS } from "@/lib/teams/config";
+import { Button } from "@/components/ui/Button";
+import { SkeletonTeamCard } from "@/components/ui/Skeleton";
 
 interface MyTeam {
   id: string;
@@ -232,19 +234,25 @@ export function MyTeamsPanel() {
   };
 
   return (
-    <section className="canal-card space-y-3">
+    <section className="canal-card space-y-3" aria-labelledby="teams-heading">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-canal-yellow font-bold uppercase tracking-wider flex items-center gap-1.5">
-          <Users size={14} /> Mes équipes Canal Cup{teams.length > 0 && ` (${teams.length})`}
-        </p>
-        <button
-          onClick={refresh}
-          disabled={loading}
-          title="Actualiser"
-          className="text-xs text-canal-gray-muted hover:text-white flex items-center gap-1 disabled:opacity-50"
+        <h2
+          id="teams-heading"
+          className="text-xs text-canal-yellow font-bold uppercase tracking-wider flex items-center gap-1.5"
         >
-          <RefreshCw size={11} /> Actualiser
-        </button>
+          <Users size={14} /> Mes équipes Canal Cup{teams.length > 0 && ` (${teams.length})`}
+        </h2>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={refresh}
+          loading={loading}
+          loadingText="…"
+          aria-label="Rafraîchir la liste"
+          leftIcon={<RefreshCw size={11} />}
+        >
+          Actualiser
+        </Button>
       </div>
 
       {err && (
@@ -276,25 +284,55 @@ export function MyTeamsPanel() {
                   En attente — le captain doit valider
                 </p>
               </div>
-              <button
-                type="button"
+              <Button
+                variant="destructive"
+                size="sm"
                 onClick={() => cancelRequest(p.id)}
-                disabled={busy === `cancel-${p.id}`}
-                className="text-xs font-bold text-canal-gray-muted hover:text-red-400 border border-canal-gray-light rounded-lg px-2 py-1 disabled:opacity-50"
+                loading={busy === `cancel-${p.id}`}
+                loadingText="…"
               >
                 Annuler
-              </button>
+              </Button>
             </div>
           ))}
         </div>
       )}
 
       {loading && teams.length === 0 ? (
-        <p className="text-canal-gray-muted text-sm italic">Chargement…</p>
+        <SkeletonTeamCard />
       ) : teams.length === 0 ? (
-        <p className="text-canal-gray-muted text-sm italic">
-          Tu n&apos;es dans aucune équipe pour l&apos;instant. Crée ou rejoins-en une ci-dessous.
-        </p>
+        <div className="flex flex-col items-center text-center py-6 gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-canal-yellow/10 flex items-center justify-center text-3xl">
+            ⚽
+          </div>
+          <div className="space-y-1">
+            <p className="font-bold text-white text-base">Pas encore d&apos;équipe ?</p>
+            <p className="text-canal-gray-muted text-xs leading-relaxed max-w-xs">
+              Crée ton binôme ou rejoins celui d&apos;un collègue avec son code
+              d&apos;invitation.
+            </p>
+          </div>
+          <div className="w-full flex flex-col gap-2 max-w-xs">
+            <Button
+              variant="primary"
+              size="md"
+              fullWidth
+              onClick={() => setTab("create")}
+              leftIcon={<Plus size={14} />}
+            >
+              Créer mon équipe
+            </Button>
+            <Button
+              variant="secondary"
+              size="md"
+              fullWidth
+              onClick={() => setTab("join")}
+              leftIcon={<Ticket size={14} />}
+            >
+              Rejoindre par code
+            </Button>
+          </div>
+        </div>
       ) : (
         teams.map((t) => {
           const link =
@@ -350,10 +388,19 @@ export function MyTeamsPanel() {
               {t.is_captain && t.invite_code && (
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 font-mono font-black text-canal-yellow text-base tracking-widest text-center bg-canal-gray border border-canal-gray-light/40 rounded-lg py-1.5">
-                      {t.invite_code}
-                    </code>
+                    {/* Code cliquable = copie le code seul (utile à coller
+                        dans un SMS court, ou à dire à l'oral). */}
                     <button
+                      type="button"
+                      onClick={() => copy(t.invite_code!, `code-${t.id}`)}
+                      title="Cliquer pour copier le code"
+                      className="flex-1 font-mono font-black text-canal-yellow text-base tracking-widest text-center bg-canal-gray border border-canal-gray-light/40 rounded-lg py-1.5 hover:border-canal-yellow/50 transition-colors flex items-center justify-center gap-2"
+                    >
+                      {copied === `code-${t.id}` ? <Check size={14} /> : null}
+                      {copied === `code-${t.id}` ? "Code copié" : t.invite_code}
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => shareInvite(t.name, link, `share-${t.id}`)}
                       disabled={!link}
                       title="Partager le lien d'invitation"
@@ -366,7 +413,7 @@ export function MyTeamsPanel() {
                   {!t.full && (
                     <p className="text-[11px] text-canal-gray-muted">
                       Partage à <b>{t.slots_left}</b> coéquipier{t.slots_left > 1 ? "s" : ""} max.
-                      Code à dire à l&apos;oral, ou clique Partager pour l&apos;envoyer par WhatsApp / SMS / Mail.
+                      Clique le code pour le copier, ou Partager pour envoyer le lien par WhatsApp / SMS / Mail.
                     </p>
                   )}
                 </div>
@@ -412,13 +459,16 @@ export function MyTeamsPanel() {
               {/* Actions par équipe : set primary (si pas déjà) + leave (sauf captain) */}
               <div className="flex flex-wrap gap-2 pt-1.5">
                 {!t.is_primary && (
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => setPrimary(t.id)}
-                    disabled={busy === `prim-${t.id}`}
-                    className="text-xs font-bold text-canal-yellow border border-canal-yellow/30 bg-canal-yellow/10 rounded-lg px-2.5 py-1.5 flex items-center gap-1 hover:bg-canal-yellow/20 disabled:opacity-50"
+                    loading={busy === `prim-${t.id}`}
+                    loadingText="…"
+                    leftIcon={<Star size={11} />}
                   >
-                    <Star size={11} /> Définir principale
-                  </button>
+                    Définir principale
+                  </Button>
                 )}
                 {t.is_primary && teams.length > 1 && (
                   <span className="text-[11px] text-canal-gray-muted italic flex items-center gap-1">
@@ -426,13 +476,16 @@ export function MyTeamsPanel() {
                   </span>
                 )}
                 {!t.is_captain && (
-                  <button
+                  <Button
+                    variant="destructive"
+                    size="sm"
                     onClick={() => leave(t.id)}
-                    disabled={busy === `leave-${t.id}`}
-                    className="text-xs font-bold text-canal-gray-muted border border-canal-gray-light bg-canal-gray rounded-lg px-2.5 py-1.5 flex items-center gap-1 hover:text-red-400 disabled:opacity-50"
+                    loading={busy === `leave-${t.id}`}
+                    loadingText="…"
+                    leftIcon={<LogOut size={11} />}
                   >
-                    <LogOut size={11} /> Quitter
-                  </button>
+                    Quitter
+                  </Button>
                 )}
                 {t.is_captain && (
                   <span className="text-[11px] text-canal-gray-muted italic">
@@ -488,15 +541,20 @@ export function MyTeamsPanel() {
               onChange={(e) => setNewTeamName(e.target.value)}
               placeholder="Nom de l&apos;équipe (ex : Les Frites)"
               maxLength={60}
-              className="flex-1 bg-canal-gray-mid border border-canal-gray-light rounded-xl px-3 py-2 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow"
+              aria-label="Nom de l'équipe à créer"
+              className="flex-1 min-h-[44px] bg-canal-gray-mid border border-canal-gray-light rounded-xl px-3 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow"
             />
-            <button
+            <Button
               type="submit"
-              disabled={newTeamName.trim().length < 2 || busy === "create"}
-              className="px-3 py-2 rounded-xl bg-canal-yellow text-canal-black hover:bg-canal-yellow-hover text-xs font-black flex items-center gap-1 disabled:opacity-40 transition-colors"
+              variant="primary"
+              size="md"
+              disabled={newTeamName.trim().length < 2}
+              loading={busy === "create"}
+              loadingText="…"
+              leftIcon={<Plus size={14} />}
             >
-              <Plus size={12} /> {busy === "create" ? "…" : "Créer"}
-            </button>
+              Créer
+            </Button>
           </form>
         )}
 
@@ -509,15 +567,20 @@ export function MyTeamsPanel() {
                 onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                 placeholder="Code (ex : ABC123)"
                 maxLength={12}
-                className="flex-1 bg-canal-gray-mid border border-canal-gray-light rounded-xl px-3 py-2 text-white placeholder:text-canal-gray-muted text-sm font-mono tracking-widest text-center uppercase focus:outline-none focus:border-canal-yellow"
+                aria-label="Code d'invitation"
+                className="flex-1 min-h-[44px] bg-canal-gray-mid border border-canal-gray-light rounded-xl px-3 text-white placeholder:text-canal-gray-muted text-sm font-mono tracking-widest text-center uppercase focus:outline-none focus:border-canal-yellow"
               />
-              <button
+              <Button
                 type="submit"
-                disabled={!joinCode.trim() || busy === "join"}
-                className="px-3 py-2 rounded-xl bg-canal-yellow text-canal-black hover:bg-canal-yellow-hover text-xs font-black flex items-center gap-1 disabled:opacity-40 transition-colors"
+                variant="primary"
+                size="md"
+                disabled={!joinCode.trim()}
+                loading={busy === "join"}
+                loadingText="…"
+                leftIcon={<Ticket size={14} />}
               >
-                <Ticket size={12} /> {busy === "join" ? "…" : "Rejoindre"}
-              </button>
+                Rejoindre
+              </Button>
             </div>
             {teams.length > 0 && (
               <p className="text-[10px] text-canal-gray-muted italic leading-snug">
