@@ -28,6 +28,11 @@ async function countVisit(isNewVisitor: boolean): Promise<void> {
   }
 }
 
+// Le `?v=2` est un cache-buster en cas d'image qui aurait été remplacée
+// après un premier scan (les navigateurs ou intermédiaires peuvent
+// cacher la 1ère version). On incrémente à chaque remplacement.
+const IMG_PATH = "/CDM-2026.jpeg?v=2";
+
 const HTML = `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -42,6 +47,8 @@ const HTML = `<!DOCTYPE html>
       width: 100%;
       height: 100%;
       background: #000;
+      color: #fff;
+      font-family: -apple-system, system-ui, sans-serif;
       overflow: hidden;
       -webkit-tap-highlight-color: transparent;
     }
@@ -60,10 +67,29 @@ const HTML = `<!DOCTYPE html>
       -webkit-user-drag: none;
       pointer-events: none;
     }
+    #err {
+      display: none;
+      max-width: 420px;
+      padding: 24px;
+      border: 1px solid #444;
+      border-radius: 16px;
+      text-align: center;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    #err b { color: #FFCC00; }
+    #err code { background: #222; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
   </style>
 </head>
 <body>
-  <img src="/CDM-2026.jpeg" alt="Calendrier Coupe du Monde 2026">
+  <img src="${IMG_PATH}" alt="Calendrier Coupe du Monde 2026"
+       onerror="this.style.display='none';document.getElementById('err').style.display='block';">
+  <div id="err">
+    <b>⚠️ Affiche introuvable</b><br><br>
+    Le fichier <code>public/CDM-2026.jpeg</code> n'est pas servi par
+    cet hébergement.<br><br>
+    Vérifie qu'il est bien déployé. Hard refresh : <b>Ctrl+Shift+R</b>.
+  </div>
 </body>
 </html>`;
 
