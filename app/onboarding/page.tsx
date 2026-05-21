@@ -16,7 +16,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { Service, FootballLevel } from "@/lib/supabase/types";
 import {
-  User, Briefcase, ChevronRight, Users, Plus, Ticket, Check, RefreshCw, AlertCircle,
+  User, Briefcase, ChevronRight, Users, Plus, Ticket, Check, RefreshCw, AlertCircle, LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -202,8 +202,26 @@ function OnboardingInner() {
 
   // ─── Écran d'attente (demande pending) ─────────────────────────────────────
   if (pending) {
+    const handleSignOutPending = async () => {
+      try {
+        const supabase = createClient();
+        await supabase.auth.signOut();
+      } catch { /* */ }
+      try {
+        await fetch("/auth/signout", { method: "POST", credentials: "same-origin" });
+      } catch { /* */ }
+      router.push("/");
+      router.refresh();
+    };
     return (
-      <div className="min-h-screen bg-canal-black flex flex-col items-center justify-center px-6 py-12">
+      <div className="min-h-screen bg-canal-black flex flex-col items-center justify-center px-6 py-12 relative">
+        <button
+          type="button"
+          onClick={handleSignOutPending}
+          className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-400 bg-red-950/30 border border-red-500/30 hover:bg-red-950/50 transition-colors z-10"
+        >
+          <LogOut size={12} /> Déconnexion
+        </button>
         <div className="w-full max-w-sm text-center space-y-5">
           <div className="text-6xl">⏳</div>
           <h1 className="canal-headline text-xl">Demande envoyée</h1>
@@ -229,8 +247,32 @@ function OnboardingInner() {
   }
 
   // ─── Formulaire d'onboarding ───────────────────────────────────────────────
+  // Bouton logout discret en haut à droite, INDÉPENDANT de la TopBar
+  // (qui peut être absente si l'auth server-side échoue pendant qu'on est
+  // bloqué ici). Indispensable : sans ça l'utilisateur ne peut plus sortir.
+  const handleSignOut = async () => {
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch { /* on tente quand même la redirection */ }
+    try {
+      await fetch("/auth/signout", { method: "POST", credentials: "same-origin" });
+    } catch { /* idem */ }
+    router.push("/");
+    router.refresh();
+  };
+
   return (
-    <div className="min-h-screen bg-canal-black flex flex-col items-center justify-center px-6 py-12">
+    <div className="min-h-screen bg-canal-black flex flex-col items-center justify-center px-6 py-12 relative">
+      {/* Logout flottant — toujours visible sur /onboarding */}
+      <button
+        type="button"
+        onClick={handleSignOut}
+        className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-400 bg-red-950/30 border border-red-500/30 hover:bg-red-950/50 transition-colors z-10"
+      >
+        <LogOut size={12} /> Déconnexion
+      </button>
+
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-3">
