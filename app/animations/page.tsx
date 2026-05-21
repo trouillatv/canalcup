@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PARTICIPATION_MIN_POINTS } from "@/lib/scoring/config";
 import { cn } from "@/lib/utils";
 import type { Challenge, ChallengeStatus } from "@/lib/supabase/types";
+import { NoTeamCTA } from "@/components/teams/NoTeamCTA";
 
 export const dynamic = "force-dynamic";
 
@@ -237,6 +238,9 @@ export default async function AnimationsPage() {
           Les activités RSE qui rythment la Canal Cup.
         </p>
       </div>
+
+      {/* CTA si pas d'équipe — les points d'animation vont sur l'équipe. */}
+      <NoTeamCTA action="participer à une animation" />
 
       {/* Bandeau pédagogique — pourquoi cette page sert */}
       <div className="canal-card border border-canal-yellow/30 bg-canal-yellow/5">

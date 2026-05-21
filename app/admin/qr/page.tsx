@@ -9,7 +9,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { QrCode, ExternalLink, RefreshCw, Share2, Check } from "lucide-react";
+import { QrCode, ExternalLink, RefreshCw, Share2, Check, Download } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 
 interface Counter {
   slug: string;
@@ -37,6 +38,7 @@ export default function AdminQrPage() {
   const [loading, setLoading] = useState(true);
   const [origin, setOrigin] = useState<string>("");
   const [shareState, setShareState] = useState<"idle" | "sharing" | "copied">("idle");
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     setOrigin(
@@ -66,6 +68,41 @@ export default function AdminQrPage() {
   const qrImageUrl = targetUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?size=600x600&margin=20&data=${encodeURIComponent(targetUrl)}`
     : "";
+  // Version haute déf pour l'impression (1200x1200) — récupérée à la
+  // demande au click sur Télécharger, pour ne pas tirer 2 images
+  // simultanément sur la page.
+  const qrPrintUrl = targetUrl
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=1200x1200&margin=30&format=png&data=${encodeURIComponent(targetUrl)}`
+    : "";
+
+  // Téléchargement vrai : on fetch l'image (cross-origin), on crée un
+  // Blob et un object URL local, puis on déclenche <a download>. Le
+  // navigateur ignore l'attribut `download` sur les <a href> cross-origin,
+  // d'où ce détour. api.qrserver.com supporte CORS.
+  const handleDownload = async () => {
+    if (!qrPrintUrl || downloading) return;
+    setDownloading(true);
+    try {
+      const res = await fetch(qrPrintUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "canalcup-qr-welcome.png";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      // Petit délai avant revoke pour laisser le download démarrer.
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      // Fallback : on ouvre l'URL dans un nouvel onglet, l'user
+      // pourra faire clic droit → enregistrer l'image.
+      window.open(qrPrintUrl, "_blank", "noopener");
+      console.warn("[qr download fallback]", e);
+    }
+    setDownloading(false);
+  };
 
   // Partager : on tente d'abord de partager le PNG du QR (utile sur mobile
   // pour l'envoyer dans WhatsApp avec l'aperçu visuel). Si l'API Web Share
@@ -161,14 +198,19 @@ export default function AdminQrPage() {
             {targetUrl || "(en attente)"}
           </p>
         </div>
-        {qrImageUrl && (
-          <a
-            href={qrImageUrl}
-            download="canalcup-qr-welcome.png"
-            className="text-xs text-canal-yellow underline mt-1"
+        {qrPrintUrl && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="md"
+            fullWidth
+            onClick={handleDownload}
+            loading={downloading}
+            loadingText="Téléchargement…"
+            leftIcon={<Download size={14} />}
           >
-            Télécharger le QR en PNG haute déf
-          </a>
+            Télécharger le QR (PNG 1200×1200)
+          </Button>
         )}
 
         {/* Partager — Web Share API natif (sheet iOS/Android) avec fallback

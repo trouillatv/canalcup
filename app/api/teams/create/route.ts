@@ -43,17 +43,22 @@ export async function POST(req: Request) {
     .single();
   if (!profile) return NextResponse.json({ error: "Profil introuvable" }, { status: 404 });
 
-  // Multi-équipes (Phase B) : un user peut être dans N équipes. Il ne
-  // peut pas être captain de PLUSIEURS équipes en revanche (sinon
-  // multiplication des contrôles + créer/leave/transferer ingérable).
-  const { data: ownCaptain } = await admin
-    .from("teams")
-    .select("id")
-    .eq("created_by_user_id", profile.id)
+  // Mode BINÔME (un user = une seule équipe). Refus si l'user est DÉJÀ
+  // dans une équipe (peu importe son rôle). Avant : on autorisait à créer
+  // si l'user était seulement membre d'une autre — incohérent avec l'UI
+  // qui cache l'onglet "Créer" dans ce cas. On aligne ici.
+  const { data: existingMembership } = await admin
+    .from("team_memberships")
+    .select("team_id, role, team:teams(name)")
+    .eq("user_id", profile.id)
     .maybeSingle();
-  if (ownCaptain) {
+  if (existingMembership) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const teamName = (existingMembership as any).team?.name ?? "une équipe";
     return NextResponse.json(
-      { error: "Tu es déjà captain d'une équipe — un user = max 1 équipe créée." },
+      {
+        error: `Tu fais déjà partie de « ${teamName} » — quitte-la d'abord ou rejoins-en une autre via un code d'invitation.`,
+      },
       { status: 400 }
     );
   }
