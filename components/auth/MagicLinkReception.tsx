@@ -34,19 +34,31 @@ export function MagicLinkReception() {
   const reset = () => { setStatus("idle"); setErrorMsg(""); setPassword(""); setConfirm(""); };
 
   const checkAllowlistAndRedirect = async () => {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.email) { setErrorMsg("Erreur de session."); setStatus("error"); return; }
+    // Délégué à un endpoint server-side qui gère 3 cas :
+    //   - déjà dans allowlist_users (active) → OK
+    //   - email sur un domaine auto-autorisé (ex. canal-plus.com) →
+    //     auto-insertion + OK (pas besoin d'intervention admin)
+    //   - sinon → 403 not_allowed
+    let payload: { ok?: boolean; error?: string; reason?: string } = {};
+    try {
+      const res = await fetch("/api/auth/self-allowlist", {
+        method: "POST",
+        credentials: "same-origin",
+      });
+      payload = await res.json().catch(() => ({}));
+    } catch {
+      /* ignoré → on traite comme not_allowed */
+    }
 
-    const { data: allowed } = await supabase
-      .from("allowlist_users")
-      .select("is_active")
-      .eq("email", user.email)
-      .single();
-
-    if (!allowed?.is_active) {
+    if (!payload?.ok) {
+      const supabase = createClient();
       await supabase.auth.signOut();
-      setErrorMsg("Cet email n'est pas autorisé. Contacte un admin.");
+      const reason = payload?.reason;
+      const msg =
+        payload?.error === "disabled"
+          ? "Ton compte a été désactivé. Contacte un admin."
+          : reason ?? "Cet email n'est pas autorisé. Contacte un admin.";
+      setErrorMsg(msg);
       setStatus("error");
       return;
     }
