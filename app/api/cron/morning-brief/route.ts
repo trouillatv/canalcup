@@ -14,6 +14,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { generateMorningBrief } from "@/services/ai/generators/morning-brief";
 import { broadcastInboxEvent } from "@/lib/data/inbox";
 import { computeTeamScores } from "@/lib/data/teams";
+import { runCron } from "@/lib/monitoring/cron-log";
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -21,6 +22,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
   }
 
+  return runCron("morning-brief", async () => {
   const supabase = createAdminClient();
   const today = new Date().toISOString().split("T")[0];
 
@@ -28,7 +30,7 @@ export async function GET(request: Request) {
   const { data: existing } = await supabase
     .from("morning_briefs").select("id").eq("date", today).maybeSingle();
   if (existing) {
-    return NextResponse.json({ success: true, date: today, skipped: "already exists" });
+    return { meta: { date: today, skipped: "already exists" } };
   }
 
   // ── Contexte réel ──────────────────────────────────────────────────────────
@@ -75,19 +77,13 @@ export async function GET(request: Request) {
     : "Aucun match au programme dans l'immédiat.";
 
   // ── Génération (Gemini ou MOCK) ────────────────────────────────────────────
-  let brief;
-  try {
-    brief = await generateMorningBrief({
-      date: today,
-      scores: scoresSummary,
-      leaderboard: leaderboardSummary,
-      failTeam,
-      matchTonight,
-    });
-  } catch (error) {
-    console.error("[CRON morning-brief] génération KO", error);
-    return NextResponse.json({ error: "Erreur génération" }, { status: 500 });
-  }
+  const brief = await generateMorningBrief({
+    date: today,
+    scores: scoresSummary,
+    leaderboard: leaderboardSummary,
+    failTeam,
+    matchTonight,
+  });
 
   // ── Persistance (1 ligne / jour) ───────────────────────────────────────────
   const { error: upsertError } = await supabase.from("morning_briefs").upsert(
@@ -105,11 +101,7 @@ export async function GET(request: Request) {
   );
 
   if (upsertError) {
-    console.error("[CRON morning-brief] upsert KO", upsertError);
-    return NextResponse.json(
-      { error: "Erreur persistance", details: upsertError.message },
-      { status: 500 }
-    );
+    throw new Error(`Erreur persistance : ${upsertError.message}`);
   }
 
   // Producteur inbox : 1 courrier 'matinale' par utilisateur. S'exécute une
@@ -120,8 +112,6 @@ export async function GET(request: Request) {
     message: brief.fun_fact || brief.body.slice(0, 140),
   });
 
-  console.log(
-    `[CRON morning-brief] matinale ${today} générée + stockée — ${notified} courriers inbox`
-  );
-  return NextResponse.json({ success: true, date: today, persisted: true, notified });
+  return { meta: { date: today, persisted: true, notified } };
+  });
 }

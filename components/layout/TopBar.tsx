@@ -170,6 +170,7 @@ export function TopBar() {
               </div>
               {[
                 { href: "/admin", label: "📊 Dashboard" },
+                { href: "/admin/monitoring", label: "🩺 Monitoring" },
                 { href: "/admin/quiz", label: "Quiz" },
                 { href: "/admin/challenges", label: "Animations" },
                 { href: "/admin/babyfoot", label: "Babyfoot — matchs" },

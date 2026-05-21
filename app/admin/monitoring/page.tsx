@@ -1,0 +1,337 @@
+"use client";
+
+// /admin/monitoring — vue de santé externe : clés API, quotas, crons,
+// scraping, comparatif sources. Refresh manuel ou auto 30s.
+
+import { useEffect, useState, useCallback } from "react";
+import {
+  Activity, Key, AlertCircle, CheckCircle2, XCircle, Clock,
+  Database, RefreshCw, Cpu, Calendar,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
+
+interface KeyStatus {
+  state: "ok" | "missing" | "error";
+  detail?: string;
+}
+interface CronRun {
+  id: string;
+  started_at: string;
+  finished_at: string | null;
+  status: "running" | "success" | "failure";
+  error_message: string | null;
+  meta: Record<string, unknown> | null;
+}
+interface Monitoring {
+  ts: string;
+  keys: { gemini: KeyStatus; api_football: KeyStatus };
+  quota: {
+    api_football: {
+      current: number;
+      limit_day: number;
+      remaining: number;
+      plan?: string;
+    } | null;
+  };
+  crons: Record<string, CronRun[]>;
+  scraping_last: { file: string; mtime: string } | null;
+  data_sources: Record<string, { enabled: boolean; features: string[]; cost: string; latency: string }>;
+  env: { mock_ai: boolean; node_env: string };
+}
+
+function StatusPill({ state }: { state: "ok" | "missing" | "error" | "running" | "success" | "failure" }) {
+  const map: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
+    ok: { label: "OK", cls: "bg-green-900/30 text-green-400 border-green-500/30", icon: <CheckCircle2 size={11} /> },
+    success: { label: "OK", cls: "bg-green-900/30 text-green-400 border-green-500/30", icon: <CheckCircle2 size={11} /> },
+    missing: { label: "ABSENTE", cls: "bg-canal-gray-mid text-canal-gray-muted border-canal-gray-light", icon: <AlertCircle size={11} /> },
+    error: { label: "ERREUR", cls: "bg-red-900/30 text-red-400 border-red-500/30", icon: <XCircle size={11} /> },
+    failure: { label: "ÉCHEC", cls: "bg-red-900/30 text-red-400 border-red-500/30", icon: <XCircle size={11} /> },
+    running: { label: "EN COURS", cls: "bg-canal-yellow/15 text-canal-yellow border-canal-yellow/30", icon: <Clock size={11} className="animate-pulse" /> },
+  };
+  const c = map[state] ?? map.missing;
+  return (
+    <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider", c.cls)}>
+      {c.icon} {c.label}
+    </span>
+  );
+}
+
+function formatTime(iso: string | null): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  } catch { return iso; }
+}
+
+function durationMs(start: string, end: string | null): string {
+  if (!end) return "…";
+  const d = new Date(end).getTime() - new Date(start).getTime();
+  if (d < 1000) return `${d}ms`;
+  if (d < 60000) return `${(d / 1000).toFixed(1)}s`;
+  return `${Math.floor(d / 60000)}min ${Math.floor((d % 60000) / 1000)}s`;
+}
+
+// Tableau stratégie quota (constant)
+const QUOTA_STRATEGY = [
+  { label: "Test perso (1 match/j)", matches: 1, interval: "70s", callsPerMatch: 90 },
+  { label: "WC2026 poules (4 matchs/j)", matches: 4, interval: "280s (4min40)", callsPerMatch: 22 },
+  { label: "WC2026 ponctuel (6 matchs/j)", matches: 6, interval: "400s (7min)", callsPerMatch: 15 },
+];
+
+export default function AdminMonitoringPage() {
+  const [data, setData] = useState<Monitoring | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/monitoring", { credentials: "same-origin" });
+      if (res.ok) setData(await res.json());
+    } catch { /* silencieux */ }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const t = setInterval(fetchData, 30000);
+    return () => clearInterval(t);
+  }, [autoRefresh, fetchData]);
+
+  return (
+    <div className="px-4 py-6 max-w-3xl mx-auto space-y-6">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="canal-headline text-2xl flex items-center gap-2">
+            <Activity size={22} /> Monitoring
+          </h1>
+          <p className="text-canal-gray-muted text-sm mt-1">
+            Santé des intégrations externes — clés, quotas, crons, scraping.
+            {data && <span className="block mt-0.5 text-[11px]">Snapshot : {formatTime(data.ts)}</span>}
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 items-end">
+          <Button variant="ghost" size="sm" onClick={fetchData} loading={loading} loadingText="…" leftIcon={<RefreshCw size={11} />}>
+            Rafraîchir
+          </Button>
+          <label className="text-[11px] flex items-center gap-1.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={autoRefresh}
+              onChange={(e) => setAutoRefresh(e.target.checked)}
+              className="w-3 h-3 accent-canal-yellow"
+            />
+            <span className="text-canal-gray-muted">auto 30s</span>
+          </label>
+        </div>
+      </div>
+
+      {!data ? (
+        <p className="text-canal-gray-muted text-sm italic">Chargement…</p>
+      ) : (
+        <>
+          {/* ─── Clés API ─── */}
+          <section className="canal-card space-y-3">
+            <h2 className="text-xs text-canal-yellow font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <Key size={12} /> Clés API
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-canal-gray-mid rounded-xl p-3 space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-bold text-white">Google Gemini</p>
+                  <StatusPill state={data.keys.gemini.state} />
+                </div>
+                <p className="text-[11px] text-canal-gray-muted">
+                  {data.keys.gemini.detail ?? "—"}
+                </p>
+                <p className="text-[10px] text-canal-gray-muted/80 italic">
+                  Mode actuel : {data.env.mock_ai ? "MOCK (pas d'appels)" : "Production (appels réels)"}
+                </p>
+              </div>
+              <div className="bg-canal-gray-mid rounded-xl p-3 space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-bold text-white">API-Football</p>
+                  <StatusPill state={data.keys.api_football.state} />
+                </div>
+                <p className="text-[11px] text-canal-gray-muted">
+                  {data.keys.api_football.detail ?? "—"}
+                </p>
+                {data.quota.api_football && (
+                  <>
+                    <p className="text-[11px] text-canal-gray-muted">
+                      Plan : <span className="text-white font-bold">{data.quota.api_football.plan}</span>
+                    </p>
+                    <div className="pt-1">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-canal-yellow font-black text-xl tabular-nums">
+                          {data.quota.api_football.current}
+                        </span>
+                        <span className="text-canal-gray-muted text-xs">
+                          / {data.quota.api_football.limit_day} aujourd&apos;hui
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-canal-gray-light/30 mt-1 overflow-hidden">
+                        <div
+                          className={cn(
+                            "h-full transition-all",
+                            data.quota.api_football.current / data.quota.api_football.limit_day > 0.8
+                              ? "bg-red-400"
+                              : data.quota.api_football.current / data.quota.api_football.limit_day > 0.5
+                                ? "bg-canal-yellow"
+                                : "bg-green-400"
+                          )}
+                          style={{ width: `${Math.min(100, (data.quota.api_football.current / data.quota.api_football.limit_day) * 100)}%` }}
+                        />
+                      </div>
+                      <p className="text-[10px] text-canal-gray-muted mt-1">
+                        reste {data.quota.api_football.remaining} calls aujourd&apos;hui
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* ─── Crons ─── */}
+          <section className="canal-card space-y-3">
+            <h2 className="text-xs text-canal-yellow font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <Calendar size={12} /> Crons (5 derniers runs / job)
+            </h2>
+            <div className="space-y-3">
+              {Object.entries(data.crons).map(([job, runs]) => (
+                <div key={job} className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-white">/api/cron/{job}</p>
+                    <span className="text-[10px] text-canal-gray-muted">
+                      ({runs.length} {runs.length === 1 ? "run" : "runs"})
+                    </span>
+                  </div>
+                  {runs.length === 0 ? (
+                    <p className="text-[11px] text-canal-gray-muted italic">
+                      Aucun run enregistré — soit pas encore exécuté, soit Vercel cron ne tire pas.
+                    </p>
+                  ) : (
+                    <div className="space-y-1">
+                      {runs.map((r) => (
+                        <div
+                          key={r.id}
+                          className="flex items-center gap-2 bg-canal-gray-mid rounded-lg px-2.5 py-1.5"
+                        >
+                          <StatusPill state={r.status} />
+                          <span className="text-xs text-canal-gray-muted tabular-nums">
+                            {formatTime(r.started_at)}
+                          </span>
+                          <span className="text-[10px] text-canal-gray-muted">
+                            ({durationMs(r.started_at, r.finished_at)})
+                          </span>
+                          {r.error_message && (
+                            <span className="text-[10px] text-red-400 truncate flex-1 min-w-0">
+                              {r.error_message}
+                            </span>
+                          )}
+                          {r.meta && Object.keys(r.meta).length > 0 && !r.error_message && (
+                            <span className="text-[10px] text-canal-gray-muted truncate flex-1 min-w-0">
+                              {JSON.stringify(r.meta)}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* ─── Scraping ─── */}
+          <section className="canal-card space-y-2">
+            <h2 className="text-xs text-canal-yellow font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <Cpu size={12} /> Scraping Python (enrichissement joueurs WC2026)
+            </h2>
+            {data.scraping_last ? (
+              <div className="bg-canal-gray-mid rounded-xl p-3 space-y-1">
+                <p className="text-sm text-white">
+                  Dernier fichier : <code className="font-mono text-canal-yellow text-xs">{data.scraping_last.file}</code>
+                </p>
+                <p className="text-[11px] text-canal-gray-muted">
+                  Modifié le {formatTime(data.scraping_last.mtime)}
+                </p>
+                <p className="text-[10px] text-canal-gray-muted italic">
+                  Lancement manuel : <code>node docs/script/enrich_players.py</code>
+                </p>
+              </div>
+            ) : (
+              <p className="text-[11px] text-canal-gray-muted italic">
+                Aucun fichier scrapping détecté dans docs/script/output/.
+              </p>
+            )}
+          </section>
+
+          {/* ─── Comparatif sources ─── */}
+          <section className="canal-card space-y-3">
+            <h2 className="text-xs text-canal-yellow font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <Database size={12} /> Comparatif des sources data
+            </h2>
+            <div className="space-y-2">
+              {Object.entries(data.data_sources).map(([name, src]) => (
+                <div key={name} className="bg-canal-gray-mid rounded-xl p-3 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-bold text-white">{name}</p>
+                    <StatusPill state={src.enabled ? "ok" : "missing"} />
+                  </div>
+                  <p className="text-[11px] text-canal-gray-muted">
+                    <span className="text-white font-bold">Données :</span> {src.features.join(", ")}
+                  </p>
+                  <p className="text-[11px] text-canal-gray-muted">
+                    <span className="text-white font-bold">Coût :</span> {src.cost}
+                  </p>
+                  <p className="text-[11px] text-canal-gray-muted">
+                    <span className="text-white font-bold">Latence :</span> {src.latency}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* ─── Stratégie quota (constantes) ─── */}
+          <section className="canal-card space-y-3">
+            <h2 className="text-xs text-canal-yellow font-bold uppercase tracking-wider flex items-center gap-1.5">
+              📊 Stratégie quota API-Football
+            </h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-canal-gray-muted text-left">
+                    <th className="py-1.5 pr-3">Cas</th>
+                    <th className="py-1.5 pr-3 text-center">--matches</th>
+                    <th className="py-1.5 pr-3 text-center">Interval</th>
+                    <th className="py-1.5 text-center">Calls/match</th>
+                  </tr>
+                </thead>
+                <tbody className="text-white">
+                  {QUOTA_STRATEGY.map((row) => (
+                    <tr key={row.label} className="border-t border-canal-gray-light/30">
+                      <td className="py-1.5 pr-3">{row.label}</td>
+                      <td className="py-1.5 pr-3 text-center font-mono">{row.matches}</td>
+                      <td className="py-1.5 pr-3 text-center font-mono text-canal-yellow">{row.interval}</td>
+                      <td className="py-1.5 text-center font-mono">{row.callsPerMatch}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-[11px] text-canal-gray-muted italic">
+              Chaque tick = 2 calls (fixture + events). Pour rester strict : doubler{" "}
+              <code>--matches</code>. Compos = 1 sync unique en init (statique).
+            </p>
+          </section>
+        </>
+      )}
+    </div>
+  );
+}
