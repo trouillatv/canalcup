@@ -100,7 +100,7 @@ export function TeamCaptainPanel() {
     <section className="canal-card space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-xs text-canal-yellow font-bold uppercase tracking-wider flex items-center gap-1.5">
-          <Crown size={14} /> Captain — mes équipes
+          <Crown size={14} /> Capitaine — mes équipes
         </p>
         <button
           onClick={refresh}

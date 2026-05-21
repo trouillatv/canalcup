@@ -200,7 +200,7 @@ export function MyTeamsPanel() {
       } else {
         setJoinCode("");
         const teamName = data?.team?.name ?? "l'équipe";
-        setOkMsg(`✅ Demande envoyée à ${teamName}. Le captain doit la valider.`);
+        setOkMsg(`✅ Demande envoyée à ${teamName}. La capitaine doit la valider.`);
         // Le message disparaît après 8s pour ne pas polluer ad vitam.
         setTimeout(() => setOkMsg((cur) => (cur && cur.includes(teamName) ? null : cur)), 8000);
       }
@@ -281,7 +281,7 @@ export function MyTeamsPanel() {
                   Demande à {p.team_name}
                 </p>
                 <p className="text-[11px] text-canal-gray-muted">
-                  En attente — le captain doit valider
+                  En attente — la capitaine doit valider
                 </p>
               </div>
               <Button
@@ -361,7 +361,7 @@ export function MyTeamsPanel() {
                   </Link>
                   {t.is_captain && (
                     <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-canal-yellow text-canal-black flex items-center gap-1 shrink-0">
-                      <Crown size={9} /> Captain
+                      <Crown size={9} /> Capitaine
                     </span>
                   )}
                   {t.is_primary && (
@@ -388,27 +388,33 @@ export function MyTeamsPanel() {
               {t.is_captain && t.invite_code && (
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
-                    {/* Code cliquable = copie le code seul (utile à coller
-                        dans un SMS court, ou à dire à l'oral). */}
+                    {/* Code cliquable — affichage type 'input read-only'.
+                        On garde un style non-bouton (cadre gris, texte
+                        jaune) pour ne pas concurrencer le bouton primaire
+                        Partager juste à côté. Action secondaire (copie). */}
                     <button
                       type="button"
                       onClick={() => copy(t.invite_code!, `code-${t.id}`)}
+                      aria-label="Cliquer pour copier le code d'invitation"
                       title="Cliquer pour copier le code"
-                      className="flex-1 font-mono font-black text-canal-yellow text-base tracking-widest text-center bg-canal-gray border border-canal-gray-light/40 rounded-lg py-1.5 hover:border-canal-yellow/50 transition-colors flex items-center justify-center gap-2"
+                      className="flex-1 min-h-[44px] font-mono font-black text-canal-yellow text-base tracking-widest text-center bg-canal-gray border border-canal-gray-light/40 rounded-xl hover:border-canal-yellow/40 hover:bg-canal-gray-mid focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canal-yellow/60 transition-colors flex items-center justify-center gap-2"
                     >
                       {copied === `code-${t.id}` ? <Check size={14} /> : null}
                       {copied === `code-${t.id}` ? "Code copié" : t.invite_code}
                     </button>
-                    <button
+                    <Button
                       type="button"
+                      variant="primary"
+                      size="md"
                       onClick={() => shareInvite(t.name, link, `share-${t.id}`)}
                       disabled={!link}
-                      title="Partager le lien d'invitation"
-                      className="px-3 py-1.5 rounded-lg bg-canal-yellow text-canal-black hover:bg-canal-yellow-hover text-xs font-black flex items-center gap-1 disabled:opacity-50 transition-colors"
+                      aria-label="Partager le lien d'invitation"
+                      leftIcon={
+                        copied === `share-${t.id}` ? <Check size={14} /> : <Share2 size={14} />
+                      }
                     >
-                      {copied === `share-${t.id}` ? <Check size={12} /> : <Share2 size={12} />}
-                      {copied === `share-${t.id}` ? "Lien copié" : "Partager"}
-                    </button>
+                      {copied === `share-${t.id}` ? "Copié" : "Partager"}
+                    </Button>
                   </div>
                   {!t.full && (
                     <p className="text-[11px] text-canal-gray-muted">
@@ -438,17 +444,19 @@ export function MyTeamsPanel() {
                           onClick={() => decide(r.id, "approve")}
                           disabled={busy === `decide-${r.id}` || t.full}
                           title={t.full ? "Équipe complète" : "Approuver"}
-                          className="p-1.5 bg-canal-green/15 text-canal-green rounded-lg hover:bg-canal-green/25 transition-colors disabled:opacity-40"
+                          aria-label="Approuver la demande"
+                          className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-canal-green/15 text-canal-green rounded-xl border border-canal-green/30 hover:bg-canal-green/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canal-green/60 transition-colors disabled:opacity-40"
                         >
-                          <UserCheck size={13} />
+                          <UserCheck size={16} />
                         </button>
                         <button
                           onClick={() => decide(r.id, "reject")}
                           disabled={busy === `decide-${r.id}`}
                           title="Rejeter"
-                          className="p-1.5 bg-canal-gray-mid text-canal-gray-muted border border-canal-gray-light rounded-lg hover:text-red-400 transition-colors disabled:opacity-40"
+                          aria-label="Rejeter la demande"
+                          className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-red-950/30 text-red-400 border border-red-500/30 rounded-xl hover:bg-red-950/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/60 transition-colors disabled:opacity-40"
                         >
-                          <UserX size={13} />
+                          <UserX size={16} />
                         </button>
                       </div>
                     </div>
@@ -489,7 +497,7 @@ export function MyTeamsPanel() {
                 )}
                 {t.is_captain && (
                   <span className="text-[11px] text-canal-gray-muted italic">
-                    Captain — tu ne peux pas quitter (orphelinerait l&apos;équipe).
+                    Capitaine — tu ne peux pas quitter (orphelinerait l&apos;équipe).
                   </span>
                 )}
               </div>
@@ -585,7 +593,7 @@ export function MyTeamsPanel() {
             {teams.length > 0 && (
               <p className="text-[10px] text-canal-gray-muted italic leading-snug">
                 Saisis le code d&apos;une autre équipe. Une fois ta demande
-                validée par son captain, tu quittes automatiquement ton
+                validée par sa capitaine, tu quittes automatiquement ton
                 équipe actuelle.
               </p>
             )}

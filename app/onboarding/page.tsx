@@ -378,10 +378,10 @@ function OnboardingInner() {
               currentTeam.isCaptain ? (
                 <div className="rounded-xl border border-canal-yellow/30 bg-canal-yellow/5 px-4 py-3 text-center">
                   <p className="text-canal-yellow font-bold text-sm">
-                    Tu es captain de {currentTeam.name}
+                    Tu es capitaine de {currentTeam.name}
                   </p>
                   <p className="text-canal-gray-muted text-xs mt-1 leading-snug">
-                    Un captain ne peut pas changer d&apos;équipe (sinon elle se retrouve orpheline).
+                    Une capitaine ne peut pas changer d&apos;équipe (sinon elle se retrouve orpheline).
                     Va sur ton profil pour gérer ton équipe (code d&apos;invitation, demandes).
                   </p>
                 </div>
@@ -404,7 +404,7 @@ function OnboardingInner() {
                     className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder:text-canal-gray-muted text-sm font-mono tracking-widest text-center uppercase focus:outline-none focus:border-canal-yellow transition-colors"
                   />
                   <p className="text-[11px] text-canal-gray-muted mt-1.5 leading-snug">
-                    Le code vient d&apos;un autre captain. Tu seras déplacé(e) dans la nouvelle équipe une fois la demande validée.
+                    Le code vient d&apos;une autre capitaine. Tu seras déplacé(e) dans la nouvelle équipe une fois la demande validée.
                   </p>
                 </>
               )
@@ -444,7 +444,7 @@ function OnboardingInner() {
                       className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow transition-colors"
                     />
                     <p className="text-[11px] text-canal-gray-muted mt-1.5 leading-snug">
-                      Tu deviens captain. Tu pourras inviter 1 coéquipier avec ton code d&apos;invitation (équipe = binôme).
+                      Tu deviens capitaine. Tu pourras inviter 1 coéquipier avec ton code d&apos;invitation (équipe = binôme).
                     </p>
                   </>
                 ) : (
@@ -458,7 +458,7 @@ function OnboardingInner() {
                       className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder:text-canal-gray-muted text-sm font-mono tracking-widest text-center uppercase focus:outline-none focus:border-canal-yellow transition-colors"
                     />
                     <p className="text-[11px] text-canal-gray-muted mt-1.5 leading-snug">
-                      Le code vient du créateur de l&apos;équipe. Demande validée par le captain avant que tu puisses pronostiquer.
+                      Le code vient du créateur de l&apos;équipe. Demande validée par la capitaine avant que tu puisses pronostiquer.
                     </p>
                   </>
                 )}

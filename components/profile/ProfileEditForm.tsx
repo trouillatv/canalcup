@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import type { Service, FootballLevel } from "@/lib/supabase/types";
 import { User, Briefcase, Mail, Save, Check, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
 
 const FOOTBALL_LEVELS: { value: FootballLevel; label: string; desc: string; emoji: string }[] = [
   { value: "expert", label: "Expert", desc: "Hors-jeu, faux pivot, xG — RAS", emoji: "⚽" },
@@ -225,28 +226,24 @@ export function ProfileEditForm({
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={!isValid || !dirty || saving}
-        className={cn(
-          "w-full py-3 font-black text-sm rounded-xl flex items-center justify-center gap-2 transition-colors",
-          savedAt && !dirty
-            ? "bg-green-800/40 text-green-400 border border-green-700/40"
-            : "bg-canal-yellow text-canal-black hover:bg-canal-yellow-hover disabled:opacity-40"
-        )}
-      >
-        {saving ? (
-          "Enregistrement…"
-        ) : savedAt && !dirty ? (
-          <>
-            <Check size={14} /> Enregistré
-          </>
-        ) : (
-          <>
-            <Save size={14} /> Enregistrer
-          </>
-        )}
-      </button>
+      {savedAt && !dirty ? (
+        <div className="w-full min-h-[44px] flex items-center justify-center gap-2 rounded-xl bg-green-800/40 text-green-400 border border-green-700/40 text-sm font-black">
+          <Check size={14} /> Enregistré
+        </div>
+      ) : (
+        <Button
+          type="submit"
+          variant="primary"
+          size="md"
+          fullWidth
+          disabled={!isValid || !dirty}
+          loading={saving}
+          loadingText="Enregistrement…"
+          leftIcon={<Save size={14} />}
+        >
+          Enregistrer
+        </Button>
+      )}
     </form>
   );
 }
