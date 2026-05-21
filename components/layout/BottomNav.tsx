@@ -16,7 +16,8 @@ const NAV_ITEMS = [
 export function BottomNav() {
   const pathname = usePathname();
 
-  if (pathname === "/tv") return null;
+  // Pages "écran" sans chrome : TV et pages publiques /p/* (QR codes).
+  if (pathname === "/tv" || pathname.startsWith("/p/")) return null;
 
   return (
     <nav className="bottom-nav z-50">
