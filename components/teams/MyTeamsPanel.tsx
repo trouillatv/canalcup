@@ -14,7 +14,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Crown, Star, StarOff, Copy, Check, Users, UserCheck, UserX,
-  RefreshCw, LogOut, Plus, Ticket, AlertCircle,
+  RefreshCw, LogOut, Plus, Ticket, AlertCircle, Share2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TEAM_MAX_MEMBERS } from "@/lib/teams/config";
@@ -55,10 +55,9 @@ export function MyTeamsPanel() {
   const [okMsg, setOkMsg] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState("");
   const [newTeamName, setNewTeamName] = useState("");
-  // Onglet actif dans la box "Actions globales" en bas du panneau.
-  // 'create' par défaut ; bascule à 'invite' s'il y a déjà une équipe
-  // captain (cas le plus utile dans cet état).
-  type Tab = "create" | "join" | "invite";
+  // Onglet actif dans la box du bas. L'onglet 'invite' a été retiré :
+  // le partage est déjà dans la carte de chaque équipe (bouton Partager).
+  type Tab = "create" | "join";
   const [tab, setTab] = useState<Tab>("create");
 
   const refresh = useCallback(async () => {
@@ -82,12 +81,46 @@ export function MyTeamsPanel() {
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  // L'onglet 'create' n'a de sens que sans équipe. Si l'user a déjà une
+  // équipe, on bascule auto sur 'join' (= changer d'équipe).
+  useEffect(() => {
+    if (teams.length > 0 && tab === "create") setTab("join");
+  }, [teams.length, tab]);
+
   const copy = async (text: string, key: string) => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(key);
       setTimeout(() => setCopied((c) => (c === key ? null : c)), 1500);
     } catch { /* clipboard KO silencieux */ }
+  };
+
+  // Partage natif (mobile) du lien d'invitation, fallback copie clipboard
+  // (desktop). UNE action unique remplace les anciens doublons Code+Lien.
+  const shareInvite = async (teamName: string, link: string, key: string) => {
+    const text = `Rejoins mon équipe Canal Cup « ${teamName} » : ${link}`;
+    const data: ShareData = {
+      title: `Canal Cup — ${teamName}`,
+      text: `Rejoins mon équipe Canal Cup « ${teamName} »`,
+      url: link,
+    };
+    try {
+      if (typeof navigator !== "undefined" && "share" in navigator) {
+        await navigator.share(data);
+        return;
+      }
+    } catch {
+      /* user a annulé → pas une erreur */
+    }
+    // Fallback : copier le lien complet.
+    try {
+      const c = typeof navigator !== "undefined" ? (navigator as Navigator).clipboard : undefined;
+      if (c) {
+        await c.writeText(text);
+        setCopied(key);
+        setTimeout(() => setCopied((cc) => (cc === key ? null : cc)), 1800);
+      }
+    } catch { /* */ }
   };
 
   const callAction = async (url: string, body: object, busyKey: string) => {
@@ -311,7 +344,9 @@ export function MyTeamsPanel() {
                 </span>
               </div>
 
-              {/* Bloc captain : code + lien d'invitation */}
+              {/* Bloc captain : code en grand (à dire à l'oral) +
+                  UN seul bouton Partager (Web Share natif sur mobile,
+                  copie clipboard sur desktop). Plus de doublon Code/Lien. */}
               {t.is_captain && t.invite_code && (
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
@@ -319,26 +354,19 @@ export function MyTeamsPanel() {
                       {t.invite_code}
                     </code>
                     <button
-                      onClick={() => copy(t.invite_code!, `code-${t.id}`)}
-                      title="Copier le code"
-                      className="px-2.5 py-1.5 rounded-lg bg-canal-yellow/15 text-canal-yellow border border-canal-yellow/30 hover:bg-canal-yellow/25 text-xs font-bold flex items-center gap-1 transition-colors"
-                    >
-                      {copied === `code-${t.id}` ? <Check size={12} /> : <Copy size={12} />}
-                      {copied === `code-${t.id}` ? "OK" : "Code"}
-                    </button>
-                    <button
-                      onClick={() => copy(link, `link-${t.id}`)}
+                      onClick={() => shareInvite(t.name, link, `share-${t.id}`)}
                       disabled={!link}
-                      title="Copier le lien d'invitation"
-                      className="px-2.5 py-1.5 rounded-lg bg-canal-yellow/15 text-canal-yellow border border-canal-yellow/30 hover:bg-canal-yellow/25 text-xs font-bold flex items-center gap-1 disabled:opacity-50 transition-colors"
+                      title="Partager le lien d'invitation"
+                      className="px-3 py-1.5 rounded-lg bg-canal-yellow text-canal-black hover:bg-canal-yellow-hover text-xs font-black flex items-center gap-1 disabled:opacity-50 transition-colors"
                     >
-                      {copied === `link-${t.id}` ? <Check size={12} /> : <Copy size={12} />}
-                      {copied === `link-${t.id}` ? "OK" : "Lien"}
+                      {copied === `share-${t.id}` ? <Check size={12} /> : <Share2 size={12} />}
+                      {copied === `share-${t.id}` ? "Lien copié" : "Partager"}
                     </button>
                   </div>
                   {!t.full && (
                     <p className="text-[11px] text-canal-gray-muted">
                       Partage à <b>{t.slots_left}</b> coéquipier{t.slots_left > 1 ? "s" : ""} max.
+                      Code à dire à l&apos;oral, ou clique Partager pour l&apos;envoyer par WhatsApp / SMS / Mail.
                     </p>
                   )}
                 </div>
@@ -417,41 +445,39 @@ export function MyTeamsPanel() {
         })
       )}
 
-      {/* Actions globales — 3 onglets dans la même box */}
+      {/* Actions globales — adaptées au mode BINÔME (un user = une équipe).
+          - Sans équipe : tabs Créer / Rejoindre
+          - Avec équipe : seul onglet 'Changer d'équipe' (input code).
+          Le partage du code est dans la carte équipe au-dessus. */}
       <div className="pt-2 border-t border-canal-gray-light/30 space-y-3">
-        {/* Tab bar */}
-        <div className="flex gap-1 bg-canal-gray-mid border border-canal-gray-light rounded-xl p-1">
-          <button
-            type="button"
-            onClick={() => { setTab("create"); setErr(null); }}
-            className={cn(
-              "flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1",
-              tab === "create" ? "bg-canal-yellow text-canal-black" : "text-canal-gray-muted hover:text-white"
-            )}
-          >
-            <Plus size={11} /> Créer
-          </button>
-          <button
-            type="button"
-            onClick={() => { setTab("join"); setErr(null); }}
-            className={cn(
-              "flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1",
-              tab === "join" ? "bg-canal-yellow text-canal-black" : "text-canal-gray-muted hover:text-white"
-            )}
-          >
-            <Ticket size={11} /> Rejoindre
-          </button>
-          <button
-            type="button"
-            onClick={() => { setTab("invite"); setErr(null); }}
-            className={cn(
-              "flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1",
-              tab === "invite" ? "bg-canal-yellow text-canal-black" : "text-canal-gray-muted hover:text-white"
-            )}
-          >
-            <Copy size={11} /> Inviter
-          </button>
-        </div>
+        {teams.length === 0 ? (
+          <div className="flex gap-1 bg-canal-gray-mid border border-canal-gray-light rounded-xl p-1">
+            <button
+              type="button"
+              onClick={() => { setTab("create"); setErr(null); }}
+              className={cn(
+                "flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1",
+                tab === "create" ? "bg-canal-yellow text-canal-black" : "text-canal-gray-muted hover:text-white"
+              )}
+            >
+              <Plus size={11} /> Créer
+            </button>
+            <button
+              type="button"
+              onClick={() => { setTab("join"); setErr(null); }}
+              className={cn(
+                "flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1",
+                tab === "join" ? "bg-canal-yellow text-canal-black" : "text-canal-gray-muted hover:text-white"
+              )}
+            >
+              <Ticket size={11} /> Rejoindre
+            </button>
+          </div>
+        ) : (
+          <p className="text-[11px] text-canal-yellow font-bold uppercase tracking-wider flex items-center gap-1.5">
+            <Ticket size={11} /> Changer d&apos;équipe
+          </p>
+        )}
 
         {/* Tab content */}
         {tab === "create" && (
@@ -474,88 +500,34 @@ export function MyTeamsPanel() {
           </form>
         )}
 
-        {tab === "join" && (
-          <form onSubmit={joinByCode} className="flex gap-2">
-            <input
-              type="text"
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="Code (ex : ABC123)"
-              maxLength={12}
-              className="flex-1 bg-canal-gray-mid border border-canal-gray-light rounded-xl px-3 py-2 text-white placeholder:text-canal-gray-muted text-sm font-mono tracking-widest text-center uppercase focus:outline-none focus:border-canal-yellow"
-            />
-            <button
-              type="submit"
-              disabled={!joinCode.trim() || busy === "join"}
-              className="px-3 py-2 rounded-xl bg-canal-yellow text-canal-black hover:bg-canal-yellow-hover text-xs font-black flex items-center gap-1 disabled:opacity-40 transition-colors"
-            >
-              <Ticket size={12} /> Rejoindre
-            </button>
+        {(tab === "join" || teams.length > 0) && (
+          <form onSubmit={joinByCode} className="space-y-1.5">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                placeholder="Code (ex : ABC123)"
+                maxLength={12}
+                className="flex-1 bg-canal-gray-mid border border-canal-gray-light rounded-xl px-3 py-2 text-white placeholder:text-canal-gray-muted text-sm font-mono tracking-widest text-center uppercase focus:outline-none focus:border-canal-yellow"
+              />
+              <button
+                type="submit"
+                disabled={!joinCode.trim() || busy === "join"}
+                className="px-3 py-2 rounded-xl bg-canal-yellow text-canal-black hover:bg-canal-yellow-hover text-xs font-black flex items-center gap-1 disabled:opacity-40 transition-colors"
+              >
+                <Ticket size={12} /> {busy === "join" ? "…" : "Rejoindre"}
+              </button>
+            </div>
+            {teams.length > 0 && (
+              <p className="text-[10px] text-canal-gray-muted italic leading-snug">
+                Saisis le code d&apos;une autre équipe. Une fois ta demande
+                validée par son captain, tu quittes automatiquement ton
+                équipe actuelle.
+              </p>
+            )}
           </form>
         )}
-
-        {tab === "invite" && (() => {
-          // Liste des équipes dont l'user est captain (les seules où le
-          // code d'invitation est exposé). Sinon : pas d'invite possible.
-          const captainTeams = teams.filter((t) => t.is_captain && t.invite_code);
-          if (captainTeams.length === 0) {
-            return (
-              <p className="text-canal-gray-muted text-xs italic leading-snug">
-                Tu n&apos;es captain d&apos;aucune équipe — seul le captain peut
-                inviter. Crée une équipe dans l&apos;onglet <b>Créer</b> ou
-                demande son code à un captain.
-              </p>
-            );
-          }
-          return (
-            <div className="space-y-2">
-              {captainTeams.map((t) => {
-                const link =
-                  typeof window !== "undefined" && t.invite_code
-                    ? `${window.location.origin}/onboarding?invite=${t.invite_code}`
-                    : "";
-                const isFull = t.full;
-                return (
-                  <div key={`inv-${t.id}`} className="space-y-1">
-                    <p className="text-[11px] text-canal-gray-muted">
-                      <span className="text-white font-bold">{t.name}</span>{" "}
-                      — {isFull ? "complète" : `${t.slots_left} place${t.slots_left > 1 ? "s" : ""} libre${t.slots_left > 1 ? "s" : ""}`}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <code className="flex-1 font-mono font-black text-canal-yellow text-base tracking-widest text-center bg-canal-gray-mid border border-canal-gray-light/40 rounded-lg py-1.5">
-                        {t.invite_code}
-                      </code>
-                      <button
-                        type="button"
-                        onClick={() => copy(t.invite_code!, `tabcode-${t.id}`)}
-                        title="Copier le code"
-                        className="px-2.5 py-1.5 rounded-lg bg-canal-yellow/15 text-canal-yellow border border-canal-yellow/30 hover:bg-canal-yellow/25 text-xs font-bold flex items-center gap-1 transition-colors"
-                      >
-                        {copied === `tabcode-${t.id}` ? <Check size={12} /> : <Copy size={12} />}
-                        {copied === `tabcode-${t.id}` ? "OK" : "Code"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => copy(link, `tablink-${t.id}`)}
-                        disabled={!link}
-                        title="Copier le lien d'invitation (ouvre l'onboarding pré-rempli)"
-                        className="px-2.5 py-1.5 rounded-lg bg-canal-yellow/15 text-canal-yellow border border-canal-yellow/30 hover:bg-canal-yellow/25 text-xs font-bold flex items-center gap-1 disabled:opacity-50 transition-colors"
-                      >
-                        {copied === `tablink-${t.id}` ? <Check size={12} /> : <Copy size={12} />}
-                        {copied === `tablink-${t.id}` ? "OK" : "Lien"}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-              <p className="text-[11px] text-canal-gray-muted italic leading-snug">
-                Partage le code (qu&apos;il saisit côté Rejoindre) ou le lien
-                (ouvre l&apos;onboarding pré-rempli). Tu valides ensuite sa
-                demande depuis cette page.
-              </p>
-            </div>
-          );
-        })()}
       </div>
     </section>
   );
