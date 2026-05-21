@@ -1,6 +1,7 @@
 import { getMatches } from "@/lib/data/matches";
 import { getLeaderboard } from "@/lib/data/teams";
 import { getTodayBrief, getRevivezPosts } from "@/lib/data/content";
+import { getChallenges } from "@/lib/data/challenges";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AMBIANCE_STATES } from "@/lib/tv/hype";
 import { NextResponse } from "next/server";
@@ -93,12 +94,13 @@ export async function GET() {
   const windowStart = new Date(now.getTime() - 60 * 60_000).toISOString();
   const windowEnd = new Date(now.getTime() + 24 * 60 * 60_000).toISOString();
 
-  const [matches, leaderboard, brief, revivezPosts, { data: standings }, { data: events }] =
+  const [matches, leaderboard, brief, revivezPosts, allChallenges, { data: standings }, { data: events }] =
     await Promise.all([
       getMatches(),
       getLeaderboard(),
       getTodayBrief(),
       getRevivezPosts(),
+      getChallenges(),
       supabase.from("standings").select("*").order("points", { ascending: false }),
       supabase
         .from("canal_cup_events")
@@ -108,6 +110,12 @@ export async function GET() {
         .lte("starts_at", windowEnd)
         .order("starts_at", { ascending: true }),
     ]);
+
+  // TV slide animations : on garde live + upcoming (max 5, live en haut).
+  const challengesForTV = [
+    ...allChallenges.filter((c) => c.status === "live"),
+    ...allChallenges.filter((c) => c.status === "upcoming"),
+  ].slice(0, 5);
 
   // Ambiance: dominant emoji from live match reactions
   let ambiance: { emoji: string; label: string; color: string; sub: string } | null = null;
@@ -144,6 +152,7 @@ export async function GET() {
     leaderboard,
     brief,
     revivezPosts,
+    challenges: challengesForTV,
     standings: standings ?? [],
     events: events ?? [],
     ambiance,

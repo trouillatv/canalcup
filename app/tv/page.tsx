@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { teamFlag, toNCDate, toNCTime } from "@/lib/utils";
 import { QrCode } from "lucide-react";
-import type { Match, LeaderboardRow, MorningBrief, RevivezPost, CanalCupEvent } from "@/lib/supabase/types";
+import type { Match, LeaderboardRow, MorningBrief, RevivezPost, CanalCupEvent, Challenge } from "@/lib/supabase/types";
+import { PARTICIPATION_MIN_POINTS } from "@/lib/scoring/config";
 import type { FullMatchDetail } from "@/services/football/types";
 import {
   EVENT_CONFIGS,
@@ -24,12 +25,14 @@ import {
   getSalonPhrase,
 } from "@/lib/tv/hype";
 
-type Slide = "upcoming" | "classement" | "match" | "livematch" | "duel" | "standings" | "bracket" | "matinale" | "revivez" | "prematch";
+type Slide = "upcoming" | "classement" | "match" | "livematch" | "duel" | "standings" | "bracket" | "matinale" | "revivez" | "prematch" | "animations";
 
 const SLIDE_DURATION = 12000;
 const REFRESH_INTERVAL = 30000;
 const FLASH_POLL_INTERVAL = 10000;
-const BASE_SLIDES: Slide[] = ["prematch", "upcoming", "classement", "match", "livematch", "duel", "standings", "bracket", "matinale", "revivez"];
+// "animations" insérée après "upcoming" pour que le mur salon pousse les
+// défis RSE entre 2 contenus sport — encourage la participation physique.
+const BASE_SLIDES: Slide[] = ["prematch", "upcoming", "animations", "classement", "match", "livematch", "duel", "standings", "bracket", "matinale", "revivez"];
 
 interface StandingRow {
   team_name_fr: string;
@@ -74,6 +77,7 @@ interface TVData {
   leaderboard: LeaderboardRow[];
   brief: MorningBrief;
   revivezPosts: RevivezPost[];
+  challenges?: Challenge[];
   standings?: StandingRow[];
   events?: CanalCupEvent[];
   ambiance?: AmbianceState | null;
@@ -707,6 +711,80 @@ function SlideMatinale({ brief }: { brief: MorningBrief }) {
           <p className="text-white text-base sm:text-2xl italic break-words">"{brief.fail_of_day}"</p>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Slide: Animations RSE à venir ────────────────────────────────────────────
+// Mur salon : pousse les défis "live" et "upcoming" (max 5) pour
+// rappeler aux gens d'aller participer physiquement (lieu, durée,
+// solo/groupe, plancher de points garantis). Skip si zéro animation.
+
+function SlideAnimations({ challenges }: { challenges: Challenge[] }) {
+  const hasLive = challenges.some((c) => c.status === "live");
+  const headerLabel = hasLive ? "🔴 Animations en cours" : "🎉 Prochaines animations";
+  return (
+    <div className="flex flex-col h-full px-4 sm:px-8 lg:px-20 py-6 sm:py-10">
+      <p className="text-canal-yellow font-black text-lg sm:text-2xl lg:text-3xl uppercase tracking-widest mb-4 sm:mb-8 text-center">
+        {headerLabel}
+      </p>
+      <div className="flex-1 flex flex-col justify-center gap-3 sm:gap-5 max-w-5xl mx-auto w-full">
+        {challenges.map((c) => {
+          const isLive = c.status === "live";
+          const isGroup = !!c.allows_group;
+          const floor = c.max_points > 0
+            ? Math.min(PARTICIPATION_MIN_POINTS, c.max_points)
+            : PARTICIPATION_MIN_POINTS;
+          return (
+            <div
+              key={c.id}
+              className={`flex items-center gap-3 sm:gap-6 rounded-2xl border px-4 sm:px-6 py-3 sm:py-4 ${
+                isLive
+                  ? "border-red-500/60 bg-red-950/30"
+                  : "border-canal-gray-light bg-canal-gray-mid/30"
+              }`}
+            >
+              <span className="text-4xl sm:text-6xl lg:text-7xl shrink-0">{c.emoji}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-black text-white text-lg sm:text-2xl lg:text-3xl leading-tight">
+                    {c.title}
+                  </p>
+                  {isLive && (
+                    <span className="text-[10px] sm:text-xs font-bold uppercase px-2 py-0.5 rounded-full bg-red-500 text-white animate-pulse">
+                      Live
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-x-3 sm:gap-x-6 gap-y-1 mt-1 text-xs sm:text-base text-canal-gray-muted">
+                  {c.location && <span>📍 {c.location}</span>}
+                  {c.duration_minutes != null && <span>⏱ {c.duration_minutes} min</span>}
+                  <span className="text-canal-yellow font-bold">
+                    🏆 {c.max_points > 0 ? `${c.max_points} pts max` : "Hors classement"}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 mt-1.5 sm:mt-2">
+                  <span
+                    className={`text-[10px] sm:text-xs font-bold uppercase px-2 py-0.5 rounded-full ${
+                      isGroup
+                        ? "bg-canal-yellow/20 text-canal-yellow border border-canal-yellow/40"
+                        : "bg-canal-gray-mid text-canal-gray-muted border border-canal-gray-light"
+                    }`}
+                  >
+                    {isGroup ? "👥 Groupe possible" : "👤 Solo"}
+                  </span>
+                  <span className="text-[10px] sm:text-xs font-bold uppercase px-2 py-0.5 rounded-full bg-green-900/40 text-green-400 border border-green-700/50">
+                    ✨ ≥ {floor} pts garantis
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p className="text-center text-canal-gray-muted text-sm sm:text-lg mt-4 sm:mt-8 italic">
+        Va voir l&apos;animateur · ta participation rapporte des points à ton équipe.
+      </p>
     </div>
   );
 }
@@ -1370,7 +1448,11 @@ export default function TVPage() {
     return () => clearInterval(t);
   }, []);
 
-  const slides = BASE_SLIDES;
+  // Skip "animations" du cycle s'il n'y a aucun défi à pousser
+  // (live + upcoming) → pas de slide vide en boucle sur le salon.
+  const slides = data?.challenges?.length
+    ? BASE_SLIDES
+    : BASE_SLIDES.filter((s) => s !== "animations");
 
   useEffect(() => {
     const t = setInterval(
@@ -1442,6 +1524,7 @@ export default function TVPage() {
             {slide === "bracket" && <SlideBracket />}
             {slide === "matinale" && <SlideMatinale brief={data.brief} />}
             {slide === "revivez" && <SlideRevivez posts={data.revivezPosts} />}
+            {slide === "animations" && <SlideAnimations challenges={data.challenges ?? []} />}
           </>
         )}
       </div>
