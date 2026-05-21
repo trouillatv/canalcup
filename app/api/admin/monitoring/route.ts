@@ -13,6 +13,33 @@ import path from "path";
 import { isAdminRequest } from "@/lib/auth/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+// Schedules définies dans vercel.json. À garder en sync (ou parser le
+// fichier au runtime, mais c'est en .json donc statique).
+const CRON_SCHEDULES: Record<string, { expr: string; label: string }> = {
+  "morning-brief": { expr: "0 19 * * *", label: "tous les jours 6h NC (19h UTC)" },
+  "sync-matches": { expr: "0 8 * * *", label: "tous les jours 19h NC (8h UTC)" },
+  "daily-content": { expr: "30 12 * * *", label: "tous les jours 23h30 NC (12h30 UTC)" },
+};
+
+// Parser cron simple : ne supporte que 'M H * * *' (quotidien à H:M UTC).
+// Suffisant pour tous nos crons actuels.
+function parseNextRun(expr: string): Date | null {
+  const parts = expr.split(/\s+/);
+  if (parts.length < 5) return null;
+  const m = parseInt(parts[0], 10);
+  const h = parseInt(parts[1], 10);
+  if (isNaN(m) || isNaN(h)) return null;
+  if (parts[2] !== "*" || parts[3] !== "*" || parts[4] !== "*") return null;
+  const now = new Date();
+  const next = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), h, m, 0)
+  );
+  if (next.getTime() <= now.getTime()) {
+    next.setUTCDate(next.getUTCDate() + 1);
+  }
+  return next;
+}
+
 type KeyStatus =
   | { state: "ok"; detail?: string }
   | { state: "missing" }
@@ -106,17 +133,66 @@ export async function GET(req: Request) {
 
   const supabase = createAdminClient();
 
-  // Crons : 5 derniers runs par job
+  // Crons : pour chaque job — schedule, prochain run, dernier run,
+  // état "à l'heure", erreurs récentes, et les 5 derniers runs.
   const KNOWN_JOBS = ["sync-matches", "morning-brief", "daily-content"];
-  const crons: Record<string, unknown[]> = {};
+  const nowMs = Date.now();
+  const sevenDaysAgo = new Date(nowMs - 7 * 24 * 3600 * 1000).toISOString();
+
+  const crons: Record<string, {
+    schedule: string;
+    schedule_label: string;
+    next_run: string | null;
+    last_run: {
+      started_at: string;
+      finished_at: string | null;
+      status: "running" | "success" | "failure";
+      hours_ago: number;
+    } | null;
+    is_late: boolean; // dernier run > 25h ago pour un cron quotidien
+    is_never: boolean; // jamais exécuté
+    errors_last_7d: number;
+    runs: unknown[]; // 5 derniers détaillés (compat existant)
+  }> = {};
+
   for (const job of KNOWN_JOBS) {
-    const { data } = await supabase
+    const meta = CRON_SCHEDULES[job] ?? { expr: "—", label: "inconnu" };
+    const nextRun = parseNextRun(meta.expr);
+
+    const { data: recentRuns } = await supabase
       .from("cron_runs")
       .select("id, started_at, finished_at, status, error_message, meta")
       .eq("job", job)
       .order("started_at", { ascending: false })
       .limit(5);
-    crons[job] = data ?? [];
+
+    const last = recentRuns?.[0] ?? null;
+    const hoursAgo = last ? (nowMs - new Date(last.started_at).getTime()) / 3600_000 : null;
+
+    const { count: errorsCount } = await supabase
+      .from("cron_runs")
+      .select("*", { count: "exact", head: true })
+      .eq("job", job)
+      .eq("status", "failure")
+      .gte("started_at", sevenDaysAgo);
+
+    crons[job] = {
+      schedule: meta.expr,
+      schedule_label: meta.label,
+      next_run: nextRun?.toISOString() ?? null,
+      last_run: last
+        ? {
+            started_at: last.started_at,
+            finished_at: last.finished_at,
+            status: last.status as "running" | "success" | "failure",
+            hours_ago: Math.round((hoursAgo ?? 0) * 10) / 10,
+          }
+        : null,
+      is_late: hoursAgo !== null && hoursAgo > 25,
+      is_never: last === null,
+      errors_last_7d: errorsCount ?? 0,
+      runs: recentRuns ?? [],
+    };
   }
 
   // Comparatif des sources

@@ -23,6 +23,21 @@ interface CronRun {
   error_message: string | null;
   meta: Record<string, unknown> | null;
 }
+interface CronInfo {
+  schedule: string;
+  schedule_label: string;
+  next_run: string | null;
+  last_run: {
+    started_at: string;
+    finished_at: string | null;
+    status: "running" | "success" | "failure";
+    hours_ago: number;
+  } | null;
+  is_late: boolean;
+  is_never: boolean;
+  errors_last_7d: number;
+  runs: CronRun[];
+}
 interface Monitoring {
   ts: string;
   keys: { gemini: KeyStatus; api_football: KeyStatus };
@@ -34,7 +49,7 @@ interface Monitoring {
       plan?: string;
     } | null;
   };
-  crons: Record<string, CronRun[]>;
+  crons: Record<string, CronInfo>;
   scraping_last: { file: string; mtime: string } | null;
   data_sources: Record<string, { enabled: boolean; features: string[]; cost: string; latency: string }>;
   env: { mock_ai: boolean; node_env: string };
@@ -197,54 +212,128 @@ export default function AdminMonitoringPage() {
             </div>
           </section>
 
+          {/* ─── Alerte globale crons en haut si quelque chose va mal ─── */}
+          {(() => {
+            const issues: string[] = [];
+            Object.entries(data.crons).forEach(([job, c]) => {
+              if (c.is_never) issues.push(`${job} jamais exécuté`);
+              else if (c.is_late) issues.push(`${job} en retard (${c.last_run?.hours_ago.toFixed(1)}h)`);
+              if (c.errors_last_7d > 0) issues.push(`${job} : ${c.errors_last_7d} erreur(s) sur 7j`);
+            });
+            if (issues.length === 0) return null;
+            return (
+              <div className="canal-card border border-red-500/40 bg-red-950/20 space-y-1">
+                <p className="text-red-400 font-bold text-sm flex items-center gap-2">
+                  <AlertCircle size={14} /> Alertes crons
+                </p>
+                <ul className="text-xs text-canal-gray-muted space-y-0.5">
+                  {issues.map((i, idx) => (
+                    <li key={idx}>• {i}</li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })()}
+
           {/* ─── Crons ─── */}
-          <section className="canal-card space-y-3">
+          <section className="canal-card space-y-4">
             <h2 className="text-xs text-canal-yellow font-bold uppercase tracking-wider flex items-center gap-1.5">
-              <Calendar size={12} /> Crons (5 derniers runs / job)
+              <Calendar size={12} /> Crons (schedule + état + derniers lancements)
             </h2>
-            <div className="space-y-3">
-              {Object.entries(data.crons).map(([job, runs]) => (
-                <div key={job} className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold text-white">/api/cron/{job}</p>
-                    <span className="text-[10px] text-canal-gray-muted">
-                      ({runs.length} {runs.length === 1 ? "run" : "runs"})
-                    </span>
-                  </div>
-                  {runs.length === 0 ? (
-                    <p className="text-[11px] text-canal-gray-muted italic">
-                      Aucun run enregistré — soit pas encore exécuté, soit Vercel cron ne tire pas.
-                    </p>
-                  ) : (
-                    <div className="space-y-1">
-                      {runs.map((r) => (
-                        <div
-                          key={r.id}
-                          className="flex items-center gap-2 bg-canal-gray-mid rounded-lg px-2.5 py-1.5"
-                        >
-                          <StatusPill state={r.status} />
-                          <span className="text-xs text-canal-gray-muted tabular-nums">
-                            {formatTime(r.started_at)}
+            <div className="space-y-4">
+              {Object.entries(data.crons).map(([job, c]) => {
+                // Couleur de fond selon état
+                const cardBorder =
+                  c.is_never || c.errors_last_7d > 0
+                    ? "border border-red-500/40 bg-red-950/10"
+                    : c.is_late
+                      ? "border border-canal-yellow/40 bg-canal-yellow/5"
+                      : "border border-canal-gray-light/40";
+                return (
+                  <div key={job} className={cn("rounded-xl p-3 space-y-2.5", cardBorder)}>
+                    {/* En-tête : nom + statut global */}
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <p className="text-sm font-bold text-white">
+                        /api/cron/{job}
+                      </p>
+                      <div className="flex items-center gap-1.5">
+                        {c.is_never && <StatusPill state="error" />}
+                        {!c.is_never && c.is_late && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border bg-canal-yellow/15 text-canal-yellow border-canal-yellow/30 text-[10px] font-bold uppercase tracking-wider">
+                            <Clock size={11} /> EN RETARD
                           </span>
-                          <span className="text-[10px] text-canal-gray-muted">
-                            ({durationMs(r.started_at, r.finished_at)})
+                        )}
+                        {!c.is_never && !c.is_late && c.last_run && (
+                          <StatusPill state={c.last_run.status} />
+                        )}
+                        {c.errors_last_7d > 0 && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border bg-red-900/30 text-red-400 border-red-500/30 text-[10px] font-bold tabular-nums">
+                            {c.errors_last_7d} ⚠ /7j
                           </span>
-                          {r.error_message && (
-                            <span className="text-[10px] text-red-400 truncate flex-1 min-w-0">
-                              {r.error_message}
-                            </span>
-                          )}
-                          {r.meta && Object.keys(r.meta).length > 0 && !r.error_message && (
-                            <span className="text-[10px] text-canal-gray-muted truncate flex-1 min-w-0">
-                              {JSON.stringify(r.meta)}
-                            </span>
-                          )}
-                        </div>
-                      ))}
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    {/* Schedule + next run */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+                      <div>
+                        <p className="text-canal-gray-muted">Schedule</p>
+                        <p className="text-white font-mono">{c.schedule}</p>
+                        <p className="text-[10px] text-canal-gray-muted italic">{c.schedule_label}</p>
+                      </div>
+                      <div>
+                        <p className="text-canal-gray-muted">Dernier lancement</p>
+                        {c.last_run ? (
+                          <>
+                            <p className="text-white tabular-nums">{formatTime(c.last_run.started_at)}</p>
+                            <p className="text-[10px] text-canal-gray-muted">
+                              il y a {c.last_run.hours_ago.toFixed(1)}h ({durationMs(c.last_run.started_at, c.last_run.finished_at)})
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-red-400">jamais</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-canal-gray-muted">Prochain prévu</p>
+                        <p className="text-white tabular-nums">{formatTime(c.next_run)}</p>
+                      </div>
+                    </div>
+
+                    {/* Derniers runs détaillés */}
+                    {c.runs.length > 0 && (
+                      <div className="pt-2 border-t border-canal-gray-light/30 space-y-1">
+                        <p className="text-[10px] text-canal-gray-muted uppercase tracking-wider">
+                          {c.runs.length} dernier{c.runs.length > 1 ? "s" : ""} lancement{c.runs.length > 1 ? "s" : ""}
+                        </p>
+                        {c.runs.map((r) => (
+                          <div
+                            key={r.id}
+                            className="flex items-start gap-2 bg-canal-gray-mid rounded-lg px-2.5 py-1.5"
+                          >
+                            <StatusPill state={r.status} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[11px] text-canal-gray-muted tabular-nums">
+                                {formatTime(r.started_at)} · {durationMs(r.started_at, r.finished_at)}
+                              </p>
+                              {r.error_message && (
+                                <p className="text-[10px] text-red-400 break-words">
+                                  ❌ {r.error_message}
+                                </p>
+                              )}
+                              {r.meta && Object.keys(r.meta).length > 0 && !r.error_message && (
+                                <p className="text-[10px] text-canal-gray-muted/80 break-words font-mono">
+                                  {JSON.stringify(r.meta)}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </section>
 
