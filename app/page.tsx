@@ -47,8 +47,11 @@ export default async function RootPage() {
   }
 
   const matchOfWeek = matches.find((m) => m.is_match_of_week);
-  const matchToday = matches.find((m) => m.status === "live")
-    ?? matches.find((m) => m.status === "upcoming" && !m.is_match_of_week);
+  // Matchs LIVE — section dédiée en haut, masquée s'il n'y en a aucun.
+  const liveMatches = matches.filter((m) => m.status === "live");
+  // 'Prochain match' = upcoming non-match-of-week. PAS de fallback live ici
+  // (le live a sa propre section).
+  const matchToday = matches.find((m) => m.status === "upcoming" && !m.is_match_of_week);
   const tonightMatches = matches.filter((m) => m.status === "upcoming").slice(0, 3);
   const topRevivez = revivez[0];
   const trend = matchToday ? trends[matchToday.id] : undefined;
@@ -69,6 +72,25 @@ export default async function RootPage() {
       </div>
 
       {missingPronoCount > 0 && <PronoReminder count={missingPronoCount} />}
+
+      {/* ─── EN DIRECT — section dédiée en haut, masquée si rien ne joue ─── */}
+      {liveMatches.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-bold text-red-400 uppercase tracking-wider flex items-center gap-2">
+              <span className="live-dot" /> En direct
+            </h2>
+            <Link href="/matches" className="text-xs text-canal-gray-muted hover:text-white">
+              Tous les matchs →
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {liveMatches.map((m) => (
+              <MatchCard key={m.id} match={m} trend={trends[m.id]} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {matchOfWeek && (
         <section>
@@ -95,7 +117,7 @@ export default async function RootPage() {
         <section>
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider">
-              {matchToday.status === "live" ? "🔴 En direct" : "⚽ Prochain match"}
+              ⚽ Prochain match
             </h2>
           </div>
           <MatchCard match={matchToday} trend={trend} />

@@ -37,10 +37,12 @@ export function BreakingNews() {
   const item = news[current];
   const isLive = item.type === "live";
 
+  // Bandeau discret : fond identique pour live et flash (juste un fond
+  // canal-gray sobre), seul l'identifiant à gauche colore (point rouge
+  // pulsé pour live, éclair jaune pour flash). Beaucoup plus calme
+  // qu'un grand fond rouge agressif en haut de toutes les pages.
   return (
-    <div className={`flex items-center gap-2 px-4 py-2 text-xs overflow-hidden ${
-      isLive ? "bg-red-950/40 border-b border-red-900/30" : "bg-canal-gray border-b border-canal-gray-light"
-    }`}>
+    <div className="flex items-center gap-2 px-4 py-1.5 text-[11px] overflow-hidden bg-canal-gray border-b border-canal-gray-light">
       <div className={`shrink-0 flex items-center gap-1 font-black uppercase tracking-wider ${
         isLive ? "text-red-400" : "text-canal-yellow"
       }`}>
@@ -48,19 +50,20 @@ export function BreakingNews() {
         {isLive ? "Live" : "Flash"}
       </div>
       <div className="min-w-0 flex-1 overflow-hidden">
-        <p className={`font-bold truncate ${isLive ? "text-red-200" : "text-white"}`}>
+        <p className="font-bold truncate text-white">
           {item.text}
         </p>
         {item.sub && (
-          <p className="text-canal-gray-muted truncate">{item.sub}</p>
+          <p className="text-canal-gray-muted truncate text-[10px]">{item.sub}</p>
         )}
       </div>
       {news.length > 1 && (
-        <div className="flex gap-1 shrink-0">
+        <div className="flex gap-1 shrink-0" aria-label={`Notification ${current + 1} sur ${news.length}`}>
           {news.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrent(i)}
+              aria-label={`Voir notification ${i + 1}`}
               className={`w-1 h-1 rounded-full transition-colors ${
                 i === current ? "bg-canal-yellow" : "bg-canal-gray-light"
               }`}

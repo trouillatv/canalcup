@@ -42,18 +42,23 @@ export async function GET() {
 
   const news: { text: string; sub?: string; type: string; at: string }[] = [];
 
-  // Live match news
+  // Live match news — flag_a/flag_b peuvent être soit un emoji unicode
+  // (vraies équipes WC, ex. '🇫🇷'), soit une URL (https://media.api-sports.io/…).
+  // Si URL, on ne l'inclut PAS dans le texte (sinon l'URL apparaît en clair).
+  const flagText = (f: string | null | undefined) =>
+    f && !f.startsWith("http") ? `${f} ` : "";
+
   for (const m of liveMatches ?? []) {
     if (m.status === "halftime") {
       news.push({
         type: "live",
-        text: `⏸️ Mi-temps — ${m.flag_a ?? ""} ${m.team_a} ${m.score_a ?? 0}–${m.score_b ?? 0} ${m.team_b} ${m.flag_b ?? ""}`,
+        text: `Mi-temps · ${flagText(m.flag_a)}${m.team_a} ${m.score_a ?? 0}–${m.score_b ?? 0} ${flagText(m.flag_b)}${m.team_b}`,
         at: new Date().toISOString(),
       });
     } else {
       news.push({
         type: "live",
-        text: `🔴 ${m.minute ? `${m.minute}'` : "LIVE"} — ${m.flag_a ?? ""} ${m.team_a} ${m.score_a ?? 0}–${m.score_b ?? 0} ${m.team_b} ${m.flag_b ?? ""}`,
+        text: `${m.minute ? `${m.minute}'` : "Direct"} · ${flagText(m.flag_a)}${m.team_a} ${m.score_a ?? 0}–${m.score_b ?? 0} ${flagText(m.flag_b)}${m.team_b}`,
         at: new Date().toISOString(),
       });
     }
