@@ -16,13 +16,12 @@
 
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-function guard(req: Request): boolean {
-  return req.headers.get("x-admin-secret") === process.env.ADMIN_SECRET;
-}
+import { isAdminRequest } from "@/lib/auth/admin";
 
 export async function GET(req: Request) {
-  if (!guard(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await isAdminRequest(req))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const supabase = createAdminClient();
 

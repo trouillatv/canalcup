@@ -136,7 +136,14 @@ function ScorePredictInput({
       {errorMsg ? (
         <p className="text-xs text-center text-red-400 font-bold">{errorMsg}</p>
       ) : (
-        <p className="text-xs text-center text-canal-gray-muted">{resultLabel()}</p>
+        <p className="text-xs text-center text-canal-gray-muted">
+          {resultLabel()}
+          {savedPrediction && (
+            <span className="block text-[10px] mt-0.5 text-canal-gray-muted/80 italic">
+              Modifie les chiffres puis re-clique sur Valider pour mettre à jour ton prono.
+            </span>
+          )}
+        </p>
       )}
     </div>
   );

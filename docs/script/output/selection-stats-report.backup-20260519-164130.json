@@ -1,0 +1,303 @@
+{
+  "generated_at": "2026-05-18T23:38:50.966675+00:00",
+  "mode": "one-shot",
+  "teams_processed": [
+    "Afrique du Sud",
+    "Algérie",
+    "Allemagne",
+    "Angleterre",
+    "Arabie Saoudite",
+    "Argentine",
+    "Australie",
+    "Autriche",
+    "Belgique",
+    "Bosnie-Herzégovine",
+    "Brésil",
+    "Cameroun",
+    "Canada",
+    "Cap-Vert",
+    "Chili",
+    "Colombie",
+    "Corée du Sud",
+    "Costa Rica",
+    "Côte d'Ivoire",
+    "Croatie",
+    "Curaçao",
+    "Danemark",
+    "Écosse",
+    "Égypte",
+    "Équateur",
+    "Espagne",
+    "États-Unis",
+    "France",
+    "Ghana",
+    "Haïti",
+    "Honduras",
+    "Irak",
+    "Iran",
+    "Japon",
+    "Jordanie",
+    "Mali",
+    "Maroc",
+    "Mexique",
+    "Nigeria",
+    "Norvège",
+    "Nouvelle-Zélande",
+    "Oman",
+    "Ouzbékistan",
+    "Panama",
+    "Paraguay",
+    "Pays-Bas",
+    "Pologne",
+    "Portugal",
+    "Qatar",
+    "RD Congo",
+    "Roumanie",
+    "Sénégal",
+    "Suède",
+    "Suisse",
+    "Tchéquie",
+    "Tunisie",
+    "Turquie",
+    "Ukraine",
+    "Uruguay"
+  ],
+  "teams_failed": [],
+  "players_found": 2382,
+  "players_partial": 2,
+  "players_not_found": [
+    {
+      "team": "Cameroun",
+      "player": "Nouhou Tolo"
+    },
+    {
+      "team": "Chili",
+      "player": "Erick Pulgar"
+    },
+    {
+      "team": "Chili",
+      "player": "Matías Catalán"
+    },
+    {
+      "team": "Chili",
+      "player": "Thomas Galdames"
+    },
+    {
+      "team": "Chili",
+      "player": "Williams Alarcón"
+    },
+    {
+      "team": "Danemark",
+      "player": "Alexander Bah"
+    },
+    {
+      "team": "Danemark",
+      "player": "Frederik Rønnow"
+    },
+    {
+      "team": "Danemark",
+      "player": "Yussuf Poulsen"
+    },
+    {
+      "team": "Honduras",
+      "player": "Bryan Róchez"
+    },
+    {
+      "team": "Mali",
+      "player": "Yves Bissouma"
+    },
+    {
+      "team": "Mali",
+      "player": "Amadou Haidara"
+    },
+    {
+      "team": "Mali",
+      "player": "Cheick Doucouré"
+    },
+    {
+      "team": "Mali",
+      "player": "Mohamed Camara"
+    },
+    {
+      "team": "Mali",
+      "player": "Hamari Traoré"
+    },
+    {
+      "team": "Mali",
+      "player": "Falaye Sacko"
+    },
+    {
+      "team": "Mali",
+      "player": "Abdoulaye Diaby"
+    },
+    {
+      "team": "Mali",
+      "player": "Djigui Diarra"
+    },
+    {
+      "team": "Mali",
+      "player": "Ismael Diawara"
+    },
+    {
+      "team": "Mali",
+      "player": "Aboubacar Doumbia"
+    },
+    {
+      "team": "Mali",
+      "player": "Boubakar Kouyaté"
+    },
+    {
+      "team": "Mali",
+      "player": "Sikou Niakaté"
+    },
+    {
+      "team": "Mali",
+      "player": "Modibo Sagnan"
+    },
+    {
+      "team": "Mali",
+      "player": "Amadou Dante"
+    },
+    {
+      "team": "Mali",
+      "player": "Diadié Samassékou"
+    },
+    {
+      "team": "Mali",
+      "player": "Lassana Coulibaly"
+    },
+    {
+      "team": "Mali",
+      "player": "Kamory Doumbia"
+    },
+    {
+      "team": "Mali",
+      "player": "Adama Traoré"
+    },
+    {
+      "team": "Mali",
+      "player": "Moussa Djenepo"
+    },
+    {
+      "team": "Mali",
+      "player": "El Bilal Touré"
+    },
+    {
+      "team": "Mali",
+      "player": "Nene Dorgeles"
+    },
+    {
+      "team": "Nigeria",
+      "player": "Taiwo Awoniyi"
+    },
+    {
+      "team": "Oman",
+      "player": "Salaah Al-Yahyaei"
+    },
+    {
+      "team": "Oman",
+      "player": "Muhsen Al-Ghassani"
+    },
+    {
+      "team": "Oman",
+      "player": "Jameel Al-Yahmadi"
+    },
+    {
+      "team": "Oman",
+      "player": "Harib Al-Saadi"
+    },
+    {
+      "team": "Oman",
+      "player": "Ahmed Al-Khamisi"
+    },
+    {
+      "team": "Oman",
+      "player": "Ibrahim Al-Mukhaini"
+    },
+    {
+      "team": "Oman",
+      "player": "Fayiz Al-Rushaidi"
+    },
+    {
+      "team": "Oman",
+      "player": "Ghanim Al-Habashi"
+    },
+    {
+      "team": "Oman",
+      "player": "Khalid Al-Braiki"
+    },
+    {
+      "team": "Oman",
+      "player": "Mohammed Al-Musalami"
+    },
+    {
+      "team": "Oman",
+      "player": "Ali Al-Busaidi"
+    },
+    {
+      "team": "Oman",
+      "player": "Abdulaziz Al-Shamousi"
+    },
+    {
+      "team": "Oman",
+      "player": "Amjad Al-Harthi"
+    },
+    {
+      "team": "Oman",
+      "player": "Abdullah Fawaz"
+    },
+    {
+      "team": "Oman",
+      "player": "Zahir Al-Aghbari"
+    },
+    {
+      "team": "Oman",
+      "player": "Arshad Al-Alawi"
+    },
+    {
+      "team": "Oman",
+      "player": "Abdulrahman Al-Mushaifri"
+    },
+    {
+      "team": "Oman",
+      "player": "Essam Al-Subhi"
+    },
+    {
+      "team": "Oman",
+      "player": "Omer Al-Malki"
+    },
+    {
+      "team": "Pologne",
+      "player": "Marcin Bułka"
+    },
+    {
+      "team": "Roumanie",
+      "player": "Radu Drăgușin"
+    },
+    {
+      "team": "Roumanie",
+      "player": "Florinel Coman"
+    },
+    {
+      "team": "Roumanie",
+      "player": "George Pușcaș"
+    },
+    {
+      "team": "Ukraine",
+      "player": "Mykhaylo Mudryk"
+    },
+    {
+      "team": "Ukraine",
+      "player": "Mykola Matviyenko"
+    },
+    {
+      "team": "Ukraine",
+      "player": "Yukhym Konoplia"
+    },
+    {
+      "team": "Ukraine",
+      "player": "Serhiy Sydorchuk"
+    }
+  ],
+  "players_error": []
+}

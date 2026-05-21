@@ -9,6 +9,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { QUIZ_COUNTDOWN_MS } from "@/lib/scoring";
+import { isAdminRequest } from "@/lib/auth/admin";
 
 // Pour chaque start/next, started_at est posé dans le FUTUR (now + countdown).
 // Ça force un compte à rebours visible côté joueur, et l'API answer refuse
@@ -17,8 +18,8 @@ function futureStartedAt(): string {
   return new Date(Date.now() + QUIZ_COUNTDOWN_MS).toISOString();
 }
 
-function guard(req: Request): boolean {
-  return req.headers.get("x-admin-secret") === process.env.ADMIN_SECRET;
+async function guard(req: Request): Promise<boolean> {
+  return await isAdminRequest(req);
 }
 
 async function listQuestionIds(supabase: ReturnType<typeof createAdminClient>) {
@@ -37,7 +38,7 @@ async function endActiveSessions(supabase: ReturnType<typeof createAdminClient>)
 }
 
 export async function POST(req: Request) {
-  if (!guard(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await guard(req))) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   let body: { action?: string };
   try { body = await req.json(); } catch { body = {}; }

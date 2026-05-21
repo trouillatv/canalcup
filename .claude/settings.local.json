@@ -119,7 +119,8 @@
       "Bash(PYTHONIOENCODING=utf-8 python *)",
       "Bash(echo \"tsc exit=$?\")",
       "Bash(xargs grep -l \"challenge\\\\|score_events\\\\|animation\")",
-      "Bash(_PWD='canalcup2026' node *)"
+      "Bash(_PWD='canalcup2026' node *)",
+      "Bash(awk -F= '{print $1}')"
     ]
   }
 }
