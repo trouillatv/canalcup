@@ -444,7 +444,7 @@ function OnboardingInner() {
                       className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow transition-colors"
                     />
                     <p className="text-[11px] text-canal-gray-muted mt-1.5 leading-snug">
-                      Tu deviens captain. Tu pourras inviter jusqu&apos;à 2 coéquipiers avec ton code d&apos;invitation.
+                      Tu deviens captain. Tu pourras inviter 1 coéquipier avec ton code d&apos;invitation (équipe = binôme).
                     </p>
                   </>
                 ) : (

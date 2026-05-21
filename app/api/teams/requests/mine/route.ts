@@ -6,8 +6,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-const TEAM_MAX_MEMBERS = 3;
+import { TEAM_MAX_MEMBERS } from "@/lib/teams/config";
 
 export async function GET() {
   const auth = await createClient();

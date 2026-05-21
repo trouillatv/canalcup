@@ -1,13 +1,12 @@
 // POST /api/teams/requests/decide — le créateur (= captain) approuve ou
 // rejette une demande pending. Si approve : pose users.team_id et
-// profile_completed=true sur le demandeur ; vérifie le cap 3 membres
+// profile_completed=true sur le demandeur ; vérifie le cap de membres
 // (double vérif au cas où plusieurs approbations en parallèle).
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-const TEAM_MAX_MEMBERS = 3;
+import { TEAM_MAX_MEMBERS } from "@/lib/teams/config";
 
 export async function POST(req: Request) {
   const auth = await createClient();

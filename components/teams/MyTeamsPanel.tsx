@@ -17,6 +17,7 @@ import {
   RefreshCw, LogOut, Plus, Ticket, AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TEAM_MAX_MEMBERS } from "@/lib/teams/config";
 
 interface MyTeam {
   id: string;
@@ -233,7 +234,7 @@ export function MyTeamsPanel() {
                       : "bg-canal-yellow/15 text-canal-yellow"
                   )}
                 >
-                  <Users size={10} /> {t.members}/3
+                  <Users size={10} /> {t.members}/{TEAM_MAX_MEMBERS}
                 </span>
               </div>
 

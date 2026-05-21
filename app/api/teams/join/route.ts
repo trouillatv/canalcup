@@ -1,13 +1,12 @@
 // POST /api/teams/join — l'utilisateur saisit un code d'invitation et
 // crée une demande pending. Le créateur de l'équipe la validera ou
 // rejettera ensuite. Refuse si l'user a déjà une équipe, déjà une
-// demande pending, ou si l'équipe est complète (3/3).
+// demande pending, ou si l'équipe est complète.
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-const TEAM_MAX_MEMBERS = 3;
+import { TEAM_MAX_MEMBERS } from "@/lib/teams/config";
 
 export async function POST(req: Request) {
   const auth = await createClient();

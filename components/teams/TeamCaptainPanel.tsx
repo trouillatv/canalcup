@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Crown, Copy, Check, Users, UserCheck, UserX, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TEAM_MAX_MEMBERS } from "@/lib/teams/config";
 
 interface MyTeam {
   id: string;
@@ -137,7 +138,7 @@ export function TeamCaptainPanel() {
                       : "bg-canal-yellow/15 text-canal-yellow"
                   )}
                 >
-                  <Users size={10} /> {t.members}/3
+                  <Users size={10} /> {t.members}/{TEAM_MAX_MEMBERS}
                 </span>
               </div>
 
