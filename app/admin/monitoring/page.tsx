@@ -162,7 +162,7 @@ export default function AdminMonitoringPage() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="canal-headline text-2xl flex items-center gap-2">
-            <Activity size={22} /> Monitoring
+            <Activity size={22} /> Monitoring IA
           </h1>
           <p className="text-canal-gray-muted text-sm mt-1">
             Santé des intégrations externes — clés, quotas, crons, scraping.

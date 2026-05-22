@@ -26,13 +26,13 @@ const TOOLS: Array<{
   icon: React.ComponentType<{ size?: number; className?: string }>;
   accent?: boolean;
 }> = [
-  { href: "/admin/monitoring",      label: "Monitoring",      desc: "Santé API, quotas, crons, scraping. À vérifier la veille de l'événement.", icon: Activity, accent: true },
+  { href: "/admin/monitoring",      label: "Monitoring IA",   desc: "Santé API, quotas, crons, scraping. À vérifier la veille de l'événement.", icon: Activity, accent: true },
   { href: "/admin/quiz",            label: "Quiz",            desc: "Gérer les questions, lancer le Live Show, voir les résultats.", icon: Trophy },
   { href: "/admin/challenges",      label: "Animations",      desc: "Créer/modérer les challenges, attribuer les points.",           icon: PartyPopper },
   { href: "/admin/babyfoot",        label: "Babyfoot — matchs", desc: "Saisir les matchs et résultats babyfoot.",                    icon: Gamepad2 },
   { href: "/admin/babyfoot/teams",  label: "Babyfoot — équipes", desc: "Composer les équipes babyfoot.",                              icon: Gamepad2 },
   { href: "/admin/users",           label: "Utilisateurs",    desc: "Allowlist, rôles, désactivation, envoi de magic links.",        icon: Users },
-  { href: "/admin/user-audit",      label: "Audit utilisateurs", desc: "Qui est actif, bloqué, qui participe. Sécurité + support + animation.", icon: SearchCheck },
+  { href: "/admin/user-audit",      label: "Monitoring Users", desc: "Qui est actif, bloqué, qui participe. Sécurité + support + animation.", icon: SearchCheck },
   { href: "/admin/qr",              label: "QR Code WC2026",  desc: "Imprimer / partager le QR + voir les scans.",                   icon: QrCode },
 ];
 

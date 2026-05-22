@@ -133,9 +133,9 @@ export default function UserAuditPage() {
   return (
     <div className="px-4 py-4 max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 className="canal-headline text-2xl">Audit utilisateurs</h1>
+        <h1 className="canal-headline text-2xl">Monitoring Users</h1>
         <p className="text-canal-gray-muted text-sm mt-1">
-          Sécurité, support et animation — pas de surveillance RH.
+          Audit utilisateurs — sécurité, support et animation. Pas de surveillance RH.
         </p>
       </div>
 

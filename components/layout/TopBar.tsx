@@ -170,13 +170,13 @@ export function TopBar() {
               </div>
               {[
                 { href: "/admin", label: "📊 QR Code" },
-                { href: "/admin/monitoring", label: "🩺 Monitoring" },
+                { href: "/admin/monitoring", label: "🩺 Monitoring IA" },
+                { href: "/admin/user-audit", label: "👥 Monitoring Users" },
                 { href: "/admin/quiz", label: "Quiz" },
                 { href: "/admin/challenges", label: "Animations" },
                 { href: "/admin/babyfoot", label: "Babyfoot — matchs" },
                 { href: "/admin/babyfoot/teams", label: "Babyfoot — équipes" },
                 { href: "/admin/users", label: "Utilisateurs" },
-                { href: "/admin/user-audit", label: "🔍 Audit utilisateurs" },
                 { href: "/admin/qr", label: "QR Code WC2026" },
                 // Pas de page admin dédiée Matchs/Équipes — les pages user
                 // sont déjà admin-friendly (édition score via /admin/scoring).
