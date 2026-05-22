@@ -9,7 +9,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import {
   QrCode, Trophy, PartyPopper, Gamepad2, Users,
-  Shield, RefreshCw, ArrowRight, Activity, SearchCheck,
+  Shield, RefreshCw, ArrowRight, Activity, SearchCheck, Image as ImageIcon,
 } from "lucide-react";
 
 interface QrCounter {
@@ -50,6 +50,16 @@ function formatTime(iso: string | null): string {
 export default function AdminHomePage() {
   const [qr, setQr] = useState<QrCounter | null>(null);
   const [loading, setLoading] = useState(true);
+  const [origin, setOrigin] = useState("");
+
+  useEffect(() => {
+    setOrigin(process.env.NEXT_PUBLIC_APP_URL ?? (typeof window !== "undefined" ? window.location.origin : ""));
+  }, []);
+
+  // Image du QR (même service que /admin/qr) → pointe vers /p/welcome.
+  const qrImageUrl = origin
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=600x600&margin=20&data=${encodeURIComponent(`${origin}/p/welcome`)}`
+    : "";
 
   const fetchQr = useCallback(async () => {
     try {
@@ -134,6 +144,18 @@ export default function AdminHomePage() {
             Voir / partager le QR <ArrowRight size={11} />
           </Link>
         </div>
+
+        {/* Lien direct vers l'image du QR (ouvre le PNG dans un nouvel onglet) */}
+        {qrImageUrl && (
+          <a
+            href={qrImageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs text-canal-gray-muted hover:text-white transition-colors"
+          >
+            <ImageIcon size={12} /> Ouvrir l&apos;image du QR
+          </a>
+        )}
       </section>
 
       {/* ─── Grille outils admin ─── */}
