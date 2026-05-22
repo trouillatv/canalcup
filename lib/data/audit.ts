@@ -61,7 +61,7 @@ type AlRow = { email: string; role: UserRole; is_active: boolean; created_at: st
 type UserRow = {
   id: string; email: string; display_name: string | null; name: string | null;
   service_id: string | null; team_id: string | null; profile_completed: boolean | null;
-  last_login_at: string | null; created_at: string | null;
+  last_login_at: string | null; created_at: string | null; auth_id?: string | null;
 };
 type PtRow = { user_id: string | null; points_awarded: number | null; created_at: string | null };
 type EntryRow = { id: string; user_id: string | null; created_at: string | null };
@@ -106,6 +106,18 @@ export async function getUserAuditList(): Promise<AuditListResult> {
     admin.from("score_events").select("user_id, category, raw_points, created_at"),
     admin.from("team_join_requests").select("user_id, team_id, status, created_at"),
   ]);
+
+  // Dernière connexion FIABLE : Supabase Auth maintient last_sign_in_at sur
+  // chaque login (mdp inclus), contrairement à users.last_login_at qui n'est
+  // mis à jour que sur le flux /auth/callback (magic link). perPage élevé pour
+  // tout récupérer en une page (échelle interne).
+  const authSignIn = new Map<string, string | null>();
+  try {
+    const { data: authData } = await admin.auth.admin.listUsers({ perPage: 1000 });
+    for (const au of authData?.users ?? []) {
+      if (au.email) authSignIn.set(au.email.toLowerCase(), au.last_sign_in_at ?? null);
+    }
+  } catch { /* si l'API auth échoue, on retombe sur users.last_login_at */ }
 
   const serviceName = new Map((services ?? []).map((s: { id: string; name: string }) => [s.id, s.name]));
   const teamName = new Map((teams ?? []).map((t: { id: string; name: string }) => [t.id, t.name]));
@@ -181,7 +193,7 @@ export async function getUserAuditList(): Promise<AuditListResult> {
       service_name: u?.service_id ? serviceName.get(u.service_id) ?? null : null,
       team_name: u?.team_id ? teamName.get(u.team_id) ?? null : null,
       account_created_at: u?.created_at ?? al.created_at ?? null,
-      last_login_at: u?.last_login_at ?? null,
+      last_login_at: maxIso(u?.last_login_at ?? null, authSignIn.get(al.email.toLowerCase()) ?? null),
       last_action_at: uid ? lastAction.get(uid) ?? null : null,
       predictions: uid ? predCount.get(uid) ?? 0 : 0,
       quiz: uid ? quizCount.get(uid) ?? 0 : 0,
@@ -272,11 +284,20 @@ export async function getUserAuditDetail(userId: string): Promise<AuditDetail | 
   const admin = createAdminClient();
   const { data: user } = await admin
     .from("users")
-    .select("id, email, display_name, name, service_id, team_id, profile_completed, last_login_at, created_at")
+    .select("id, email, display_name, name, service_id, team_id, profile_completed, last_login_at, created_at, auth_id")
     .eq("id", userId)
     .single();
   if (!user) return null;
   const u = user as UserRow;
+
+  // Dernière connexion fiable via Supabase Auth (cf. getUserAuditList).
+  let authSignIn: string | null = null;
+  if (u.auth_id) {
+    try {
+      const { data: au } = await admin.auth.admin.getUserById(u.auth_id);
+      authSignIn = au?.user?.last_sign_in_at ?? null;
+    } catch { /* fallback users.last_login_at */ }
+  }
 
   const [
     { data: al },
@@ -417,7 +438,7 @@ export async function getUserAuditDetail(userId: string): Promise<AuditDetail | 
     service_name: (serviceRes?.data as { name: string } | null)?.name ?? null,
     team_name: (teamRes?.data as { name: string } | null)?.name ?? null,
     account_created_at: u.created_at ?? null,
-    last_login_at: u.last_login_at ?? null,
+    last_login_at: maxIso(u.last_login_at ?? null, authSignIn),
     onboarding,
     points_by_category,
     recent_predictions,
