@@ -9,7 +9,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import {
   QrCode, Trophy, PartyPopper, Gamepad2, Users,
-  Shield, RefreshCw, ArrowRight, Activity,
+  Shield, RefreshCw, ArrowRight, Activity, SearchCheck,
 } from "lucide-react";
 
 interface QrCounter {
@@ -32,6 +32,7 @@ const TOOLS: Array<{
   { href: "/admin/babyfoot",        label: "Babyfoot — matchs", desc: "Saisir les matchs et résultats babyfoot.",                    icon: Gamepad2 },
   { href: "/admin/babyfoot/teams",  label: "Babyfoot — équipes", desc: "Composer les équipes babyfoot.",                              icon: Gamepad2 },
   { href: "/admin/users",           label: "Utilisateurs",    desc: "Allowlist, rôles, désactivation, envoi de magic links.",        icon: Users },
+  { href: "/admin/user-audit",      label: "Audit utilisateurs", desc: "Qui est actif, bloqué, qui participe. Sécurité + support + animation.", icon: SearchCheck },
   { href: "/admin/qr",              label: "QR Code WC2026",  desc: "Imprimer / partager le QR + voir les scans.",                   icon: QrCode },
 ];
 

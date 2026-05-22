@@ -28,7 +28,7 @@ export async function getAllUsersForAdmin(): Promise<AdminUserView[]> {
   const emails = allowlist.map((a) => a.email);
   const { data: profiles } = await adminClient
     .from("users")
-    .select("*, service:services(id, name, emoji)")
+    .select("*, service:services(id, name)")
     .in("email", emails);
 
   // 3. auth.users (last_sign_in_at)

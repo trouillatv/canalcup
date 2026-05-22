@@ -26,7 +26,7 @@ export type ScoreSourceType =
 export interface Service {
   id: string;
   name: string;
-  emoji: string;
+  emoji?: string; // colonne absente en base (décision produit : pas d'emoji services)
   is_active: boolean;
   sort_order: number;
   created_at: string;

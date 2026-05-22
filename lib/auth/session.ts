@@ -22,7 +22,10 @@ export async function getCurrentProfile(): Promise<User | null> {
 
   const { data } = await supabase
     .from("users")
-    .select("*, service:services(id, name, emoji), team:teams(id, name, slogan, color)")
+    // FK explicite (team_id) : sinon PostgREST hésite entre users.team_id et
+    // teams.created_by_user_id (relation ambiguë → erreur 300). 'color' retiré
+    // (colonne absente en base).
+    .select("*, service:services(id, name), team:teams!team_id(id, name, slogan)")
     .eq("auth_id", user.id)
     .single();
 
