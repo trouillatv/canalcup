@@ -172,6 +172,7 @@ export function TopBar() {
                 { href: "/admin", label: "📊 QR Code" },
                 { href: "/admin/monitoring", label: "🩺 Monitoring IA" },
                 { href: "/admin/user-audit", label: "👥 Monitoring Users" },
+                { href: "/admin/feedback", label: "💬 Feedback" },
                 { href: "/admin/quiz", label: "Quiz" },
                 { href: "/admin/challenges", label: "Animations" },
                 { href: "/admin/babyfoot", label: "Babyfoot — matchs" },

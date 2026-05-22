@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { TopBar } from "@/components/layout/TopBar";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { FloatingFeedback } from "@/components/feedback/FloatingFeedback";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -57,6 +58,7 @@ export default async function RootLayout({
           {children}
         </main>
         {isAuthenticated && <BottomNav />}
+        {isAuthenticated && <FloatingFeedback />}
       </body>
     </html>
   );
