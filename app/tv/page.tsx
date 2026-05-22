@@ -1434,6 +1434,7 @@ function PinGate({ children }: { children: React.ReactNode }) {
 export default function TVPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [data, setData] = useState<TVData | null>(null);
+  const [origin, setOrigin] = useState<string>("");
 
   const fetchData = () => {
     fetch("/api/tv")
@@ -1441,6 +1442,12 @@ export default function TVPage() {
       .then((d: TVData) => setData(d))
       .catch(() => {});
   };
+
+  useEffect(() => {
+    setOrigin(
+      process.env.NEXT_PUBLIC_APP_URL ?? (typeof window !== "undefined" ? window.location.origin : "")
+    );
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -1482,8 +1489,17 @@ export default function TVPage() {
           </div>
           <div className="w-px h-8 sm:h-10 bg-canal-gray-light" />
           <div className="flex flex-col items-center gap-1">
-            <QrCode size={28} className="text-canal-gray-muted sm:hidden" />
-            <QrCode size={40} className="text-canal-gray-muted hidden sm:block" />
+            {origin ? (
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=4&data=${encodeURIComponent(origin)}`}
+                alt="QR code vers l'application Canal Cup"
+                width={56}
+                height={56}
+                className="rounded-md bg-white p-1 w-10 h-10 sm:w-14 sm:h-14"
+              />
+            ) : (
+              <QrCode size={40} className="text-canal-gray-muted" />
+            )}
             <p className="text-xs text-canal-gray-muted">Scannez</p>
           </div>
         </div>
