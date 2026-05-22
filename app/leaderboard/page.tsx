@@ -1,13 +1,18 @@
 import Link from "next/link";
 import { getLeaderboard } from "@/lib/data/teams";
+import { getServiceLeaderboard } from "@/lib/data/users";
 import { computeMedals } from "@/lib/data/medals";
 import { LeaderboardTable } from "@/components/leaderboard/LeaderboardTable";
-import { Trophy } from "lucide-react";
+import { Trophy, Building2 } from "lucide-react";
 
 export const revalidate = 60;
 
 export default async function LeaderboardPage() {
-  const [rows, medals] = await Promise.all([getLeaderboard(), computeMedals()]);
+  const [rows, medals, serviceRows] = await Promise.all([
+    getLeaderboard(),
+    computeMedals(),
+    getServiceLeaderboard(),
+  ]);
   const sorted = [...rows].sort((a, b) => b.total - a.total);
 
   return (
@@ -39,6 +44,46 @@ export default async function LeaderboardPage() {
       </div>
 
       <LeaderboardTable rows={sorted} />
+
+      {serviceRows.length > 0 && (
+        <div>
+          <h2 className="canal-headline text-xl mb-1 flex items-center gap-2">
+            <Building2 size={18} />Classement par service
+          </h2>
+          <p className="text-canal-gray-muted text-xs mb-4">
+            Moyenne de points par personne — comparaison équitable entre services
+            de tailles différentes
+          </p>
+          <div className="space-y-2">
+            {serviceRows.map((row) => (
+              <div
+                key={row.service.id}
+                className={`canal-card flex items-center ${
+                  row.rank === 1 ? "border border-canal-yellow/30" : ""
+                }`}
+              >
+                <div className="w-8 text-center font-black text-lg flex-shrink-0">
+                  {row.rank === 1 ? "🥇" : row.rank === 2 ? "🥈" : row.rank === 3 ? "🥉" : row.rank}
+                </div>
+                <div className="flex-1 min-w-0 ml-1">
+                  <p className="font-bold text-white truncate text-sm">{row.service.name}</p>
+                  <p className="text-xs text-canal-gray-muted">
+                    {row.members} pers. · {row.total} pts au total
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="font-black text-canal-yellow text-lg tabular-nums">{row.average}</p>
+                  <p className="text-[11px] text-canal-gray-muted">pts / pers.</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-canal-gray-muted px-1 pt-2">
+            Basé sur les points individuels (pronostics, bonus, quiz, animations).
+            Le babyfoot (score d&apos;équipe) et les votes ne sont pas comptés ici.
+          </p>
+        </div>
+      )}
 
       <div className="canal-card">
         <p className="text-canal-yellow font-bold text-sm mb-3 flex items-center gap-2">

@@ -427,26 +427,47 @@ function SlideDuel({ leaderboard }: { leaderboard: LeaderboardRow[] }) {
 // ─── Slide: Classement ───────────────────────────────────────────────────────
 
 function SlideClassement({ leaderboard }: { leaderboard: LeaderboardRow[] }) {
-  const sorted = [...leaderboard].sort((a, b) => b.total - a.total).slice(0, 3);
+  // Toutes les équipes (plus de cap à 3). On adapte la taille des lignes au
+  // nombre d'équipes pour rester lisible sans déborder de l'écran salon :
+  // ≤3 = grand, 4-6 = moyen, >6 = compact (+ scroll de sécurité).
+  const sorted = [...leaderboard].sort((a, b) => b.total - a.total);
+  const dense = sorted.length > 6;
+  const medium = sorted.length > 3 && !dense;
+  const nameSize = dense
+    ? "text-base sm:text-xl lg:text-2xl"
+    : medium
+    ? "text-lg sm:text-2xl lg:text-3xl"
+    : "text-lg sm:text-3xl lg:text-4xl";
+  const ptsSize = dense
+    ? "text-xl sm:text-3xl lg:text-4xl"
+    : medium
+    ? "text-2xl sm:text-4xl lg:text-5xl"
+    : "text-2xl sm:text-5xl lg:text-6xl";
+  const rankSize = dense ? "text-xl sm:text-3xl" : "text-2xl sm:text-5xl";
+  const rowGap = dense ? "space-y-2 sm:space-y-2.5" : medium ? "space-y-2 sm:space-y-4" : "space-y-3 sm:space-y-6";
   return (
     <div className="flex flex-col h-full justify-center px-4 sm:px-8 lg:px-20 py-6 sm:py-12">
-      <div className="mb-4 sm:mb-8">
+      <div className="mb-3 sm:mb-6 shrink-0">
         <p className="text-canal-yellow font-black text-xl sm:text-2xl uppercase tracking-widest mb-2">
           Classement Général
         </p>
         <div className="h-1 w-32 bg-canal-yellow" />
       </div>
-      <div className="space-y-3 sm:space-y-6">
+      <div className={`${rowGap} overflow-y-auto`}>
         {sorted.map((row, i) => (
           <div key={row.team.id} className="flex items-center gap-3 sm:gap-8">
-            <span className="text-2xl sm:text-5xl w-8 sm:w-16 shrink-0">{i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉"}</span>
+            <span className={`${rankSize} w-8 sm:w-16 shrink-0 text-center font-black ${i > 2 ? "text-canal-gray-muted" : ""}`}>
+              {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}
+            </span>
             <div className="flex-1 min-w-0">
-              <p className="font-black text-lg sm:text-3xl lg:text-4xl text-white truncate">{row.team.name}</p>
-              <p className="text-canal-gray-muted text-xs sm:text-xl italic truncate">{row.team.slogan}</p>
+              <p className={`font-black ${nameSize} text-white truncate`}>{row.team.name}</p>
+              {!dense && (
+                <p className="text-canal-gray-muted text-xs sm:text-xl italic truncate">{row.team.slogan}</p>
+              )}
             </div>
             <div className="text-right shrink-0">
-              <p className="font-black text-2xl sm:text-5xl lg:text-6xl text-canal-yellow">{row.total}</p>
-              <p className="text-canal-gray-muted text-xs sm:text-xl">points</p>
+              <p className={`font-black ${ptsSize} text-canal-yellow`}>{row.total}</p>
+              {!dense && <p className="text-canal-gray-muted text-xs sm:text-xl">points</p>}
             </div>
           </div>
         ))}
