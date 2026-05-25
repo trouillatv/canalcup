@@ -56,10 +56,10 @@ export function FloatingFeedback() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-20 right-4 z-40 flex items-center gap-2 px-4 py-3 rounded-full bg-canal-yellow text-canal-black font-black text-sm shadow-lg shadow-black/40 hover:bg-canal-yellow-hover transition-colors safe-bottom"
+          className="fixed bottom-20 right-3 z-40 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-canal-yellow/90 text-canal-black font-bold text-xs shadow-md shadow-black/30 hover:bg-canal-yellow transition-colors safe-bottom"
           aria-label="Envoyer un feedback"
         >
-          <MessageSquarePlus size={18} />
+          <MessageSquarePlus size={14} />
           Un souci ?
         </button>
       )}
