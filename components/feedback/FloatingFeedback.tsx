@@ -60,7 +60,7 @@ export function FloatingFeedback() {
           aria-label="Un souci ? Envoyer un feedback"
           title="Un souci ? Envoie-nous un feedback"
         >
-          <MessageSquarePlus size={16} />
+          <span className="text-base leading-none">💬</span>
         </button>
       )}
 
