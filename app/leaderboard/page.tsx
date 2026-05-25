@@ -1,25 +1,28 @@
 import Link from "next/link";
-import { getLeaderboard } from "@/lib/data/teams";
+import { getLeaderboard, getIndividualLeaderboard } from "@/lib/data/teams";
 import { getServiceLeaderboard } from "@/lib/data/users";
 import { computeMedals } from "@/lib/data/medals";
 import { LeaderboardTable } from "@/components/leaderboard/LeaderboardTable";
-import { Trophy, Building2 } from "lucide-react";
+import { Trophy, Building2, User } from "lucide-react";
 
 export const revalidate = 60;
 
 export default async function LeaderboardPage() {
-  const [rows, medals, serviceRows] = await Promise.all([
+  const [rows, medals, serviceRows, individualRows] = await Promise.all([
     getLeaderboard(),
     computeMedals(),
     getServiceLeaderboard(),
+    getIndividualLeaderboard(),
   ]);
   const sorted = [...rows].sort((a, b) => b.total - a.total);
 
   return (
     <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto">
       <div>
-        <h1 className="canal-headline text-2xl">Classement général</h1>
-        <p className="text-canal-gray-muted text-sm mt-1">Mis à jour après chaque match</p>
+        <h1 className="canal-headline text-2xl">Classement par binôme</h1>
+        <p className="text-canal-gray-muted text-sm mt-1">
+          Babyfoot + animations. Classement individuel plus bas.
+        </p>
       </div>
 
       <div className="flex items-end justify-center gap-3 h-32">
@@ -44,6 +47,42 @@ export default async function LeaderboardPage() {
       </div>
 
       <LeaderboardTable rows={sorted} />
+
+      {/* Classement individuel — tout compte (pronos + quiz perso + babyfoot +
+          animations du binôme, crédités aux 2 membres). */}
+      {individualRows.length > 0 && (
+        <div>
+          <h2 className="canal-headline text-xl mb-1 flex items-center gap-2">
+            <User size={18} />Classement individuel
+          </h2>
+          <p className="text-canal-gray-muted text-xs mb-4">
+            Score perso : pronos + quiz + babyfoot + animations de ton binôme.
+          </p>
+          <div className="space-y-2">
+            {individualRows.map((r) => (
+              <div
+                key={r.user_id}
+                className={`canal-card flex items-center ${r.rank === 1 ? "border border-canal-yellow/30" : ""}`}
+              >
+                <div className="w-8 text-center font-black text-lg flex-shrink-0">
+                  {r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : r.rank}
+                </div>
+                <div className="flex-1 min-w-0 ml-1">
+                  <p className="font-bold text-white truncate text-sm">{r.display_name}</p>
+                  <p className="text-[11px] text-canal-gray-muted truncate">
+                    {r.team_name ?? "Sans binôme"}
+                    <span className="text-canal-gray-muted/70"> · 🎯{r.pronos} 🧠{r.quiz} ⚽{r.babyfoot} 🎉{r.animations}</span>
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="font-black text-canal-yellow text-lg tabular-nums">{r.total}</p>
+                  <p className="text-[10px] text-canal-gray-muted">points</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {serviceRows.length > 0 && (
         <div>

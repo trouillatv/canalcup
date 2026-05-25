@@ -258,3 +258,81 @@ export async function getLeaderboard(): Promise<LeaderboardRow[]> {
     return MOCK_LEADERBOARD;
   }
 }
+
+// ─── Classement INDIVIDUEL ─────────────────────────────────────────────────────
+// En plus du classement par binôme, on classe les PERSONNES. Score perso (même
+// pondération %) = pronos + quiz PROPRES au joueur + babyfoot + animations de
+// son binôme (faits à deux → crédités aux 2 membres). Pronos/quiz sont donc
+// individuels ici, baby/anim partagés par le binôme.
+
+export interface IndividualRow {
+  user_id: string;
+  display_name: string | null;
+  team_name: string | null;
+  pronos: number; // pondéré (perso)
+  quiz: number; // pondéré (perso)
+  babyfoot: number; // pondéré (binôme, crédité aux 2)
+  animations: number; // pondéré (binôme, crédité aux 2)
+  total: number;
+  rank: number;
+}
+
+export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
+  try {
+    const supabase = await createClient();
+    const [
+      { data: users },
+      { data: teams },
+      { data: preds },
+      { data: bonuses },
+      { data: quizzes },
+    ] = await Promise.all([
+      supabase.from("users").select("id, display_name, name, team_id"),
+      supabase.from("teams").select("id, name"),
+      supabase.from("predictions").select("user_id, points_awarded"),
+      supabase.from("bonus_predictions").select("user_id, points_awarded"),
+      supabase.from("quiz_answers").select("user_id, points_awarded"),
+    ]);
+    if (!users?.length) return [];
+
+    const teamName = new Map((teams ?? []).map((t: { id: string; name: string }) => [t.id, t.name]));
+    // Réutilise le calcul d'équipe pour babyRaw / animRaw par binôme.
+    const teamAgg = await computeTeamScores(supabase, (teams ?? []).map((t: { id: string }) => t.id));
+
+    type PtRow = { user_id: string | null; points_awarded: number | null };
+    const pronosRaw = new Map<string, number>();
+    const quizRaw = new Map<string, number>();
+    const add = (m: Map<string, number>, id: string | null, n: number | null) => {
+      if (!id) return;
+      m.set(id, (m.get(id) ?? 0) + (n ?? 0));
+    };
+    for (const r of (preds ?? []) as PtRow[]) add(pronosRaw, r.user_id, r.points_awarded);
+    for (const r of (bonuses ?? []) as PtRow[]) add(pronosRaw, r.user_id, r.points_awarded);
+    for (const r of (quizzes ?? []) as PtRow[]) add(quizRaw, r.user_id, r.points_awarded);
+
+    type URow = { id: string; display_name: string | null; name: string | null; team_id: string | null };
+    const rows: IndividualRow[] = (users as URow[])
+      .map((u) => {
+        const tb = u.team_id ? teamAgg.get(u.team_id) : undefined;
+        const pronos = weightedContribution("pronostics", pronosRaw.get(u.id) ?? 0);
+        const quiz = weightedContribution("quiz", quizRaw.get(u.id) ?? 0);
+        const babyfoot = weightedContribution("babyfoot", tb?.babyRaw ?? 0);
+        const animations = weightedContribution("animations", tb?.animRaw ?? 0);
+        return {
+          user_id: u.id,
+          display_name: u.display_name ?? u.name ?? null,
+          team_name: u.team_id ? teamName.get(u.team_id) ?? null : null,
+          pronos, quiz, babyfoot, animations,
+          total: pronos + quiz + babyfoot + animations,
+          rank: 0,
+        };
+      })
+      .filter((r) => r.display_name); // joueurs identifiés
+
+    rows.sort((a, b) => b.total - a.total);
+    rows.forEach((r, i) => (r.rank = i + 1));
+    return rows;
+  } catch {
+    return [];
+  }
+}
