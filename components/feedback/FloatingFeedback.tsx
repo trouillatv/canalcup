@@ -56,7 +56,7 @@ export function FloatingFeedback() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-20 right-3 z-40 flex items-center justify-center w-9 h-9 rounded-full bg-canal-yellow/90 text-canal-black shadow-md shadow-black/30 hover:bg-canal-yellow transition-colors safe-bottom"
+          className="fixed bottom-24 right-3 z-40 flex items-center justify-center w-9 h-9 rounded-full bg-canal-yellow/90 text-canal-black shadow-md shadow-black/30 hover:bg-canal-yellow transition-colors"
           aria-label="Un souci ? Envoyer un feedback"
           title="Un souci ? Envoie-nous un feedback"
         >
