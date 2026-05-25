@@ -7,10 +7,9 @@ interface LeaderboardTableProps {
   compact?: boolean;
 }
 
-// Colonnes = contributions PONDÉRÉES (leur somme = Total, zéro confusion).
-// Brut visible au survol (title) ; détail complet sur la fiche équipe
-// (la ligne est un lien vers /teams/[id] → ScoreBreakdown). Votes exclus
-// (métrique sociale, affichée séparément ailleurs).
+// Modèle POINTS BRUTS : colonnes Baby + Anim = points bruts, leur somme =
+// Total. Pronostics et quiz sont PERSONNELS (hors score d'équipe) ; votes =
+// social. Détail complet sur la fiche équipe (lien /teams/[id]).
 export function LeaderboardTable({ rows, compact }: LeaderboardTableProps) {
   return (
     <div className="space-y-2">
@@ -18,10 +17,8 @@ export function LeaderboardTable({ rows, compact }: LeaderboardTableProps) {
         <div className="flex text-xs text-canal-gray-muted px-4 py-1">
           <span className="w-8" />
           <span className="flex-1">Équipe</span>
-          <span className="w-11 text-right" title="Pronostics (predictions + bonus), pondéré 35%">Pronos</span>
-          <span className="w-11 text-right" title="Quiz, pondéré 20%">Quiz</span>
-          <span className="w-11 text-right" title="Babyfoot, pondéré 20%">Baby</span>
-          <span className="w-11 text-right" title="Animations / défis / photos, pondéré 25%">Anim</span>
+          <span className="w-12 text-right" title="Babyfoot — points bruts">Baby</span>
+          <span className="w-12 text-right" title="Animations / défis RSE — points bruts">Anim</span>
           <span className="w-14 text-right font-bold text-canal-yellow">Total</span>
         </div>
       )}
@@ -57,29 +54,11 @@ export function LeaderboardTable({ rows, compact }: LeaderboardTableProps) {
 
             {!compact && (
               <>
-                <span
-                  className="w-11 text-right text-sm text-white tabular-nums"
-                  title={`${row.points_predictions + row.points_bonus} pts bruts`}
-                >
-                  {row.weighted.pronostics}
+                <span className="w-12 text-right text-sm text-white tabular-nums">
+                  {row.points_babyfoot}
                 </span>
-                <span
-                  className="w-11 text-right text-sm text-white tabular-nums"
-                  title={`${row.points_quiz} pts bruts`}
-                >
-                  {row.weighted.quiz}
-                </span>
-                <span
-                  className="w-11 text-right text-sm text-white tabular-nums"
-                  title={`${row.points_babyfoot} pts bruts`}
-                >
-                  {row.weighted.babyfoot}
-                </span>
-                <span
-                  className="w-11 text-right text-sm text-white tabular-nums"
-                  title={`${row.points_animations} pts bruts`}
-                >
-                  {row.weighted.animations}
+                <span className="w-12 text-right text-sm text-white tabular-nums">
+                  {row.points_animations}
                 </span>
               </>
             )}
@@ -93,8 +72,8 @@ export function LeaderboardTable({ rows, compact }: LeaderboardTableProps) {
 
       {!compact && (
         <p className="text-[11px] text-canal-gray-muted px-4 pt-1">
-          Colonnes = points pondérés (somme = Total). Survol/fiche équipe pour
-          le détail brut. Les votes (social) ne comptent pas au classement.
+          Score d&apos;équipe = babyfoot + animations (points bruts). Pronostics
+          et quiz sont personnels (hors classement d&apos;équipe). Votes = social.
         </p>
       )}
     </div>

@@ -86,21 +86,33 @@ export default async function LeaderboardPage() {
       )}
 
       <div className="canal-card">
-        <p className="text-canal-yellow font-bold text-sm mb-3 flex items-center gap-2">
+        <p className="text-canal-yellow font-bold text-sm mb-1 flex items-center gap-2">
           <Trophy size={14} />Système de points
+        </p>
+        <p className="text-canal-gray-muted text-xs mb-3">
+          Le classement d&apos;équipe ne compte que le <span className="text-white font-bold">babyfoot</span> et les{" "}
+          <span className="text-white font-bold">animations</span> (points bruts). Pronostics et quiz sont personnels.
         </p>
         <div className="space-y-1.5 text-sm">
           {[
-            { label: "Pronostic correct (victoire/nul)", pts: "+5 pts" },
-            { label: "Score exact", pts: "+10 pts" },
-            { label: "Quiz rapide (< 5s)", pts: "+5 pts" },
-            { label: "Quiz correct", pts: "+3 pts" },
-            { label: "Victoire babyfoot", pts: "+10 pts" },
-            { label: "Vote reçu sur Revivez", pts: "+1 pt" },
-          ].map(({ label, pts }) => (
-            <div key={label} className="flex justify-between">
-              <span className="text-canal-gray-muted">{label}</span>
-              <span className="text-canal-yellow font-bold">{pts}</span>
+            { label: "Victoire babyfoot", pts: "+10 pts", tag: "équipe" },
+            { label: "Animation / défi RSE", pts: "≥ 5 pts", tag: "équipe" },
+            { label: "Pronostic correct (V/N/D)", pts: "+5 pts", tag: "perso" },
+            { label: "Score exact", pts: "+10 pts", tag: "perso" },
+            { label: "Quiz rapide (< 5s)", pts: "+5 pts", tag: "perso" },
+            { label: "Quiz correct", pts: "+3 pts", tag: "perso" },
+            { label: "Vote reçu sur Revivez", pts: "+1 pt", tag: "social" },
+          ].map(({ label, pts, tag }) => (
+            <div key={label} className="flex justify-between items-center gap-2">
+              <span className="text-canal-gray-muted flex items-center gap-2">
+                {label}
+                <span className={`text-[9px] uppercase tracking-wider px-1 py-0.5 rounded ${
+                  tag === "équipe" ? "bg-canal-yellow/20 text-canal-yellow"
+                  : tag === "perso" ? "bg-canal-gray-mid text-canal-gray-muted"
+                  : "bg-canal-gray-mid text-canal-gray-muted"
+                }`}>{tag}</span>
+              </span>
+              <span className="text-canal-yellow font-bold whitespace-nowrap">{pts}</span>
             </div>
           ))}
         </div>

@@ -116,10 +116,10 @@ export default async function ProfilePage() {
           <Sparkles size={14} /> Pronostics personnels
         </h2>
         <p className="text-xs text-canal-gray-muted leading-relaxed">
-          Tes pronostics sont <span className="text-white font-bold">à toi</span>{" "}
-          — pas de groupe au-dessus. Tes points pronos alimentent ton équipe Canal
-          Cup, mais tes stats perso (séries, scores exacts) restent
-          individuelles.
+          Tes pronostics sont <span className="text-white font-bold">100 % perso</span>.
+          Ils ne comptent <span className="text-white font-bold">pas</span> pour ton
+          équipe — c&apos;est ton score à toi (séries, scores exacts). Le classement
+          d&apos;équipe se joue sur le babyfoot et les animations.
         </p>
       </section>
 

@@ -4,7 +4,6 @@ import type {
   BabyFootMatch, QuizQuestion, InboxEvent, LeaderboardRow, PredictionTrend,
   Challenge, ChallengeEntry
 } from "./supabase/types";
-import { weightedContribution } from "./scoring/config";
 
 export const MOCK_TEAMS: Team[] = [
   {
@@ -255,18 +254,14 @@ function mockRow(
   team: Team, rank: number,
   pred: number, bonus: number, quiz: number, baby: number, anim: number, votes: number
 ): LeaderboardRow {
-  const weighted = {
-    pronostics: weightedContribution("pronostics", pred + bonus),
-    quiz: weightedContribution("quiz", quiz),
-    babyfoot: weightedContribution("babyfoot", baby),
-    animations: weightedContribution("animations", anim),
-  };
+  // Modèle points bruts : score équipe = babyfoot + animations. Pronos/quiz perso.
+  const weighted = { pronostics: 0, quiz: 0, babyfoot: baby, animations: anim };
   return {
     team, rank,
     points_predictions: pred, points_bonus: bonus, points_quiz: quiz,
     points_babyfoot: baby, points_animations: anim, points_votes: votes,
     weighted,
-    total: weighted.pronostics + weighted.quiz + weighted.babyfoot + weighted.animations,
+    total: baby + anim,
   };
 }
 

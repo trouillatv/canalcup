@@ -1,12 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { MOCK_TEAMS, MOCK_LEADERBOARD } from "@/lib/mock-data";
 import type { Team, LeaderboardRow } from "@/lib/supabase/types";
-import {
-  SCORE_EVENT_CATEGORIES_IN_TOTAL,
-  weightedContribution,
-  mergeScoringConfig,
-  type ScoringConfigOverride,
-} from "@/lib/scoring/config";
+import { SCORE_EVENT_CATEGORIES_IN_TOTAL } from "@/lib/scoring/config";
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  SOURCE UNIQUE DE VÉRITÉ DU SCORE ÉQUIPE
@@ -67,13 +62,8 @@ type DbClient = any;
  */
 export async function computeTeamScores(
   supabase: DbClient,
-  teamIds: string[],
-  // Override = preview/dry-run admin UNIQUEMENT (config en mémoire). Les
-  // appelants officiels (getLeaderboard/getTeams/...) n'en passent pas →
-  // config par défaut. Ne modifie JAMAIS la base.
-  configOverride?: ScoringConfigOverride
+  teamIds: string[]
 ): Promise<Map<string, TeamBreakdown>> {
-  const cfg = mergeScoringConfig(configOverride);
   const [
     { data: predPoints },
     { data: bonusPoints },
@@ -148,17 +138,17 @@ export async function computeTeamScores(
       .filter((e) => e.team_id === id && e.category != null && allowed.has(e.category))
       .reduce((s, e) => s + (e.raw_points ?? 0), 0);
 
-    // Pondération (config unique). Pilier pronostics = predictions + bonus.
+    // MODÈLE POINTS BRUTS (2026-05) : le score d'ÉQUIPE = activités par binôme,
+    // à leur valeur brute (1 pt gagné = 1 pt équipe). Seuls babyfoot +
+    // animations/défis RSE comptent. Pronostics et quiz sont PERSONNELS
+    // (hors score équipe) ; votes = social (déjà hors total).
     const weighted = {
-      pronostics: weightedContribution("pronostics", predRaw + bonusRaw, cfg),
-      quiz: weightedContribution("quiz", quizRaw, cfg),
-      babyfoot: weightedContribution("babyfoot", babyRaw, cfg),
-      animations: weightedContribution("animations", animRaw, cfg),
+      pronostics: 0, // perso — hors score équipe
+      quiz: 0, // perso — hors score équipe
+      babyfoot: babyRaw,
+      animations: animRaw,
     };
-    // total = somme des contributions ARRONDIES → les colonnes du
-    // classement s'additionnent exactement au total (zéro confusion).
-    const total =
-      weighted.pronostics + weighted.quiz + weighted.babyfoot + weighted.animations;
+    const total = babyRaw + animRaw;
 
     map.set(id, {
       predRaw,
