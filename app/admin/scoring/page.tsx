@@ -1,9 +1,9 @@
 // /admin/scoring — vue (lecture seule) du score d'équipe.
 //
-// MODÈLE POINTS BRUTS (2026-05) : le score d'équipe = babyfoot + animations,
-// à leur valeur brute. Pronostics et quiz sont PERSONNELS (hors score équipe),
-// votes = social. Il n'y a plus de pondération à calibrer (l'ancien dry-run de
-// poids est supprimé). Cette page sert juste à vérifier les totaux courants.
+// Pondération d'origine (pronos 35 / quiz 20 / baby 20 / anim 25 %). RÈGLE :
+// le score d'ÉQUIPE = babyfoot + animations (pondérés). Pronostics et quiz sont
+// INDIVIDUELS (hors score équipe), votes = social. Vue lecture seule des totaux
+// courants (l'ancien dry-run de calibration des poids n'est plus exposé).
 //
 // Protégée par app/admin/layout.tsx → requireRole("admin").
 
@@ -24,12 +24,12 @@ export default async function AdminScoringPage() {
       return {
         id: t.id,
         name: t.name as string,
-        babyfoot: b?.babyRaw ?? 0,
-        animations: b?.animRaw ?? 0,
+        babyfoot: b?.weighted.babyfoot ?? 0,
+        animations: b?.weighted.animations ?? 0,
         total: b?.total ?? 0,
-        // indicatif (perso, hors score équipe)
-        pronos: (b?.predRaw ?? 0) + (b?.bonusRaw ?? 0),
-        quiz: b?.quizRaw ?? 0,
+        // indicatif (individuel, hors score équipe) — pondéré
+        pronos: b?.weighted.pronostics ?? 0,
+        quiz: b?.weighted.quiz ?? 0,
       };
     })
     .sort((a, b) => b.total - a.total);
@@ -39,8 +39,8 @@ export default async function AdminScoringPage() {
       <div>
         <h1 className="canal-headline text-2xl">Score d&apos;équipe</h1>
         <p className="text-canal-gray-muted text-sm mt-1">
-          Modèle points bruts : <span className="text-white font-bold">babyfoot + animations</span>.
-          Pronostics et quiz sont personnels (hors score d&apos;équipe).
+          Score d&apos;équipe (pondéré) = <span className="text-white font-bold">babyfoot + animations</span>.
+          Pronostics et quiz sont individuels (hors score d&apos;équipe).
         </p>
       </div>
 

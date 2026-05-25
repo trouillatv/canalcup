@@ -91,7 +91,7 @@ export default async function LeaderboardPage() {
         </p>
         <p className="text-canal-gray-muted text-xs mb-3">
           Le classement d&apos;équipe ne compte que le <span className="text-white font-bold">babyfoot</span> et les{" "}
-          <span className="text-white font-bold">animations</span> (points bruts). Pronostics et quiz sont personnels.
+          <span className="text-white font-bold">animations</span> (pondérés). Pronostics et quiz sont individuels.
         </p>
         <div className="space-y-1.5 text-sm">
           {[

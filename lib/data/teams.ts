@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { MOCK_TEAMS, MOCK_LEADERBOARD } from "@/lib/mock-data";
 import type { Team, LeaderboardRow } from "@/lib/supabase/types";
-import { SCORE_EVENT_CATEGORIES_IN_TOTAL } from "@/lib/scoring/config";
+import { SCORE_EVENT_CATEGORIES_IN_TOTAL, weightedContribution } from "@/lib/scoring/config";
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  SOURCE UNIQUE DE VÉRITÉ DU SCORE ÉQUIPE
@@ -138,17 +138,17 @@ export async function computeTeamScores(
       .filter((e) => e.team_id === id && e.category != null && allowed.has(e.category))
       .reduce((s, e) => s + (e.raw_points ?? 0), 0);
 
-    // MODÈLE POINTS BRUTS (2026-05) : le score d'ÉQUIPE = activités par binôme,
-    // à leur valeur brute (1 pt gagné = 1 pt équipe). Seuls babyfoot +
-    // animations/défis RSE comptent. Pronostics et quiz sont PERSONNELS
-    // (hors score équipe) ; votes = social (déjà hors total).
+    // Pondération d'origine (pronos 35 / quiz 20 / baby 20 / anim 25 %).
+    // RÈGLE (2026-05) : pronos + quiz = INDIVIDUELS → calculés (stats perso)
+    // mais EXCLUS du total d'ÉQUIPE. Le score du binôme = babyfoot + animations
+    // pondérés. Votes = social (hors total).
     const weighted = {
-      pronostics: 0, // perso — hors score équipe
-      quiz: 0, // perso — hors score équipe
-      babyfoot: babyRaw,
-      animations: animRaw,
+      pronostics: weightedContribution("pronostics", predRaw + bonusRaw),
+      quiz: weightedContribution("quiz", quizRaw),
+      babyfoot: weightedContribution("babyfoot", babyRaw),
+      animations: weightedContribution("animations", animRaw),
     };
-    const total = babyRaw + animRaw;
+    const total = weighted.babyfoot + weighted.animations;
 
     map.set(id, {
       predRaw,
