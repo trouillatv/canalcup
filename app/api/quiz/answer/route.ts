@@ -100,10 +100,8 @@ export async function POST(req: Request) {
     const is_correct = !isTimeoutAnswer && answer === question.correct_answer;
     const points = timedOut || tooFast ? 0 : quizPoints(is_correct, response_time_ms);
 
-    // Joueur sans équipe : on le laisse jouer mais rien n'est compté au classement.
-    if (!profile.team_id) {
-      return NextResponse.json({ ok: true, persisted: false, is_correct, points });
-    }
+    // Quiz = individuel : on persiste même sans équipe (team_id null). Le score
+    // compte au classement individuel, sans créditer d'équipe.
 
     // Anti-farming : si la question a déjà été répondue, on ne réinsère rien.
     const { count: existing } = await supabase
@@ -123,7 +121,7 @@ export async function POST(req: Request) {
 
     await supabase.from("quiz_answers").insert({
       user_id: profile.id,
-      team_id: profile.team_id,
+      team_id: profile.team_id ?? null,
       question_id,
       answer,
       is_correct,

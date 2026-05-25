@@ -8,7 +8,6 @@ import { BreakingNews } from "@/components/matches/BreakingNews";
 import { getMatches, getPredictionTrends } from "@/lib/data/matches";
 import { createClient } from "@/lib/supabase/server";
 import { Star, Trophy } from "lucide-react";
-import { NoTeamCTA } from "@/components/teams/NoTeamCTA";
 
 // Données live + pronostics par utilisateur → toujours frais.
 export const dynamic = "force-dynamic";
@@ -86,8 +85,6 @@ export default async function MatchesPage() {
             </Link>
           </div>
         </div>
-
-        <NoTeamCTA action="pronostiquer sur les matchs" />
 
         {live.length > 0 && (
           <section>

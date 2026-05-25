@@ -21,12 +21,8 @@ export async function POST(req: Request) {
     .eq("auth_id", user.id)
     .single();
   if (!profile) return NextResponse.json({ error: "Profil introuvable" }, { status: 404 });
-  if (!profile.team_id) {
-    return NextResponse.json(
-      { error: "Tu n'as pas encore d'équipe — rejoins une équipe pour pouvoir pronostiquer." },
-      { status: 400 }
-    );
-  }
+  // Pronos = individuels : on accepte même sans équipe (team_id null). Le prono
+  // compte alors au classement individuel, sans créditer d'équipe.
 
   // Get match to validate timing and maybe calculate points immediately
   const { data: match } = await supabase.from("matches").select("*").eq("id", match_id).single();
@@ -55,7 +51,7 @@ export async function POST(req: Request) {
     .upsert(
       {
         user_id: profile.id,
-        team_id: profile.team_id,
+        team_id: profile.team_id ?? null,
         match_id,
         prediction_result,
         predicted_score_a: scoreA,

@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Trophy, Star, Zap, ArrowLeft, Target, CheckCircle, Clock } from "lucide-react";
+import { Trophy, Star, Zap, ArrowLeft, Target, Clock } from "lucide-react";
 import { scoreLabel } from "@/lib/scoring";
 import { teamFlag, toNCDate } from "@/lib/utils";
-import { NoTeamCTA } from "@/components/teams/NoTeamCTA";
 
 const WC_TEAMS = [
   "México","Afrique du Sud","Corée du Sud","République Tchèque","Canada","Bosnie-Herzégovine",
@@ -120,8 +119,6 @@ export default function PredictionsPage() {
           <p className="text-canal-gray-muted text-sm">Historique et bonus spéciaux</p>
         </div>
       </div>
-
-      <NoTeamCTA action="pronostiquer" />
 
       {/* Summary stats */}
       {stats && (

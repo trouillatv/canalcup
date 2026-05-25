@@ -33,17 +33,12 @@ export async function POST(req: Request) {
     .eq("auth_id", user.id)
     .single();
   if (!profile) return NextResponse.json({ error: "Profil introuvable" }, { status: 404 });
-  if (!profile.team_id) {
-    return NextResponse.json(
-      { error: "Tu n'as pas encore d'équipe — rejoins une équipe pour pouvoir pronostiquer." },
-      { status: 400 }
-    );
-  }
+  // Bonus de prono = individuels : acceptés même sans équipe (team_id null).
 
   const { data, error } = await supabase
     .from("bonus_predictions")
     .upsert(
-      { user_id: profile.id, team_id: profile.team_id, prediction_type, predicted_value, points_awarded: 0 },
+      { user_id: profile.id, team_id: profile.team_id ?? null, prediction_type, predicted_value, points_awarded: 0 },
       { onConflict: "user_id,prediction_type" }
     )
     .select()
