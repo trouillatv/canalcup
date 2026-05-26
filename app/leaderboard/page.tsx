@@ -3,6 +3,7 @@ import { getLeaderboard, getIndividualLeaderboard } from "@/lib/data/teams";
 import { getServiceLeaderboard } from "@/lib/data/users";
 import { computeMedals } from "@/lib/data/medals";
 import { LeaderboardTable } from "@/components/leaderboard/LeaderboardTable";
+import { weightPct } from "@/lib/scoring/config";
 import { Trophy, Building2, User } from "lucide-react";
 
 export const revalidate = 60;
@@ -154,6 +155,29 @@ export default async function LeaderboardPage() {
               <span className="text-canal-yellow font-bold whitespace-nowrap">{pts}</span>
             </div>
           ))}
+        </div>
+
+        {/* Rappel des pondérations par épreuve */}
+        <div className="mt-3 pt-3 border-t border-canal-gray-light">
+          <p className="text-canal-gray-muted text-[11px] uppercase tracking-wider font-bold mb-2">
+            Pondération des épreuves
+          </p>
+          <div className="grid grid-cols-2 gap-1.5 text-sm">
+            {[
+              { l: "🎯 Pronostics", p: `${weightPct("pronostics")}%` },
+              { l: "🧠 Quiz", p: `${weightPct("quiz")}%` },
+              { l: "⚽ Babyfoot", p: `${weightPct("babyfoot")}%` },
+              { l: "🎉 Animations", p: `${weightPct("animations")}%` },
+            ].map(({ l, p }) => (
+              <div key={l} className="flex justify-between bg-canal-gray-mid rounded-lg px-2.5 py-1.5">
+                <span className="text-canal-gray-muted">{l}</span>
+                <span className="text-canal-yellow font-bold">{p}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-canal-gray-muted mt-2 italic">
+            Pronos &amp; quiz : pondérés au classement individuel. Babyfoot &amp; animations : au classement par binôme.
+          </p>
         </div>
       </div>
 

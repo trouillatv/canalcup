@@ -10,6 +10,7 @@ import type { User } from "@supabase/supabase-js";
 
 const MENU_ITEMS = [
   { href: "/matches",    icon: Calendar,  label: "Matchs & Pronostics" },
+  { href: "/leaderboard", icon: Trophy,   label: "Classement" },
   { href: "/teams",      icon: Users,     label: "Équipes" },
   { href: "/babyfoot",   icon: Gamepad2,  label: "Babyfoot" },
   { href: "/animations", icon: PartyPopper, label: "Animations" },
