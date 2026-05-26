@@ -67,6 +67,29 @@ export function calculatePoints(
   return 0;
 }
 
+// Issue d'un pronostic — MÊME logique que calculatePoints (ordre des tiers
+// identique), pour la heatmap. NB : "correct_diff" est en pratique inatteignable
+// (une différence de buts égale implique le même résultat → capté par
+// correct_result), mais on le garde par fidélité au barème.
+export type PredictionOutcome = "exact" | "correct_result" | "correct_diff" | "wrong" | "pending";
+
+export function getPredictionOutcome(
+  pred: { predicted_score_a: number | null; predicted_score_b: number | null },
+  match: { status?: string | null; score_a: number | null; score_b: number | null } | null | undefined
+): PredictionOutcome {
+  const pa = pred.predicted_score_a;
+  const pb = pred.predicted_score_b;
+  if (!match || match.score_a == null || match.score_b == null) return "pending";
+  if (match.status && match.status !== "finished") return "pending";
+  if (pa == null || pb == null) return "pending";
+  const aa = match.score_a;
+  const ab = match.score_b;
+  if (pa === aa && pb === ab) return "exact";
+  if (getResult(pa, pb) === getResult(aa, ab)) return "correct_result";
+  if (pa - pb === aa - ab) return "correct_diff";
+  return "wrong";
+}
+
 // Quiz Live — barème : +5 si bonne réponse en moins de 5s, +3 sinon,
 // 0 si fausse réponse ou timeout. Source unique partagée client + serveur.
 // 20s par question (passé de 15 → 20 pour le live show, mai 2026).

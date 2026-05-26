@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getTeamById, getLeaderboard } from "@/lib/data/teams";
+import { getTeamPredictionHeatmap } from "@/lib/data/player";
 import { pointsBadge } from "@/lib/utils";
 import { ScoreBreakdown } from "@/components/scoring/ScoreBreakdown";
-import { Users, Star, Trophy } from "lucide-react";
+import { PredictionHeatmap } from "@/components/shared/PredictionHeatmap";
+import { Users, Star, Trophy, Grid3x3 } from "lucide-react";
 
 export const revalidate = 60;
 
@@ -15,10 +17,15 @@ const FOOTBALL_LEVEL_LABELS: Record<string, string> = {
 
 export default async function TeamDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [team, leaderboard] = await Promise.all([getTeamById(id), getLeaderboard()]);
+  const [team, leaderboard, heatRows] = await Promise.all([
+    getTeamById(id),
+    getLeaderboard(),
+    getTeamPredictionHeatmap(id),
+  ]);
   if (!team) notFound();
 
   const lbRow = leaderboard.find((r) => r.team.id === id);
+  const heatHasData = heatRows.some((r) => r.items.length > 0);
 
   return (
     <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto">
@@ -47,6 +54,17 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
           </h2>
           <div className="canal-card">
             <ScoreBreakdown row={lbRow} />
+          </div>
+        </section>
+      )}
+
+      {heatHasData && (
+        <section>
+          <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider mb-3">
+            <Grid3x3 size={14} className="inline mr-1" />Heatmap des pronostics
+          </h2>
+          <div className="canal-card">
+            <PredictionHeatmap mode="team" rows={heatRows} compact />
           </div>
         </section>
       )}

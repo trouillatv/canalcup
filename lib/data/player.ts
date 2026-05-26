@@ -9,7 +9,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getIndividualLeaderboard, getLeaderboard, computeTeamScores } from "@/lib/data/teams";
 import { getServiceLeaderboard } from "@/lib/data/users";
-import { getResult } from "@/lib/scoring";
+import { getPredictionOutcome, type PredictionOutcome } from "@/lib/scoring";
 
 export type PredStatus = "exact" | "correct" | "missed" | "pending";
 
@@ -50,6 +50,57 @@ export interface PlayerDashboard {
   babyfootStats: { teamName: string; wins: number } | null;
   animationStats: { participations: number; points: number };
   recentActivity: { type: string; emoji: string; label: string; created_at: string }[];
+  predictionHeatmap: { id: string; outcome: PredictionOutcome; predicted: string; actual: string | null; label: string; created_at: string }[];
+}
+
+// Heatmap collective d'une équipe : une ligne par membre, ses pronos sur les
+// matchs TERMINÉS (ordre chronologique). Voir qui porte les pronos / qui rate.
+export interface TeamHeatRow {
+  name: string;
+  items: { id: string; outcome: PredictionOutcome; predicted: string; actual: string | null; label: string }[];
+}
+
+export async function getTeamPredictionHeatmap(teamId: string): Promise<TeamHeatRow[]> {
+  const supabase = await createClient();
+  const [{ data: members }, { data: matches }] = await Promise.all([
+    supabase.from("users").select("id, display_name, name").eq("team_id", teamId),
+    supabase.from("matches").select("id, status, score_a, score_b, starts_at, team_a, team_b"),
+  ]);
+  if (!members?.length) return [];
+
+  type M = { id: string; status: string; score_a: number | null; score_b: number | null; starts_at: string; team_a: string; team_b: string };
+  const matchById = new Map((matches ?? []).map((m: M) => [m.id, m]));
+  const ids = members.map((m: { id: string }) => m.id);
+
+  const { data: preds } = await supabase
+    .from("predictions")
+    .select("id, user_id, match_id, predicted_score_a, predicted_score_b")
+    .in("user_id", ids);
+
+  type P = { id: string; user_id: string; match_id: string | null; predicted_score_a: number | null; predicted_score_b: number | null };
+  const byUser = new Map<string, P[]>();
+  for (const p of (preds ?? []) as P[]) {
+    if (!byUser.has(p.user_id)) byUser.set(p.user_id, []);
+    byUser.get(p.user_id)!.push(p);
+  }
+
+  return (members as { id: string; display_name: string | null; name: string | null }[]).map((mem) => {
+    const items = (byUser.get(mem.id) ?? [])
+      .map((p) => {
+        const m = p.match_id ? matchById.get(p.match_id) : undefined;
+        return { p, m, starts: m?.starts_at ?? "" };
+      })
+      .filter(({ m }) => m && m.status === "finished") // colonnes = matchs terminés
+      .sort((a, b) => (a.starts < b.starts ? -1 : 1))
+      .map(({ p, m }) => ({
+        id: p.id,
+        outcome: getPredictionOutcome(p, m ?? null),
+        predicted: p.predicted_score_a != null && p.predicted_score_b != null ? `${p.predicted_score_a}–${p.predicted_score_b}` : "—",
+        actual: m && m.score_a != null && m.score_b != null ? `${m.score_a}–${m.score_b}` : null,
+        label: m ? `${m.team_a} – ${m.team_b}` : "Match",
+      }));
+    return { name: mem.display_name ?? mem.name ?? "Joueur", items };
+  });
 }
 
 function initialsOf(name: string): string {
@@ -129,12 +180,11 @@ export async function getPlayerDashboard(userId: string): Promise<PlayerDashboar
   type P = { id: string; match_id: string | null; predicted_score_a: number | null; predicted_score_b: number | null; points_awarded: number | null; created_at: string };
   const predList = (preds ?? []) as P[];
 
+  // Même logique que le settlement (getPredictionOutcome) ; on replie les 5
+  // issues sur les 4 statuts d'affichage (correct_diff → correct).
   const classify = (p: P): PredStatus => {
-    const m = p.match_id ? matchById.get(p.match_id) : undefined;
-    if (!m || m.status !== "finished" || m.score_a == null || m.score_b == null) return "pending";
-    if (p.predicted_score_a === m.score_a && p.predicted_score_b === m.score_b) return "exact";
-    if (getResult(p.predicted_score_a ?? 0, p.predicted_score_b ?? 0) === getResult(m.score_a, m.score_b)) return "correct";
-    return "missed";
+    const o = getPredictionOutcome(p, p.match_id ? matchById.get(p.match_id) ?? null : null);
+    return o === "exact" ? "exact" : o === "wrong" ? "missed" : o === "pending" ? "pending" : "correct";
   };
 
   let exact = 0, correct = 0, missed = 0, pending = 0;
@@ -207,6 +257,22 @@ export async function getPlayerDashboard(userId: string): Promise<PlayerDashboar
   for (const e of entryList) activity.push({ type: "animation", emoji: "🎉", label: `Animation : ${e.challenge_id ? cTitle.get(e.challenge_id) ?? "" : ""}`.trim(), created_at: e.created_at });
   activity.sort((a, b) => (a.created_at > b.created_at ? -1 : 1));
 
+  // ─── Heatmap pronostics (ordre chronologique par date de match) ──────────────
+  const predictionHeatmap = predList
+    .map((p) => {
+      const m = p.match_id ? matchById.get(p.match_id) : undefined;
+      const finished = m && m.status === "finished" && m.score_a != null && m.score_b != null;
+      return {
+        id: p.id,
+        outcome: getPredictionOutcome(p, m ?? null),
+        predicted: p.predicted_score_a != null && p.predicted_score_b != null ? `${p.predicted_score_a}–${p.predicted_score_b}` : "—",
+        actual: finished ? `${m!.score_a}–${m!.score_b}` : null,
+        label: m ? `${m.team_a} – ${m.team_b}` : "Match",
+        created_at: m?.starts_at ?? p.created_at,
+      };
+    })
+    .sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
+
   return {
     user: {
       id: u.id,
@@ -243,5 +309,6 @@ export async function getPlayerDashboard(userId: string): Promise<PlayerDashboar
     babyfootStats,
     animationStats: { participations: animParticipations, points: animPoints },
     recentActivity: activity.slice(0, 10),
+    predictionHeatmap,
   };
 }

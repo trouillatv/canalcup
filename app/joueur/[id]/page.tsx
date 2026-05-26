@@ -6,7 +6,8 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getPlayerDashboard, type PredStatus } from "@/lib/data/player";
-import { ArrowLeft, Trophy, Users, Building2, Target, Brain, Gamepad2, PartyPopper, Flame } from "lucide-react";
+import { PredictionHeatmap } from "@/components/shared/PredictionHeatmap";
+import { ArrowLeft, Trophy, Users, Building2, Target, Brain, Gamepad2, PartyPopper, Flame, Grid3x3 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -177,6 +178,16 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           </div>
         )}
       </div>
+
+      {/* ─── Heatmap pronostics ─── */}
+      {d.predictionHeatmap.length > 0 && (
+        <div className="canal-card space-y-3">
+          <p className="text-canal-yellow font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
+            <Grid3x3 size={13} /> Heatmap des pronostics
+          </p>
+          <PredictionHeatmap mode="player" items={d.predictionHeatmap} />
+        </div>
+      )}
 
       {/* ─── Quiz ─── */}
       <div className="canal-card space-y-2">
