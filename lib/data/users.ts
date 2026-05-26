@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { AdminUserView, UserRole, Service } from "@/lib/supabase/types";
 import { SCORE_EVENT_CATEGORIES_IN_TOTAL } from "@/lib/scoring/config";
+import { getAdminEmails } from "@/lib/data/roles";
 
 // Classement par SERVICE — moyenne de points par personne (les services
 // n'ont pas le même effectif → on compare des moyennes, pas des totaux).
@@ -84,27 +85,31 @@ export async function getServiceLeaderboard(): Promise<ServiceLeaderboardRow[]> 
       { data: bonuses },
       { data: quizzes },
       { data: events },
+      adminEmails,
     ] = await Promise.all([
       supabase.from("services").select("id, name, is_active").eq("is_active", true).order("sort_order"),
-      supabase.from("users").select("id, service_id"),
+      supabase.from("users").select("id, service_id, email"),
       supabase.from("predictions").select("user_id, points_awarded"),
       supabase.from("bonus_predictions").select("user_id, points_awarded"),
       supabase.from("quiz_answers").select("user_id, points_awarded"),
       supabase.from("score_events").select("user_id, category, raw_points"),
+      getAdminEmails(),
     ]);
 
     if (!services?.length || !users?.length) return [];
 
     type SvcRow = { id: string; name: string };
-    type UserRow = { id: string; service_id: string | null };
+    type UserRow = { id: string; service_id: string | null; email: string | null };
     type PtRow = { user_id: string | null; points_awarded: number | null };
     type EvRow = { user_id: string | null; category: string | null; raw_points: number | null };
 
-    // user_id → service_id + effectif par service.
+    // user_id → service_id + effectif par service. Les admins sont EXCLUS
+    // (organisateurs hors classement) du compte ET des points.
     const userService = new Map<string, string>();
     const memberCount = new Map<string, number>();
     for (const u of (users as UserRow[])) {
       if (!u.service_id) continue;
+      if (adminEmails.has((u.email ?? "").toLowerCase())) continue;
       userService.set(u.id, u.service_id);
       memberCount.set(u.service_id, (memberCount.get(u.service_id) ?? 0) + 1);
     }

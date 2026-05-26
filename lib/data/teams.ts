@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { MOCK_TEAMS, MOCK_LEADERBOARD } from "@/lib/mock-data";
 import type { Team, LeaderboardRow } from "@/lib/supabase/types";
 import { SCORE_EVENT_CATEGORIES_IN_TOTAL, weightedContribution } from "@/lib/scoring/config";
+import { getAdminEmails } from "@/lib/data/roles";
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  SOURCE UNIQUE DE VÉRITÉ DU SCORE ÉQUIPE
@@ -222,15 +223,34 @@ export async function getTeamById(id: string): Promise<Team | null> {
 export async function getLeaderboard(): Promise<LeaderboardRow[]> {
   try {
     const supabase = await createClient();
-    const { data: teams, error } = await supabase.from("teams").select("*");
+    const [{ data: teams, error }, { data: members }, adminEmails] = await Promise.all([
+      supabase.from("teams").select("*"),
+      supabase.from("users").select("team_id, email"),
+      getAdminEmails(),
+    ]);
     if (error || !teams?.length) return MOCK_LEADERBOARD;
+
+    // Équipes 100% admin → exclues du classement (organisateurs hors jeu).
+    // Une équipe est exclue si elle a ≥1 membre et que TOUS sont admins.
+    const teamMembers = new Map<string, string[]>();
+    for (const m of (members ?? []) as { team_id: string | null; email: string | null }[]) {
+      if (!m.team_id) continue;
+      if (!teamMembers.has(m.team_id)) teamMembers.set(m.team_id, []);
+      teamMembers.get(m.team_id)!.push((m.email ?? "").toLowerCase());
+    }
+    const isAdminOnlyTeam = (teamId: string): boolean => {
+      const emails = teamMembers.get(teamId) ?? [];
+      return emails.length > 0 && emails.every((e) => adminEmails.has(e));
+    };
 
     const agg = await computeTeamScores(
       supabase,
       teams.map((t) => t.id)
     );
 
-    const rows: LeaderboardRow[] = teams.map((team) => {
+    const rows: LeaderboardRow[] = teams
+      .filter((team) => !isAdminOnlyTeam(team.id))
+      .map((team) => {
       const b = agg.get(team.id) ?? ZERO;
       return {
         // total_points aligné sur le calcul, même si un composant lit
@@ -286,12 +306,14 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
       { data: preds },
       { data: bonuses },
       { data: quizzes },
+      adminEmails,
     ] = await Promise.all([
-      supabase.from("users").select("id, display_name, name, team_id"),
+      supabase.from("users").select("id, display_name, name, team_id, email"),
       supabase.from("teams").select("id, name"),
       supabase.from("predictions").select("user_id, points_awarded"),
       supabase.from("bonus_predictions").select("user_id, points_awarded"),
       supabase.from("quiz_answers").select("user_id, points_awarded"),
+      getAdminEmails(),
     ]);
     if (!users?.length) return [];
 
@@ -310,8 +332,9 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
     for (const r of (bonuses ?? []) as PtRow[]) add(pronosRaw, r.user_id, r.points_awarded);
     for (const r of (quizzes ?? []) as PtRow[]) add(quizRaw, r.user_id, r.points_awarded);
 
-    type URow = { id: string; display_name: string | null; name: string | null; team_id: string | null };
+    type URow = { id: string; display_name: string | null; name: string | null; team_id: string | null; email: string | null };
     const rows: IndividualRow[] = (users as URow[])
+      .filter((u) => !adminEmails.has((u.email ?? "").toLowerCase())) // admins hors classement
       .map((u) => {
         const tb = u.team_id ? teamAgg.get(u.team_id) : undefined;
         const pronos = weightedContribution("pronostics", pronosRaw.get(u.id) ?? 0);

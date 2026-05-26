@@ -9,6 +9,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getIndividualLeaderboard, getLeaderboard, computeTeamScores } from "@/lib/data/teams";
 import { getServiceLeaderboard } from "@/lib/data/users";
+import { getAdminEmails } from "@/lib/data/roles";
 import { getPredictionOutcome, type PredictionOutcome } from "@/lib/scoring";
 
 export type PredStatus = "exact" | "correct" | "missed" | "pending";
@@ -62,11 +63,16 @@ export interface TeamHeatRow {
 
 export async function getTeamPredictionHeatmap(teamId: string): Promise<TeamHeatRow[]> {
   const supabase = await createClient();
-  const [{ data: members }, { data: matches }] = await Promise.all([
-    supabase.from("users").select("id, display_name, name").eq("team_id", teamId),
+  const [{ data: membersRaw }, { data: matches }, adminEmails] = await Promise.all([
+    supabase.from("users").select("id, display_name, name, email").eq("team_id", teamId),
     supabase.from("matches").select("id, status, score_a, score_b, starts_at, team_a, team_b"),
+    getAdminEmails(),
   ]);
-  if (!members?.length) return [];
+  // Admins exclus (organisateurs, pas des joueurs).
+  const members = (membersRaw ?? []).filter(
+    (m: { email: string | null }) => !adminEmails.has((m.email ?? "").toLowerCase())
+  );
+  if (!members.length) return [];
 
   type M = { id: string; status: string; score_a: number | null; score_b: number | null; starts_at: string; team_a: string; team_b: string };
   const matchById = new Map((matches ?? []).map((m: M) => [m.id, m]));
@@ -112,10 +118,14 @@ export async function getPlayerDashboard(userId: string): Promise<PlayerDashboar
 
   const { data: u } = await supabase
     .from("users")
-    .select("id, display_name, name, service_id, football_level, team_id, created_at")
+    .select("id, display_name, name, service_id, football_level, team_id, created_at, email")
     .eq("id", userId)
     .maybeSingle();
   if (!u) return null;
+
+  // Les admins (organisateurs) ne sont pas des joueurs : pas de fiche.
+  const adminEmails = await getAdminEmails();
+  if (adminEmails.has((u.email ?? "").toLowerCase())) return null;
 
   const displayName: string = u.display_name ?? u.name ?? "Joueur";
 

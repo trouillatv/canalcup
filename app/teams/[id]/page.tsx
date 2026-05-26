@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getTeamById, getLeaderboard } from "@/lib/data/teams";
 import { getTeamPredictionHeatmap } from "@/lib/data/player";
+import { getAdminEmails } from "@/lib/data/roles";
 import { pointsBadge } from "@/lib/utils";
 import { ScoreBreakdown } from "@/components/scoring/ScoreBreakdown";
 import { PredictionHeatmap } from "@/components/shared/PredictionHeatmap";
@@ -17,15 +18,17 @@ const FOOTBALL_LEVEL_LABELS: Record<string, string> = {
 
 export default async function TeamDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [team, leaderboard, heatRows] = await Promise.all([
+  const [team, leaderboard, heatRows, adminEmails] = await Promise.all([
     getTeamById(id),
     getLeaderboard(),
     getTeamPredictionHeatmap(id),
+    getAdminEmails(),
   ]);
   if (!team) notFound();
 
   const lbRow = leaderboard.find((r) => r.team.id === id);
   const heatHasData = heatRows.some((r) => r.items.length > 0);
+  const isAdmin = (email?: string) => !!email && adminEmails.has(email.toLowerCase());
 
   return (
     <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto">
@@ -75,22 +78,35 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
             <Users size={14} className="inline mr-1" />Membres ({team.members.length})
           </h2>
           <div className="space-y-2">
-            {team.members.map((member) => (
-              <Link
-                key={member.id}
-                href={`/joueur/${member.id}`}
-                className="canal-card flex items-center gap-3 hover:bg-canal-gray-mid transition-colors"
-              >
-                <div className="w-9 h-9 rounded-full bg-canal-gray-mid flex items-center justify-center">
-                  <span className="font-bold text-canal-yellow text-sm">{(member.display_name ?? member.name)[0]}</span>
-                </div>
-                <div className="flex-1">
-                  <p className="font-bold text-white text-sm">{member.display_name ?? member.name}</p>
-                  <p className="text-xs text-canal-gray-muted">{FOOTBALL_LEVEL_LABELS[member.football_level]}</p>
-                </div>
-                <Star size={14} className="text-canal-gray-muted" />
-              </Link>
-            ))}
+            {team.members.map((member) => {
+              const admin = isAdmin(member.email);
+              const inner = (
+                <>
+                  <div className="w-9 h-9 rounded-full bg-canal-gray-mid flex items-center justify-center">
+                    <span className="font-bold text-canal-yellow text-sm">{(member.display_name ?? member.name)[0]}</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-white text-sm">{member.display_name ?? member.name}</p>
+                    <p className="text-xs text-canal-gray-muted">
+                      {admin ? "Organisateur" : FOOTBALL_LEVEL_LABELS[member.football_level]}
+                    </p>
+                  </div>
+                  <Star size={14} className="text-canal-gray-muted" />
+                </>
+              );
+              // Les admins ne sont pas des joueurs → carte non cliquable.
+              return admin ? (
+                <div key={member.id} className="canal-card flex items-center gap-3 opacity-70">{inner}</div>
+              ) : (
+                <Link
+                  key={member.id}
+                  href={`/joueur/${member.id}`}
+                  className="canal-card flex items-center gap-3 hover:bg-canal-gray-mid transition-colors"
+                >
+                  {inner}
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}
