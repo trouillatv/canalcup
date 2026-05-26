@@ -1,10 +1,9 @@
-import Link from "next/link";
 import { getLeaderboard, getIndividualLeaderboard } from "@/lib/data/teams";
 import { getServiceLeaderboard } from "@/lib/data/users";
 import { computeMedals } from "@/lib/data/medals";
-import { LeaderboardTable } from "@/components/leaderboard/LeaderboardTable";
+import { LeaderboardTabs } from "@/components/leaderboard/LeaderboardTabs";
 import { weightPct } from "@/lib/scoring/config";
-import { Trophy, Building2, User } from "lucide-react";
+import { Trophy } from "lucide-react";
 
 export const revalidate = 60;
 
@@ -15,117 +14,18 @@ export default async function LeaderboardPage() {
     getServiceLeaderboard(),
     getIndividualLeaderboard(),
   ]);
-  const sorted = [...rows].sort((a, b) => b.total - a.total);
 
   return (
     <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto">
       <div>
-        <h1 className="canal-headline text-2xl">Classement par binôme</h1>
-        <p className="text-canal-gray-muted text-sm mt-1">
-          Babyfoot + animations. Classement individuel plus bas.
-        </p>
+        <h1 className="canal-headline text-2xl">Classements</h1>
+        <p className="text-canal-gray-muted text-sm mt-1">Mis à jour après chaque match</p>
       </div>
 
-      <div className="flex items-end justify-center gap-3 h-32">
-        {[sorted[1], sorted[0], sorted[2]].map((row, i) => {
-          if (!row) return <div key={i} className="w-24" />;
-          const heights = ["h-20", "h-28", "h-16"];
-          const labels = ["🥈", "🥇", "🥉"];
-          return (
-            <Link
-              key={row.team.id}
-              href={`/teams/${row.team.id}`}
-              className="flex flex-col items-center gap-1 w-24 group"
-            >
-              <span className="text-sm font-bold text-white text-center leading-tight group-hover:text-canal-yellow transition-colors">{row.team.name}</span>
-              <span className="text-canal-yellow font-black">{row.total}pts</span>
-              <div className={`${heights[i]} w-full bg-canal-gray rounded-t-lg flex items-center justify-center border border-canal-gray-light group-hover:border-canal-yellow/50 transition-colors`}>
-                <span className="text-2xl">{labels[i]}</span>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
+      {/* Classements en onglets (binômes / individuel / pronos / quiz / services) */}
+      <LeaderboardTabs teamRows={rows} individualRows={individualRows} serviceRows={serviceRows} />
 
-      <LeaderboardTable rows={sorted} />
-
-      {/* Classement individuel — tout compte (pronos + quiz perso + babyfoot +
-          animations du binôme, crédités aux 2 membres). */}
-      {individualRows.length > 0 && (
-        <div>
-          <h2 className="canal-headline text-xl mb-1 flex items-center gap-2">
-            <User size={18} />Classement individuel
-          </h2>
-          <p className="text-canal-gray-muted text-xs mb-4">
-            Score perso : pronos + quiz + babyfoot + animations de ton binôme.
-          </p>
-          <div className="space-y-2">
-            {individualRows.map((r) => (
-              <Link
-                key={r.user_id}
-                href={`/joueur/${r.user_id}`}
-                className={`canal-card flex items-center hover:bg-canal-gray-mid transition-colors ${r.rank === 1 ? "border border-canal-yellow/30" : ""}`}
-              >
-                <div className="w-8 text-center font-black text-lg flex-shrink-0">
-                  {r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : r.rank}
-                </div>
-                <div className="flex-1 min-w-0 ml-1">
-                  <p className="font-bold text-white truncate text-sm">{r.display_name}</p>
-                  <p className="text-[11px] text-canal-gray-muted truncate">
-                    {r.team_name ?? "Sans binôme"}
-                    <span className="text-canal-gray-muted/70"> · 🎯{r.pronos} 🧠{r.quiz} ⚽{r.babyfoot} 🎉{r.animations}</span>
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="font-black text-canal-yellow text-lg tabular-nums">{r.total}</p>
-                  <p className="text-[10px] text-canal-gray-muted">points</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {serviceRows.length > 0 && (
-        <div>
-          <h2 className="canal-headline text-xl mb-1 flex items-center gap-2">
-            <Building2 size={18} />Classement par service
-          </h2>
-          <p className="text-canal-gray-muted text-xs mb-4">
-            Moyenne de points par personne — comparaison équitable entre services
-            de tailles différentes
-          </p>
-          <div className="space-y-2">
-            {serviceRows.map((row) => (
-              <div
-                key={row.service.id}
-                className={`canal-card flex items-center ${
-                  row.rank === 1 ? "border border-canal-yellow/30" : ""
-                }`}
-              >
-                <div className="w-8 text-center font-black text-lg flex-shrink-0">
-                  {row.rank === 1 ? "🥇" : row.rank === 2 ? "🥈" : row.rank === 3 ? "🥉" : row.rank}
-                </div>
-                <div className="flex-1 min-w-0 ml-1">
-                  <p className="font-bold text-white truncate text-sm">{row.service.name}</p>
-                  <p className="text-xs text-canal-gray-muted">
-                    {row.members} pers. · {row.total} pts au total
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="font-black text-canal-yellow text-lg tabular-nums">{row.average}</p>
-                  <p className="text-[11px] text-canal-gray-muted">pts / pers.</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className="text-[11px] text-canal-gray-muted px-1 pt-2">
-            Basé sur les points individuels (pronostics, bonus, quiz, animations).
-            Le babyfoot (score d&apos;équipe) et les votes ne sont pas comptés ici.
-          </p>
-        </div>
-      )}
-
+      {/* Système de points + pondérations (référence, sous les onglets) */}
       <div className="canal-card">
         <p className="text-canal-yellow font-bold text-sm mb-1 flex items-center gap-2">
           <Trophy size={14} />Système de points
@@ -148,9 +48,7 @@ export default async function LeaderboardPage() {
               <span className="text-canal-gray-muted flex items-center gap-2">
                 {label}
                 <span className={`text-[9px] uppercase tracking-wider px-1 py-0.5 rounded ${
-                  tag === "équipe" ? "bg-canal-yellow/20 text-canal-yellow"
-                  : tag === "perso" ? "bg-canal-gray-mid text-canal-gray-muted"
-                  : "bg-canal-gray-mid text-canal-gray-muted"
+                  tag === "équipe" ? "bg-canal-yellow/20 text-canal-yellow" : "bg-canal-gray-mid text-canal-gray-muted"
                 }`}>{tag}</span>
               </span>
               <span className="text-canal-yellow font-bold whitespace-nowrap">{pts}</span>
