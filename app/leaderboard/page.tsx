@@ -61,9 +61,10 @@ export default async function LeaderboardPage() {
           </p>
           <div className="space-y-2">
             {individualRows.map((r) => (
-              <div
+              <Link
                 key={r.user_id}
-                className={`canal-card flex items-center ${r.rank === 1 ? "border border-canal-yellow/30" : ""}`}
+                href={`/joueur/${r.user_id}`}
+                className={`canal-card flex items-center hover:bg-canal-gray-mid transition-colors ${r.rank === 1 ? "border border-canal-yellow/30" : ""}`}
               >
                 <div className="w-8 text-center font-black text-lg flex-shrink-0">
                   {r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : r.rank}
@@ -79,7 +80,7 @@ export default async function LeaderboardPage() {
                   <p className="font-black text-canal-yellow text-lg tabular-nums">{r.total}</p>
                   <p className="text-[10px] text-canal-gray-muted">points</p>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

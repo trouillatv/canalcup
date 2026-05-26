@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { getTeamById, getLeaderboard } from "@/lib/data/teams";
 import { pointsBadge } from "@/lib/utils";
 import { ScoreBreakdown } from "@/components/scoring/ScoreBreakdown";
@@ -57,16 +58,20 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
           </h2>
           <div className="space-y-2">
             {team.members.map((member) => (
-              <div key={member.id} className="canal-card flex items-center gap-3">
+              <Link
+                key={member.id}
+                href={`/joueur/${member.id}`}
+                className="canal-card flex items-center gap-3 hover:bg-canal-gray-mid transition-colors"
+              >
                 <div className="w-9 h-9 rounded-full bg-canal-gray-mid flex items-center justify-center">
-                  <span className="font-bold text-canal-yellow text-sm">{member.name[0]}</span>
+                  <span className="font-bold text-canal-yellow text-sm">{(member.display_name ?? member.name)[0]}</span>
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold text-white text-sm">{member.name}</p>
+                  <p className="font-bold text-white text-sm">{member.display_name ?? member.name}</p>
                   <p className="text-xs text-canal-gray-muted">{FOOTBALL_LEVEL_LABELS[member.football_level]}</p>
                 </div>
                 <Star size={14} className="text-canal-gray-muted" />
-              </div>
+              </Link>
             ))}
           </div>
         </section>
