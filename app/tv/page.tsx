@@ -7,6 +7,8 @@ import type { Match, LeaderboardRow, MorningBrief, RevivezPost, CanalCupEvent, C
 import type { IndividualRow } from "@/lib/data/teams";
 import type { ServiceLeaderboardRow } from "@/lib/data/users";
 import type { Medal } from "@/lib/data/medals";
+import type { TvHeatmapRow } from "@/lib/data/player";
+import type { PredictionOutcome } from "@/lib/scoring";
 import { PARTICIPATION_MIN_POINTS } from "@/lib/scoring/config";
 import type { FullMatchDetail } from "@/services/football/types";
 import {
@@ -26,6 +28,7 @@ import {
 import {
   getRobertPreMatchPhrase,
   getSalonPhrase,
+  SALON_PREMATCH,
 } from "@/lib/tv/hype";
 
 type Slide =
@@ -47,7 +50,16 @@ type Slide =
   | "medals"
   | "playerofday"
   | "news"
-  | "duelpronos";
+  | "duelpronos"
+  | "joinqr"
+  | "robert"
+  | "fail"
+  | "officebet"
+  | "tightrace"
+  | "todaystats"
+  | "welcome"
+  | "topscorerrace"
+  | "heatmapwall";
 
 const SLIDE_DURATION = 12000;
 const REFRESH_INTERVAL = 30000;
@@ -57,22 +69,31 @@ const FLASH_POLL_INTERVAL = 10000;
 const BASE_SLIDES: Slide[] = [
   "prematch",
   "general",
+  "officebet",
   "match",
   "playerofday",
+  "robert",
   "standings",
   "toppronos",
+  "tightrace",
   "duelpronos",
   "livematch",
+  "todaystats",
   "animations",
   "quiz",
+  "topscorerrace",
   "duel",
   "services",
+  "welcome",
   "bracket",
   "medals",
+  "heatmapwall",
   "upcoming",
   "matinale",
+  "fail",
   "news",
   "classement",
+  "joinqr",
   "revivez",
 ];
 
@@ -128,6 +149,10 @@ interface TVData {
   services?: ServiceLeaderboardRow[];
   medals?: Medal[];
   news?: { title: string; link: string }[];
+  todayStats?: { pronos: number; quiz: number; animations: number };
+  newPlayers?: string[];
+  topScorerBets?: { name: string; count: number }[];
+  heatmap?: TvHeatmapRow[];
 }
 
 // ─── Ambiance Banner ─────────────────────────────────────────────────────────
@@ -1721,6 +1746,365 @@ function SlideNews({ news }: { news: { title: string; link: string }[] }) {
   );
 }
 
+// ─── Slide: Rejoins la Canal Cup (QR géant) ──────────────────────────────────
+
+function SlideJoinQR({ origin }: { origin: string }) {
+  return (
+    <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-20 py-6 sm:py-10 text-center">
+      <p className="text-canal-yellow font-black text-2xl sm:text-4xl lg:text-5xl uppercase tracking-widest mb-4 sm:mb-8">
+        📣 Rejoins la Canal Cup
+      </p>
+      {origin ? (
+        <img
+          src={`https://api.qrserver.com/v1/create-qr-code/?size=600x600&margin=8&data=${encodeURIComponent(origin)}`}
+          alt="QR code vers l'application Canal Cup"
+          className="rounded-2xl bg-white p-3 sm:p-5 w-48 h-48 sm:w-72 sm:h-72 lg:w-96 lg:h-96"
+        />
+      ) : (
+        <QrCode size={200} className="text-canal-gray-muted" />
+      )}
+      <p className="text-white font-black text-xl sm:text-3xl lg:text-4xl mt-4 sm:mt-8 leading-tight">
+        Scanne pour jouer &amp; pronostiquer
+      </p>
+      <p className="text-canal-gray-muted text-base sm:text-2xl mt-2 sm:mt-3 italic">
+        Pronos · Quiz · Animations · Classement de ton service
+      </p>
+    </div>
+  );
+}
+
+// ─── Slide: Robert dit… (punchline du coach IA) ───────────────────────────────
+
+const ROBERT_PHRASES: string[] = [
+  ...Object.values(SALON_PREMATCH).flat(),
+  "Robert ne juge pas. Robert observe. Et Robert se souvient.",
+  "Un bon prono, c'est 50% d'instinct et 50% de chance. Robert n'a ni l'un ni l'autre, mais il assume.",
+  "Le classement ment rarement. Les egos, beaucoup plus.",
+  "Participer, c'est déjà des points. Robert l'a vérifié lui-même.",
+  "Le babyfoot révèle les caractères. Et parfois, il les détruit.",
+];
+
+function SlideRobert() {
+  const [phrase, setPhrase] = useState("");
+  useEffect(() => {
+    const pick = () => setPhrase(ROBERT_PHRASES[Math.floor(Math.random() * ROBERT_PHRASES.length)]);
+    pick();
+    const t = setInterval(pick, 6000);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-20 py-6 sm:py-12 text-center">
+      <p className="text-canal-yellow font-black text-xl sm:text-2xl uppercase tracking-widest mb-6 sm:mb-12">
+        🤖 Robert dit…
+      </p>
+      <p className="font-black text-2xl sm:text-4xl lg:text-6xl text-white leading-tight max-w-5xl break-words">
+        &ldquo;{phrase}&rdquo;
+      </p>
+      <p className="text-canal-yellow/70 text-lg sm:text-2xl mt-6 sm:mt-10 font-bold">— Robert, coach officiel</p>
+    </div>
+  );
+}
+
+// ─── Slide: Le fail du jour (matinale) ────────────────────────────────────────
+
+function SlideFail({ brief }: { brief: MorningBrief }) {
+  if (!brief.fail_of_day) return null;
+  return (
+    <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-20 py-6 sm:py-12 text-center">
+      <p className="text-red-400 font-black text-xl sm:text-2xl uppercase tracking-widest mb-6 sm:mb-12">
+        😅 Le fail du jour
+      </p>
+      <span className="text-5xl sm:text-7xl lg:text-8xl mb-4 sm:mb-8">💥</span>
+      <p className="font-black text-2xl sm:text-4xl lg:text-5xl text-white italic leading-tight max-w-5xl break-words">
+        &ldquo;{brief.fail_of_day}&rdquo;
+      </p>
+    </div>
+  );
+}
+
+// ─── Slide: Le bureau a parié (répartition V/N/D du prochain match) ───────────
+
+function SlideOfficeBet({ stats }: { stats: PreMatchStats }) {
+  const { match } = stats;
+  return (
+    <div className="flex flex-col h-full justify-center px-4 sm:px-8 lg:px-20 py-6 sm:py-12">
+      <div className="mb-4 sm:mb-8 shrink-0">
+        <p className="text-canal-yellow font-black text-xl sm:text-2xl uppercase tracking-widest mb-1">
+          🔮 Le bureau a parié
+        </p>
+        <p className="text-canal-gray-muted text-sm sm:text-lg mb-2">Pronostics pour le prochain match</p>
+        <div className="h-1 w-40 bg-canal-yellow" />
+      </div>
+
+      {/* Affiche */}
+      <div className="flex items-center justify-center gap-3 sm:gap-10 mb-5 sm:mb-10">
+        <div className="flex flex-col items-center gap-1 sm:gap-2 flex-1 min-w-0">
+          <span className="text-4xl sm:text-6xl lg:text-7xl">{teamFlag(match.flag_a, match.team_a)}</span>
+          <p className="font-black text-base sm:text-3xl text-white text-center break-words leading-tight">{match.team_a}</p>
+        </div>
+        <span className="font-black text-2xl sm:text-5xl text-canal-gray-muted shrink-0">VS</span>
+        <div className="flex flex-col items-center gap-1 sm:gap-2 flex-1 min-w-0">
+          <span className="text-4xl sm:text-6xl lg:text-7xl">{teamFlag(match.flag_b, match.team_b)}</span>
+          <p className="font-black text-base sm:text-3xl text-white text-center break-words leading-tight">{match.team_b}</p>
+        </div>
+      </div>
+
+      {/* Barre V/N/D */}
+      <div className="flex rounded-full overflow-hidden h-8 sm:h-12 mb-2 sm:mb-3">
+        {stats.pct_a > 0 && (
+          <div className="bg-canal-yellow/80 h-full flex items-center justify-center" style={{ width: `${stats.pct_a}%` }}>
+            <span className="text-canal-black font-black text-sm sm:text-2xl">{stats.pct_a}%</span>
+          </div>
+        )}
+        {stats.pct_draw > 0 && (
+          <div className="bg-canal-gray-muted/60 h-full flex items-center justify-center" style={{ width: `${stats.pct_draw}%` }}>
+            <span className="text-white font-black text-sm sm:text-2xl">{stats.pct_draw}%</span>
+          </div>
+        )}
+        {stats.pct_b > 0 && (
+          <div className="bg-blue-400/70 h-full flex items-center justify-center" style={{ width: `${stats.pct_b}%` }}>
+            <span className="text-white font-black text-sm sm:text-2xl">{stats.pct_b}%</span>
+          </div>
+        )}
+      </div>
+      <div className="flex justify-between text-sm sm:text-2xl text-canal-gray-muted font-bold mb-5 sm:mb-10">
+        <span className="truncate max-w-[30%]">{match.team_a}</span>
+        <span>Nul</span>
+        <span className="truncate max-w-[30%] text-right">{match.team_b}</span>
+      </div>
+
+      {/* Score exact le plus parié */}
+      {stats.top_score ? (
+        <div className="bg-canal-gray-mid/40 border border-canal-gray-light/30 rounded-2xl p-4 sm:p-6 text-center">
+          <p className="text-canal-gray-muted text-sm sm:text-xl uppercase tracking-wide mb-1 sm:mb-2">Score exact le plus parié</p>
+          <p className="font-black text-3xl sm:text-5xl lg:text-6xl text-canal-yellow">{stats.top_score}</p>
+          <p className="text-canal-gray-muted text-sm sm:text-xl mt-1">{stats.top_score_pct}% des équipes y croient</p>
+        </div>
+      ) : (
+        <p className="text-center text-canal-gray-muted text-base sm:text-2xl italic">
+          Pas encore de score exact qui se dégage.
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ─── Slide: Ça se joue à rien (duel le plus serré) ────────────────────────────
+
+interface TightRace {
+  label: string;
+  first: string;
+  second: string;
+  gap: number;
+  unit: string;
+}
+
+function computeTightRace(data: TVData): TightRace | null {
+  const candidates: TightRace[] = [];
+
+  const lb = [...(data.leaderboard ?? [])].sort((a, b) => b.total - a.total);
+  if (lb.length >= 2 && lb[0].total > 0) {
+    candidates.push({
+      label: "Classement Binômes",
+      first: lb[0].team.name,
+      second: lb[1].team.name,
+      gap: lb[0].total - lb[1].total,
+      unit: "pts",
+    });
+  }
+
+  const ind = [...(data.individual ?? [])].sort((a, b) => b.total - a.total);
+  if (ind.length >= 2 && ind[0].total > 0) {
+    candidates.push({
+      label: "Classement Général",
+      first: ind[0].display_name ?? "Anonyme",
+      second: ind[1].display_name ?? "Anonyme",
+      gap: ind[0].total - ind[1].total,
+      unit: "pts",
+    });
+  }
+
+  const svc = [...(data.services ?? [])].sort((a, b) => b.average - a.average);
+  if (svc.length >= 2 && svc[0].average > 0) {
+    candidates.push({
+      label: "Bataille des Services",
+      first: svc[0].service.name,
+      second: svc[1].service.name,
+      gap: Math.round((svc[0].average - svc[1].average) * 10) / 10,
+      unit: "pts/pers",
+    });
+  }
+
+  if (!candidates.length) return null;
+  return candidates.sort((a, b) => a.gap - b.gap)[0];
+}
+
+function SlideTightRace({ race }: { race: TightRace }) {
+  return (
+    <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-20 py-6 sm:py-12 text-center">
+      <p className="text-canal-yellow font-black text-xl sm:text-2xl uppercase tracking-widest mb-2 sm:mb-4">
+        🔥 Ça se joue à rien
+      </p>
+      <p className="text-canal-gray-muted text-base sm:text-2xl mb-6 sm:mb-12">{race.label}</p>
+
+      <div className="flex items-center justify-center gap-3 sm:gap-12 w-full mb-6 sm:mb-12">
+        <div className="flex-1 min-w-0">
+          <p className="text-canal-gray-muted text-xs sm:text-xl uppercase mb-1 sm:mb-2">🥇 En tête</p>
+          <p className="font-black text-xl sm:text-4xl lg:text-5xl text-white break-words leading-tight">{race.first}</p>
+        </div>
+        <div className="flex flex-col items-center shrink-0">
+          <span className="text-canal-gray-muted text-xs sm:text-lg">Écart</span>
+          <span className="font-black text-4xl sm:text-7xl lg:text-8xl text-red-400 leading-none">
+            {race.gap > 0 ? `+${race.gap}` : race.gap}
+          </span>
+          <span className="text-canal-gray-muted text-xs sm:text-lg">{race.unit}</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-canal-gray-muted text-xs sm:text-xl uppercase mb-1 sm:mb-2">🥈 Poursuit</p>
+          <p className="font-black text-xl sm:text-4xl lg:text-5xl text-white break-words leading-tight">{race.second}</p>
+        </div>
+      </div>
+
+      <p className="text-canal-gray-muted text-base sm:text-2xl italic">
+        Le duel le plus serré de toute la Canal Cup.
+      </p>
+    </div>
+  );
+}
+
+// ─── Slide: Aujourd'hui (compteurs du jour) ───────────────────────────────────
+
+function SlideStats({ stats }: { stats: { pronos: number; quiz: number; animations: number } }) {
+  const items = [
+    { emoji: "🎯", value: stats.pronos, label: "pronos" },
+    { emoji: "🧠", value: stats.quiz, label: "quiz" },
+    { emoji: "🎉", value: stats.animations, label: "défis" },
+  ];
+  return (
+    <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-20 py-6 sm:py-12 text-center">
+      <p className="text-canal-yellow font-black text-xl sm:text-2xl uppercase tracking-widest mb-8 sm:mb-16">
+        📈 Aujourd&apos;hui
+      </p>
+      <div className="grid grid-cols-3 gap-4 sm:gap-12 w-full max-w-5xl">
+        {items.map((it) => (
+          <div key={it.label} className="flex flex-col items-center gap-1 sm:gap-3">
+            <span className="text-4xl sm:text-7xl">{it.emoji}</span>
+            <span className="font-black text-4xl sm:text-7xl lg:text-8xl text-canal-yellow leading-none">{it.value}</span>
+            <span className="text-canal-gray-muted text-base sm:text-3xl uppercase tracking-wide">{it.label}</span>
+          </div>
+        ))}
+      </div>
+      <p className="text-canal-gray-muted text-base sm:text-2xl italic mt-8 sm:mt-16">
+        Le bureau a été productif. Enfin, sur la Canal Cup.
+      </p>
+    </div>
+  );
+}
+
+// ─── Slide: Bienvenue (nouveaux joueurs) ──────────────────────────────────────
+
+function SlideWelcome({ players }: { players: string[] }) {
+  const list = players.slice(0, 12);
+  if (!list.length) return null;
+  const dense = list.length > 6;
+  return (
+    <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-20 py-6 sm:py-12 text-center">
+      <p className="text-canal-yellow font-black text-xl sm:text-2xl uppercase tracking-widest mb-2 sm:mb-4">
+        🙌 Bienvenue
+      </p>
+      <p className="text-canal-gray-muted text-base sm:text-2xl mb-6 sm:mb-10">Ils viennent de rejoindre la Canal Cup</p>
+      <div className="flex flex-wrap justify-center gap-3 sm:gap-5 max-w-5xl overflow-y-auto">
+        {list.map((name, i) => (
+          <span
+            key={`${name}-${i}`}
+            className={`font-black text-white bg-canal-gray-mid/50 border border-canal-yellow/30 rounded-2xl px-4 sm:px-7 py-2 sm:py-4 ${
+              dense ? "text-lg sm:text-3xl" : "text-2xl sm:text-4xl lg:text-5xl"
+            }`}
+          >
+            👋 {name}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Slide: Course au meilleur buteur (bureau) ────────────────────────────────
+
+function SlideTopScorerRace({ bets }: { bets: { name: string; count: number }[] }) {
+  if (!bets.length) return null;
+  return (
+    <RankedList
+      title="🥅 Course au meilleur buteur"
+      subtitle="Qui le bureau voit finir buteur n°1"
+      items={bets.map((b, i) => ({
+        id: `${b.name}-${i}`,
+        name: b.name,
+        value: b.count,
+        valueUnit: b.count > 1 ? "mises" : "mise",
+      }))}
+    />
+  );
+}
+
+// ─── Slide: Le mur des pronos (heatmap géante) ────────────────────────────────
+
+const HEAT_CELL_STYLE: Record<PredictionOutcome, string> = {
+  exact: "bg-canal-yellow",
+  correct_result: "bg-green-500",
+  correct_diff: "bg-amber-500",
+  wrong: "bg-red-500/80",
+  pending: "bg-canal-gray-light/40",
+};
+
+function SlideHeatmapWall({ rows }: { rows: TvHeatmapRow[] }) {
+  if (!rows.length) return null;
+  const dense = rows.length > 4;
+  const cellSize = dense ? "w-6 h-6 sm:w-9 sm:h-9" : "w-8 h-8 sm:w-12 sm:h-12";
+  const legend: { o: PredictionOutcome; label: string }[] = [
+    { o: "exact", label: "Score exact" },
+    { o: "correct_result", label: "Bon résultat" },
+    { o: "wrong", label: "Raté" },
+    { o: "pending", label: "À venir" },
+  ];
+  return (
+    <div className="flex flex-col h-full px-4 sm:px-8 lg:px-16 py-6 sm:py-10">
+      <div className="mb-3 sm:mb-5 shrink-0">
+        <p className="text-canal-yellow font-black text-xl sm:text-2xl uppercase tracking-widest mb-1">
+          📊 Le mur des pronos
+        </p>
+        <p className="text-canal-gray-muted text-sm sm:text-lg mb-2">Les meilleurs joueurs &amp; leurs derniers pronos</p>
+        <div className="h-1 w-40 bg-canal-yellow" />
+      </div>
+
+      <div className="flex-1 overflow-y-auto flex flex-col justify-center gap-2 sm:gap-4">
+        {rows.map((row) => (
+          <div key={row.name} className="flex items-center gap-3 sm:gap-6">
+            <span className="w-28 sm:w-56 shrink-0 font-black text-white text-base sm:text-2xl lg:text-3xl truncate">
+              {row.name}
+            </span>
+            <div className="flex gap-1.5 sm:gap-2.5 flex-wrap">
+              {row.cells.map((c, i) => (
+                <span key={i} className={`${cellSize} rounded-md ${HEAT_CELL_STYLE[c]} shrink-0`} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Légende */}
+      <div className="flex flex-wrap justify-center gap-x-4 sm:gap-x-8 gap-y-1 mt-3 sm:mt-6 shrink-0">
+        {legend.map((l) => (
+          <span key={l.o} className="flex items-center gap-2 text-canal-gray-muted text-sm sm:text-xl">
+            <span className={`inline-block w-4 h-4 sm:w-6 sm:h-6 rounded ${HEAT_CELL_STYLE[l.o]}`} /> {l.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Flash Overlay (plein écran, 5s) ─────────────────────────────────────────
 
 function FlashOverlay() {
@@ -1855,6 +2239,15 @@ export default function TVPage() {
   const hasMedals = !!data?.medals?.length;
   const hasNews = !!data?.news?.length;
   const hasStandings = !!data?.standings?.length;
+  const hasPrematch = !!data?.prematch;
+  const hasFail = !!data?.brief?.fail_of_day;
+  const tightRace = data ? computeTightRace(data) : null;
+  const hasTightRace = !!tightRace;
+  const ts = data?.todayStats;
+  const hasTodayStats = !!ts && (ts.pronos > 0 || ts.quiz > 0 || ts.animations > 0);
+  const hasNewPlayers = !!data?.newPlayers?.length;
+  const hasTopScorerBets = !!data?.topScorerBets?.length;
+  const hasHeatmap = !!data?.heatmap?.length;
 
   const slides = BASE_SLIDES.filter((s) => {
     if (s === "animations") return hasChallenges;
@@ -1863,6 +2256,13 @@ export default function TVPage() {
     if (s === "medals") return hasMedals;
     if (s === "news") return hasNews;
     if (s === "standings") return hasStandings;
+    if (s === "officebet") return hasPrematch;
+    if (s === "fail") return hasFail;
+    if (s === "tightrace") return hasTightRace;
+    if (s === "todaystats") return hasTodayStats;
+    if (s === "welcome") return hasNewPlayers;
+    if (s === "topscorerrace") return hasTopScorerBets;
+    if (s === "heatmapwall") return hasHeatmap;
     return true;
   });
 
@@ -1954,6 +2354,15 @@ export default function TVPage() {
             {slide === "medals" && <SlideMedals medals={data.medals ?? []} />}
             {slide === "playerofday" && <SlidePlayerOfDay individual={data.individual ?? []} />}
             {slide === "news" && <SlideNews news={data.news ?? []} />}
+            {slide === "joinqr" && <SlideJoinQR origin={origin} />}
+            {slide === "robert" && <SlideRobert />}
+            {slide === "fail" && <SlideFail brief={data.brief} />}
+            {slide === "officebet" && data.prematch && <SlideOfficeBet stats={data.prematch} />}
+            {slide === "tightrace" && tightRace && <SlideTightRace race={tightRace} />}
+            {slide === "todaystats" && data.todayStats && <SlideStats stats={data.todayStats} />}
+            {slide === "welcome" && <SlideWelcome players={data.newPlayers ?? []} />}
+            {slide === "topscorerrace" && <SlideTopScorerRace bets={data.topScorerBets ?? []} />}
+            {slide === "heatmapwall" && <SlideHeatmapWall rows={data.heatmap ?? []} />}
           </>
         )}
       </div>

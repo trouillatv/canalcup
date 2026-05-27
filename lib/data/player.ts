@@ -113,6 +113,61 @@ function initialsOf(name: string): string {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("") || "?";
 }
 
+// Heatmap "mur des pronos" pour le Mode TV : les ~6 meilleurs joueurs du
+// classement individuel, avec leurs ~8 derniers pronos (issue via
+// getPredictionOutcome). Colonnes = pronos du plus ancien au plus récent.
+export interface TvHeatmapRow {
+  name: string;
+  cells: PredictionOutcome[];
+}
+
+export async function getTvPredictionHeatmap(): Promise<TvHeatmapRow[]> {
+  const TOP_PLAYERS = 6;
+  const LAST_PREDICTIONS = 8;
+
+  const individual = await getIndividualLeaderboard();
+  const top = individual
+    .filter((r) => r.total > 0)
+    .sort((a, b) => b.total - a.total)
+    .slice(0, TOP_PLAYERS);
+  if (!top.length) return [];
+
+  const supabase = await createClient();
+  const ids = top.map((r) => r.user_id);
+
+  const [{ data: matches }, { data: preds }] = await Promise.all([
+    supabase.from("matches").select("id, status, score_a, score_b, starts_at"),
+    supabase
+      .from("predictions")
+      .select("id, user_id, match_id, predicted_score_a, predicted_score_b, created_at")
+      .in("user_id", ids),
+  ]);
+
+  type M = { id: string; status: string; score_a: number | null; score_b: number | null; starts_at: string };
+  const matchById = new Map((matches ?? []).map((m: M) => [m.id, m]));
+
+  type P = { id: string; user_id: string; match_id: string | null; predicted_score_a: number | null; predicted_score_b: number | null; created_at: string };
+  const byUser = new Map<string, P[]>();
+  for (const p of (preds ?? []) as P[]) {
+    if (!byUser.has(p.user_id)) byUser.set(p.user_id, []);
+    byUser.get(p.user_id)!.push(p);
+  }
+
+  const rows = top.map((player) => {
+    const cells = (byUser.get(player.user_id) ?? [])
+      .map((p) => {
+        const m = p.match_id ? matchById.get(p.match_id) : undefined;
+        return { p, m, ts: m?.starts_at ?? p.created_at };
+      })
+      .sort((a, b) => (a.ts < b.ts ? -1 : 1))
+      .slice(-LAST_PREDICTIONS)
+      .map(({ p, m }) => getPredictionOutcome(p, m ?? null));
+    return { name: player.display_name ?? "Anonyme", cells };
+  });
+
+  return rows.filter((r) => r.cells.length > 0);
+}
+
 export async function getPlayerDashboard(userId: string): Promise<PlayerDashboard | null> {
   const supabase = await createClient();
 

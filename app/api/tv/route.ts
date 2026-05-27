@@ -4,6 +4,8 @@ import { getServiceLeaderboard } from "@/lib/data/users";
 import { computeMedals } from "@/lib/data/medals";
 import { getTodayBrief, getRevivezPosts } from "@/lib/data/content";
 import { getChallenges } from "@/lib/data/challenges";
+import { getTvPredictionHeatmap } from "@/lib/data/player";
+import { getAdminEmails } from "@/lib/data/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AMBIANCE_STATES } from "@/lib/tv/hype";
 import { NextResponse } from "next/server";
@@ -129,6 +131,78 @@ async function getPreMatchStats(supabase: ReturnType<typeof createAdminClient>, 
   };
 }
 
+// Compteurs du jour (created_at >= début du jour UTC) : pronos, quiz, défis.
+async function getTodayStats(supabase: ReturnType<typeof createAdminClient>) {
+  const dayStart = new Date();
+  dayStart.setUTCHours(0, 0, 0, 0);
+  const since = dayStart.toISOString();
+
+  const countSince = async (table: string) => {
+    try {
+      const { count } = await supabase
+        .from(table)
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", since);
+      return count ?? 0;
+    } catch {
+      return 0;
+    }
+  };
+
+  const [pronos, quiz, animations] = await Promise.all([
+    countSince("predictions"),
+    countSince("quiz_answers"),
+    countSince("challenge_entries"),
+  ]);
+  return { pronos, quiz, animations };
+}
+
+// Nouveaux joueurs (profil complété, < 48h, non admins). On renvoie les
+// display_name uniquement — jamais les emails.
+async function getNewPlayers(supabase: ReturnType<typeof createAdminClient>): Promise<string[]> {
+  try {
+    const since = new Date(Date.now() - 48 * 60 * 60_000).toISOString();
+    const [{ data }, adminEmails] = await Promise.all([
+      supabase
+        .from("users")
+        .select("display_name, email, created_at")
+        .eq("profile_completed", true)
+        .gte("created_at", since)
+        .order("created_at", { ascending: false }),
+      getAdminEmails(),
+    ]);
+    return (data ?? [])
+      .filter((u: { email: string | null }) => !adminEmails.has((u.email ?? "").toLowerCase()))
+      .map((u: { display_name: string | null }) => u.display_name)
+      .filter((n): n is string => !!n && n.trim().length > 0);
+  } catch {
+    return [];
+  }
+}
+
+// Buteurs les plus pariés (bonus_predictions top_scorer), top 6, tri desc.
+async function getTopScorerBets(
+  supabase: ReturnType<typeof createAdminClient>
+): Promise<{ name: string; count: number }[]> {
+  try {
+    const { data } = await supabase
+      .from("bonus_predictions")
+      .select("predicted_value")
+      .eq("prediction_type", "top_scorer");
+    const counts: Record<string, number> = {};
+    for (const b of data ?? []) {
+      const v = (b.predicted_value ?? "").trim();
+      if (v) counts[v] = (counts[v] ?? 0) + 1;
+    }
+    return Object.entries(counts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+  } catch {
+    return [];
+  }
+}
+
 export async function GET() {
   const supabase = createAdminClient();
 
@@ -137,7 +211,7 @@ export async function GET() {
   const windowStart = new Date(now.getTime() - 60 * 60_000).toISOString();
   const windowEnd = new Date(now.getTime() + 24 * 60 * 60_000).toISOString();
 
-  const [matches, leaderboard, individual, services, medals, brief, revivezPosts, allChallenges, news, { data: standings }, { data: events }] =
+  const [matches, leaderboard, individual, services, medals, brief, revivezPosts, allChallenges, news, todayStats, newPlayers, topScorerBets, heatmap, { data: standings }, { data: events }] =
     await Promise.all([
       getMatches(),
       getLeaderboard(),
@@ -148,6 +222,10 @@ export async function GET() {
       getRevivezPosts(),
       getChallenges(),
       getLequipeNews(),
+      getTodayStats(supabase),
+      getNewPlayers(supabase),
+      getTopScorerBets(supabase),
+      getTvPredictionHeatmap().catch(() => []),
       supabase.from("standings").select("*").order("points", { ascending: false }),
       supabase
         .from("canal_cup_events")
@@ -208,5 +286,9 @@ export async function GET() {
     events: events ?? [],
     ambiance,
     prematch,
+    todayStats,
+    newPlayers,
+    topScorerBets,
+    heatmap,
   });
 }
