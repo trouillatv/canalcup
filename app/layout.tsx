@@ -3,6 +3,7 @@ import "./globals.css";
 import { TopBar } from "@/components/layout/TopBar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { FloatingFeedback } from "@/components/feedback/FloatingFeedback";
+import { BreakingNews } from "@/components/matches/BreakingNews";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -55,6 +56,9 @@ export default async function RootLayout({
       <body className="bg-canal-black text-white antialiased">
         {isAuthenticated && <TopBar />}
         <main className={isAuthenticated ? "min-h-screen pt-14 safe-bottom" : "min-h-screen"}>
+          {/* Flash info / direct — visible sur TOUTES les pages, masqué tout seul
+              s'il n'y a ni live ni flash (le composant renvoie null). */}
+          {isAuthenticated && <BreakingNews />}
           {children}
         </main>
         {isAuthenticated && <BottomNav />}

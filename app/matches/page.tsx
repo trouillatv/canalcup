@@ -4,7 +4,6 @@
 
 import Link from "next/link";
 import { MatchCard } from "@/components/matches/MatchCard";
-import { BreakingNews } from "@/components/matches/BreakingNews";
 import { getMatches, getPredictionTrends } from "@/lib/data/matches";
 import { createClient } from "@/lib/supabase/server";
 import { Star, Trophy } from "lucide-react";
@@ -62,7 +61,6 @@ export default async function MatchesPage() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <BreakingNews />
       <div className="px-4 py-4 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between gap-3">
