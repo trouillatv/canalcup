@@ -15,6 +15,15 @@ const EVENT_LABELS: Record<string, string> = {
   penalty_missed: "❌ Penalty raté",
 };
 
+// Fenêtre de récence du flash : un match (live OU terminé) n'apparaît au flash
+// que si son coup d'envoi est dans les 5 dernières heures. C'est la MÊME fenêtre
+// que le resync on-read (POST_MATCH_WINDOW côté sync) : le flash suit ainsi le
+// statut réel affiché par le centre du match (live → "Live", finished →
+// "Terminé"), sans JAMAIS forcer ni inventer un statut. On ne touche pas à la
+// base : si le provider ne renvoie pas "finished" (ex. quota API épuisé), le
+// statut reste tel quel et le flash le reflète honnêtement.
+const RECENT_MATCH_MS = 5 * 60 * 60_000;
+
 export async function GET() {
   const supabase = createAdminClient();
 
@@ -23,17 +32,14 @@ export async function GET() {
   // affichés soient à jour même si personne n'est sur la fiche du match.
   await refreshLiveMatches().catch(() => {});
 
-  // Live matches first. Garde-fou : aucun vrai match n'est "live" plus de ~2h30
-  // après le coup d'envoi (90' + mi-temps + prolongations + arrêts de jeu). Un
-  // match resté coincé en "live"/"halftime" en base (provider qui ne renvoie
-  // jamais "finished", ou match sorti de la fenêtre de resync de 5h) ne doit
-  // PAS continuer à s'afficher en flash. On borne donc par le coup d'envoi.
-  const liveFloor = new Date(Date.now() - 150 * 60_000).toISOString();
+  const recentKickoff = new Date(Date.now() - RECENT_MATCH_MS).toISOString();
+
+  // Live matches first — bornés à la fenêtre de récence (cohérent avec le centre).
   const { data: liveMatches } = await supabase
     .from("matches")
     .select("id, team_a, team_b, flag_a, flag_b, score_a, score_b, status, minute")
     .in("status", ["live", "halftime"])
-    .gte("starts_at", liveFloor);
+    .gte("starts_at", recentKickoff);
 
   // Recent events (last 90 minutes)
   const since = new Date(Date.now() - 90 * 60_000).toISOString();
@@ -91,10 +97,10 @@ export async function GET() {
     });
   }
 
-  // Matchs RÉCEMMENT terminés : on annonce le résultat final dans une fenêtre
-  // courte après le coup d'envoi (~2,5 h ≈ 40 min après le coup de sifflet),
-  // puis le flash s'efface tout seul. Au-delà, plus de flash "Terminé".
-  const recentKickoff = new Date(Date.now() - 150 * 60_000).toISOString();
+  // Matchs RÉCEMMENT terminés : on annonce le résultat final tant que le coup
+  // d'envoi est dans la fenêtre de récence (5 h, même borne que le live). Le
+  // flash affiche "Terminé" aussi longtemps que le centre du match l'affiche
+  // pour un match récent ; au-delà de 5 h le flash s'efface tout seul.
   const { data: justFinished } = await supabase
     .from("matches")
     .select("team_a, team_b, flag_a, flag_b, score_a, score_b, starts_at, updated_at")
