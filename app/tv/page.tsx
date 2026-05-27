@@ -46,7 +46,8 @@ type Slide =
   | "services"
   | "medals"
   | "playerofday"
-  | "news";
+  | "news"
+  | "duelpronos";
 
 const SLIDE_DURATION = 12000;
 const REFRESH_INTERVAL = 30000;
@@ -60,6 +61,7 @@ const BASE_SLIDES: Slide[] = [
   "playerofday",
   "standings",
   "toppronos",
+  "duelpronos",
   "livematch",
   "animations",
   "quiz",
@@ -463,6 +465,56 @@ function SlideDuel({ leaderboard }: { leaderboard: LeaderboardRow[] }) {
 
       <div className="bg-canal-gray-mid/40 border border-canal-gray-light/30 rounded-2xl p-3 sm:p-6 text-center">
         <p className="text-canal-gray-muted text-xs sm:text-xl italic">"{phrase}"</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Slide: Duel des pronos (top 2 pronostiqueurs face à face) ────────────────
+function SlideDuelPronos({ individual }: { individual: IndividualRow[] }) {
+  const sorted = [...individual].sort((a, b) => b.pronos - a.pronos);
+  if (sorted.length < 2 || sorted[0].pronos <= 0) return null;
+  const [first, second] = sorted;
+  const gap = first.pronos - second.pronos;
+
+  return (
+    <div className="flex flex-col justify-center px-4 sm:px-8 lg:px-20 py-4 sm:py-12">
+      <div className="mb-3 sm:mb-8">
+        <p className="text-canal-yellow font-black text-sm sm:text-2xl uppercase tracking-widest mb-2">
+          🎯 DUEL DES PRONOS
+        </p>
+        <div className="h-1 w-24 sm:w-32 bg-canal-yellow" />
+      </div>
+
+      <div className="flex items-center gap-2 sm:gap-12 mb-4 sm:mb-10">
+        <div className="flex-1 min-w-0 text-center">
+          <p className="text-canal-gray-muted text-xs sm:text-xl uppercase tracking-wider mb-1 sm:mb-3">🥇 EN TÊTE</p>
+          <p className="font-black text-base sm:text-4xl lg:text-5xl text-white mb-1 sm:mb-3 leading-tight break-words">{first.display_name}</p>
+          <p className="font-black text-3xl sm:text-5xl lg:text-8xl text-canal-yellow">{first.pronos}</p>
+          <p className="text-canal-gray-muted text-xs sm:text-xl mt-0.5">pts pronos</p>
+        </div>
+
+        <div className="flex flex-col items-center gap-1 sm:gap-3 shrink-0">
+          <span className="font-black text-lg sm:text-4xl lg:text-5xl text-canal-gray-muted">VS</span>
+          <div className="flex flex-col items-center">
+            <span className="text-canal-gray-muted text-xs sm:text-lg">Écart</span>
+            <span className={`font-black text-lg sm:text-3xl lg:text-4xl ${gap <= 5 ? "text-red-400" : gap <= 15 ? "text-orange-400" : "text-canal-gray-muted"}`}>
+              {gap > 0 ? `+${gap}` : gap}
+            </span>
+            <span className="text-canal-gray-muted text-xs sm:text-lg">pts</span>
+          </div>
+        </div>
+
+        <div className="flex-1 min-w-0 text-center">
+          <p className="text-canal-gray-muted text-xs sm:text-xl uppercase tracking-wider mb-1 sm:mb-3">🥈 POURSUIT</p>
+          <p className="font-black text-base sm:text-4xl lg:text-5xl text-white mb-1 sm:mb-3 leading-tight break-words">{second.display_name}</p>
+          <p className="font-black text-3xl sm:text-5xl lg:text-8xl text-white">{second.pronos}</p>
+          <p className="text-canal-gray-muted text-xs sm:text-xl mt-0.5">pts pronos</p>
+        </div>
+      </div>
+
+      <div className="bg-canal-gray-mid/40 border border-canal-gray-light/30 rounded-2xl p-3 sm:p-6 text-center">
+        <p className="text-canal-gray-muted text-xs sm:text-xl italic">Qui sera le meilleur pronostiqueur de la Canal Cup ?</p>
       </div>
     </div>
   );
@@ -1806,7 +1858,7 @@ export default function TVPage() {
 
   const slides = BASE_SLIDES.filter((s) => {
     if (s === "animations") return hasChallenges;
-    if (s === "general" || s === "toppronos" || s === "quiz" || s === "playerofday") return hasIndividual;
+    if (s === "general" || s === "toppronos" || s === "quiz" || s === "playerofday" || s === "duelpronos") return hasIndividual;
     if (s === "services") return hasServices;
     if (s === "medals") return hasMedals;
     if (s === "news") return hasNews;
@@ -1889,6 +1941,7 @@ export default function TVPage() {
             {slide === "match" && <SlideMatch matches={data.matches} />}
             {slide === "livematch" && <SlideLiveMatch matches={data.matches} />}
             {slide === "duel" && <SlideDuel leaderboard={data.leaderboard} />}
+            {slide === "duelpronos" && <SlideDuelPronos individual={data.individual ?? []} />}
             {slide === "standings" && <SlideStandings standings={data.standings ?? []} />}
             {slide === "bracket" && <SlideBracket />}
             {slide === "matinale" && <SlideMatinale brief={data.brief} />}
