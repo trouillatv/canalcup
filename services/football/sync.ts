@@ -325,10 +325,12 @@ const POST_MATCH_WINDOW_MS = 5 * 60 * 60_000; // ~kickoff + 5 h : couvre le +2 h
 
 function inResyncWindow(status: string, startsAt: string): boolean {
   if (status === "live" || status === "halftime") return true;
-  if (status === "finished") {
-    const elapsed = Date.now() - new Date(startsAt).getTime();
-    return elapsed >= 0 && elapsed < POST_MATCH_WINDOW_MS;
-  }
+  const elapsed = Date.now() - new Date(startsAt).getTime();
+  // Coup d'envoi passé mais encore "upcoming" en base : on resync à la lecture
+  // pour faire passer le match "live" tout seul, sans attendre le cron quotidien.
+  // (Vaut pour la vraie CDM ET pour le match de test.)
+  if (status === "upcoming") return elapsed >= 0 && elapsed < POST_MATCH_WINDOW_MS;
+  if (status === "finished") return elapsed >= 0 && elapsed < POST_MATCH_WINDOW_MS;
   return false;
 }
 
