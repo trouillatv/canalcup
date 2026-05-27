@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { statLabelFr, eventDetailFr } from "@/lib/football/labels";
 import type { FullMatchDetail, MatchEvent, LineupPlayer, PlayerMatchStat, StandingRow } from "@/services/football/types";
 import { MapPin, User, RefreshCw, Clock, Sparkles, Star } from "lucide-react";
 import { MatchReactions } from "@/components/matches/MatchReactions";
@@ -108,7 +109,7 @@ function EventRow({ event, teamA, teamB }: { event: MatchEvent; teamA: string; t
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-white truncate">{event.player_name}</p>
             {event.assist_player_name && <p className="text-xs text-canal-gray-muted">Passe : {event.assist_player_name}</p>}
-            {event.detail && <p className="text-xs text-canal-gray-muted">{event.detail}</p>}
+            {event.detail && <p className="text-xs text-canal-gray-muted">{eventDetailFr(event.detail)}</p>}
           </div>
           <span className="text-canal-yellow font-black text-sm shrink-0">{event.minute}'</span>
           <span className="text-xs text-canal-gray-muted w-16 text-right truncate shrink-0">{teamA}</span>
@@ -120,7 +121,7 @@ function EventRow({ event, teamA, teamB }: { event: MatchEvent; teamA: string; t
           <div className="flex-1 min-w-0 text-right">
             <p className="text-sm font-bold text-white truncate">{event.player_name}</p>
             {event.assist_player_name && <p className="text-xs text-canal-gray-muted">Passe : {event.assist_player_name}</p>}
-            {event.detail && <p className="text-xs text-canal-gray-muted">{event.detail}</p>}
+            {event.detail && <p className="text-xs text-canal-gray-muted">{eventDetailFr(event.detail)}</p>}
           </div>
           <span className="text-lg w-7 text-right">{icon}</span>
         </>
@@ -209,7 +210,7 @@ function Stats({ stats, teamA, teamB }: { stats: FullMatchDetail["stats"]; teamA
           <div key={i}>
             <div className="flex justify-between items-center mb-1">
               <span className="text-sm font-black text-white">{s.home_value}</span>
-              <span className="text-xs text-canal-gray-muted">{s.stat_type}</span>
+              <span className="text-xs text-canal-gray-muted">{statLabelFr(s.stat_type)}</span>
               <span className="text-sm font-black text-white">{s.away_value}</span>
             </div>
             <div className="h-1.5 bg-canal-gray-mid rounded-full overflow-hidden flex">
