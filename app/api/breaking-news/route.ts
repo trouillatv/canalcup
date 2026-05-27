@@ -85,10 +85,10 @@ export async function GET() {
     });
   }
 
-  // Matchs RÉCEMMENT terminés (coup d'envoi dans les 4 dernières heures) :
-  // le flash annonce le résultat final, sinon il reste « bloqué » sur les
-  // vieux événements live alors que le match est fini.
-  const recentKickoff = new Date(Date.now() - 4 * 60 * 60_000).toISOString();
+  // Matchs RÉCEMMENT terminés : on annonce le résultat final dans une fenêtre
+  // courte après le coup d'envoi (~2,5 h ≈ 40 min après le coup de sifflet),
+  // puis le flash s'efface tout seul. Au-delà, plus de flash "Terminé".
+  const recentKickoff = new Date(Date.now() - 150 * 60_000).toISOString();
   const { data: justFinished } = await supabase
     .from("matches")
     .select("team_a, team_b, flag_a, flag_b, score_a, score_b, starts_at, updated_at")
