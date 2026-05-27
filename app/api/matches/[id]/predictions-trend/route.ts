@@ -28,7 +28,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const { data: match } = await supabase
     .from("matches")
-    .select("status, score_a, score_b, phase")
+    .select("status, score_a, score_b, phase, starts_at")
     .eq("id", id)
     .single();
 
@@ -98,12 +98,25 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const b = details.filter((p) => getResultFromScore(p.predicted_score_a, p.predicted_score_b) === "B").length;
   const exact = hasScore ? details.filter((p) => p.outcome === "exact").length : null;
 
-  // Détail NOMINATIF seulement une fois le match commencé (live/fini) : avant le
-  // coup d'envoi les pronos sont modifiables → ne pas dévoiler qui a parié quoi.
-  const started = live || finished;
+  // RIEN n'est dévoilé tant que le match n'a pas commencé (pronos encore
+  // modifiables → on pourrait copier). On débloque au coup d'envoi (par le
+  // temps, pas seulement le statut, au cas où le resync tarde à passer "live").
+  const started =
+    live || finished || (match?.starts_at ? new Date(match.starts_at) <= new Date() : false);
 
   return NextResponse.json(
-    { total, a, draw, b, exact, finished, live, details: started ? details : [] },
+    {
+      total,
+      started,
+      // Répartition + détail masqués avant le coup d'envoi.
+      a: started ? a : 0,
+      draw: started ? draw : 0,
+      b: started ? b : 0,
+      exact: started ? exact : null,
+      finished,
+      live,
+      details: started ? details : [],
+    },
     { headers: { "Cache-Control": `s-maxage=${live ? 30 : finished ? 300 : 120}, stale-while-revalidate=30` } }
   );
 }

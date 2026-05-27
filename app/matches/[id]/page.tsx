@@ -365,7 +365,7 @@ const OUTCOME_BADGE: Record<PredOutcome, { label: string; cls: string }> = {
 };
 
 function PredictionTrend({ matchId }: { matchId: string }) {
-  const [data, setData] = useState<{ total: number; a: number; draw: number; b: number; exact: number | null; finished: boolean; live?: boolean; details?: PredDetail[] } | null>(null);
+  const [data, setData] = useState<{ total: number; started?: boolean; a: number; draw: number; b: number; exact: number | null; finished: boolean; live?: boolean; details?: PredDetail[] } | null>(null);
 
   useEffect(() => {
     const load = () => {
@@ -395,6 +395,20 @@ function PredictionTrend({ matchId }: { matchId: string }) {
     { label: "Match nul", n: data.draw, color: "bg-canal-gray-light" },
     { label: "Victoire 2", n: data.b, color: "bg-canal-yellow" },
   ];
+
+  // Avant le coup d'envoi : on ne dévoile AUCUN prono (sinon on pourrait copier
+  // celui d'un autre). On affiche seulement le nombre de participants.
+  if (!data.started) return (
+    <div className="py-8 px-4 text-center space-y-2">
+      <p className="text-3xl">🔒</p>
+      <p className="text-sm font-bold text-white">
+        {data.total} pronostic{data.total > 1 ? "s" : ""} Canal Cup enregistré{data.total > 1 ? "s" : ""}
+      </p>
+      <p className="text-xs text-canal-gray-muted">
+        Les pronostics de chacun seront visibles au coup d'envoi — pas avant, pour éviter de copier.
+      </p>
+    </div>
+  );
 
   return (
     <div className="py-2 space-y-4">
