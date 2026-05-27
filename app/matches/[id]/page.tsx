@@ -347,14 +347,37 @@ function TopPlayers({ players, teamA, teamB }: { players: PlayerMatchStat[]; tea
   );
 }
 
+type PredOutcome = "exact" | "correct_result" | "correct_diff" | "wrong" | "pending";
+interface PredDetail {
+  name: string;
+  predicted_score_a: number;
+  predicted_score_b: number;
+  outcome: PredOutcome;
+  points: number | null;
+}
+
+const OUTCOME_BADGE: Record<PredOutcome, { label: string; cls: string }> = {
+  exact: { label: "Score exact 🎯", cls: "text-canal-yellow" },
+  correct_result: { label: "Bon résultat ✅", cls: "text-green-400" },
+  correct_diff: { label: "Bonne diff ↔", cls: "text-green-400" },
+  wrong: { label: "Raté ❌", cls: "text-canal-gray-muted" },
+  pending: { label: "En attente", cls: "text-canal-gray-muted" },
+};
+
 function PredictionTrend({ matchId }: { matchId: string }) {
-  const [data, setData] = useState<{ total: number; a: number; draw: number; b: number; exact: number | null; finished: boolean } | null>(null);
+  const [data, setData] = useState<{ total: number; a: number; draw: number; b: number; exact: number | null; finished: boolean; live?: boolean; details?: PredDetail[] } | null>(null);
 
   useEffect(() => {
-    fetch(`/api/matches/${matchId}/predictions-trend`)
-      .then((r) => r.json())
-      .then(setData)
-      .catch(() => {});
+    const load = () => {
+      fetch(`/api/matches/${matchId}/predictions-trend`)
+        .then((r) => r.json())
+        .then(setData)
+        .catch(() => {});
+    };
+    load();
+    // En live, on suit le score : on rafraîchit le classement toutes les 30 s.
+    const t = setInterval(load, 30_000);
+    return () => clearInterval(t);
   }, [matchId]);
 
   if (!data) return (
@@ -391,12 +414,63 @@ function PredictionTrend({ matchId }: { matchId: string }) {
           </div>
         ))}
       </div>
-      {data.finished && data.exact != null && (
+      {(() => {
+        const scored = data.finished || !!data.live; // un score est dispo
+        return <>
+      {scored && data.exact != null && (
         <div className="rounded-xl bg-canal-gray-mid px-4 py-3 text-center">
           <p className="text-2xl font-black text-canal-yellow tabular-nums">{data.exact}</p>
-          <p className="text-xs text-canal-gray-muted">score{data.exact > 1 ? "s" : ""} exact{data.exact > 1 ? "s" : ""} sur {data.total}</p>
+          <p className="text-xs text-canal-gray-muted">
+            score{data.exact > 1 ? "s" : ""} exact{data.exact > 1 ? "s" : ""} sur {data.total}
+            {data.live && <span className="text-red-400 font-bold"> · en direct</span>}
+          </p>
         </div>
       )}
+
+      {/* Détail par personne — classé par points obtenus */}
+      {data.details && data.details.length > 0 && (
+        <div className="pt-2">
+          <h3 className="text-xs font-bold text-canal-yellow uppercase tracking-wider mb-2 flex items-center gap-2">
+            {scored ? "Classement des pronos sur ce match" : "Pronostics de chacun"}
+            {data.live && <span className="text-[10px] text-red-400 normal-case font-bold flex items-center gap-1"><span className="live-dot" /> provisoire</span>}
+          </h3>
+          <div className="space-y-1.5">
+            {data.details.map((d, i) => {
+              const badge = OUTCOME_BADGE[d.outcome];
+              const medal = scored && (d.points ?? 0) > 0
+                ? (i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null)
+                : null;
+              return (
+                <div
+                  key={`${d.name}-${i}`}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-canal-gray-mid"
+                >
+                  <span className="w-6 text-center text-xs font-black text-canal-gray-muted tabular-nums">
+                    {medal ?? (scored ? `${i + 1}` : "")}
+                  </span>
+                  <span className="flex-1 min-w-0 truncate text-sm font-bold text-white">{d.name}</span>
+                  <span className="shrink-0 text-sm font-black text-white tabular-nums">
+                    {d.predicted_score_a}–{d.predicted_score_b}
+                  </span>
+                  <span className={cn("shrink-0 text-[10px] font-bold w-24 text-right", badge.cls)}>
+                    {badge.label}
+                  </span>
+                  {scored && (
+                    <span className={cn(
+                      "shrink-0 w-12 text-right text-sm font-black tabular-nums",
+                      (d.points ?? 0) > 0 ? "text-canal-yellow" : "text-canal-gray-muted"
+                    )}>
+                      {d.points != null ? `+${d.points}` : "—"}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+        </>;
+      })()}
     </div>
   );
 }
