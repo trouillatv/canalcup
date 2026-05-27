@@ -6,6 +6,7 @@ import Link from "next/link";
 import { MatchCard } from "@/components/matches/MatchCard";
 import { getMatches, getPredictionTrends } from "@/lib/data/matches";
 import { createClient } from "@/lib/supabase/server";
+import { isToday } from "@/lib/utils";
 import { Star, Trophy } from "lucide-react";
 
 // Données live + pronostics par utilisateur → toujours frais.
@@ -55,10 +56,11 @@ export default async function MatchesPage() {
     getMyPredictions(),
   ]);
 
-  // Le match de la semaine est remonté en haut, quel que soit son statut, et
-  // exclu des listes ci-dessous (sinon enterré sous les 70+ matchs à venir).
-  const matchOfWeek = matches.find((m) => m.is_match_of_week);
-  const rest = matches.filter((m) => !m.is_match_of_week);
+  // Les matchs DU JOUR (heure NC) sont remontés en haut, quel que soit leur
+  // statut, et exclus des listes ci-dessous (sinon enterrés sous les 70+ matchs
+  // à venir). En Coupe du Monde il y a ~1 match/jour : c'est le repère utile.
+  const today = matches.filter((m) => isToday(m.starts_at));
+  const rest = matches.filter((m) => !isToday(m.starts_at));
   const upcoming = rest.filter((m) => m.status === "upcoming");
   const live = rest.filter((m) => m.status === "live");
   const finished = rest.filter((m) => m.status === "finished");
@@ -88,16 +90,16 @@ export default async function MatchesPage() {
           </div>
         </div>
 
-        {matchOfWeek && (
+        {today.length > 0 && (
           <section>
             <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider mb-3 flex items-center gap-2">
-              <Star size={14} /> Match de la semaine
+              <Star size={14} /> {today.length > 1 ? "Matchs du jour" : "Match du jour"}
             </h2>
-            <MatchCard
-              match={matchOfWeek}
-              trend={trends[matchOfWeek.id]}
-              savedPrediction={myPredictions[matchOfWeek.id]}
-            />
+            <div className="space-y-4">
+              {today.map((m) => (
+                <MatchCard key={m.id} match={m} trend={trends[m.id]} savedPrediction={myPredictions[m.id]} />
+              ))}
+            </div>
           </section>
         )}
 

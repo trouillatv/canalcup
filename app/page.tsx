@@ -3,10 +3,9 @@ import { getMatches, getPredictionTrends } from "@/lib/data/matches";
 import { getLeaderboard } from "@/lib/data/teams";
 import { getTodayBrief, getRevivezPosts } from "@/lib/data/content";
 import { MatchCard } from "@/components/matches/MatchCard";
-import { MatchOfWeekHero } from "@/components/matches/MatchOfWeekHero";
 import { TonightOnAir } from "@/components/matches/TonightOnAir";
 import { LeaderboardTable } from "@/components/leaderboard/LeaderboardTable";
-import { toNCDate } from "@/lib/utils";
+import { toNCDate, isToday } from "@/lib/utils";
 import { Heart } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { MagicLinkReception } from "@/components/auth/MagicLinkReception";
@@ -46,15 +45,15 @@ export default async function RootPage() {
     }
   }
 
-  const matchOfWeek = matches.find((m) => m.is_match_of_week);
   // Matchs LIVE — section dédiée en haut, masquée s'il n'y en a aucun.
   const liveMatches = matches.filter((m) => m.status === "live");
-  // 'Prochain match' = upcoming non-match-of-week. PAS de fallback live ici
-  // (le live a sa propre section).
-  const matchToday = matches.find((m) => m.status === "upcoming" && !m.is_match_of_week);
+  // Matchs DU JOUR (heure NC) non-live — en CdM il y a ~1 match/jour, c'est le
+  // repère utile. Affichés comme les autres (carte normale), "Terminé" inclus.
+  const todayMatches = matches.filter((m) => isToday(m.starts_at) && m.status !== "live");
+  // Fallback s'il n'y a aucun match aujourd'hui : le prochain match à venir.
+  const nextMatch = matches.find((m) => m.status === "upcoming");
   const tonightMatches = matches.filter((m) => m.status === "upcoming").slice(0, 3);
   const topRevivez = revivez[0];
-  const trend = matchToday ? trends[matchToday.id] : undefined;
 
   return (
     <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto">
@@ -92,36 +91,40 @@ export default async function RootPage() {
         </section>
       )}
 
-      {matchOfWeek && (
+      {todayMatches.length > 0 ? (
         <section>
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider">
-              ⭐ Match de la semaine
+              ⚽ {todayMatches.length > 1 ? "Matchs du jour" : "Match du jour"}
             </h2>
             <Link href="/matches" className="text-xs text-canal-gray-muted hover:text-white">
               Tous les matchs →
             </Link>
           </div>
-          <MatchOfWeekHero
-            match={matchOfWeek}
-            tagline="Le match qui peut ruiner tous les pronostics du bureau."
-          />
+          <div className="space-y-4">
+            {todayMatches.map((m) => (
+              <MatchCard key={m.id} match={m} trend={trends[m.id]} />
+            ))}
+          </div>
         </section>
+      ) : (
+        nextMatch && (
+          <section>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider">
+                ⚽ Prochain match
+              </h2>
+              <Link href="/matches" className="text-xs text-canal-gray-muted hover:text-white">
+                Tous les matchs →
+              </Link>
+            </div>
+            <MatchCard match={nextMatch} trend={trends[nextMatch.id]} />
+          </section>
+        )
       )}
 
       {tonightMatches.length > 0 && (
         <TonightOnAir matches={tonightMatches} title="À l'affiche — Canal+ / beIN Sports" />
-      )}
-
-      {matchToday && !matchToday.is_match_of_week && (
-        <section>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider">
-              ⚽ Prochain match
-            </h2>
-          </div>
-          <MatchCard match={matchToday} trend={trend} />
-        </section>
       )}
 
       <section>
