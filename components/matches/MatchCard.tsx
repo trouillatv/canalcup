@@ -5,7 +5,7 @@ import { useState } from "react";
 import { cn, teamFlag, toNCDate, toNCTime } from "@/lib/utils";
 import type { Match, PredictionTrend } from "@/lib/supabase/types";
 import { getResult, scoreLabel } from "@/lib/scoring";
-import { Star, Clock, ChevronRight, Check, Lock } from "lucide-react";
+import { Clock, ChevronRight, Check, Lock } from "lucide-react";
 import { Countdown } from "./Countdown";
 import { TeamLink } from "@/components/teams/TeamLink";
 
@@ -190,11 +190,6 @@ export function MatchCard({ match, trend, savedPrediction, compact }: MatchCardP
           <span>{toNCDate(match.starts_at)} — {toNCTime(match.starts_at)} NC</span>
         </div>
         <div className="flex items-center gap-2">
-          {match.is_match_of_week && (
-            <span className="canal-badge flex items-center gap-1">
-              <Star size={10} /> Match de la semaine
-            </span>
-          )}
           {isLive && (
             <span className="flex items-center gap-1 text-xs text-red-400 font-bold">
               <span className="live-dot" /> LIVE
