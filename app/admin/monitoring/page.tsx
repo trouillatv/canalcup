@@ -55,6 +55,14 @@ interface Monitoring {
       plan?: string;
     } | null;
   };
+  resync_budget: {
+    callsRemaining: number;
+    matchesLive: number;
+    matchesUpcoming: number;
+    playMinutesRemaining: number;
+    resyncsAffordable: number;
+    intervalSeconds: number;
+  } | null;
   crons: Record<string, CronInfo>;
   scraping_last: { file: string; mtime: string } | null;
   data_sources: Record<string, { enabled: boolean; features: string[]; cost: string; latency: string; last_used: string | null }>;
@@ -103,11 +111,14 @@ function durationMs(start: string, end: string | null): string {
   return `${Math.floor(d / 60000)}min ${Math.floor((d % 60000) / 1000)}s`;
 }
 
-// Tableau stratégie quota (constant)
+// Budget quotidien visé (miroir de DAILY_CALL_BUDGET dans services/football/sync.ts)
+const DAILY_CALL_BUDGET = 90;
+
+// Tableau stratégie quota (référence indicative)
 const QUOTA_STRATEGY = [
-  { label: "Test perso (1 match/j)", matches: 1, interval: "70s", callsPerMatch: 90 },
-  { label: "WC2026 poules (4 matchs/j)", matches: 4, interval: "280s (4min40)", callsPerMatch: 22 },
-  { label: "WC2026 ponctuel (6 matchs/j)", matches: 6, interval: "400s (7min)", callsPerMatch: 15 },
+  { label: "Test perso (1 match/j)", matches: 1, interval: "3min", callsPerMatch: 90 },
+  { label: "WC2026 poules (4 matchs/j)", matches: 4, interval: "12min", callsPerMatch: 22 },
+  { label: "WC2026 ponctuel (6 matchs/j)", matches: 6, interval: "18min", callsPerMatch: 15 },
 ];
 
 export default function AdminMonitoringPage() {
@@ -540,37 +551,87 @@ export default function AdminMonitoringPage() {
             </div>
           </section>
 
-          {/* ─── Stratégie quota (constantes) ─── */}
+          {/* ─── Budget resync LIVE (calculé maintenant, pas figé) ─── */}
           <section className="canal-card space-y-3">
             <h2 className="text-xs text-canal-yellow font-bold uppercase tracking-wider flex items-center gap-1.5">
-              📊 Stratégie quota API-Football
+              📊 Budget resync API-Football — <span className="text-green-400">live</span>
             </h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-canal-gray-muted text-left">
-                    <th className="py-1.5 pr-3">Cas</th>
-                    <th className="py-1.5 pr-3 text-center">--matches</th>
-                    <th className="py-1.5 pr-3 text-center">Interval</th>
-                    <th className="py-1.5 text-center">Calls/match</th>
-                  </tr>
-                </thead>
-                <tbody className="text-white">
-                  {QUOTA_STRATEGY.map((row) => (
-                    <tr key={row.label} className="border-t border-canal-gray-light/30">
-                      <td className="py-1.5 pr-3">{row.label}</td>
-                      <td className="py-1.5 pr-3 text-center font-mono">{row.matches}</td>
-                      <td className="py-1.5 pr-3 text-center font-mono text-canal-yellow">{row.interval}</td>
-                      <td className="py-1.5 text-center font-mono">{row.callsPerMatch}</td>
+            {data.resync_budget ? (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="bg-canal-gray-mid rounded-lg px-3 py-2.5 border border-canal-gray-light">
+                    <p className="text-[10px] uppercase tracking-wider text-canal-gray-muted">Appels restants</p>
+                    <p className="text-canal-yellow font-black text-xl tabular-nums leading-tight mt-0.5">
+                      {data.resync_budget.callsRemaining}
+                    </p>
+                    <p className="text-[10px] text-canal-gray-muted">/ {DAILY_CALL_BUDGET} visés aujourd&apos;hui</p>
+                  </div>
+                  <div className="bg-canal-gray-mid rounded-lg px-3 py-2.5 border border-canal-gray-light">
+                    <p className="text-[10px] uppercase tracking-wider text-canal-gray-muted">Matchs à couvrir</p>
+                    <p className="text-white font-black text-xl tabular-nums leading-tight mt-0.5">
+                      {data.resync_budget.matchesLive + data.resync_budget.matchesUpcoming}
+                    </p>
+                    <p className="text-[10px] text-canal-gray-muted">
+                      {data.resync_budget.matchesLive} en cours · {data.resync_budget.matchesUpcoming} à venir
+                    </p>
+                  </div>
+                  <div className="bg-canal-gray-mid rounded-lg px-3 py-2.5 border border-canal-gray-light">
+                    <p className="text-[10px] uppercase tracking-wider text-canal-gray-muted">Minutes restantes</p>
+                    <p className="text-white font-black text-xl tabular-nums leading-tight mt-0.5">
+                      {data.resync_budget.playMinutesRemaining}
+                    </p>
+                    <p className="text-[10px] text-canal-gray-muted">90 min / match</p>
+                  </div>
+                  <div className="bg-canal-gray-mid rounded-lg px-3 py-2.5 border border-canal-yellow/40">
+                    <p className="text-[10px] uppercase tracking-wider text-canal-yellow font-bold">Resync toutes les</p>
+                    <p className="text-canal-yellow font-black text-xl tabular-nums leading-tight mt-0.5">
+                      {data.resync_budget.intervalSeconds < 60
+                        ? `${data.resync_budget.intervalSeconds}s`
+                        : `${Math.floor(data.resync_budget.intervalSeconds / 60)}min ${data.resync_budget.intervalSeconds % 60}s`}
+                    </p>
+                    <p className="text-[10px] text-canal-gray-muted">{data.resync_budget.resyncsAffordable} resyncs possibles</p>
+                  </div>
+                </div>
+                <p className="text-[11px] text-canal-gray-muted italic">
+                  Recalculé à chaque lecture : <code>quota restant ÷ minutes restantes</code>{" "}
+                  (chaque resync = {3} calls). Plus il reste de matchs/minutes → intervalle long ;
+                  moins il reste de quota → intervalle long. Garde-fous : min 90s, max 20min.
+                </p>
+              </>
+            ) : (
+              <p className="text-[11px] text-canal-gray-muted italic">
+                Budget indisponible (quota /status injoignable). Repli sur 5 min.
+              </p>
+            )}
+
+            {/* Référence indicative : à quoi ressemble l'étalement selon le nb de matchs */}
+            <details className="text-[11px]">
+              <summary className="cursor-pointer text-canal-gray-muted hover:text-white">
+                Référence — étalement type selon le nombre de matchs du jour
+              </summary>
+              <div className="overflow-x-auto mt-2">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="text-canal-gray-muted text-left">
+                      <th className="py-1.5 pr-3">Cas</th>
+                      <th className="py-1.5 pr-3 text-center">Matchs</th>
+                      <th className="py-1.5 pr-3 text-center">Interval</th>
+                      <th className="py-1.5 text-center">Calls/match</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="text-[11px] text-canal-gray-muted italic">
-              Chaque tick = 2 calls (fixture + events). Pour rester strict : doubler{" "}
-              <code>--matches</code>. Compos = 1 sync unique en init (statique).
-            </p>
+                  </thead>
+                  <tbody className="text-white">
+                    {QUOTA_STRATEGY.map((row) => (
+                      <tr key={row.label} className="border-t border-canal-gray-light/30">
+                        <td className="py-1.5 pr-3">{row.label}</td>
+                        <td className="py-1.5 pr-3 text-center font-mono">{row.matches}</td>
+                        <td className="py-1.5 pr-3 text-center font-mono text-canal-yellow">{row.interval}</td>
+                        <td className="py-1.5 text-center font-mono">{row.callsPerMatch}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
           </section>
         </>
       )}

@@ -326,6 +326,7 @@ const POST_MATCH_WINDOW_MS = 5 * 60 * 60_000; // ~kickoff + 5 h : couvre le +2 h
 // ── Budget quotidien API-Football (plan gratuit = 100/j ; on vise 90 max) ────
 const DAILY_CALL_BUDGET = 90;
 const CALLS_PER_LIVE_RESYNC = 3; // refreshMatchRow + events + stats par resync live
+const MATCH_MINUTES = 90;        // durée de jeu d'un match (référence du budget)
 const MIN_RESYNC_MS = 90_000;    // jamais sous 90 s, même avec beaucoup de quota
 const MAX_RESYNC_MS = 20 * 60_000;
 
@@ -364,17 +365,27 @@ async function apifRemainingToday(): Promise<number> {
   return remaining;
 }
 
-// Intervalle de resync ADAPTATIF : on répartit le quota restant du jour sur le
-// temps de jeu restant (matchs live + à venir aujourd'hui) → on ne dépasse pas
-// le budget. Plus il reste de matchs/minutes, plus l'intervalle s'allonge ;
-// moins il reste de quota, plus il s'allonge aussi.
-async function computeResyncIntervalMs(
-  supabase: ReturnType<typeof createAdminClient>,
-  status: string
-): Promise<number> {
-  if (status === "finished") return RESYNC_FINISHED_MS;
-  const remaining = await apifRemainingToday();
-  if (remaining <= CALLS_PER_LIVE_RESYNC) return MAX_RESYNC_MS; // quasi plus de quota
+export type LiveSyncBudget = {
+  callsRemaining: number;   // appels restants aujourd'hui (réel, via /status)
+  matchesLive: number;      // matchs en cours maintenant
+  matchesUpcoming: number;  // matchs à venir aujourd'hui (NC)
+  playMinutesRemaining: number; // minutes de jeu restantes à couvrir (90/match)
+  resyncsAffordable: number;    // nb de resyncs qu'on peut encore se payer
+  intervalSeconds: number;      // intervalle de resync recommandé maintenant
+};
+
+// Budget de resync ADAPTATIF, recalculé À CHAQUE LECTURE (jamais figé en début
+// de journée) : on relit le quota réel restant (/status) ET l'état courant des
+// matchs (en cours + à venir aujourd'hui), chaque match valant MATCH_MINUTES
+// (90 min) de jeu. On répartit le quota restant sur les minutes restantes :
+// 1 match seul ⇒ on tire vite ; plusieurs matchs ⇒ on étale pour tenir ≤ 90/j.
+export async function getLiveSyncBudget(
+  supabase: ReturnType<typeof createAdminClient>
+): Promise<LiveSyncBudget> {
+  const callsRemaining = await apifRemainingToday();
+  let matchesLive = 0;
+  let matchesUpcoming = 0;
+  let playMinutesRemaining = 0;
   try {
     // Journée calendaire en Nouvelle-Calédonie (UTC+11) : un match à 06:00 NC
     // = 19:00 UTC la veille, il DOIT être compté dans "aujourd'hui".
@@ -390,15 +401,42 @@ async function computeResyncIntervalMs(
       .select("status, minute, starts_at")
       .gte("starts_at", lowerBound.toISOString())
       .lt("starts_at", endUtc.toISOString());
-    let remMin = 0;
     for (const m of (data ?? []) as { status: string; minute: number | null; starts_at: string }[]) {
-      if (m.status === "live" || m.status === "halftime") remMin += Math.max(5, 105 - (m.minute ?? 0));
-      else if (m.status === "upcoming") remMin += 110;
+      if (m.status === "live" || m.status === "halftime") {
+        matchesLive += 1;
+        playMinutesRemaining += Math.max(5, MATCH_MINUTES - (m.minute ?? 0));
+      } else if (m.status === "upcoming") {
+        matchesUpcoming += 1;
+        playMinutesRemaining += MATCH_MINUTES;
+      }
     }
-    if (remMin <= 0) remMin = 110;
-    const affordable = Math.max(1, Math.floor(remaining / CALLS_PER_LIVE_RESYNC));
-    const intervalMs = (remMin / affordable) * 60_000;
-    return Math.min(MAX_RESYNC_MS, Math.max(MIN_RESYNC_MS, intervalMs));
+  } catch { /* on garde les valeurs par défaut */ }
+  if (playMinutesRemaining <= 0) playMinutesRemaining = MATCH_MINUTES;
+  const resyncsAffordable = Math.max(1, Math.floor(callsRemaining / CALLS_PER_LIVE_RESYNC));
+  const intervalMs = Math.min(
+    MAX_RESYNC_MS,
+    Math.max(MIN_RESYNC_MS, (playMinutesRemaining / resyncsAffordable) * 60_000)
+  );
+  return {
+    callsRemaining,
+    matchesLive,
+    matchesUpcoming,
+    playMinutesRemaining,
+    resyncsAffordable,
+    intervalSeconds: Math.round(intervalMs / 1000),
+  };
+}
+
+// Intervalle de resync pour un match donné, dérivé du budget live ci-dessus.
+async function computeResyncIntervalMs(
+  supabase: ReturnType<typeof createAdminClient>,
+  status: string
+): Promise<number> {
+  if (status === "finished") return RESYNC_FINISHED_MS;
+  try {
+    const budget = await getLiveSyncBudget(supabase);
+    if (budget.callsRemaining <= CALLS_PER_LIVE_RESYNC) return MAX_RESYNC_MS; // quasi plus de quota
+    return budget.intervalSeconds * 1000;
   } catch {
     return RESYNC_LIVE_FALLBACK_MS;
   }

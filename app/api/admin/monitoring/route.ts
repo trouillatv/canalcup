@@ -12,6 +12,7 @@ import fs from "fs";
 import path from "path";
 import { isAdminRequest } from "@/lib/auth/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getLiveSyncBudget } from "@/services/football/sync";
 
 // Schedules définies dans vercel.json. À garder en sync (ou parser le
 // fichier au runtime, mais c'est en .json donc statique).
@@ -280,10 +281,11 @@ export async function GET(req: Request) {
 
   // On charge les sondes externes EN PARALLÈLE avant de construire le
   // comparatif (qui en a besoin pour le scraping last_used).
-  const [gemini, football, scraping] = await Promise.all([
+  const [gemini, football, scraping, resyncBudget] = await Promise.all([
     checkGemini(),
     checkApiFootball(),
     lastScrapingDate(),
+    getLiveSyncBudget(supabase).catch(() => null),
   ]);
 
   // Dernière utilisation de chaque source data — pour le comparatif.
@@ -353,6 +355,7 @@ export async function GET(req: Request) {
     quota: {
       api_football: football.quota ?? null,
     },
+    resync_budget: resyncBudget,
     crons,
     scraping_last: scraping,
     data_sources: dataSources,
