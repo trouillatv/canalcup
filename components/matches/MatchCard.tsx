@@ -291,21 +291,19 @@ export function MatchCard({ match, trend, savedPrediction, compact }: MatchCardP
         </div>
       )}
 
-      {/* Link to match center */}
-      {!compact && (
-        <Link
-          href={`/matches/${match.id}`}
-          className={cn(
-            "mt-3 flex items-center justify-center gap-1 text-xs font-bold transition-colors rounded-lg py-2",
-            isLive
-              ? "text-red-400 hover:text-red-300 bg-red-950/20"
-              : "text-canal-gray-muted hover:text-canal-yellow"
-          )}
-        >
-          {isLive ? "🔴 Suivre en direct" : "Centre du match"}
-          <ChevronRight size={12} />
-        </Link>
-      )}
+      {/* Link to match center — toujours présent (live, à venir ET terminé) */}
+      <Link
+        href={`/matches/${match.id}`}
+        className={cn(
+          "mt-3 flex items-center justify-center gap-1 text-xs font-bold transition-colors rounded-lg py-2",
+          isLive
+            ? "text-red-400 hover:text-red-300 bg-red-950/20"
+            : "text-canal-gray-muted hover:text-canal-yellow"
+        )}
+      >
+        {isLive ? "🔴 Suivre en direct" : isFinished ? "Voir le résumé" : "Centre du match"}
+        <ChevronRight size={12} />
+      </Link>
     </article>
   );
 }

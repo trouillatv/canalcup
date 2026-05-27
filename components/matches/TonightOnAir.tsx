@@ -1,8 +1,9 @@
+import Link from "next/link";
 import type { Match } from "@/lib/supabase/types";
 import { teamFlag, toNCTime } from "@/lib/utils";
 import { getChannelConfig } from "@/lib/channels";
 import { cn } from "@/lib/utils";
-import { Tv2 } from "lucide-react";
+import { Tv2, ChevronRight } from "lucide-react";
 import { TeamLink } from "@/components/teams/TeamLink";
 
 interface TonightOnAirProps {
@@ -59,6 +60,14 @@ export function TonightOnAir({ matches, title = "Ce soir en direct" }: TonightOn
                 </p>
               </div>
 
+              {/* Accès au centre du match */}
+              <Link
+                href={`/matches/${match.id}`}
+                aria-label="Centre du match"
+                className="shrink-0 flex items-center gap-0.5 text-xs font-bold text-canal-gray-muted hover:text-canal-yellow transition-colors"
+              >
+                Match <ChevronRight size={14} />
+              </Link>
             </div>
           );
         })}

@@ -1,7 +1,8 @@
+import Link from "next/link";
 import type { Match } from "@/lib/supabase/types";
 import { teamFlag, toNCDate, toNCTime } from "@/lib/utils";
 import { getChannelConfig } from "@/lib/channels";
-import { Star } from "lucide-react";
+import { Star, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TeamLink } from "@/components/teams/TeamLink";
 
@@ -77,6 +78,24 @@ export function MatchOfWeekHero({ match, tagline }: MatchOfWeekHeroProps) {
           "{tagline}"
         </p>
       )}
+
+      {/* Lien vers le centre du match */}
+      <Link
+        href={`/matches/${match.id}`}
+        className={cn(
+          "mt-3 flex items-center justify-center gap-1 text-xs font-bold rounded-lg py-2 transition-colors",
+          match.status === "live"
+            ? "text-red-400 hover:text-red-300 bg-red-950/20"
+            : "text-canal-yellow hover:text-yellow-300"
+        )}
+      >
+        {match.status === "live"
+          ? "🔴 Suivre en direct"
+          : match.status === "finished"
+          ? "Voir le résumé"
+          : "Centre du match"}
+        <ChevronRight size={12} />
+      </Link>
     </div>
   );
 }
