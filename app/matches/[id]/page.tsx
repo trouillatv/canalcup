@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { statLabelFr, eventDetailFr } from "@/lib/football/labels";
-import type { FullMatchDetail, MatchEvent, LineupPlayer, PlayerMatchStat, StandingRow } from "@/services/football/types";
+import type { FullMatchDetail, MatchEvent, LineupPlayer, PlayerMatchStat, StandingRow, TeamSide } from "@/services/football/types";
 import { MapPin, User, RefreshCw, Clock, Sparkles, Star } from "lucide-react";
 import { MatchReactions } from "@/components/matches/MatchReactions";
 import { Countdown } from "@/components/matches/Countdown";
@@ -22,6 +22,41 @@ const EVENT_COLORS: Record<string, string> = {
   yellow_card: "bg-yellow-950/20 border border-yellow-900/20",
 };
 
+// Agrège les buteurs par camp affiché (home = team_a, away = team_b).
+// Inclut buts normaux et penaltys marqués ; un csc est recrédité au camp adverse.
+function buildScorers(events: MatchEvent[]) {
+  const map: Record<TeamSide, Map<string, string[]>> = { home: new Map(), away: new Map() };
+  for (const e of events) {
+    if (e.type !== "goal" && e.type !== "penalty") continue;
+    const isOwnGoal = (e.detail ?? "").toLowerCase().includes("own");
+    const side: TeamSide = isOwnGoal ? (e.team_side === "home" ? "away" : "home") : e.team_side;
+    let label = `${e.minute}${e.extra_minute ? `+${e.extra_minute}` : ""}'`;
+    if (e.type === "penalty") label += " p";
+    if (isOwnGoal) label += " csc";
+    const name = e.player_name || "—";
+    if (!map[side].has(name)) map[side].set(name, []);
+    map[side].get(name)!.push(label);
+  }
+  const fmt = (m: Map<string, string[]>) =>
+    [...m.entries()].map(([name, mins]) => ({ name, mins: mins.join(", ") }));
+  return { home: fmt(map.home), away: fmt(map.away) };
+}
+
+function ScorerList({ list }: { list: { name: string; mins: string }[] }) {
+  if (!list.length) return null;
+  return (
+    <ul className="mt-2 space-y-0.5 text-xs text-center leading-tight">
+      {list.map((s, i) => (
+        <li key={i}>
+          <span className="mr-1">⚽</span>
+          <span className="text-white font-semibold">{s.name}</span>{" "}
+          <span className="text-canal-gray-muted">{s.mins}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function StatusBadge({ status, minute }: { status: string; minute: number | null }) {
   if (status === "live") return (
     <span className="flex items-center gap-1.5 bg-red-600 text-white text-xs font-black px-2.5 py-1 rounded-full animate-pulse">
@@ -36,6 +71,7 @@ function StatusBadge({ status, minute }: { status: string; minute: number | null
 
 function ScoreBoard({ detail }: { detail: FullMatchDetail }) {
   const { match } = detail;
+  const scorers = buildScorers(detail.events);
   const kickoff = new Date(match.starts_at);
   const timeStr = kickoff.toLocaleTimeString("fr-NC", { hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Noumea" });
   const dateStr = kickoff.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
@@ -59,6 +95,7 @@ function ScoreBoard({ detail }: { detail: FullMatchDetail }) {
             className="text-sm font-black text-white text-center leading-tight max-w-full"
             wrapperClassName="gap-2 max-w-full"
           />
+          <ScorerList list={scorers.home} />
         </div>
 
         <div className="flex items-center gap-3">
@@ -85,6 +122,7 @@ function ScoreBoard({ detail }: { detail: FullMatchDetail }) {
             className="text-sm font-black text-white text-center leading-tight max-w-full"
             wrapperClassName="gap-2 max-w-full"
           />
+          <ScorerList list={scorers.away} />
         </div>
       </div>
 
