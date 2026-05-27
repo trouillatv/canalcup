@@ -55,9 +55,13 @@ export default async function MatchesPage() {
     getMyPredictions(),
   ]);
 
-  const upcoming = matches.filter((m) => m.status === "upcoming");
-  const live = matches.filter((m) => m.status === "live");
-  const finished = matches.filter((m) => m.status === "finished");
+  // Le match de la semaine est remonté en haut, quel que soit son statut, et
+  // exclu des listes ci-dessous (sinon enterré sous les 70+ matchs à venir).
+  const matchOfWeek = matches.find((m) => m.is_match_of_week);
+  const rest = matches.filter((m) => !m.is_match_of_week);
+  const upcoming = rest.filter((m) => m.status === "upcoming");
+  const live = rest.filter((m) => m.status === "live");
+  const finished = rest.filter((m) => m.status === "finished");
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -83,6 +87,19 @@ export default async function MatchesPage() {
             </Link>
           </div>
         </div>
+
+        {matchOfWeek && (
+          <section>
+            <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider mb-3 flex items-center gap-2">
+              <Star size={14} /> Match de la semaine
+            </h2>
+            <MatchCard
+              match={matchOfWeek}
+              trend={trends[matchOfWeek.id]}
+              savedPrediction={myPredictions[matchOfWeek.id]}
+            />
+          </section>
+        )}
 
         {live.length > 0 && (
           <section>

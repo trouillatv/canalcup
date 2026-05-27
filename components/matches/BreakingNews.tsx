@@ -36,6 +36,7 @@ export function BreakingNews() {
 
   const item = news[current];
   const isLive = item.type === "live";
+  const isFinished = item.type === "finished";
 
   // Bandeau discret : fond identique pour live et flash (juste un fond
   // canal-gray sobre), seul l'identifiant à gauche colore (point rouge
@@ -44,10 +45,10 @@ export function BreakingNews() {
   return (
     <div className="flex items-center gap-2 px-4 py-1.5 text-[11px] overflow-hidden bg-canal-gray border-b border-canal-gray-light">
       <div className={`shrink-0 flex items-center gap-1 font-black uppercase tracking-wider ${
-        isLive ? "text-red-400" : "text-canal-yellow"
+        isLive ? "text-red-400" : isFinished ? "text-canal-gray-muted" : "text-canal-yellow"
       }`}>
-        {isLive ? <span className="live-dot" /> : <Zap size={10} />}
-        {isLive ? "Live" : "Flash"}
+        {isLive ? <span className="live-dot" /> : isFinished ? "🏁" : <Zap size={10} />}
+        {isLive ? "Live" : isFinished ? "Terminé" : "Flash"}
       </div>
       <div className="min-w-0 flex-1 overflow-hidden">
         <p className="font-bold truncate text-white">

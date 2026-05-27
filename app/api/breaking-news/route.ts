@@ -79,6 +79,26 @@ export async function GET() {
     });
   }
 
+  // Matchs RÉCEMMENT terminés (coup d'envoi dans les 4 dernières heures) :
+  // le flash annonce le résultat final, sinon il reste « bloqué » sur les
+  // vieux événements live alors que le match est fini.
+  const recentKickoff = new Date(Date.now() - 4 * 60 * 60_000).toISOString();
+  const { data: justFinished } = await supabase
+    .from("matches")
+    .select("team_a, team_b, flag_a, flag_b, score_a, score_b, starts_at, updated_at")
+    .eq("status", "finished")
+    .gte("starts_at", recentKickoff)
+    .order("updated_at", { ascending: false })
+    .limit(3);
+
+  for (const m of justFinished ?? []) {
+    news.push({
+      type: "finished",
+      text: `⏹️ Terminé · ${flagText(m.flag_a)}${m.team_a} ${m.score_a ?? 0}–${m.score_b ?? 0} ${flagText(m.flag_b)}${m.team_b}`,
+      at: m.updated_at ?? m.starts_at,
+    });
+  }
+
   // Upcoming matches in next 30 min
   const soon = new Date(Date.now() + 30 * 60_000).toISOString();
   const { data: upcoming } = await supabase
