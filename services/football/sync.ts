@@ -442,6 +442,39 @@ async function computeResyncIntervalMs(
   }
 }
 
+// Rafraîchit UNIQUEMENT les LIGNES des matchs en fenêtre live (score/minute/
+// statut), throttlé par le même budget adaptatif. Léger : pas d'events/compos/
+// stats. Appelé par /api/breaking-news pour que le FLASH suive le direct sur
+// TOUTES les pages — sans devoir ouvrir la fiche du match (le resync on-read
+// de getMatchDetail ne se déclenche que sur la fiche). La route breaking-news
+// est cachée 30 s côté edge → ceci s'exécute ~1×/30 s globalement, et le
+// throttle interne plafonne les vrais appels API au budget quotidien.
+export async function refreshLiveMatches(): Promise<number> {
+  const supabase = createAdminClient();
+  // Seuls les matchs dont le coup d'envoi est dans les ~5 dernières heures
+  // peuvent être en fenêtre de resync (live, mi-temps, à venir-déjà-débuté,
+  // ou fini-récent). Requête bornée donc bon marché.
+  const windowStart = new Date(Date.now() - POST_MATCH_WINDOW_MS).toISOString();
+  const { data: candidates } = await supabase
+    .from("matches")
+    .select("id, status, starts_at, updated_at, apif_id, external_id")
+    .gte("starts_at", windowStart)
+    .lte("starts_at", new Date().toISOString());
+  if (!candidates?.length) return 0;
+
+  let refreshed = 0;
+  for (const m of candidates) {
+    const status = m.status ?? "upcoming";
+    if (!inResyncWindow(status, m.starts_at)) continue;
+    const intervalMs = await computeResyncIntervalMs(supabase, status);
+    const lastUpd = m.updated_at ? new Date(m.updated_at).getTime() : 0;
+    if (Date.now() - lastUpd < intervalMs) continue;   // throttle adaptatif
+    if (!takeResyncSlot(m.id)) continue;               // anti-doublon concurrent
+    try { await refreshMatchRow(m); refreshed++; } catch { /* on continue */ }
+  }
+  return refreshed;
+}
+
 // ─── Full match detail ────────────────────────────────────────────────────────
 
 export async function getMatchDetail(matchId: string): Promise<FullMatchDetail | null> {

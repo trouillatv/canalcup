@@ -3,6 +3,7 @@
 
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { refreshLiveMatches } from "@/services/football/sync";
 
 const EVENT_LABELS: Record<string, string> = {
   goal: "⚽ But",
@@ -16,6 +17,11 @@ const EVENT_LABELS: Record<string, string> = {
 
 export async function GET() {
   const supabase = createAdminClient();
+
+  // Le flash suit le direct : on rafraîchit d'abord les lignes des matchs en
+  // fenêtre live (throttlé par le budget adaptatif), pour que le score/minute
+  // affichés soient à jour même si personne n'est sur la fiche du match.
+  await refreshLiveMatches().catch(() => {});
 
   // Live matches first
   const { data: liveMatches } = await supabase
