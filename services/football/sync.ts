@@ -319,27 +319,82 @@ async function refreshMatchRow(match: any): Promise<void> {
 // le provider : ≤ toutes les 5 min en live, ≤ toutes les 30 min après le coup
 // de sifflet (couvre les passes « final », « +30 min », « +2 h corrigées »).
 
-const RESYNC_LIVE_MS = 5 * 60_000;
 const RESYNC_FINISHED_MS = 30 * 60_000;
+const RESYNC_LIVE_FALLBACK_MS = 5 * 60_000;
 const POST_MATCH_WINDOW_MS = 5 * 60 * 60_000; // ~kickoff + 5 h : couvre le +2 h
+
+// ── Budget quotidien API-Football (plan gratuit = 100/j ; on vise 90 max) ────
+const DAILY_CALL_BUDGET = 90;
+const CALLS_PER_LIVE_RESYNC = 3; // refreshMatchRow + events + stats par resync live
+const MIN_RESYNC_MS = 90_000;    // jamais sous 90 s, même avec beaucoup de quota
+const MAX_RESYNC_MS = 20 * 60_000;
 
 function inResyncWindow(status: string, startsAt: string): boolean {
   if (status === "live" || status === "halftime") return true;
   const elapsed = Date.now() - new Date(startsAt).getTime();
   // Coup d'envoi passé mais encore "upcoming" en base : on resync à la lecture
   // pour faire passer le match "live" tout seul, sans attendre le cron quotidien.
-  // (Vaut pour la vraie CDM ET pour le match de test.)
   if (status === "upcoming") return elapsed >= 0 && elapsed < POST_MATCH_WINDOW_MS;
   if (status === "finished") return elapsed >= 0 && elapsed < POST_MATCH_WINDOW_MS;
   return false;
 }
 
-// true si on doit re-tirer le provider maintenant (et pose le verrou anti-spam).
-function takeResyncSlot(matchId: string, status: string): boolean {
+// Verrou anti-doublon CONCURRENT (court, par instance). Le vrai throttle est
+// basé sur matches.updated_at (fiable en serverless) + l'intervalle adaptatif.
+function takeResyncSlot(matchId: string): boolean {
   const key = `resync:${matchId}`;
   if (cache.get(key)) return false;
-  cache.set(key, true, status === "finished" ? RESYNC_FINISHED_MS : RESYNC_LIVE_MS);
+  cache.set(key, true, 30_000);
   return true;
+}
+
+// Appels restants aujourd'hui via /status API-Football (caché 60 s ; /status
+// ne consomme pas le quota). On vise DAILY_CALL_BUDGET (90).
+async function apifRemainingToday(): Promise<number> {
+  const key = "apif:remaining";
+  const c = cache.get<number>(key);
+  if (typeof c === "number") return c;
+  let remaining = DAILY_CALL_BUDGET;
+  try {
+    const j = await apifFetch("/status");
+    const used = j?.response?.requests?.current ?? 0;
+    remaining = Math.max(0, DAILY_CALL_BUDGET - used);
+  } catch { /* prudent en cas d'échec */ }
+  cache.set(key, remaining, 60_000);
+  return remaining;
+}
+
+// Intervalle de resync ADAPTATIF : on répartit le quota restant du jour sur le
+// temps de jeu restant (matchs live + à venir aujourd'hui) → on ne dépasse pas
+// le budget. Plus il reste de matchs/minutes, plus l'intervalle s'allonge ;
+// moins il reste de quota, plus il s'allonge aussi.
+async function computeResyncIntervalMs(
+  supabase: ReturnType<typeof createAdminClient>,
+  status: string
+): Promise<number> {
+  if (status === "finished") return RESYNC_FINISHED_MS;
+  const remaining = await apifRemainingToday();
+  if (remaining <= CALLS_PER_LIVE_RESYNC) return MAX_RESYNC_MS; // quasi plus de quota
+  try {
+    const start = new Date(); start.setUTCHours(0, 0, 0, 0);
+    const end = new Date(start); end.setUTCDate(end.getUTCDate() + 1);
+    const { data } = await supabase
+      .from("matches")
+      .select("status, minute, starts_at")
+      .gte("starts_at", start.toISOString())
+      .lt("starts_at", end.toISOString());
+    let remMin = 0;
+    for (const m of (data ?? []) as { status: string; minute: number | null; starts_at: string }[]) {
+      if (m.status === "live" || m.status === "halftime") remMin += Math.max(5, 105 - (m.minute ?? 0));
+      else if (m.status === "upcoming") remMin += 110;
+    }
+    if (remMin <= 0) remMin = 110;
+    const affordable = Math.max(1, Math.floor(remaining / CALLS_PER_LIVE_RESYNC));
+    const intervalMs = (remMin / affordable) * 60_000;
+    return Math.min(MAX_RESYNC_MS, Math.max(MIN_RESYNC_MS, intervalMs));
+  } catch {
+    return RESYNC_LIVE_FALLBACK_MS;
+  }
 }
 
 // ─── Full match detail ────────────────────────────────────────────────────────
@@ -353,10 +408,16 @@ export async function getMatchDetail(matchId: string): Promise<FullMatchDetail |
   let { data: match } = await supabase.from("matches").select("*").eq("id", matchId).single();
   if (!match) return null;
 
-  // ── Resync on-read (throttlé) : rafraîchit la ligne match puis recharge ────
-  const doResync =
-    inResyncWindow(match.status ?? "upcoming", match.starts_at) &&
-    takeResyncSlot(matchId, match.status ?? "upcoming");
+  // ── Resync on-read (throttle adaptatif quota) : rafraîchit la ligne match ──
+  const status0 = match.status ?? "upcoming";
+  let doResync = false;
+  if (inResyncWindow(status0, match.starts_at)) {
+    const intervalMs = await computeResyncIntervalMs(supabase, status0);
+    const lastUpd = match.updated_at ? new Date(match.updated_at).getTime() : 0;
+    if (Date.now() - lastUpd >= intervalMs) {
+      doResync = takeResyncSlot(matchId); // anti-doublon concurrent
+    }
+  }
   if (doResync) {
     await refreshMatchRow(match);
     const { data: fresh } = await supabase.from("matches").select("*").eq("id", matchId).single();
@@ -394,7 +455,9 @@ export async function getMatchDetail(matchId: string): Promise<FullMatchDetail |
   });
   if (dbLineups?.length) lineups = buildLineups(dbLineups as LineupPlayer[]);
 
-  if ((!lineups || force) && isActive) {
+  // Compos : on ne les re-tire que si MANQUANTES, ou une fois à la fin du match
+  // (subs finaux). Pas à chaque resync live → économie de quota.
+  if ((!lineups || (force && status === "finished")) && isActive) {
     let players: LineupPlayer[] | null = null;
     if (apifId && hasApiFootball()) players = await syncLineupsApiF(matchId, apifId);
     else if (externalId) players = await syncLineupsTsdb(matchId, externalId);
@@ -413,9 +476,10 @@ export async function getMatchDetail(matchId: string): Promise<FullMatchDetail |
   // 2) sinon, match fini + compos connues → estimation Gemini/heuristique
   //    (labellisée « estimé » en UI). L'estimation est stable : on ne la
   //    régénère pas tant qu'elle existe (économie budget Gemini).
+  // Notes joueurs : lourd → on ne les tire que si MANQUANTES, ou une fois à la
+  // fin du match. Pas à chaque resync live → économie de quota.
   let playerStats = await loadPlayerStatsFromDB(matchId);
-  const hasRealStats = playerStats.some((p) => p.source === "api-football");
-  if ((!playerStats.length || (force && hasRealStats)) && apifId && hasApiFootball()) {
+  if ((!playerStats.length || (force && status === "finished")) && apifId && hasApiFootball()) {
     const fresh = await syncPlayerStatsApiF(matchId, apifId);
     if (fresh.length) playerStats = fresh;
   }
