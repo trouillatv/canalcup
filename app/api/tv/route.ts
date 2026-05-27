@@ -1,5 +1,7 @@
 import { getMatches } from "@/lib/data/matches";
-import { getLeaderboard } from "@/lib/data/teams";
+import { getLeaderboard, getIndividualLeaderboard } from "@/lib/data/teams";
+import { getServiceLeaderboard } from "@/lib/data/users";
+import { computeMedals } from "@/lib/data/medals";
 import { getTodayBrief, getRevivezPosts } from "@/lib/data/content";
 import { getChallenges } from "@/lib/data/challenges";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -8,6 +10,47 @@ import { NextResponse } from "next/server";
 import type { Match } from "@/lib/supabase/types";
 
 export const revalidate = 30;
+
+// ─── Fil L'Équipe (RSS) ──────────────────────────────────────────────────────
+// Fetch serveur du flux RSS de L'Équipe (timeout court). On NE scrape PAS le HTML
+// ni n'iframe (X-Frame-Options: sameorigin) — uniquement le RSS.
+async function getLequipeNews(): Promise<{ title: string; link: string }[]> {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2500);
+    const res = await fetch("https://dwh.lequipe.fr/api/edito/rss", {
+      signal: ctrl.signal,
+      headers: { "User-Agent": "CanalCupTV/1.0" },
+    });
+    clearTimeout(timer);
+    if (!res.ok) return [];
+    const xml = await res.text();
+
+    const clean = (s: string) =>
+      s
+        .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;|&apos;/g, "'")
+        .trim();
+
+    const items = xml.match(/<item[\s\S]*?<\/item>/g) ?? [];
+    const news: { title: string; link: string }[] = [];
+    for (const item of items) {
+      const title = item.match(/<title>([\s\S]*?)<\/title>/)?.[1];
+      const link = item.match(/<link>([\s\S]*?)<\/link>/)?.[1];
+      if (title) {
+        news.push({ title: clean(title), link: link ? clean(link) : "" });
+      }
+      if (news.length >= 8) break;
+    }
+    return news;
+  } catch {
+    return [];
+  }
+}
 
 
 async function getPreMatchStats(supabase: ReturnType<typeof createAdminClient>, match: Match, totalTeams: number) {
@@ -94,13 +137,17 @@ export async function GET() {
   const windowStart = new Date(now.getTime() - 60 * 60_000).toISOString();
   const windowEnd = new Date(now.getTime() + 24 * 60 * 60_000).toISOString();
 
-  const [matches, leaderboard, brief, revivezPosts, allChallenges, { data: standings }, { data: events }] =
+  const [matches, leaderboard, individual, services, medals, brief, revivezPosts, allChallenges, news, { data: standings }, { data: events }] =
     await Promise.all([
       getMatches(),
       getLeaderboard(),
+      getIndividualLeaderboard(),
+      getServiceLeaderboard(),
+      computeMedals(),
       getTodayBrief(),
       getRevivezPosts(),
       getChallenges(),
+      getLequipeNews(),
       supabase.from("standings").select("*").order("points", { ascending: false }),
       supabase
         .from("canal_cup_events")
@@ -150,9 +197,13 @@ export async function GET() {
   return NextResponse.json({
     matches,
     leaderboard,
+    individual,
+    services,
+    medals,
     brief,
     revivezPosts,
     challenges: challengesForTV,
+    news,
     standings: standings ?? [],
     events: events ?? [],
     ambiance,
