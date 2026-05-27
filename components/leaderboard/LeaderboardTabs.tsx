@@ -11,11 +11,12 @@ import type { LeaderboardRow } from "@/lib/supabase/types";
 import type { IndividualRow } from "@/lib/data/teams";
 import type { ServiceLeaderboardRow } from "@/lib/data/users";
 
-type Tab = "teams" | "individual" | "pronos" | "quiz" | "services";
+type Tab = "general" | "teams" | "individual" | "pronos" | "quiz" | "services";
 
 const TABS: { id: Tab; label: string }[] = [
+  { id: "general", label: "🏆 Général" },
   { id: "teams", label: "👥 Binômes" },
-  { id: "individual", label: "🏅 Individuel" },
+  { id: "individual", label: "🧍 Individuel" },
   { id: "pronos", label: "🎯 Pronos" },
   { id: "quiz", label: "🧠 Quiz" },
   { id: "services", label: "🏢 Services" },
@@ -25,9 +26,14 @@ function medal(rank: number) {
   return rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : String(rank);
 }
 
-// Liste de joueurs classés selon une métrique (total / pronos / quiz).
-function PlayerList({ rows, metric }: { rows: IndividualRow[]; metric: "total" | "pronos" | "quiz" }) {
-  const ranked = [...rows].sort((a, b) => b[metric] - a[metric]);
+// Liste de joueurs classés selon une métrique.
+//  general = total (pronos+quiz+baby+anim) · perso = pronos+quiz · pronos · quiz
+type PlayerMetric = "general" | "perso" | "pronos" | "quiz";
+function PlayerList({ rows, metric }: { rows: IndividualRow[]; metric: PlayerMetric }) {
+  const val = (r: IndividualRow) =>
+    metric === "general" ? r.total : metric === "perso" ? r.pronos + r.quiz : metric === "pronos" ? r.pronos : r.quiz;
+  const unit = metric === "general" ? "points" : metric === "perso" ? "pts perso" : metric === "pronos" ? "pts pronos" : "pts quiz";
+  const ranked = [...rows].sort((a, b) => val(b) - val(a));
   return (
     <div className="space-y-2">
       {ranked.map((r, i) => {
@@ -43,16 +49,17 @@ function PlayerList({ rows, metric }: { rows: IndividualRow[]; metric: "total" |
               <p className="font-bold text-white truncate text-sm">{r.display_name}</p>
               <p className="text-[11px] text-canal-gray-muted truncate">
                 {r.team_name ?? "Sans binôme"}
-                {metric === "total" && (
+                {metric === "general" && (
                   <span className="text-canal-gray-muted/70"> · 🎯{r.pronos} 🧠{r.quiz} ⚽{r.babyfoot} 🎉{r.animations}</span>
+                )}
+                {metric === "perso" && (
+                  <span className="text-canal-gray-muted/70"> · 🎯{r.pronos} 🧠{r.quiz}</span>
                 )}
               </p>
             </div>
             <div className="text-right shrink-0">
-              <p className="font-black text-canal-yellow text-lg tabular-nums">{r[metric]}</p>
-              <p className="text-[10px] text-canal-gray-muted">
-                {metric === "total" ? "points" : metric === "pronos" ? "pts pronos" : "pts quiz"}
-              </p>
+              <p className="font-black text-canal-yellow text-lg tabular-nums">{val(r)}</p>
+              <p className="text-[10px] text-canal-gray-muted">{unit}</p>
             </div>
           </Link>
         );
@@ -73,7 +80,7 @@ export function LeaderboardTabs({
   individualRows: IndividualRow[];
   serviceRows: ServiceLeaderboardRow[];
 }) {
-  const [tab, setTab] = useState<Tab>("teams");
+  const [tab, setTab] = useState<Tab>("general");
   const teamsSorted = [...teamRows].sort((a, b) => b.total - a.total);
 
   return (
@@ -92,6 +99,16 @@ export function LeaderboardTabs({
           </button>
         ))}
       </div>
+
+      {/* GÉNÉRAL : tous les points confondus, par joueur */}
+      {tab === "general" && (
+        <div>
+          <p className="text-canal-gray-muted text-xs mb-3">
+            Tous les points confondus : pronos + quiz + babyfoot + animations du binôme.
+          </p>
+          <PlayerList rows={individualRows} metric="general" />
+        </div>
+      )}
 
       {/* BINÔMES : podium (si ≥2 équipes) + tableau */}
       {tab === "teams" && (
@@ -124,8 +141,8 @@ export function LeaderboardTabs({
 
       {tab === "individual" && (
         <div>
-          <p className="text-canal-gray-muted text-xs mb-3">Score perso : pronos + quiz + babyfoot + animations du binôme.</p>
-          <PlayerList rows={individualRows} metric="total" />
+          <p className="text-canal-gray-muted text-xs mb-3">Score perso : <span className="text-white font-bold">pronos + quiz</span> uniquement (hors points du binôme).</p>
+          <PlayerList rows={individualRows} metric="perso" />
         </div>
       )}
 
