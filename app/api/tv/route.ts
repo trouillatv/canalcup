@@ -1,4 +1,4 @@
-import { getMatches } from "@/lib/data/matches";
+import { getMatches, getGroupStandings } from "@/lib/data/matches";
 import { getLeaderboard, getIndividualLeaderboard } from "@/lib/data/teams";
 import { getServiceLeaderboard } from "@/lib/data/users";
 import { computeMedals } from "@/lib/data/medals";
@@ -211,7 +211,7 @@ export async function GET() {
   const windowStart = new Date(now.getTime() - 60 * 60_000).toISOString();
   const windowEnd = new Date(now.getTime() + 24 * 60 * 60_000).toISOString();
 
-  const [matches, leaderboard, individual, services, medals, brief, revivezPosts, allChallenges, news, todayStats, newPlayers, topScorerBets, heatmap, { data: standings }, { data: events }] =
+  const [matches, leaderboard, individual, services, medals, brief, revivezPosts, allChallenges, news, todayStats, newPlayers, topScorerBets, heatmap, standings, { data: events }] =
     await Promise.all([
       getMatches(),
       getLeaderboard(),
@@ -226,7 +226,7 @@ export async function GET() {
       getNewPlayers(supabase),
       getTopScorerBets(supabase),
       getTvPredictionHeatmap().catch(() => []),
-      supabase.from("standings").select("*").order("points", { ascending: false }),
+      getGroupStandings(),
       supabase
         .from("canal_cup_events")
         .select("*")
