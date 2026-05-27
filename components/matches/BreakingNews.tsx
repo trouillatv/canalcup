@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Zap } from "lucide-react";
 
 interface NewsItem {
@@ -13,18 +14,22 @@ interface NewsItem {
 export function BreakingNews() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [current, setCurrent] = useState(0);
+  const pathname = usePathname();
 
+  // Re-fetch à chaque changement de page (pathname) ET toutes les 30 s. Le
+  // composant vit dans le layout racine (persistant entre navigations), donc
+  // sans ça il ne se rafraîchirait qu'au tick des 30 s.
   useEffect(() => {
     const fetch_ = () => {
       fetch("/api/breaking-news")
         .then((r) => r.json())
-        .then((d) => { if (d.news?.length) setNews(d.news); })
+        .then((d) => { setNews(d.news ?? []); })
         .catch(() => {});
     };
     fetch_();
     const t = setInterval(fetch_, 30_000);
     return () => clearInterval(t);
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     if (news.length <= 1) return;
