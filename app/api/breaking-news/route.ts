@@ -5,24 +5,13 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { refreshLiveMatches } from "@/services/football/sync";
 
-const EVENT_LABELS: Record<string, string> = {
-  goal: "⚽ But",
-  yellow_card: "🟨 Carton jaune",
-  red_card: "🟥 Carton rouge",
-  substitution: "🔄 Remplacement",
-  var: "📺 VAR",
-  penalty: "🎯 Penalty",
-  penalty_missed: "❌ Penalty raté",
-};
-
-// Fenêtre de récence du flash : un match (live OU terminé) n'apparaît au flash
-// que si son coup d'envoi est dans les 5 dernières heures. C'est la MÊME fenêtre
-// que le resync on-read (POST_MATCH_WINDOW côté sync) : le flash suit ainsi le
-// statut réel affiché par le centre du match (live → "Live", finished →
-// "Terminé"), sans JAMAIS forcer ni inventer un statut. On ne touche pas à la
-// base : si le provider ne renvoie pas "finished" (ex. quota API épuisé), le
-// statut reste tel quel et le flash le reflète honnêtement.
-const RECENT_MATCH_MS = 5 * 60 * 60_000;
+// Un vrai match n'est plus jamais "live" au-delà de ~3h30 après le coup d'envoi
+// (90' + mi-temps + prolongations + t.a.b. + arrêts de jeu). Garde-fou d'affichage
+// (jamais une mutation de statut) contre un match resté coincé en "live" en base.
+const LIVE_WINDOW_MS = 210 * 60_000;
+// "Terminé · score" n'est annoncé que ~30 min après le coup de sifflet réel
+// (finished_at), puis le flash se masque tout seul.
+const TERMINE_FLASH_MS = 30 * 60_000;
 
 export async function GET() {
   const supabase = createAdminClient();
@@ -32,31 +21,31 @@ export async function GET() {
   // affichés soient à jour même si personne n'est sur la fiche du match.
   await refreshLiveMatches().catch(() => {});
 
-  const recentKickoff = new Date(Date.now() - RECENT_MATCH_MS).toISOString();
-
-  // Live matches first — bornés à la fenêtre de récence (cohérent avec le centre).
+  // Live matches first — bornés pour ne pas afficher un match coincé en "live".
+  const liveFloor = new Date(Date.now() - LIVE_WINDOW_MS).toISOString();
   const { data: liveMatches } = await supabase
     .from("matches")
     .select("id, team_a, team_b, flag_a, flag_b, score_a, score_b, status, minute")
     .in("status", ["live", "halftime"])
-    .gte("starts_at", recentKickoff);
+    .gte("starts_at", liveFloor);
 
-  // Recent events (last 90 minutes)
+  // Événements du flash : UNIQUEMENT les buts (pas les cartons/remplacements),
+  // et UNIQUEMENT pour les matchs encore en cours. Dès qu'un match est terminé,
+  // il sort de liveMatches → ses buts disparaissent du flash (annonce "Terminé"
+  // prend le relais). On filtre donc sur les ids live, pas sur le statut global.
+  const liveById = Object.fromEntries((liveMatches ?? []).map((m) => [m.id, m]));
+  const liveIds = Object.keys(liveById);
   const since = new Date(Date.now() - 90 * 60_000).toISOString();
-  const { data: events } = await supabase
-    .from("match_events")
-    .select("match_id, type, player_name, team_side, minute, detail, created_at")
-    .gte("created_at", since)
-    .order("minute", { ascending: false })
-    .limit(10);
-
-  // Matches for event context
-  const matchIds = [...new Set((events ?? []).map((e) => e.match_id))];
-  const { data: eventMatches } = matchIds.length
-    ? await supabase.from("matches").select("id, team_a, team_b, flag_a, flag_b, score_a, score_b").in("id", matchIds)
+  const { data: events } = liveIds.length
+    ? await supabase
+        .from("match_events")
+        .select("match_id, type, player_name, team_side, minute, created_at")
+        .in("match_id", liveIds)
+        .in("type", ["goal", "penalty"])
+        .gte("created_at", since)
+        .order("minute", { ascending: false })
+        .limit(10)
     : { data: [] };
-
-  const matchById = Object.fromEntries((eventMatches ?? []).map((m) => [m.id, m]));
 
   const news: { text: string; sub?: string; type: string; at: string }[] = [];
 
@@ -82,38 +71,38 @@ export async function GET() {
     }
   }
 
-  // Event news
+  // Buts (matchs en cours uniquement) — "⚽ But — Joueur (Équipe) 51'".
   for (const e of events ?? []) {
-    const m = matchById[e.match_id];
+    const m = liveById[e.match_id];
     if (!m) continue;
     const teamName = e.team_side === "home" ? m.team_a : m.team_b;
-    const label = EVENT_LABELS[e.type] ?? "📢";
     const score = m.score_a !== null ? `(${m.score_a}–${m.score_b})` : "";
     news.push({
-      type: e.type,
-      text: `${label} — ${e.player_name} (${teamName}) ${e.minute}'`,
+      type: "goal",
+      text: `⚽ But — ${e.player_name} (${teamName}) ${e.minute}'`,
       sub: `${m.team_a} vs ${m.team_b} ${score}`,
       at: e.created_at,
     });
   }
 
-  // Matchs RÉCEMMENT terminés : on annonce le résultat final tant que le coup
-  // d'envoi est dans la fenêtre de récence (5 h, même borne que le live). Le
-  // flash affiche "Terminé" aussi longtemps que le centre du match l'affiche
-  // pour un match récent ; au-delà de 5 h le flash s'efface tout seul.
+  // Matchs RÉCEMMENT terminés : on annonce le résultat final ~30 min après le
+  // coup de sifflet RÉEL (finished_at, stampé par le resync), puis le flash se
+  // masque tout seul. .gte("finished_at", …) exclut nativement les lignes à
+  // finished_at nul (matchs importés déjà terminés) : pas de "Terminé" à tort.
+  const termineFloor = new Date(Date.now() - TERMINE_FLASH_MS).toISOString();
   const { data: justFinished } = await supabase
     .from("matches")
-    .select("team_a, team_b, flag_a, flag_b, score_a, score_b, starts_at, updated_at")
+    .select("team_a, team_b, flag_a, flag_b, score_a, score_b, finished_at")
     .eq("status", "finished")
-    .gte("starts_at", recentKickoff)
-    .order("updated_at", { ascending: false })
+    .gte("finished_at", termineFloor)
+    .order("finished_at", { ascending: false })
     .limit(3);
 
   for (const m of justFinished ?? []) {
     news.push({
       type: "finished",
       text: `⏹️ Terminé · ${flagText(m.flag_a)}${m.team_a} ${m.score_a ?? 0}–${m.score_b ?? 0} ${flagText(m.flag_b)}${m.team_b}`,
-      at: m.updated_at ?? m.starts_at,
+      at: m.finished_at,
     });
   }
 

@@ -17,6 +17,7 @@ export interface FootballMatch {
   status: MatchStatus;
   minute: number | null;
   starts_at: string;
+  finished_at?: string | null;
   venue?: string;
   referee?: string;
   channel: string;

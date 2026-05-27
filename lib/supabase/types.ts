@@ -132,6 +132,7 @@ export interface Match {
   score_b?: number;
   is_match_of_week?: boolean;
   is_settled?: boolean;
+  finished_at?: string | null;
   odds?: MatchOdds;
 }
 

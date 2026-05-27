@@ -100,6 +100,7 @@ async function syncLiveScoresApiF(): Promise<number> {
       referee: f.fixture.referee ?? undefined,
       updated_at: new Date().toISOString(),
     }).eq("id", match.id);
+    await stampFinishedAt(supabase, match.id, status);
 
     // Sync events in background
     if (apifId) await syncEventsApiF(match.id, apifId, f.teams.home.id);
@@ -136,6 +137,7 @@ async function syncLiveScoresTsdb(): Promise<number> {
       referee: e.strOfficial ?? undefined,
       updated_at: new Date().toISOString(),
     }).eq("id", m.id);
+    await stampFinishedAt(supabase, m.id, status);
 
     if (m.external_id) await syncEventsTsdb(m.id, m.external_id, e.idHomeTeam ?? "");
 
@@ -279,6 +281,25 @@ async function syncPlayerRatingsEstimate(
   return upsertPlayerStats(rows);
 }
 
+// Horodate le coup de sifflet final UNE SEULE FOIS : dès qu'on observe le
+// statut "finished", on stampe finished_at s'il est encore nul, et on ne le
+// déplace jamais ensuite (les resyncs post-match ne doivent pas le repousser).
+// C'est le point de départ de la fenêtre "Terminé" du flash. On ne force JAMAIS
+// le statut : si le provider ne renvoie pas "finished" (ex. quota API épuisé),
+// finished_at reste nul et aucun "Terminé" n'est annoncé à tort.
+async function stampFinishedAt(
+  supabase: ReturnType<typeof createAdminClient>,
+  matchId: string,
+  status: string
+): Promise<void> {
+  if (status !== "finished") return;
+  await supabase
+    .from("matches")
+    .update({ finished_at: new Date().toISOString() })
+    .eq("id", matchId)
+    .is("finished_at", null);
+}
+
 // Rafraîchit la ligne matches (score/statut/minute) pour UN match, on-read.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function refreshMatchRow(match: any): Promise<void> {
@@ -287,8 +308,9 @@ async function refreshMatchRow(match: any): Promise<void> {
     const json = await apifFetch(`/fixtures?id=${match.apif_id}`);
     const f = json?.response?.[0];
     if (!f) return;
+    const status = apifStatus(f.fixture.status.short);
     await supabase.from("matches").update({
-      status: apifStatus(f.fixture.status.short),
+      status,
       minute: f.fixture.status.elapsed ?? null,
       score_a: f.goals.home ?? null,
       score_b: f.goals.away ?? null,
@@ -296,12 +318,14 @@ async function refreshMatchRow(match: any): Promise<void> {
       referee: f.fixture.referee ?? undefined,
       updated_at: new Date().toISOString(),
     }).eq("id", match.id);
+    await stampFinishedAt(supabase, match.id, status);
   } else if (match.external_id) {
     const json = await tsdbFetch(`/lookupevent.php?id=${match.external_id}`);
     const e = json?.events?.[0];
     if (!e) return;
+    const status = tsdbStatus(e);
     await supabase.from("matches").update({
-      status: tsdbStatus(e),
+      status,
       minute: e.intProgress ? parseInt(e.intProgress, 10) : null,
       score_a: e.intHomeScore !== null && e.intHomeScore !== "" ? parseInt(e.intHomeScore, 10) : null,
       score_b: e.intAwayScore !== null && e.intAwayScore !== "" ? parseInt(e.intAwayScore, 10) : null,
@@ -309,6 +333,7 @@ async function refreshMatchRow(match: any): Promise<void> {
       referee: e.strOfficial ?? undefined,
       updated_at: new Date().toISOString(),
     }).eq("id", match.id);
+    await stampFinishedAt(supabase, match.id, status);
   }
 }
 
