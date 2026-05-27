@@ -4,6 +4,7 @@
 
 import Link from "next/link";
 import { MatchCard } from "@/components/matches/MatchCard";
+import { MatchesTabs } from "@/components/matches/MatchesTabs";
 import { getMatches, getPredictionTrends } from "@/lib/data/matches";
 import { createClient } from "@/lib/supabase/server";
 import { isToday } from "@/lib/utils";
@@ -57,13 +58,17 @@ export default async function MatchesPage() {
   ]);
 
   // Les matchs DU JOUR (heure NC) sont remontés en haut, quel que soit leur
-  // statut, et exclus des listes ci-dessous (sinon enterrés sous les 70+ matchs
+  // statut, et exclus des onglets ci-dessous (sinon enterrés sous les 70+ matchs
   // à venir). En Coupe du Monde il y a ~1 match/jour : c'est le repère utile.
   const today = matches.filter((m) => isToday(m.starts_at));
   const rest = matches.filter((m) => !isToday(m.starts_at));
-  const upcoming = rest.filter((m) => m.status === "upcoming");
-  const live = rest.filter((m) => m.status === "live");
-  const finished = rest.filter((m) => m.status === "finished");
+  // Onglet "À venir" : matchs à venir + un éventuel live (peu probable hors
+  // aujourd'hui), du plus proche au plus lointain (matches déjà triés croissant).
+  const upcoming = rest.filter((m) => m.status === "upcoming" || m.status === "live");
+  // Onglet "Passés" : matchs terminés, du plus récent au plus ancien.
+  const past = rest
+    .filter((m) => m.status === "finished")
+    .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -103,42 +108,7 @@ export default async function MatchesPage() {
           </section>
         )}
 
-        {live.length > 0 && (
-          <section>
-            <h2 className="text-sm font-bold text-red-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-              <span className="live-dot" /> En direct
-            </h2>
-            <div className="space-y-3">
-              {live.map((m) => (
-                <MatchCard key={m.id} match={m} trend={trends[m.id]} savedPrediction={myPredictions[m.id]} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {upcoming.length > 0 && (
-          <section>
-            <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider mb-3">
-              ⚽ À venir — Pronostiquez !
-            </h2>
-            <div className="space-y-4">
-              {upcoming.map((m) => (
-                <MatchCard key={m.id} match={m} trend={trends[m.id]} savedPrediction={myPredictions[m.id]} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {finished.length > 0 && (
-          <section>
-            <h2 className="text-sm font-bold text-canal-gray-muted uppercase tracking-wider mb-3">Terminés</h2>
-            <div className="space-y-3">
-              {finished.map((m) => (
-                <MatchCard key={m.id} match={m} savedPrediction={myPredictions[m.id]} compact />
-              ))}
-            </div>
-          </section>
-        )}
+        <MatchesTabs upcoming={upcoming} past={past} trends={trends} saved={myPredictions} />
       </div>
     </div>
   );
