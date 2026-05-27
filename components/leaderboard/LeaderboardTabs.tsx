@@ -93,26 +93,32 @@ export function LeaderboardTabs({
         ))}
       </div>
 
-      {/* BINÔMES : podium + tableau */}
+      {/* BINÔMES : podium (si ≥2 équipes) + tableau */}
       {tab === "teams" && (
         <div className="space-y-4">
-          <div className="flex items-end justify-center gap-3 h-32">
-            {[teamsSorted[1], teamsSorted[0], teamsSorted[2]].map((row, i) => {
-              if (!row) return <div key={i} className="w-24" />;
-              const heights = ["h-20", "h-28", "h-16"];
-              const labels = ["🥈", "🥇", "🥉"];
-              return (
-                <Link key={row.team.id} href={`/teams/${row.team.id}`} className="flex flex-col items-center gap-1 w-24 group">
-                  <span className="text-sm font-bold text-white text-center leading-tight group-hover:text-canal-yellow transition-colors">{row.team.name}</span>
-                  <span className="text-canal-yellow font-black">{row.total}pts</span>
-                  <div className={`${heights[i]} w-full bg-canal-gray rounded-t-lg flex items-center justify-center border border-canal-gray-light group-hover:border-canal-yellow/50 transition-colors`}>
-                    <span className="text-2xl">{labels[i]}</span>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-          <LeaderboardTable rows={teamsSorted} />
+          {teamsSorted.length >= 2 && (
+            <div className="flex items-end justify-center gap-3 h-32">
+              {[teamsSorted[1], teamsSorted[0], teamsSorted[2]].map((row, i) => {
+                if (!row) return <div key={i} className="w-24" />;
+                const heights = ["h-20", "h-28", "h-16"];
+                const labels = ["🥈", "🥇", "🥉"];
+                return (
+                  <Link key={row.team.id} href={`/teams/${row.team.id}`} className="flex flex-col items-center gap-1 w-24 group">
+                    <span className="text-sm font-bold text-white text-center leading-tight group-hover:text-canal-yellow transition-colors">{row.team.name}</span>
+                    <span className="text-canal-yellow font-black">{row.total}pts</span>
+                    <div className={`${heights[i]} w-full bg-canal-gray rounded-t-lg flex items-center justify-center border border-canal-gray-light group-hover:border-canal-yellow/50 transition-colors`}>
+                      <span className="text-2xl">{labels[i]}</span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+          {teamsSorted.length === 0 ? (
+            <div className="canal-card text-center py-6 text-canal-gray-muted text-sm">Aucun binôme classé pour l&apos;instant.</div>
+          ) : (
+            <LeaderboardTable rows={teamsSorted} />
+          )}
         </div>
       )}
 

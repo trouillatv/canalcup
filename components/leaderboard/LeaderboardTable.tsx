@@ -47,9 +47,6 @@ export function LeaderboardTable({ rows, compact }: LeaderboardTableProps) {
             {/* Name */}
             <div className="flex-1 min-w-0">
               <p className="font-bold text-white truncate text-sm">{row.team.name}</p>
-              {!compact && (
-                <p className="text-xs text-canal-gray-muted italic truncate">{row.team.reputation_label}</p>
-              )}
             </div>
 
             {!compact && (
