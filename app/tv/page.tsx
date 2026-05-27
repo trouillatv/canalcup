@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { teamFlag, toNCDate, toNCTime } from "@/lib/utils";
+import { toNCDate, toNCTime } from "@/lib/utils";
+import { Flag } from "@/components/shared/Flag";
 import { QrCode } from "lucide-react";
 import type { Match, LeaderboardRow, MorningBrief, RevivezPost, CanalCupEvent, Challenge } from "@/lib/supabase/types";
 import type { IndividualRow } from "@/lib/data/teams";
@@ -611,7 +612,7 @@ function SlideMatch({ matches }: { matches: Match[] }) {
       </p>
       <div className="flex items-center gap-2 sm:gap-16 w-full justify-center">
         <div className="flex flex-col items-center gap-1 sm:gap-4 flex-1 min-w-0">
-          <span className="text-4xl sm:text-6xl lg:text-8xl">{teamFlag(match.flag_a, match.team_a)}</span>
+          <Flag flag={match.flag_a} name={match.team_a} className="h-9 sm:h-14 lg:h-20 w-auto rounded-sm" emojiClassName="text-4xl sm:text-6xl lg:text-8xl" />
           <p className="font-black text-sm sm:text-3xl lg:text-4xl text-white text-center break-words leading-tight">{match.team_a}</p>
         </div>
         <div className="flex flex-col items-center gap-1 sm:gap-2 shrink-0">
@@ -629,7 +630,7 @@ function SlideMatch({ matches }: { matches: Match[] }) {
           </p>
         </div>
         <div className="flex flex-col items-center gap-1 sm:gap-4 flex-1 min-w-0">
-          <span className="text-4xl sm:text-6xl lg:text-8xl">{teamFlag(match.flag_b, match.team_b)}</span>
+          <Flag flag={match.flag_b} name={match.team_b} className="h-9 sm:h-14 lg:h-20 w-auto rounded-sm" emojiClassName="text-4xl sm:text-6xl lg:text-8xl" />
           <p className="font-black text-sm sm:text-3xl lg:text-4xl text-white text-center break-words leading-tight">{match.team_b}</p>
         </div>
       </div>
@@ -698,7 +699,7 @@ function SlideLiveMatch({ matches }: { matches: Match[] }) {
 
       <div className="flex items-center gap-2 sm:gap-12 w-full justify-center">
         <div className="flex flex-col items-center gap-1 sm:gap-3 flex-1 min-w-0">
-          <span className="text-4xl sm:text-7xl lg:text-8xl">{teamFlag(target.flag_a, target.team_a)}</span>
+          <Flag flag={target.flag_a} name={target.team_a} className="h-9 sm:h-16 lg:h-20 w-auto rounded-sm" emojiClassName="text-4xl sm:text-7xl lg:text-8xl" />
           <p className="font-black text-sm sm:text-3xl text-white text-center break-words leading-tight">{target.team_a}</p>
         </div>
         <div className="flex flex-col items-center gap-1 shrink-0">
@@ -716,7 +717,7 @@ function SlideLiveMatch({ matches }: { matches: Match[] }) {
           </p>
         </div>
         <div className="flex flex-col items-center gap-1 sm:gap-3 flex-1 min-w-0">
-          <span className="text-4xl sm:text-7xl lg:text-8xl">{teamFlag(target.flag_b, target.team_b)}</span>
+          <Flag flag={target.flag_b} name={target.team_b} className="h-9 sm:h-16 lg:h-20 w-auto rounded-sm" emojiClassName="text-4xl sm:text-7xl lg:text-8xl" />
           <p className="font-black text-sm sm:text-3xl text-white text-center break-words leading-tight">{target.team_b}</p>
         </div>
       </div>
@@ -824,7 +825,7 @@ function SlideStandings({ standings }: { standings: StandingRow[] }) {
                     className={`flex items-center gap-1.5 sm:gap-2 ${i < 2 ? "text-white" : "text-canal-gray-muted"}`}
                   >
                     <span className="w-3 sm:w-4 text-center font-bold text-[11px] sm:text-sm shrink-0">{i + 1}</span>
-                    <span className="text-sm sm:text-lg shrink-0">{teamFlag(row.team_flag, row.team_name_fr)}</span>
+                    <Flag flag={row.team_flag} name={row.team_name_fr} className="h-4 sm:h-5 w-auto rounded-sm shrink-0" emojiClassName="text-sm sm:text-lg shrink-0" />
                     <span className={`flex-1 min-w-0 truncate text-[11px] sm:text-base ${i < 2 ? "font-bold" : ""}`}>{row.team_name_fr}</span>
                     <span className="font-black text-xs sm:text-lg text-canal-yellow shrink-0">{row.points}</span>
                   </div>
@@ -1065,7 +1066,7 @@ function SlideBracket() {
               <div className="flex items-center gap-2 sm:gap-3">
                 {/* Team A */}
                 <div className={`flex-1 text-center ${winner === "b" ? "opacity-35" : ""}`}>
-                  <span className="text-3xl sm:text-5xl block mb-1 sm:mb-2 leading-none">{teamFlag(match.flag_a, match.team_a)}</span>
+                  <Flag flag={match.flag_a} name={match.team_a} className="h-7 sm:h-11 w-auto rounded-sm block mx-auto mb-1 sm:mb-2" emojiClassName="text-3xl sm:text-5xl block mb-1 sm:mb-2 leading-none" />
                   <p className={`font-black text-sm sm:text-lg leading-tight ${winner === "a" ? "text-canal-yellow" : "text-white"}`}>
                     {match.team_a || "—"}
                   </p>
@@ -1097,7 +1098,7 @@ function SlideBracket() {
 
                 {/* Team B */}
                 <div className={`flex-1 text-center ${winner === "a" ? "opacity-35" : ""}`}>
-                  <span className="text-3xl sm:text-5xl block mb-1 sm:mb-2 leading-none">{teamFlag(match.flag_b, match.team_b)}</span>
+                  <Flag flag={match.flag_b} name={match.team_b} className="h-7 sm:h-11 w-auto rounded-sm block mx-auto mb-1 sm:mb-2" emojiClassName="text-3xl sm:text-5xl block mb-1 sm:mb-2 leading-none" />
                   <p className={`font-black text-sm sm:text-lg leading-tight ${winner === "b" ? "text-canal-yellow" : "text-white"}`}>
                     {match.team_b || "—"}
                   </p>
@@ -1294,9 +1295,9 @@ function PreMatchDossier({ matchId, teamA, teamB, flagA, flagB }: {
       <div className="flex items-start gap-3 sm:gap-8">
         <DossierColumn team={data.home} facet={facet.key} lineup={data.lineups?.home} />
         <div className="shrink-0 flex flex-col items-center gap-1 px-1 sm:px-3">
-          <span className="text-2xl sm:text-4xl">{teamFlag(flagA, teamA)}</span>
+          <Flag flag={flagA} name={teamA} className="h-6 sm:h-9 w-auto rounded-sm" emojiClassName="text-2xl sm:text-4xl" />
           <span className="text-canal-gray-muted font-black text-xs sm:text-lg">VS</span>
-          <span className="text-2xl sm:text-4xl">{teamFlag(flagB, teamB)}</span>
+          <Flag flag={flagB} name={teamB} className="h-6 sm:h-9 w-auto rounded-sm" emojiClassName="text-2xl sm:text-4xl" />
         </div>
         <DossierColumn team={data.away} facet={facet.key} lineup={data.lineups?.away} />
       </div>
@@ -1345,7 +1346,7 @@ function SlidePreMatch({ stats }: { stats: PreMatchStats }) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-6">
         {/* Team A */}
         <div className="flex-1 text-center min-w-0">
-          <span className="text-3xl sm:text-5xl lg:text-6xl block mb-1 sm:mb-2 leading-none">{teamFlag(match.flag_a, match.team_a)}</span>
+          <Flag flag={match.flag_a} name={match.team_a} className="h-7 sm:h-11 lg:h-14 w-auto rounded-sm block mx-auto mb-1 sm:mb-2" emojiClassName="text-3xl sm:text-5xl lg:text-6xl block mb-1 sm:mb-2 leading-none" />
           <p className="font-black text-base sm:text-2xl lg:text-3xl text-white break-words leading-tight">{match.team_a}</p>
         </div>
 
@@ -1356,7 +1357,7 @@ function SlidePreMatch({ stats }: { stats: PreMatchStats }) {
 
         {/* Team B */}
         <div className="flex-1 text-center min-w-0">
-          <span className="text-3xl sm:text-5xl lg:text-6xl block mb-1 sm:mb-2 leading-none">{teamFlag(match.flag_b, match.team_b)}</span>
+          <Flag flag={match.flag_b} name={match.team_b} className="h-7 sm:h-11 lg:h-14 w-auto rounded-sm block mx-auto mb-1 sm:mb-2" emojiClassName="text-3xl sm:text-5xl lg:text-6xl block mb-1 sm:mb-2 leading-none" />
           <p className="font-black text-base sm:text-2xl lg:text-3xl text-white break-words leading-tight">{match.team_b}</p>
         </div>
       </div>
@@ -1840,12 +1841,12 @@ function SlideOfficeBet({ stats }: { stats: PreMatchStats }) {
       {/* Affiche */}
       <div className="flex items-center justify-center gap-3 sm:gap-10 mb-5 sm:mb-10">
         <div className="flex flex-col items-center gap-1 sm:gap-2 flex-1 min-w-0">
-          <span className="text-4xl sm:text-6xl lg:text-7xl">{teamFlag(match.flag_a, match.team_a)}</span>
+          <Flag flag={match.flag_a} name={match.team_a} className="h-9 sm:h-14 lg:h-16 w-auto rounded-sm" emojiClassName="text-4xl sm:text-6xl lg:text-7xl" />
           <p className="font-black text-base sm:text-3xl text-white text-center break-words leading-tight">{match.team_a}</p>
         </div>
         <span className="font-black text-2xl sm:text-5xl text-canal-gray-muted shrink-0">VS</span>
         <div className="flex flex-col items-center gap-1 sm:gap-2 flex-1 min-w-0">
-          <span className="text-4xl sm:text-6xl lg:text-7xl">{teamFlag(match.flag_b, match.team_b)}</span>
+          <Flag flag={match.flag_b} name={match.team_b} className="h-9 sm:h-14 lg:h-16 w-auto rounded-sm" emojiClassName="text-4xl sm:text-6xl lg:text-7xl" />
           <p className="font-black text-base sm:text-3xl text-white text-center break-words leading-tight">{match.team_b}</p>
         </div>
       </div>

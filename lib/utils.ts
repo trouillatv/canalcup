@@ -109,6 +109,28 @@ export function teamFlag(flagCode: string | null | undefined, teamName: string):
   return _resolve(teamName);
 }
 
+// Sous-divisions UK (séquences tag, pas des regional indicators) → codes flagcdn.
+const SUBDIVISION_FLAGCDN: Record<string, string> = {
+  "🏴󠁧󠁢󠁥󠁮󠁧󠁿": "gb-eng", // Angleterre
+  "🏴󠁧󠁢󠁳󠁣󠁴󠁿": "gb-sct", // Écosse
+  "🏴󠁧󠁢󠁷󠁬󠁳󠁿": "gb-wls", // Pays de Galles
+};
+
+// flagImgUrl : URL d'une IMAGE de drapeau (flagcdn.com), rendu universel
+// (Windows / Smart TV inclus, contrairement aux emojis). On dérive le code ISO
+// directement de l'emoji drapeau (🇪🇸 = E+S → "es"). Renvoie null si non résolu.
+export function flagImgUrl(flagCode: string | null | undefined, teamName?: string): string | null {
+  const emoji = teamFlag(flagCode, teamName ?? "");
+  if (!emoji || emoji === "🏳️") return null;
+  if (SUBDIVISION_FLAGCDN[emoji]) return `https://flagcdn.com/${SUBDIVISION_FLAGCDN[emoji]}.svg`;
+  const cps = Array.from(emoji).map((c) => c.codePointAt(0) ?? 0);
+  if (cps.length >= 2 && cps[0] >= 0x1f1e6 && cps[0] <= 0x1f1ff && cps[1] >= 0x1f1e6 && cps[1] <= 0x1f1ff) {
+    const iso = String.fromCharCode(cps[0] - 0x1f1e6 + 97) + String.fromCharCode(cps[1] - 0x1f1e6 + 97);
+    return `https://flagcdn.com/${iso}.svg`;
+  }
+  return null;
+}
+
 export function pointsBadge(points: number): string {
   if (points >= 150) return "🥇";
   if (points >= 100) return "🥈";

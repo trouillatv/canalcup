@@ -12,6 +12,34 @@
 import Link from "next/link";
 import { wcTeamHref } from "@/lib/football/wc-teams-index";
 import { cn } from "@/lib/utils";
+import { Flag } from "@/components/shared/Flag";
+
+// Convertit la taille de police emoji (flagClassName) en hauteur d'image
+// drapeau équivalente, en conservant les éventuels breakpoints responsives.
+const TEXT_TO_IMG_H: Record<string, string> = {
+  "text-xs": "h-3",
+  "text-sm": "h-4",
+  "text-base": "h-4",
+  "text-lg": "h-5",
+  "text-xl": "h-5",
+  "text-2xl": "h-6",
+  "text-3xl": "h-7",
+  "text-4xl": "h-9",
+  "text-5xl": "h-11",
+  "text-6xl": "h-14",
+  "text-7xl": "h-16",
+  "text-8xl": "h-20",
+};
+
+function flagImgHeight(flagClassName?: string): string {
+  if (!flagClassName) return "h-6 w-auto";
+  const out: string[] = [];
+  for (const token of flagClassName.split(/\s+/)) {
+    const m = token.match(/^(.*?:)?(text-(?:xs|sm|base|lg|\d?xl))$/);
+    if (m && TEXT_TO_IMG_H[m[2]]) out.push(`${m[1] ?? ""}${TEXT_TO_IMG_H[m[2]]}`);
+  }
+  return out.length ? `${out.join(" ")} w-auto` : "h-6 w-auto";
+}
 
 export function TeamLink({
   name,
@@ -52,7 +80,14 @@ export function TeamLink({
     );
   }
 
-  const flagEl = <span className={cn("leading-none shrink-0", flagClassName)}>{flag}</span>;
+  const flagEl = (
+    <Flag
+      flag={flag}
+      name={name}
+      className={cn("shrink-0 rounded-sm", flagImgHeight(flagClassName))}
+      emojiClassName={cn("leading-none shrink-0", flagClassName)}
+    />
+  );
   const nameEl = <span className={cn("truncate", className)}>{name}</span>;
 
   const inner = stacked ? (

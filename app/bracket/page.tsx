@@ -4,7 +4,8 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Trophy } from "lucide-react";
-import { teamFlag, toNCDate, toNCTime } from "@/lib/utils";
+import { toNCDate, toNCTime } from "@/lib/utils";
+import { Flag } from "@/components/shared/Flag";
 import { ViewSwitcher } from "@/components/views/ViewSwitcher";
 import { BracketFifa } from "@/components/bracket/BracketFifa";
 import { BracketCompact } from "@/components/bracket/BracketCompact";
@@ -74,7 +75,7 @@ function MatchChip({ match }: { match: MatchRow }) {
       >
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            <span className="text-lg leading-none">{teamFlag(match.flag_a, match.team_a)}</span>
+            <Flag flag={match.flag_a} name={match.team_a} className="h-5 w-auto rounded-sm leading-none" emojiClassName="text-lg leading-none" />
             <span className="font-semibold text-sm text-white truncate">{match.team_a}</span>
           </div>
           <div className="flex items-center gap-1 shrink-0">
@@ -94,7 +95,7 @@ function MatchChip({ match }: { match: MatchRow }) {
           </div>
           <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-end">
             <span className="font-semibold text-sm text-white truncate text-right">{match.team_b}</span>
-            <span className="text-lg leading-none">{teamFlag(match.flag_b, match.team_b)}</span>
+            <Flag flag={match.flag_b} name={match.team_b} className="h-5 w-auto rounded-sm leading-none" emojiClassName="text-lg leading-none" />
           </div>
         </div>
         <div className="flex items-center justify-between mt-1.5">
@@ -134,7 +135,7 @@ function GroupStandings({ rows }: { rows: StandingRow[] }) {
               <td className="py-1 text-center font-bold">{i + 1}</td>
               <td className="py-1">
                 <span className="flex items-center gap-1">
-                  <span>{teamFlag(row.team_flag, row.team_name_fr)}</span>
+                  <Flag flag={row.team_flag} name={row.team_name_fr} className="h-4 w-auto rounded-sm" />
                   <span className={i < 2 ? "font-semibold" : ""}>{row.team_name_fr}</span>
                 </span>
               </td>

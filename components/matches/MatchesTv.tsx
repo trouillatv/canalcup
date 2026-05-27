@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { teamFlag, toNCDate, toNCTime } from "@/lib/utils";
+import { toNCDate, toNCTime } from "@/lib/utils";
+import { Flag } from "@/components/shared/Flag";
 import { Countdown } from "./Countdown";
 import type { Match } from "@/lib/supabase/types";
 
@@ -55,7 +56,7 @@ function TvMatchCard({ match }: { match: Match }) {
           <div className="flex items-center gap-4">
             {/* Team A */}
             <div className={`flex-1 flex flex-col items-center gap-3 ${winner === "b" ? "opacity-35" : ""}`}>
-              <span className="text-7xl leading-none">{teamFlag(match.flag_a, match.team_a)}</span>
+              <Flag flag={match.flag_a} name={match.team_a} className="h-16 w-auto rounded-sm" emojiClassName="text-7xl leading-none" />
               <span className={`font-black text-base text-center leading-tight max-w-24 ${
                 winner === "a" ? "text-canal-yellow" : "text-white"
               }`}>
@@ -86,7 +87,7 @@ function TvMatchCard({ match }: { match: Match }) {
 
             {/* Team B */}
             <div className={`flex-1 flex flex-col items-center gap-3 ${winner === "a" ? "opacity-35" : ""}`}>
-              <span className="text-7xl leading-none">{teamFlag(match.flag_b, match.team_b)}</span>
+              <Flag flag={match.flag_b} name={match.team_b} className="h-16 w-auto rounded-sm" emojiClassName="text-7xl leading-none" />
               <span className={`font-black text-base text-center leading-tight max-w-24 ${
                 winner === "b" ? "text-canal-yellow" : "text-white"
               }`}>

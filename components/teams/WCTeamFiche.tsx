@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Users, Newspaper, TrendingUp, Shirt, BarChart3, Award } from "lucide-react";
-import { teamFlag, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { Flag } from "@/components/shared/Flag";
 import { formCode, type WCTeam } from "@/lib/football/wc-teams";
 import { groupLetterForTeam } from "@/lib/football/groups-2026";
 
@@ -236,7 +237,7 @@ export function WCTeamFiche({ team }: { team: WCTeam }) {
 
       <div className="canal-card border border-canal-yellow/20">
         <div className="flex items-center gap-4">
-          <span className="text-5xl leading-none">{teamFlag(null, team.name)}</span>
+          <Flag flag={null} name={team.name} className="h-11 w-auto rounded-sm shrink-0" emojiClassName="text-5xl leading-none" />
           <div className="flex-1 min-w-0">
             <h1 className="canal-headline text-xl truncate">{team.name}</h1>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
