@@ -23,11 +23,17 @@ export async function GET() {
   // affichés soient à jour même si personne n'est sur la fiche du match.
   await refreshLiveMatches().catch(() => {});
 
-  // Live matches first
+  // Live matches first. Garde-fou : aucun vrai match n'est "live" plus de ~2h30
+  // après le coup d'envoi (90' + mi-temps + prolongations + arrêts de jeu). Un
+  // match resté coincé en "live"/"halftime" en base (provider qui ne renvoie
+  // jamais "finished", ou match sorti de la fenêtre de resync de 5h) ne doit
+  // PAS continuer à s'afficher en flash. On borne donc par le coup d'envoi.
+  const liveFloor = new Date(Date.now() - 150 * 60_000).toISOString();
   const { data: liveMatches } = await supabase
     .from("matches")
     .select("id, team_a, team_b, flag_a, flag_b, score_a, score_b, status, minute")
-    .in("status", ["live", "halftime"]);
+    .in("status", ["live", "halftime"])
+    .gte("starts_at", liveFloor);
 
   // Recent events (last 90 minutes)
   const since = new Date(Date.now() - 90 * 60_000).toISOString();
