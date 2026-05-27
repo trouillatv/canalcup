@@ -376,13 +376,20 @@ async function computeResyncIntervalMs(
   const remaining = await apifRemainingToday();
   if (remaining <= CALLS_PER_LIVE_RESYNC) return MAX_RESYNC_MS; // quasi plus de quota
   try {
-    const start = new Date(); start.setUTCHours(0, 0, 0, 0);
-    const end = new Date(start); end.setUTCDate(end.getUTCDate() + 1);
+    // Journée calendaire en Nouvelle-Calédonie (UTC+11) : un match à 06:00 NC
+    // = 19:00 UTC la veille, il DOIT être compté dans "aujourd'hui".
+    const NC_OFFSET = 11 * 60 * 60_000;
+    const nowNc = new Date(Date.now() + NC_OFFSET);
+    const startUtc = new Date(Date.UTC(nowNc.getUTCFullYear(), nowNc.getUTCMonth(), nowNc.getUTCDate()) - NC_OFFSET);
+    const endUtc = new Date(startUtc.getTime() + 24 * 60 * 60_000);
+    // Filet : on inclut aussi tout match commencé dans les 4 dernières heures
+    // (match en cours qui aurait débordé de la borne de jour).
+    const lowerBound = new Date(Math.min(startUtc.getTime(), Date.now() - 4 * 60 * 60_000));
     const { data } = await supabase
       .from("matches")
       .select("status, minute, starts_at")
-      .gte("starts_at", start.toISOString())
-      .lt("starts_at", end.toISOString());
+      .gte("starts_at", lowerBound.toISOString())
+      .lt("starts_at", endUtc.toISOString());
     let remMin = 0;
     for (const m of (data ?? []) as { status: string; minute: number | null; starts_at: string }[]) {
       if (m.status === "live" || m.status === "halftime") remMin += Math.max(5, 105 - (m.minute ?? 0));
