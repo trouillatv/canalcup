@@ -216,10 +216,14 @@ export default function AdminMonitoringPage() {
                   API-Football
                 </p>
                 <p className="text-white font-black text-2xl tabular-nums leading-tight mt-1">
-                  {data.consumption_total.apif_calls}
+                  {data.quota.api_football
+                    ? `${data.quota.api_football.current} / ${data.quota.api_football.limit_day}`
+                    : data.consumption_total.apif_calls}
                 </p>
                 <p className="text-[10px] text-canal-gray-muted mt-0.5">
-                  calls cumulés via crons
+                  {data.quota.api_football
+                    ? `appels aujourd'hui (réel) · reste ${data.quota.api_football.remaining}`
+                    : "calls cumulés via crons"}
                 </p>
               </div>
               <div className="bg-canal-gray-mid rounded-xl px-3 py-3 border border-canal-gray-light col-span-2 sm:col-span-1">
