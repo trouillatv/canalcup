@@ -107,10 +107,11 @@ export async function getUserAuditList(): Promise<AuditListResult> {
     admin.from("team_join_requests").select("user_id, team_id, status, created_at"),
   ]);
 
-  // Dernière connexion FIABLE : Supabase Auth maintient last_sign_in_at sur
-  // chaque login (mdp inclus), contrairement à users.last_login_at qui n'est
-  // mis à jour que sur le flux /auth/callback (magic link). perPage élevé pour
-  // tout récupérer en une page (échelle interne).
+  // Dernière connexion FIABLE : users.last_login_at est désormais bumpé 1×/jour
+  // par le middleware sur toute requête authentifiée (cookie cc-llg pour
+  // throttle), ce qui reflète la vraie activité. On garde aussi auth.users.
+  // last_sign_in_at en filet (utile au tout 1er passage avant le 1er stamp
+  // middleware) et on prend le max des deux. perPage élevé : tout en une page.
   const authSignIn = new Map<string, string | null>();
   try {
     const { data: authData } = await admin.auth.admin.listUsers({ perPage: 1000 });

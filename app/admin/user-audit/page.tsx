@@ -217,8 +217,10 @@ export default function UserAuditPage() {
       </div>
 
       <p className="text-[11px] text-canal-gray-muted pt-2">
-        « Dernière action » = activité la plus récente (prono, quiz, animation, vote).
-        L&apos;historique détaillé des connexions n&apos;est pas tracé (RGPD / Phase 2).
+        « Connexion » = dernière requête authentifiée vers l&apos;app (mise à jour 1×/jour
+        via middleware). « Dernière action » = activité la plus récente
+        (prono, quiz, animation, vote). L&apos;historique détaillé des connexions
+        n&apos;est pas conservé (RGPD).
       </p>
     </div>
   );

@@ -79,6 +79,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
+  // ─── Trace "dernière connexion" RÉELLE (1×/jour/user) ────────────────────────
+  // users.last_login_at n'était écrit qu'au clic du magic link, et auth.users.
+  // last_sign_in_at ne bouge qu'au sign-in EXPLICITE (pas au refresh de session).
+  // Conséquence : un user qui rouvre l'app jour après jour avec une session
+  // active n'avait plus aucune date qui bouge — la page audit affichait donc
+  // la date du dernier magic link, pas la dernière vraie connexion.
+  // On bump ici à chaque requête authentifiée, throttlé via cookie (1 write/j
+  // par utilisateur). Cookie httpOnly avec la date du jour comme valeur.
+  const todayKey = new Date().toISOString().slice(0, 10);
+  if (request.cookies.get("cc-llg")?.value !== todayKey) {
+    await supabase
+      .from("users")
+      .update({ last_login_at: new Date().toISOString() })
+      .eq("auth_id", user.id);
+    supabaseResponse.cookies.set("cc-llg", todayKey, {
+      httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 7,
+    });
+  }
+
   // Connecté + route onboarding ou API → pas de vérification profile_completed
   if (isOnboarding(pathname) || isApiRoute(pathname)) {
     return supabaseResponse;
