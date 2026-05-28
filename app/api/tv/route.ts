@@ -13,14 +13,16 @@ import type { Match } from "@/lib/supabase/types";
 
 export const revalidate = 30;
 
-// ─── Fil L'Équipe (RSS) ──────────────────────────────────────────────────────
-// Fetch serveur du flux RSS de L'Équipe (timeout court). On NE scrape PAS le HTML
-// ni n'iframe (X-Frame-Options: sameorigin) — uniquement le RSS.
+// ─── Fil L'Équipe Football (RSS) ─────────────────────────────────────────────
+// Fetch serveur du flux RSS football de L'Équipe (timeout court). On NE scrape
+// PAS le HTML ni n'iframe (X-Frame-Options: sameorigin) — uniquement le RSS.
+// L'endpoint générique /api/edito/rss ramène tous sports confondus (tennis,
+// rugby, etc.) — on cible la rubrique Football avec ?path=/Football/.
 async function getLequipeNews(): Promise<{ title: string; link: string }[]> {
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 2500);
-    const res = await fetch("https://dwh.lequipe.fr/api/edito/rss", {
+    const res = await fetch("https://dwh.lequipe.fr/api/edito/rss?path=/Football/", {
       signal: ctrl.signal,
       headers: { "User-Agent": "CanalCupTV/1.0" },
     });
