@@ -189,6 +189,51 @@ async function tick(matchId) {
   }
   if (mode === "once") { await tick(matchId); return; }
 
+  // postmatch : récupère le résultat final depuis l'historique API-Football
+  // (le match n'est plus dans live=all). Cherche par date + ligue UCL (id=2).
+  if (mode === "postmatch") {
+    const j = await apif("/fixtures?date=2026-05-30&league=2&season=2024");
+    const fixtures = j.response || [];
+    const fx = fixtures.find((f) => {
+      const h = f.teams?.home?.name ?? "";
+      const a = f.teams?.away?.name ?? "";
+      return (isPsg(h) && isArsenal(a)) || (isPsg(a) && isArsenal(h));
+    });
+    if (!fx) {
+      // Essai saison 2025 si pas trouvé en 2024
+      const j2 = await apif("/fixtures?date=2026-05-30&league=2&season=2025");
+      const fx2 = (j2.response || []).find((f) => {
+        const h = f.teams?.home?.name ?? "";
+        const a = f.teams?.away?.name ?? "";
+        return (isPsg(h) && isArsenal(a)) || (isPsg(a) && isArsenal(h));
+      });
+      if (!fx2) { console.error("Fixture PSG-Arsenal non trouvée dans l'API (ni saison 2024 ni 2025)."); process.exit(1); }
+      Object.assign(fx || {}, fx2); // réutilise le bloc ci-dessous
+      const apifId2 = fx2.fixture.id;
+      const psgIsHome2 = isPsg(fx2.teams.home.name);
+      const psgApiId2 = psgIsHome2 ? fx2.teams.home.id : fx2.teams.away.id;
+      const scorePsg2 = psgIsHome2 ? fx2.goals.home : fx2.goals.away;
+      const scoreArs2 = psgIsHome2 ? fx2.goals.away : fx2.goals.home;
+      await sb.from("matches").update({ status: "finished", score_a: scorePsg2 ?? 0, score_b: scoreArs2 ?? 0, minute: null, updated_at: new Date().toISOString() }).eq("id", matchId);
+      await sb.from("matches").update({ finished_at: new Date("2026-05-30T18:00:00+02:00").toISOString() }).eq("id", matchId).is("finished_at", null);
+      const nEv2 = await syncEventsIfScoreChanged(matchId, apifId2, psgApiId2, scorePsg2 ?? 0, scoreArs2 ?? 0);
+      const nL2 = await syncLineups(matchId, apifId2, psgApiId2);
+      console.log(`✅ PSG ${scorePsg2 ?? 0}-${scoreArs2 ?? 0} Arsenal [FT] | events +${nEv2} | compos +${nL2}`);
+      return;
+    }
+    const apifId = fx.fixture.id;
+    const psgIsHome = isPsg(fx.teams.home.name);
+    const psgApiId = psgIsHome ? fx.teams.home.id : fx.teams.away.id;
+    const scorePsg = psgIsHome ? fx.goals.home : fx.goals.away;
+    const scoreArs = psgIsHome ? fx.goals.away : fx.goals.home;
+    await sb.from("matches").update({ status: "finished", score_a: scorePsg ?? 0, score_b: scoreArs ?? 0, minute: null, updated_at: new Date().toISOString() }).eq("id", matchId);
+    await sb.from("matches").update({ finished_at: new Date("2026-05-30T18:00:00+02:00").toISOString() }).eq("id", matchId).is("finished_at", null);
+    const nEv = await syncEventsIfScoreChanged(matchId, apifId, psgApiId, scorePsg ?? 0, scoreArs ?? 0);
+    const nL = await syncLineups(matchId, apifId, psgApiId);
+    console.log(`✅ PSG ${scorePsg ?? 0}-${scoreArs ?? 0} Arsenal [FT] | events +${nEv} | compos +${nL}`);
+    return;
+  }
+
   console.log(`▶ Sync live PSG-Arsenal toutes les ${POLL_MS / 1000}s. Ctrl+C pour arreter.`);
   console.log(`  Match id: ${matchId}`);
   const loop = async () => {
