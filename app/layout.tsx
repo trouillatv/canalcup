@@ -54,7 +54,7 @@ export default async function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="bg-canal-black text-white antialiased">
+      <body className="bg-canal-black text-white antialiased" suppressHydrationWarning>
         {isAuthenticated && <TopBar />}
         <main className={isAuthenticated ? "min-h-screen pt-14 safe-bottom" : "min-h-screen"}>
           {/* Flash info / direct — visible sur TOUTES les pages, masqué tout seul

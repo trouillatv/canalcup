@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { MOCK_TEAMS, MOCK_LEADERBOARD } from "@/lib/mock-data";
 import type { Team, LeaderboardRow } from "@/lib/supabase/types";
 import { SCORE_EVENT_CATEGORIES_IN_TOTAL, weightedContribution } from "@/lib/scoring/config";
 import { getAdminEmails } from "@/lib/data/roles";
@@ -189,7 +188,8 @@ export async function getTeams(): Promise<Team[]> {
     const { data, error } = await supabase
       .from("teams")
       .select("*, members:users(*)");
-    if (error || !data?.length) return MOCK_TEAMS;
+    if (error) return [];
+    if (!data?.length) return [];
     const agg = await computeTeamScores(
       supabase,
       data.map((t) => t.id)
@@ -200,7 +200,7 @@ export async function getTeams(): Promise<Team[]> {
       .map((t) => ({ ...t, total_points: agg.get(t.id)?.total ?? 0 }))
       .sort((a, b) => b.total_points - a.total_points);
   } catch {
-    return MOCK_TEAMS;
+    return [];
   }
 }
 
@@ -212,11 +212,11 @@ export async function getTeamById(id: string): Promise<Team | null> {
       .select("*, members:users(*)")
       .eq("id", id)
       .single();
-    if (error || !data) return MOCK_TEAMS.find((t) => t.id === id) ?? null;
+    if (error || !data) return null;
     const agg = await computeTeamScores(supabase, [id]);
     return { ...(data as Team), total_points: agg.get(id)?.total ?? 0 };
   } catch {
-    return MOCK_TEAMS.find((t) => t.id === id) ?? null;
+    return null;
   }
 }
 
@@ -228,7 +228,8 @@ export async function getLeaderboard(): Promise<LeaderboardRow[]> {
       supabase.from("users").select("team_id, email"),
       getAdminEmails(),
     ]);
-    if (error || !teams?.length) return MOCK_LEADERBOARD;
+    if (error) return [];
+    if (!teams?.length) return [];
 
     // Équipes 100% admin → exclues du classement (organisateurs hors jeu).
     // Une équipe est exclue si elle a ≥1 membre et que TOUS sont admins.
@@ -275,7 +276,7 @@ export async function getLeaderboard(): Promise<LeaderboardRow[]> {
 
     return rows;
   } catch {
-    return MOCK_LEADERBOARD;
+    return [];
   }
 }
 
