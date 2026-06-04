@@ -71,6 +71,10 @@ async function findLiveFixture() {
   return null;
 }
 
+// apifId mémorisé une fois le match trouvé en live (pour fallback FT)
+let knownApifId = null;
+let knownFranceApiId = null;
+
 // Compos tirees UNE SEULE FOIS (drapeau en memoire, pas en base).
 let lineupsDone = false;
 async function syncLineups(matchId, apifId, franceApiId) {
@@ -124,7 +128,18 @@ async function syncEventsIfScoreChanged(matchId, apifId, franceApiId, scoreA, sc
 }
 
 async function tick(matchId) {
-  const fx = await findLiveFixture();
+  let fx = await findLiveFixture();
+
+  // Plus dans live=all mais on a déjà vu ce match → tenter de récupérer l'état final
+  if (!fx && knownApifId) {
+    const j = await apif(`/fixtures?id=${knownApifId}`);
+    const candidate = j.response?.[0];
+    if (candidate && FINISHED.includes(candidate.fixture.status.short)) {
+      fx = candidate;
+      console.log(new Date().toLocaleTimeString(), "— match disparu du live, trouvé via /fixtures?id →", candidate.fixture.status.short);
+    }
+  }
+
   if (!fx) {
     console.log(new Date().toLocaleTimeString(), "— pas encore live (ou deja FT). On attend.");
     return false;
@@ -132,6 +147,8 @@ async function tick(matchId) {
   const apifId = fx.fixture.id;
   const franceIsHome = isFrance(fx.teams.home.name);
   const franceApiId = franceIsHome ? fx.teams.home.id : fx.teams.away.id;
+  knownApifId = apifId;
+  knownFranceApiId = franceApiId;
   const scoreFra = franceIsHome ? fx.goals.home : fx.goals.away;     // = team_a
   const scoreCiv = franceIsHome ? fx.goals.away : fx.goals.home;     // = team_b
   const status = fx.fixture.status.short;
