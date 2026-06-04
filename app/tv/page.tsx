@@ -9,6 +9,7 @@ import type { IndividualRow } from "@/lib/data/teams";
 import type { ServiceLeaderboardRow } from "@/lib/data/users";
 import type { Medal } from "@/lib/data/medals";
 import type { TvHeatmapRow } from "@/lib/data/player";
+import type { HallOfShameData, VisionnaireData, DramaData } from "@/lib/data/tv-stories";
 import type { PredictionOutcome } from "@/lib/scoring";
 import { PARTICIPATION_MIN_POINTS } from "@/lib/scoring/config";
 import type { FullMatchDetail } from "@/services/football/types";
@@ -34,10 +35,8 @@ import {
 
 type Slide =
   | "upcoming"
-  | "classement"
   | "match"
   | "livematch"
-  | "duel"
   | "standings"
   | "bracket"
   | "matinale"
@@ -45,22 +44,22 @@ type Slide =
   | "prematch"
   | "animations"
   | "general"
-  | "toppronos"
   | "quiz"
   | "services"
   | "medals"
   | "playerofday"
   | "news"
-  | "duelpronos"
   | "joinqr"
   | "robert"
   | "fail"
   | "officebet"
   | "tightrace"
-  | "todaystats"
   | "welcome"
   | "topscorerrace"
-  | "heatmapwall";
+  | "hallofshame"
+  | "visionnaire"
+  | "drama"
+  | "fantomes";
 
 // ─── Goat helper: remplace "Robert" par l'image de chèvre ────────────────────
 
@@ -114,7 +113,7 @@ function getQRContext(slide: Slide, data: TVData | null, origin: string): QRCont
   if (slide === "livematch") {
     return { url: `${origin}/`, message: "⚡ Live en cours", subtext: "Suivez sur votre mobile" };
   }
-  if (["general", "toppronos", "classement", "duel", "duelpronos", "tightrace", "services"].includes(slide)) {
+  if (["general", "tightrace", "services"].includes(slide)) {
     return { url: `${origin}/classement`, message: "🏆 Classement", subtext: "Votre position ?" };
   }
   if (slide === "matinale") {
@@ -129,34 +128,32 @@ const FLASH_POLL_INTERVAL = 10000;
 // Rotation salon : on alterne sport / classements / fun pour varier le rythme.
 // "animations" et toute slide vide sont filtrées dynamiquement (voir TVPage).
 const BASE_SLIDES: Slide[] = [
-  "prematch",
-  "general",
-  "officebet",
-  "match",
-  "playerofday",
-  "robert",
-  "standings",
-  "toppronos",
-  "tightrace",
-  "duelpronos",
-  "livematch",
-  "todaystats",
-  "animations",
-  "quiz",
-  "topscorerrace",
-  "duel",
-  "services",
-  "welcome",
-  "bracket",
-  "medals",
-  "heatmapwall",
-  "upcoming",
-  "matinale",
-  "fail",
-  "news",
-  "classement",
-  "joinqr",
-  "revivez",
+  "prematch",      // analyse pré-match
+  "general",       // classement individuel global
+  "officebet",     // distribution pronos V/N/D
+  "match",         // matchs du jour
+  "hallofshame",   // pires pronos du dernier match
+  "playerofday",   // meilleur joueur individuel
+  "visionnaire",   // score exact trouvé
+  "robert",        // 🐐 dit…
+  "standings",     // groupes FIFA
+  "tightrace",     // course serrée
+  "drama",         // plus grand gain de points 24h
+  "livematch",     // match en direct
+  "animations",    // défis RSE
+  "quiz",          // champions du quiz
+  "topscorerrace", // paris meilleur buteur
+  "services",      // classement services
+  "welcome",       // nouveaux joueurs
+  "fantomes",      // joueurs inactifs
+  "bracket",       // phase à élimination
+  "medals",        // médailles absurdes
+  "upcoming",      // prochains événements
+  "matinale",      // brief matinal
+  "fail",          // fail du jour
+  "news",          // RSS foot
+  "joinqr",        // install QR
+  "revivez",       // archives
 ];
 
 interface StandingRow {
@@ -215,6 +212,10 @@ interface TVData {
   newPlayers?: string[];
   topScorerBets?: { name: string; count: number }[];
   heatmap?: TvHeatmapRow[];
+  hallofshame?: HallOfShameData | null;
+  visionnaire?: VisionnaireData | null;
+  drama?: DramaData | null;
+  fantomes?: string[];
 }
 
 // ─── Ambiance Banner ─────────────────────────────────────────────────────────
@@ -1875,6 +1876,106 @@ function TVQRWidget({ ctx, data }: { ctx: QRContext; data: TVData | null }) {
   );
 }
 
+// ─── Slide: Hall of Shame ────────────────────────────────────────────────────
+
+function SlideHallOfShame({ data }: { data: HallOfShameData }) {
+  return (
+    <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-20 py-6 sm:py-12 text-center">
+      <p className="text-canal-yellow font-black text-xl sm:text-2xl uppercase tracking-widest mb-2 sm:mb-4">
+        💀 Hall of Shame
+      </p>
+      <p className="text-white/50 text-sm sm:text-xl mb-6 sm:mb-10 italic">{data.match_label}</p>
+      <div className="space-y-3 sm:space-y-4 w-full max-w-2xl">
+        {data.shame.map((entry) => (
+          <div key={entry.name} className="flex items-center gap-4 bg-canal-gray rounded-2xl px-5 sm:px-8 py-3 sm:py-4">
+            <span className="text-2xl sm:text-3xl">😬</span>
+            <div className="text-left">
+              <p className="font-black text-white text-lg sm:text-2xl lg:text-3xl">{entry.name}</p>
+              <p className="text-canal-gray-muted text-sm sm:text-lg">avait prédit {entry.predicted}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="text-canal-yellow/60 text-sm sm:text-lg mt-6 sm:mt-10 flex items-center justify-center gap-2 italic">
+        <img src="/goat.png" alt="🐐" className="h-[1em] object-contain" /> compatit. Très professionnellement.
+      </p>
+    </div>
+  );
+}
+
+// ─── Slide: Visionnaire ───────────────────────────────────────────────────────
+
+function SlideVisionnaire({ data }: { data: VisionnaireData }) {
+  const plural = data.seers.length > 1;
+  return (
+    <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-20 py-6 sm:py-12 text-center">
+      <p className="text-canal-yellow font-black text-xl sm:text-2xl uppercase tracking-widest mb-2 sm:mb-4">
+        🔮 {plural ? "Visionnaires" : "Visionnaire"} du Match
+      </p>
+      <p className="text-white/50 text-sm sm:text-xl mb-6 sm:mb-8 italic">{data.match_label}</p>
+      <p className="text-canal-gray-muted text-base sm:text-xl mb-4 sm:mb-6">Score exact prédit par</p>
+      <div className="space-y-2 sm:space-y-3">
+        {data.seers.map((name) => (
+          <p key={name} className="font-black text-white text-3xl sm:text-5xl lg:text-6xl">
+            ⭐ {name}
+          </p>
+        ))}
+      </div>
+      <p className="text-canal-yellow/60 text-sm sm:text-lg mt-6 sm:mt-10 flex items-center justify-center gap-2 italic">
+        <img src="/goat.png" alt="🐐" className="h-[1em] object-contain" /> s&apos;incline.
+      </p>
+    </div>
+  );
+}
+
+// ─── Slide: Drama (momentum 24h) ──────────────────────────────────────────────
+
+function SlideDrama({ data }: { data: DramaData }) {
+  return (
+    <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-20 py-6 sm:py-12 text-center">
+      <p className="text-canal-yellow font-black text-xl sm:text-2xl uppercase tracking-widest mb-6 sm:mb-10">
+        🚀 Remontée du Moment
+      </p>
+      <p className="font-black text-4xl sm:text-6xl lg:text-8xl text-white mb-2 sm:mb-3">{data.name}</p>
+      {data.team_name && (
+        <p className="text-canal-gray-muted text-lg sm:text-2xl mb-6 sm:mb-8">{data.team_name}</p>
+      )}
+      <p className="text-canal-green font-black text-5xl sm:text-8xl lg:text-9xl">
+        +{data.delta} pts
+      </p>
+      <p className="text-canal-gray-muted text-base sm:text-xl mt-3 sm:mt-5">en 24 heures</p>
+      <p className="text-canal-yellow/60 text-sm sm:text-lg mt-6 sm:mt-10 flex items-center justify-center gap-2 italic">
+        <img src="/goat.png" alt="🐐" className="h-[1em] object-contain" /> observe. Et approuve.
+      </p>
+    </div>
+  );
+}
+
+// ─── Slide: Fantômes ──────────────────────────────────────────────────────────
+
+function SlideFantomes({ players }: { players: string[] }) {
+  return (
+    <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-20 py-6 sm:py-12 text-center">
+      <p className="text-canal-yellow font-black text-xl sm:text-2xl uppercase tracking-widest mb-3 sm:mb-6">
+        👻 Fantômes de la Canal Cup
+      </p>
+      <p className="text-white/50 text-base sm:text-xl mb-6 sm:mb-10 italic">
+        N&apos;ont pas rejoint l&apos;app depuis 7 jours
+      </p>
+      <div className="space-y-2 sm:space-y-4">
+        {players.map((name) => (
+          <p key={name} className="font-black text-white/60 text-2xl sm:text-4xl lg:text-5xl">
+            👻 {name}
+          </p>
+        ))}
+      </div>
+      <p className="text-canal-yellow/60 text-sm sm:text-lg mt-6 sm:mt-10 flex items-center justify-center gap-2 italic">
+        <img src="/goat.png" alt="🐐" className="h-[1em] object-contain" /> a lancé un avis de recherche.
+      </p>
+    </div>
+  );
+}
+
 // ─── Slide: Robert dit… (punchline du coach IA) ───────────────────────────────
 
 const ROBERT_PHRASES: string[] = [
@@ -2349,6 +2450,10 @@ export default function TVPage() {
   const hasPrematch = !!data?.prematch;
   const hasFail = !!data?.brief?.fail_of_day;
   const hasMatinale = !!data?.brief;
+  const hasHallOfShame = !!data?.hallofshame?.shame?.length;
+  const hasVisionnaire = !!data?.visionnaire?.seers?.length;
+  const hasDrama = !!data?.drama;
+  const hasFantomes = !!data?.fantomes?.length;
   const tightRace = data ? computeTightRace(data) : null;
   const hasTightRace = !!tightRace;
   const ts = data?.todayStats;
@@ -2359,7 +2464,7 @@ export default function TVPage() {
 
   const slides = BASE_SLIDES.filter((s) => {
     if (s === "animations") return hasChallenges;
-    if (s === "general" || s === "toppronos" || s === "quiz" || s === "playerofday" || s === "duelpronos") return hasIndividual;
+    if (s === "general" || s === "quiz" || s === "playerofday") return hasIndividual;
     if (s === "services") return hasServices;
     if (s === "medals") return hasMedals;
     if (s === "news") return hasNews;
@@ -2367,12 +2472,14 @@ export default function TVPage() {
     if (s === "officebet") return hasPrematch;
     if (s === "fail") return hasFail;
     if (s === "tightrace") return hasTightRace;
-    if (s === "todaystats") return hasTodayStats;
     if (s === "welcome") return hasNewPlayers;
     if (s === "topscorerrace") return hasTopScorerBets;
-    if (s === "heatmapwall") return hasHeatmap;
     if (s === "revivez") return !!data?.revivezPosts?.length;
     if (s === "matinale") return hasMatinale;
+    if (s === "hallofshame") return hasHallOfShame;
+    if (s === "visionnaire") return hasVisionnaire;
+    if (s === "drama") return hasDrama;
+    if (s === "fantomes") return hasFantomes;
     return true;
   });
 
@@ -2451,18 +2558,14 @@ export default function TVPage() {
             {slide === "upcoming" && (
               <SlideUpcoming events={data.events ?? []} matches={data.matches} />
             )}
-            {slide === "classement" && <SlideClassement leaderboard={data.leaderboard} />}
             {slide === "match" && <SlideMatch matches={data.matches} />}
             {slide === "livematch" && <SlideLiveMatch matches={data.matches} />}
-            {slide === "duel" && <SlideDuel leaderboard={data.leaderboard} />}
-            {slide === "duelpronos" && <SlideDuelPronos individual={data.individual ?? []} />}
             {slide === "standings" && <SlideStandings standings={data.standings ?? []} />}
             {slide === "bracket" && <SlideBracket />}
             {slide === "matinale" && data.brief && <SlideMatinale brief={data.brief} />}
             {slide === "revivez" && <SlideRevivez posts={data.revivezPosts} />}
             {slide === "animations" && <SlideAnimations challenges={data.challenges ?? []} />}
             {slide === "general" && <SlideGeneral individual={data.individual ?? []} />}
-            {slide === "toppronos" && <SlideTopPronos individual={data.individual ?? []} />}
             {slide === "quiz" && <SlideQuiz individual={data.individual ?? []} />}
             {slide === "services" && <SlideServices services={data.services ?? []} />}
             {slide === "medals" && <SlideMedals medals={data.medals ?? []} />}
@@ -2473,10 +2576,12 @@ export default function TVPage() {
             {slide === "fail" && data.brief && <SlideFail brief={data.brief} />}
             {slide === "officebet" && data.prematch && <SlideOfficeBet stats={data.prematch} />}
             {slide === "tightrace" && tightRace && <SlideTightRace race={tightRace} />}
-            {slide === "todaystats" && data.todayStats && <SlideStats stats={data.todayStats} />}
+            {slide === "hallofshame" && data.hallofshame && <SlideHallOfShame data={data.hallofshame} />}
+            {slide === "visionnaire" && data.visionnaire && <SlideVisionnaire data={data.visionnaire} />}
+            {slide === "drama" && data.drama && <SlideDrama data={data.drama} />}
+            {slide === "fantomes" && data.fantomes && <SlideFantomes players={data.fantomes} />}
             {slide === "welcome" && <SlideWelcome players={data.newPlayers ?? []} />}
             {slide === "topscorerrace" && <SlideTopScorerRace bets={data.topScorerBets ?? []} />}
-            {slide === "heatmapwall" && <SlideHeatmapWall rows={data.heatmap ?? []} />}
           </>
         )}
       </div>

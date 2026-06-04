@@ -6,6 +6,7 @@ import { getTodayBrief, getRevivezPosts } from "@/lib/data/content";
 import { getChallenges } from "@/lib/data/challenges";
 import { getTvPredictionHeatmap } from "@/lib/data/player";
 import { getAdminEmails } from "@/lib/data/roles";
+import { getHallOfShame, getVisionnaire, getDrama, getFantomes } from "@/lib/data/tv-stories";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AMBIANCE_STATES } from "@/lib/tv/hype";
 import { NextResponse } from "next/server";
@@ -213,7 +214,7 @@ export async function GET() {
   const windowStart = new Date(now.getTime() - 60 * 60_000).toISOString();
   const windowEnd = new Date(now.getTime() + 24 * 60 * 60_000).toISOString();
 
-  const [matches, leaderboard, individual, services, medals, brief, revivezPosts, allChallenges, news, todayStats, newPlayers, topScorerBets, heatmap, standings, { data: events }] =
+  const [matches, leaderboard, individual, services, medals, brief, revivezPosts, allChallenges, news, todayStats, newPlayers, topScorerBets, heatmap, standings, { data: events }, hallofshame, visionnaire, drama, fantomes] =
     await Promise.all([
       getMatches(),
       getLeaderboard(),
@@ -236,6 +237,10 @@ export async function GET() {
         .gte("starts_at", windowStart)
         .lte("starts_at", windowEnd)
         .order("starts_at", { ascending: true }),
+      getHallOfShame(supabase),
+      getVisionnaire(supabase),
+      getDrama(supabase),
+      getFantomes(supabase),
     ]);
 
   // TV slide animations : on garde live + upcoming (max 5, live en haut).
@@ -292,5 +297,9 @@ export async function GET() {
     newPlayers,
     topScorerBets,
     heatmap,
+    hallofshame,
+    visionnaire,
+    drama,
+    fantomes,
   });
 }
