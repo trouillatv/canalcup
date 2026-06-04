@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { cn, teamFlag, toNCDate, toNCTime } from "@/lib/utils";
 import type { Match, PredictionTrend } from "@/lib/supabase/types";
 import { getResult, scoreLabel } from "@/lib/scoring";
@@ -33,14 +34,33 @@ function ScorePredictInput({
   savedPrediction?: SavedPrediction;
   onSave: (a: number, b: number) => Promise<void>;
 }) {
-  const [scoreA, setScoreA] = useState<ScoreDraft>(savedPrediction?.score_a ?? "");
-  const [scoreB, setScoreB] = useState<ScoreDraft>(savedPrediction?.score_b ?? "");
+  const initialSavedScore = savedPrediction
+    ? { score_a: savedPrediction.score_a, score_b: savedPrediction.score_b }
+    : null;
+  const [savedScore, setSavedScore] = useState(initialSavedScore);
+  const [scoreA, setScoreA] = useState<ScoreDraft>(initialSavedScore?.score_a ?? "");
+  const [scoreB, setScoreB] = useState<ScoreDraft>(initialSavedScore?.score_b ?? "");
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(!!savedPrediction);
+  const [saved, setSaved] = useState(!!initialSavedScore);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const hasStarted = new Date(match.starts_at) <= new Date();
+  const hasStarted =
+    new Date(match.starts_at) <= new Date() ||
+    match.status === "live" ||
+    match.status === "finished" ||
+    !!match.is_settled;
   const canSave = scoreA !== "" && scoreB !== "";
+  const isUpdate = !!savedScore && !saved;
+
+  const setDraft = (side: "a" | "b", rawValue: string) => {
+    const nextValue: ScoreDraft =
+      rawValue === "" ? "" : Math.min(20, Math.max(0, parseInt(rawValue, 10) || 0));
+    const nextA = side === "a" ? nextValue : scoreA;
+    const nextB = side === "b" ? nextValue : scoreB;
+    if (side === "a") setScoreA(nextValue);
+    else setScoreB(nextValue);
+    setSaved(!!savedScore && nextA === savedScore.score_a && nextB === savedScore.score_b);
+  };
 
   if (hasStarted && savedPrediction) {
     const result = getResult(savedPrediction.score_a, savedPrediction.score_b);
@@ -62,7 +82,14 @@ function ScorePredictInput({
     );
   }
 
-  if (hasStarted) return null;
+  if (hasStarted) {
+    return (
+      <div className="mt-3 flex items-center justify-center gap-2 px-3 py-2 bg-canal-gray-mid rounded-xl">
+        <Lock size={12} className="text-canal-gray-muted" />
+        <span className="text-xs font-bold text-canal-gray-muted">Pronostic verrouille</span>
+      </div>
+    );
+  }
 
   const resultLabel = () => {
     if (!canSave) return "Saisis les deux scores pour valider ton pronostic";
@@ -78,6 +105,7 @@ function ScorePredictInput({
     setErrorMsg(null);
     try {
       await onSave(scoreA, scoreB);
+      setSavedScore({ score_a: scoreA, score_b: scoreB });
       setSaved(true);
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : "Échec de l'enregistrement.");
@@ -101,15 +129,7 @@ function ScorePredictInput({
             max={20}
             value={scoreA}
             onFocus={(e) => e.currentTarget.select()}
-            onChange={(e) => {
-              setSaved(false);
-              const value = e.target.value;
-              if (value === "") {
-                setScoreA("");
-                return;
-              }
-              setScoreA(Math.min(20, Math.max(0, parseInt(value, 10) || 0)));
-            }}
+            onChange={(e) => setDraft("a", e.target.value)}
             className="w-14 h-10 text-center text-2xl font-black text-white bg-canal-gray-mid border border-canal-gray-light rounded-xl focus:border-canal-yellow outline-none"
           />
         </div>
@@ -126,15 +146,7 @@ function ScorePredictInput({
             max={20}
             value={scoreB}
             onFocus={(e) => e.currentTarget.select()}
-            onChange={(e) => {
-              setSaved(false);
-              const value = e.target.value;
-              if (value === "") {
-                setScoreB("");
-                return;
-              }
-              setScoreB(Math.min(20, Math.max(0, parseInt(value, 10) || 0)));
-            }}
+            onChange={(e) => setDraft("b", e.target.value)}
             className="w-14 h-10 text-center text-2xl font-black text-white bg-canal-gray-mid border border-canal-gray-light rounded-xl focus:border-canal-yellow outline-none"
           />
         </div>
@@ -142,7 +154,7 @@ function ScorePredictInput({
         {/* Valider */}
         <button
           onClick={handleSave}
-          disabled={saving || !canSave}
+          disabled={saving || !canSave || saved}
           className={cn(
             "mt-4 flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-black transition-colors",
             saved
@@ -152,7 +164,7 @@ function ScorePredictInput({
                 : "bg-canal-gray-mid text-canal-gray-muted cursor-not-allowed"
           )}
         >
-          {saved ? <><Check size={14} /> Sauvé</> : saving ? "…" : "Valider"}
+          {saved ? <><Check size={14} /> Sauvé</> : saving ? "..." : isUpdate ? "Mettre à jour" : "Valider"}
         </button>
       </div>
 
@@ -161,9 +173,9 @@ function ScorePredictInput({
       ) : (
         <p className="text-xs text-center text-canal-gray-muted">
           {resultLabel()}
-          {savedPrediction && (
+          {savedScore && (
             <span className="block text-[10px] mt-0.5 text-canal-gray-muted/80 italic">
-              Modifie les chiffres puis re-clique sur Valider pour mettre à jour ton prono.
+              Modifie les chiffres puis clique sur Mettre à jour pour remplacer ton prono.
             </span>
           )}
         </p>
@@ -173,6 +185,7 @@ function ScorePredictInput({
 }
 
 export function MatchCard({ match, trend, savedPrediction, compact }: MatchCardProps) {
+  const router = useRouter();
   const isFinished = match.status === "finished";
   const isLive = match.status === "live";
   const isUpcoming = match.status === "upcoming";
@@ -189,7 +202,10 @@ export function MatchCard({ match, trend, savedPrediction, compact }: MatchCardP
     } catch {
       throw new Error("Réseau indisponible — vérifie ta connexion puis réessaie.");
     }
-    if (res.ok) return;
+    if (res.ok) {
+      router.refresh();
+      return;
+    }
     let serverMsg = "";
     try {
       serverMsg = (await res.json())?.error ?? "";
@@ -325,3 +341,4 @@ export function MatchCard({ match, trend, savedPrediction, compact }: MatchCardP
     </article>
   );
 }
+

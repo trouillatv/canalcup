@@ -28,6 +28,10 @@ export async function POST(req: Request) {
   const { data: match } = await supabase.from("matches").select("*").eq("id", match_id).single();
   if (!match) return NextResponse.json({ error: "Match introuvable" }, { status: 404 });
 
+  if (match.status === "live" || match.status === "finished" || match.is_settled) {
+    return NextResponse.json({ error: "Pronostic verrouille : le match a deja commence." }, { status: 400 });
+  }
+
   // Block prediction if match already started
   if (new Date(match.starts_at) <= new Date()) {
     return NextResponse.json({ error: "Match déjà commencé" }, { status: 400 });
