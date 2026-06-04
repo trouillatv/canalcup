@@ -655,7 +655,11 @@ export default function MatchCenterPage() {
         {tab === "lineups" && (
           lineups
             ? <Lineups lineups={lineups} />
-            : <p className="text-center text-canal-gray-muted text-sm py-12">Compositions disponibles avant le coup d'envoi.</p>
+            : <p className="text-center text-canal-gray-muted text-sm py-12">
+                {match.status === "upcoming"
+                  ? "Compositions disponibles avant le coup d'envoi."
+                  : "Compositions non disponibles pour ce match."}
+              </p>
         )}
         {tab === "stats" && <Stats stats={stats} teamA={match.team_a} teamB={match.team_b} />}
         {tab === "notes" && <TopPlayers players={playerStats} teamA={match.team_a} teamB={match.team_b} />}
