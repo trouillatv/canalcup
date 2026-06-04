@@ -34,11 +34,13 @@ async function getLequipeNews(): Promise<{ title: string; link: string }[]> {
     const clean = (s: string) =>
       s
         .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+        .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+        .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(parseInt(d, 10)))
         .replace(/&amp;/g, "&")
         .replace(/&lt;/g, "<")
         .replace(/&gt;/g, ">")
         .replace(/&quot;/g, '"')
-        .replace(/&#39;|&apos;/g, "'")
+        .replace(/&apos;/g, "'")
         .trim();
 
     const items = xml.match(/<item[\s\S]*?<\/item>/g) ?? [];

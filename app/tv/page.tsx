@@ -1778,28 +1778,23 @@ function SlidePlayerOfDay({ individual }: { individual: IndividualRow[] }) {
 // ─── Slide: Fil L'Équipe (RSS) ────────────────────────────────────────────────
 
 function SlideNews({ news }: { news: { title: string; link: string }[] }) {
-  const items = news.slice(0, 6);
+  const items = news.slice(0, 5);
   if (!items.length) return null;
-  const dense = items.length > 4;
   return (
     <div className="flex flex-col h-full px-4 sm:px-8 lg:px-20 py-6 sm:py-10">
-      <div className="mb-3 sm:mb-5 shrink-0">
+      <div className="mb-3 sm:mb-6 shrink-0">
         <p className="text-canal-yellow font-black text-xl sm:text-2xl uppercase tracking-widest mb-2">
           📰 Fil L&apos;Équipe
         </p>
         <div className="h-1 w-32 bg-canal-yellow" />
       </div>
-      <div className="flex-1 overflow-y-auto flex flex-col justify-center gap-3 sm:gap-5">
+      <div className="flex-1 overflow-hidden flex flex-col justify-center gap-3 sm:gap-5">
         {items.map((n, i) => (
           <div key={`${i}-${n.title}`} className="flex items-start gap-3 sm:gap-5">
             <span className="text-canal-yellow font-black text-xl sm:text-3xl shrink-0 w-8 sm:w-12 text-center">
               {i + 1}
             </span>
-            <p
-              className={`font-black text-white leading-snug break-words ${
-                dense ? "text-lg sm:text-2xl lg:text-3xl" : "text-xl sm:text-3xl lg:text-4xl"
-              }`}
-            >
+            <p className="font-black text-white text-lg sm:text-2xl lg:text-3xl leading-snug break-words line-clamp-2">
               {n.title}
             </p>
           </div>
