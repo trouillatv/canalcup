@@ -86,14 +86,14 @@ export const FLASH_CONFIGS: Record<FlashType, FlashConfig> = {
 // Phrases atmosphériques — montrées entre les flashes quand le bureau est calme
 export const ATMOSPHERIC_PHRASES: string[] = [
   "Le bureau attend. Patiemment. Enfin presque.",
-  "Robert surveille le classement. Il ne dit rien. Mais il pense.",
+  "Le Goat surveille le classement. Il ne dit rien. Mais il pense.",
   "La tension est là. Même quand tout semble calme.",
   "Quelque chose se prépare. Canal Cup ne dort jamais.",
   "Entre deux matchs, le bureau doute. C'est sain.",
   "Les pronostics sont faits. Le regret commence.",
   "Un score exact, c'est 10 points. Et beaucoup de chance. Surtout de la chance.",
   "Le classement change. Pas toujours dans le bon sens.",
-  "Robert compile les données. Certains résultats vont faire mal.",
+  "Le Goat compile les données. Certains résultats vont faire mal.",
   "Le football est imprévisible. Les pronostics aussi. C'est tout le problème.",
 ];
 

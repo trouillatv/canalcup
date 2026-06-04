@@ -195,7 +195,7 @@ export default function QuizShowPage() {
             <p className="text-white/60 text-lg sm:text-3xl">{questions.length} questions · Bravo à tous</p>
           </div>
           <p className="text-white/35 text-base sm:text-2xl italic max-w-2xl text-center">
-            &ldquo;<img src="/goat.png" alt="🐐" className="inline h-[1em] object-contain align-middle mx-0.5" /> valide les bonnes réponses. En silence.&rdquo;
+            &ldquo;<img src="/goat.png" alt="🐐" className="inline h-[1em] object-contain align-middle mx-0.5" /> Le Goat valide les bonnes réponses. En silence.&rdquo;
           </p>
           <p className="text-white/30 text-sm sm:text-xl mt-2 sm:mt-4">ESPACE pour rejouer</p>
         </div>

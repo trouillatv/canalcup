@@ -28,7 +28,7 @@ import {
   type TvFlash,
 } from "@/lib/tv/flash";
 import {
-  getRobertPreMatchPhrase,
+  getGoatPreMatchPhrase,
   getSalonPhrase,
   SALON_PREMATCH,
 } from "@/lib/tv/hype";
@@ -61,10 +61,10 @@ type Slide =
   | "drama"
   | "fantomes";
 
-// ─── Goat helper: remplace "Robert" par l'image de chèvre ────────────────────
+// ─── Goat helper: remplace "Le Goat" par l'image de chèvre ────────────────────
 
 function withGoat(text: string): React.ReactNode {
-  const parts = text.split("Robert");
+  const parts = text.split("Le Goat");
   if (parts.length === 1) return text;
   return (
     <>
@@ -304,7 +304,7 @@ function SlideUpcoming({ events, matches }: { events: CanalCupEvent[]; matches: 
           Le calme avant la tempête.
         </p>
         <p className="text-canal-gray-muted text-lg sm:text-xl mt-4 italic">
-          "Robert aussi attend. Avec impatience et professionnalisme."
+          "Le Goat aussi attend. Avec impatience et professionnalisme."
         </p>
       </div>
     );
@@ -1526,7 +1526,7 @@ function SlidePreMatch({ stats }: { stats: PreMatchStats }) {
       <div className="flex items-end justify-between gap-3 sm:gap-6">
         <div className="flex-1 bg-canal-gray-mid/30 border border-canal-gray-light/20 rounded-2xl px-4 sm:px-6 py-3 sm:py-4">
           <p className="text-canal-gray-muted text-base sm:text-xl italic leading-snug">
-            &ldquo;{withGoat(getRobertPreMatchPhrase(robertCtx))}&rdquo;
+            &ldquo;{withGoat(getGoatPreMatchPhrase(robertCtx))}&rdquo;
           </p>
           <p className="text-canal-yellow/60 text-sm sm:text-lg mt-1 flex items-center gap-1">
             —{" "}
@@ -1971,14 +1971,14 @@ function SlideFantomes({ players }: { players: string[] }) {
   );
 }
 
-// ─── Slide: Robert dit… (punchline du coach IA) ───────────────────────────────
+// ─── Slide: Le Goat dit… (punchline du coach IA) ────────────────────────────
 
 const ROBERT_PHRASES: string[] = [
   ...Object.values(SALON_PREMATCH).flat(),
-  "Robert ne juge pas. Robert observe. Et Robert se souvient.",
-  "Un bon prono, c'est 50% d'instinct et 50% de chance. Robert n'a ni l'un ni l'autre, mais il assume.",
+  "Le Goat ne juge pas. Le Goat observe. Et Le Goat se souvient.",
+  "Un bon prono, c'est 50% d'instinct et 50% de chance. Le Goat n'a ni l'un ni l'autre, mais il assume.",
   "Le classement ment rarement. Les egos, beaucoup plus.",
-  "Participer, c'est déjà des points. Robert l'a vérifié lui-même.",
+  "Participer, c'est déjà des points. Le Goat l'a vérifié lui-même.",
   "Le babyfoot révèle les caractères. Et parfois, il les détruit.",
 ];
 
@@ -1992,15 +1992,20 @@ function SlideRobert() {
   }, []);
 
   return (
-    <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-20 py-6 sm:py-12 text-center gap-8 sm:gap-14">
+    <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-20 py-6 sm:py-12 text-center gap-6 sm:gap-10">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/goat.png"
-        alt="🐐"
-        width={160}
-        height={160}
-        loading="eager"
-        className="w-24 h-24 sm:w-36 sm:h-36 lg:w-40 lg:h-40 object-contain drop-shadow-2xl"
+        alt="Le Goat"
+        width={180}
+        height={180}
+        style={{ imageRendering: "auto" }}
+        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+        className="w-28 h-28 sm:w-40 sm:h-40 lg:w-44 lg:h-44 object-contain drop-shadow-2xl"
       />
+      <p className="text-canal-yellow font-black text-xl sm:text-2xl uppercase tracking-widest">
+        Le Goat dit…
+      </p>
       <p className="font-black text-2xl sm:text-4xl lg:text-6xl text-white leading-tight max-w-5xl break-words italic">
         &ldquo;{phrase}&rdquo;
       </p>

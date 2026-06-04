@@ -73,7 +73,7 @@ export const EVENT_CONFIGS: Record<EventType, EventConfig> = {
     phrases: [
       "Quelque chose d'inattendu se prépare. Canal Cup ne dort jamais.",
       "Les règles du jeu vont changer. Temporairement. Peut-être.",
-      "Un événement surprise. Même Robert ne savait pas.",
+      "Un événement surprise. Même Le Goat ne savait pas.",
     ],
     urgentPhrases: [
       "Le chaos arrive. Personne n'est prêt. C'est le principe.",
@@ -97,13 +97,13 @@ export const EVENT_CONFIGS: Record<EventType, EventConfig> = {
     emoji: "📰",
     label: "MATINALE IA",
     phrases: [
-      "Robert a veillé toute la nuit pour préparer ce moment.",
+      "Le Goat a veillé toute la nuit pour préparer ce moment.",
       "Le bureau se réveille. La matinale aussi.",
       "Le résumé de tout ce que vous avez manqué pendant votre sommeil.",
     ],
     urgentPhrases: [
       "La matinale commence. Le café peut attendre.",
-      "Robert est prêt. Le bureau devrait l'être.",
+      "Le Goat est prêt. Le bureau devrait l'être.",
     ],
   },
   match_week: {
@@ -139,11 +139,11 @@ export const AMBIANCE_STATES: Record<string, { label: string; color: string; sub
   "🔥": { label: "LE BUREAU EST EN FEU", color: "#FF6B35", sub: "Tensions à leur comble" },
   "😱": { label: "PANIQUE GÉNÉRALE", color: "#FF4444", sub: "Personne ne s'y attendait" },
   "🤩": { label: "LE BUREAU EST INCRÉDULE", color: "#4FC3F7", sub: "Le talent s'exprime" },
-  "😡": { label: "MALAISE COLLECTIF", color: "#EF5350", sub: "Robert compatit. Un peu." },
+  "😡": { label: "MALAISE COLLECTIF", color: "#EF5350", sub: "Le Goat compatit. Un peu." },
   "🎉": { label: "AMBIANCE FÊTE", color: "#66BB6A", sub: "Le bureau célèbre" },
 };
 
-// ─── Pre-match Robert phrases ─────────────────────────────────────────────────
+// ─── Pre-match Le Goat phrases ─────────────────────────────────────────────────
 
 export interface PreMatchContext {
   teamA: string;
@@ -154,14 +154,14 @@ export interface PreMatchContext {
   msLeft: number;
 }
 
-export function getRobertPreMatchPhrase(ctx: PreMatchContext): string {
+export function getGoatPreMatchPhrase(ctx: PreMatchContext): string {
   const { teamA, teamB, topResult, topPct, teamsMissing, msLeft } = ctx;
   const winner = topResult === "A" ? teamA : topResult === "B" ? teamB : null;
   const mins = Math.floor(msLeft / 60_000);
 
   if (msLeft <= 60_000) {
     const phrases = [
-      "Robert a verrouillé ses pronostics. C'est l'heure.",
+      "Le Goat a verrouillé ses pronostics. C'est l'heure.",
       "Le coup d'envoi approche. Chacun assume ses choix.",
       "Dans quelques secondes, les pronostics deviennent de l'histoire.",
     ];
@@ -169,11 +169,11 @@ export function getRobertPreMatchPhrase(ctx: PreMatchContext): string {
   }
 
   if (msLeft <= 5 * 60_000) {
-    return `Cinq minutes. Le bureau retient son souffle. Robert aussi — et il retient très bien son souffle.`;
+    return `Cinq minutes. Le bureau retient son souffle. Le Goat aussi — et il retient très bien son souffle.`;
   }
 
   if (teamsMissing >= 2) {
-    return `${teamsMissing} équipe${teamsMissing > 1 ? "s" : ""} n'ont pas encore pronostiqué. Robert note. Robert se souvient toujours.`;
+    return `${teamsMissing} équipe${teamsMissing > 1 ? "s" : ""} n'ont pas encore pronostiqué. Le Goat note. Le Goat se souvient toujours.`;
   }
 
   if (winner && topPct >= 60) {
@@ -187,7 +187,7 @@ export function getRobertPreMatchPhrase(ctx: PreMatchContext): string {
   const phrases = [
     `${teamA} contre ${teamB}. Le bureau a choisi. Reste à voir si le match est au courant.`,
     `Les pronostics commencent à sentir le drame. Bonne ou mauvaise odeur, à vous de juger.`,
-    `${Math.round(mins / 5) * 5 || mins} minutes avant le coup d'envoi. Robert est prêt. Professionnellement parlant.`,
+    `${Math.round(mins / 5) * 5 || mins} minutes avant le coup d'envoi. Le Goat est prêt. Professionnellement parlant.`,
     `Ce match va faire des heureux. Et statistiquement, autant de déçus.`,
   ];
   return phrases[new Date().getMinutes() % phrases.length];
@@ -200,7 +200,7 @@ export const SALON_PREMATCH: Record<string, string[]> = {
   warm:  ["Le salon commence à s'échauffer.", "Les premières chaises se rapprochent de l'écran.", "L'ambiance monte doucement."],
   hot:   ["Les tensions montent.", "Personne ne pense encore à partir.", "Le bureau est aux aguets."],
   tense: ["Personne ne parle. Tout le monde regarde.", "Le silence s'installe. Le bon genre.", "Les poings se serrent."],
-  event: ["Le salon est debout.", "Tout le monde est là. Même Robert, debout.", "C'est maintenant."],
+  event: ["Le salon est debout.", "Tout le monde est là. Même Le Goat, debout.", "C'est maintenant."],
 };
 
 export function getSalonPhrase(msLeft: number): string {
