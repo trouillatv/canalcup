@@ -127,23 +127,25 @@ export default async function RootPage() {
         <TonightOnAir matches={tonightMatches} title="À l'affiche — Canal+ / beIN Sports" />
       )}
 
-      <section>
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider">
-            📰 Matinale du jour
-          </h2>
-          <Link href="/matinale" className="text-xs text-canal-gray-muted hover:text-white">
-            Lire →
-          </Link>
-        </div>
-        <div className="canal-card">
-          <p className="font-bold text-white mb-1">{brief.title}</p>
-          <p className="text-canal-gray-muted text-sm leading-relaxed line-clamp-3">{brief.body}</p>
-          <Link href="/matinale" className="inline-block mt-2 text-canal-yellow text-xs font-bold hover:underline">
-            Lire la matinale complète →
-          </Link>
-        </div>
-      </section>
+      {brief && (
+        <section>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider">
+              📰 Matinale du jour
+            </h2>
+            <Link href="/matinale" className="text-xs text-canal-gray-muted hover:text-white">
+              Lire →
+            </Link>
+          </div>
+          <div className="canal-card">
+            <p className="font-bold text-white mb-1">{brief.title}</p>
+            <p className="text-canal-gray-muted text-sm leading-relaxed line-clamp-3">{brief.body}</p>
+            <Link href="/matinale" className="inline-block mt-2 text-canal-yellow text-xs font-bold hover:underline">
+              Lire la matinale complète →
+            </Link>
+          </div>
+        </section>
+      )}
 
       <section>
         <div className="flex items-center justify-between mb-2">

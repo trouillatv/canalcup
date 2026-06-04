@@ -17,6 +17,23 @@ export default async function MatinalePage() {
     .filter((m) => m.status === "upcoming" && new Date(m.starts_at).getTime() >= now)
     .slice(0, 3);
 
+  if (!brief) {
+    return (
+      <div className="px-4 py-4 space-y-4 max-w-2xl mx-auto">
+        <div className="flex items-center gap-2 mb-1">
+          <Newspaper size={16} className="text-canal-yellow" />
+          <span className="canal-badge">Matinale quotidienne</span>
+        </div>
+        <h1 className="canal-headline text-2xl">La Matinale</h1>
+        <div className="canal-card text-center py-10">
+          <p className="text-canal-gray-muted text-sm">
+            Pas encore de matinale aujourd&apos;hui — revenez après les résultats du soir.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto">
       <div>

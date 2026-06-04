@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { MOCK_MATCHES, MOCK_PREDICTION_TRENDS } from "@/lib/mock-data";
 import type { Match, PredictionTrend } from "@/lib/supabase/types";
 
 export async function getMatches(): Promise<Match[]> {
@@ -9,10 +8,10 @@ export async function getMatches(): Promise<Match[]> {
       .from("matches")
       .select("*")
       .order("starts_at", { ascending: true });
-    if (error || !data?.length) return MOCK_MATCHES;
+    if (error || !data?.length) return [];
     return data as Match[];
   } catch {
-    return MOCK_MATCHES;
+    return [];
   }
 }
 
@@ -92,7 +91,7 @@ export async function getPredictionTrends(): Promise<Record<string, PredictionTr
     const { data, error } = await supabase
       .from("predictions")
       .select("match_id, prediction_result");
-    if (error || !data?.length) return MOCK_PREDICTION_TRENDS;
+    if (error || !data?.length) return {};
 
     const map: Record<string, { total: number; a: number; draw: number; b: number }> = {};
     for (const row of data) {
@@ -119,6 +118,6 @@ export async function getPredictionTrends(): Promise<Record<string, PredictionTr
     }
     return result;
   } catch {
-    return MOCK_PREDICTION_TRENDS;
+    return {};
   }
 }

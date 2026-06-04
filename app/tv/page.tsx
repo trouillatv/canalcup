@@ -177,7 +177,7 @@ interface PreMatchStats {
 interface TVData {
   matches: Match[];
   leaderboard: LeaderboardRow[];
-  brief: MorningBrief;
+  brief: MorningBrief | null;
   revivezPosts: RevivezPost[];
   challenges?: Challenge[];
   standings?: StandingRow[];
@@ -2317,6 +2317,7 @@ export default function TVPage() {
   const hasStandings = !!data?.standings?.length;
   const hasPrematch = !!data?.prematch;
   const hasFail = !!data?.brief?.fail_of_day;
+  const hasMatinale = !!data?.brief;
   const tightRace = data ? computeTightRace(data) : null;
   const hasTightRace = !!tightRace;
   const ts = data?.todayStats;
@@ -2340,6 +2341,7 @@ export default function TVPage() {
     if (s === "topscorerrace") return hasTopScorerBets;
     if (s === "heatmapwall") return hasHeatmap;
     if (s === "revivez") return !!data?.revivezPosts?.length;
+    if (s === "matinale") return hasMatinale;
     return true;
   });
 
@@ -2423,7 +2425,7 @@ export default function TVPage() {
             {slide === "duelpronos" && <SlideDuelPronos individual={data.individual ?? []} />}
             {slide === "standings" && <SlideStandings standings={data.standings ?? []} />}
             {slide === "bracket" && <SlideBracket />}
-            {slide === "matinale" && <SlideMatinale brief={data.brief} />}
+            {slide === "matinale" && data.brief && <SlideMatinale brief={data.brief} />}
             {slide === "revivez" && <SlideRevivez posts={data.revivezPosts} />}
             {slide === "animations" && <SlideAnimations challenges={data.challenges ?? []} />}
             {slide === "general" && <SlideGeneral individual={data.individual ?? []} />}
@@ -2435,7 +2437,7 @@ export default function TVPage() {
             {slide === "news" && <SlideNews news={data.news ?? []} />}
             {slide === "joinqr" && <SlideJoinQR url={`${origin}/install`} />}
             {slide === "robert" && <SlideRobert />}
-            {slide === "fail" && <SlideFail brief={data.brief} />}
+            {slide === "fail" && data.brief && <SlideFail brief={data.brief} />}
             {slide === "officebet" && data.prematch && <SlideOfficeBet stats={data.prematch} />}
             {slide === "tightrace" && tightRace && <SlideTightRace race={tightRace} />}
             {slide === "todaystats" && data.todayStats && <SlideStats stats={data.todayStats} />}
