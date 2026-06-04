@@ -1694,8 +1694,8 @@ function SlideMedals({ medals }: { medals: Medal[] }) {
         <p className="text-canal-gray-muted text-sm sm:text-lg mb-2">Le palmarès officieux du bureau</p>
         <div className="h-1 w-32 bg-canal-yellow" />
       </div>
-      <div className={`flex-1 overflow-y-auto grid grid-cols-1 ${dense ? "sm:grid-cols-2" : ""} gap-3 sm:gap-4 content-start`}>
-        {medals.map((medal) => (
+      <div className={`flex-1 overflow-hidden grid grid-cols-1 ${dense ? "sm:grid-cols-2" : ""} gap-2 sm:gap-3 content-start`}>
+        {medals.slice(0, 6).map((medal) => (
           <div
             key={medal.key}
             className="flex items-center gap-3 sm:gap-5 rounded-2xl border border-canal-gray-light/30 bg-canal-gray-mid/40 px-4 sm:px-5 py-3 sm:py-4"
@@ -2454,9 +2454,12 @@ export default function TVPage() {
   const hasTodayStats = !!ts && (ts.pronos > 0 || ts.quiz > 0 || ts.animations > 0);
   const hasNewPlayers = !!data?.newPlayers?.length;
   const hasTopScorerBets = !!data?.topScorerBets?.length;
-  const hasHeatmap = !!data?.heatmap?.length;
+  const hasAnyMatch = !!data?.matches?.some((m) => ["live", "halftime", "upcoming", "finished"].includes(m.status));
+  const hasLiveMatch = !!data?.matches?.some((m) => m.status === "live" || m.status === "halftime");
 
   const slides = BASE_SLIDES.filter((s) => {
+    if (s === "match") return hasAnyMatch;
+    if (s === "livematch") return hasLiveMatch;
     if (s === "animations") return hasChallenges;
     if (s === "general" || s === "quiz" || s === "playerofday") return hasIndividual;
     if (s === "services") return hasServices;
