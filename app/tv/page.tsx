@@ -2339,6 +2339,7 @@ export default function TVPage() {
     if (s === "welcome") return hasNewPlayers;
     if (s === "topscorerrace") return hasTopScorerBets;
     if (s === "heatmapwall") return hasHeatmap;
+    if (s === "revivez") return !!data?.revivezPosts?.length;
     return true;
   });
 

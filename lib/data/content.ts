@@ -36,10 +36,10 @@ export async function getRevivezPosts(): Promise<RevivezPost[]> {
       .from("revivez_posts")
       .select("*, team:teams(id, name, slogan)")
       .order("votes_count", { ascending: false });
-    if (error || !data?.length) return MOCK_REVIVEZ;
+    if (error || !data?.length) return [];
     return data as RevivezPost[];
   } catch {
-    return MOCK_REVIVEZ;
+    return [];
   }
 }
 
