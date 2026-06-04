@@ -4,6 +4,8 @@ import { TopBar } from "@/components/layout/TopBar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { FloatingFeedback } from "@/components/feedback/FloatingFeedback";
 import { BreakingNews } from "@/components/matches/BreakingNews";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import { PushNotifications } from "@/components/pwa/PushNotifications";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -14,6 +16,11 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Canal Cup",
+    startupImage: "/icons/apple-touch-icon.png",
+  },
+  icons: {
+    apple: "/icons/apple-touch-icon.png",
+    icon: "/icons/icon-192.png",
   },
   openGraph: {
     title: "Canal Cup 2026",
@@ -64,6 +71,8 @@ export default async function RootLayout({
         </main>
         {isAuthenticated && <BottomNav />}
         {isAuthenticated && <FloatingFeedback />}
+        <InstallPrompt />
+        {isAuthenticated && <PushNotifications />}
       </body>
     </html>
   );

@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // Jamais protégé (dont /tv pour affichage salon commun et /p pour la
 // route group (public) — version grand public, voir
 // docs/PUBLIC_VERSION_ARCHITECTURE.md).
-const PUBLIC_PATHS = ["/auth/callback", "/auth/hash-callback", "/auth/reset-password", "/tv", "/api/tv", "/api/admin/magic-link", "/api/admin/sync-matches", "/api/cron", "/api/babyfoot", "/p"];
+const PUBLIC_PATHS = ["/auth/callback", "/auth/hash-callback", "/auth/reset-password", "/tv", "/api/tv", "/api/admin/magic-link", "/api/admin/sync-matches", "/api/cron", "/api/babyfoot", "/p", "/offline"];
 
 // Auth requise mais pas profile_completed (onboarding en cours)
 const ONBOARDING_PATHS = ["/onboarding"];
