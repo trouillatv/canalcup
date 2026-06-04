@@ -51,6 +51,14 @@ export default async function RootLayout({
   return (
     <html lang="fr" className="dark">
       <head>
+        {/* Capture beforeinstallprompt avant que React monte */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          window.__deferredInstallPrompt = null;
+          window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            window.__deferredInstallPrompt = e;
+          });
+        `}} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
