@@ -12,14 +12,18 @@ export async function GET(request: Request) {
   }
 
   try {
-    // En prod : récupérer depuis Supabase
+    const { getLeaderboard } = await import("@/lib/data/teams");
+    const leaderboard = await getLeaderboard();
+    const top = leaderboard[0];
+    const bottom = leaderboard[leaderboard.length - 1];
+
     const context = {
-      topTeam: "Les VARcassés",
-      topPoints: 87,
-      bottomTeam: "Goal Average",
-      bottomPoints: 61,
-      bestPrediction: "France 2-1 Brésil (exact !)",
-      worstPrediction: "Allemagne 4-0 Espagne → résultat 0-0",
+      topTeam: top?.team?.name ?? "l'équipe de tête",
+      topPoints: Math.round(top?.total ?? 0),
+      bottomTeam: bottom && bottom.team?.id !== top?.team?.id ? (bottom.team?.name ?? "l'équipe en bas") : "l'équipe en bas",
+      bottomPoints: Math.round(bottom?.total ?? 0),
+      bestPrediction: "Voir les résultats dans l'application",
+      worstPrediction: "Voir les pronos dans l'application",
     };
 
     const story = await generateTeamOfWeek(context);
