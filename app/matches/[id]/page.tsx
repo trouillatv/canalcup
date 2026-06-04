@@ -589,13 +589,19 @@ export default function MatchCenterPage() {
   const { match, events, lineups, stats, playerStats, standings } = detail;
   const isLive = match.status === "live" || match.status === "halftime";
 
+  // Match test (amical/démo) = phase "Groupe" SANS stage. Les vrais matchs de
+  // poule portent un stage ("Groupe A/B…") ; les matchs à élimination directe
+  // ont une autre phase. On masque l'onglet "Groupe" (classement) pour ces
+  // matchs test, qui n'appartiennent à aucune poule.
+  const isTestMatch = match.phase === "Groupe" && !match.stage;
+
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: "timeline", label: "Timeline", count: events.length || undefined },
     { key: "lineups", label: "Compos" },
     { key: "stats", label: "Stats", count: stats.length || undefined },
     { key: "notes", label: "Notes", count: playerStats.length || undefined },
     { key: "pronos", label: "Pronos" },
-    { key: "standings", label: "Groupe" },
+    ...(isTestMatch ? [] : [{ key: "standings" as Tab, label: "Groupe" }]),
   ];
 
   return (
