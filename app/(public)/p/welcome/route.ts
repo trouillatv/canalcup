@@ -45,6 +45,7 @@ const HTML = `<!DOCTYPE html>
       margin: 0;
       padding: 0;
       width: 100%;
+      min-height: 100%;
       height: 100%;
       background: #000;
       color: #fff;
@@ -59,7 +60,7 @@ const HTML = `<!DOCTYPE html>
     }
     img {
       max-width: 100vw;
-      max-height: 100vh;
+      max-height: 100dvh;
       width: auto;
       height: auto;
       object-fit: contain;

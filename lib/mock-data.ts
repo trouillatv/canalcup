@@ -285,6 +285,7 @@ export const MOCK_CHALLENGES: Challenge[] = [
     rules: "L'animateur projette une silhouette puis des indices (club, sélection, poste). Chaque équipe écrit sa réponse. Bonne réponse aux premiers indices = plus de points.",
     location: "Salle de projection", duration_minutes: 20, max_points: 40,
     category: "challenges", phase: 1, status: "upcoming", sort_order: 10,
+    allows_group: true,
     created_at: "2026-06-01T00:00:00Z",
   },
   {
@@ -294,6 +295,7 @@ export const MOCK_CHALLENGES: Challenge[] = [
     rules: "L'animateur diffuse un extrait d'hymne. La première équipe à lever la main et répondre juste marque.",
     location: "Salle de projection", duration_minutes: 15, max_points: 30,
     category: "challenges", phase: 1, status: "upcoming", sort_order: 20,
+    allows_group: true,
     created_at: "2026-06-01T00:00:00Z",
   },
   {
@@ -303,6 +305,7 @@ export const MOCK_CHALLENGES: Challenge[] = [
     rules: "Chaque équipe désigne un commentateur. Action muette projetée, commentaire en direct. Le jury note la prestation.",
     location: "Scène principale", duration_minutes: 25, max_points: 50,
     category: "challenges", phase: 1, status: "upcoming", sort_order: 30,
+    allows_group: true,
     created_at: "2026-06-01T00:00:00Z",
   },
   {
@@ -312,6 +315,7 @@ export const MOCK_CHALLENGES: Challenge[] = [
     rules: "Un représentant par équipe. Nombre de jongles enchaînées sans faute.",
     location: "Hall / extérieur", duration_minutes: 20, max_points: 40,
     category: "challenges", phase: 1, status: "upcoming", sort_order: 40,
+    allows_group: true,
     created_at: "2026-06-01T00:00:00Z",
   },
   {
@@ -321,6 +325,17 @@ export const MOCK_CHALLENGES: Challenge[] = [
     rules: "Questions posées à l'oral à chaque équipe à tour de rôle. Réponse juste = points.",
     location: "Salle de réunion", duration_minutes: 30, max_points: 60,
     category: "challenges", phase: 1, status: "upcoming", sort_order: 50,
+    allows_group: true,
+    created_at: "2026-06-01T00:00:00Z",
+  },
+  {
+    id: "77777777-0000-0000-0000-000000000008",
+    slug: "grand-quiz", title: "Grand Quiz Canal Cup", emoji: "🧠",
+    description: "Le grand quiz Canal Cup en equipe : questions foot, Canal+, culture generale et reflexes collectifs.",
+    rules: "Les joueurs participent en groupe. L'animateur lance les questions, valide les reponses et attribue les points via l'admin animations.",
+    location: "Salle de projection", duration_minutes: 30, max_points: 80,
+    category: "challenges", phase: 1, status: "upcoming", sort_order: 55,
+    allows_group: true,
     created_at: "2026-06-01T00:00:00Z",
   },
   {
@@ -330,6 +345,7 @@ export const MOCK_CHALLENGES: Challenge[] = [
     rules: "Phase 2 — Chaque équipe soumet une photo. Vote des autres équipes + coup de cœur du jury.",
     location: "Partout", duration_minutes: undefined, max_points: 30,
     category: "social", phase: 2, status: "upcoming", sort_order: 60,
+    allows_group: true,
     created_at: "2026-06-01T00:00:00Z",
   },
   {
@@ -339,6 +355,7 @@ export const MOCK_CHALLENGES: Challenge[] = [
     rules: "Phase 2 — Galerie consultable, sans scoring. La mémoire collective de la Canal Cup.",
     location: "En ligne", duration_minutes: undefined, max_points: 0,
     category: "social", phase: 2, status: "upcoming", sort_order: 70,
+    allows_group: true,
     created_at: "2026-06-01T00:00:00Z",
   },
 ];

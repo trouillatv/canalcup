@@ -20,7 +20,7 @@ export default function PublicPlaceholderPage() {
   return (
     <main
       style={{
-        minHeight: "100vh",
+        minHeight: "100dvh",
         background: "#0D0B08",
         color: "#fff",
         display: "flex",

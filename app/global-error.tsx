@@ -19,7 +19,7 @@ export default function GlobalError({
           color: "#fff",
           fontFamily: "system-ui, sans-serif",
           padding: 24,
-          minHeight: "100vh",
+          minHeight: "100dvh",
         }}
       >
         <div style={{ maxWidth: 480, margin: "0 auto" }}>

@@ -121,7 +121,7 @@ export function TopBar() {
 
       {/* Drawer */}
       <div className={cn(
-        "fixed top-14 left-0 z-40 w-72 bg-canal-gray border-r border-canal-gray-light h-[calc(100vh-3.5rem)] transition-transform duration-200",
+        "fixed top-14 left-0 z-40 w-72 bg-canal-gray border-r border-canal-gray-light h-[calc(100dvh-3.5rem)] transition-transform duration-200",
         menuOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <nav className="p-3 space-y-1">

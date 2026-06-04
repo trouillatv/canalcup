@@ -35,6 +35,9 @@ export async function POST(req: Request) {
 
   const scoreA = parseInt(predicted_score_a, 10);
   const scoreB = parseInt(predicted_score_b, 10);
+  if (!Number.isInteger(scoreA) || !Number.isInteger(scoreB) || scoreA < 0 || scoreB < 0 || scoreA > 20 || scoreB > 20) {
+    return NextResponse.json({ error: "Scores invalides" }, { status: 400 });
+  }
 
   // Derive result from scores
   const prediction_result = scoreA > scoreB ? "A" : scoreB > scoreA ? "B" : "DRAW";

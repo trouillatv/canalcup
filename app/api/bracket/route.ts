@@ -7,8 +7,16 @@ export async function GET() {
   const supabase = createAdminClient();
 
   const [{ data: matchesRaw }, { data: standings }] = await Promise.all([
-    supabase.from("matches").select("*").order("starts_at", { ascending: true }),
-    supabase.from("standings").select("*").order("points", { ascending: false }),
+    supabase
+      .from("matches")
+      .select("*")
+      .in("competition", ["Coupe du Monde 2026", "FIFA World Cup 2026"])
+      .order("starts_at", { ascending: true }),
+    supabase
+      .from("standings")
+      .select("*")
+      .in("competition", ["Coupe du Monde 2026", "FIFA World Cup 2026"])
+      .order("points", { ascending: false }),
   ]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

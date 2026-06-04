@@ -22,6 +22,8 @@ interface MatchCardProps {
   compact?: boolean;
 }
 
+type ScoreDraft = number | "";
+
 function ScorePredictInput({
   match,
   savedPrediction,
@@ -31,13 +33,14 @@ function ScorePredictInput({
   savedPrediction?: SavedPrediction;
   onSave: (a: number, b: number) => Promise<void>;
 }) {
-  const [scoreA, setScoreA] = useState(savedPrediction?.score_a ?? 1);
-  const [scoreB, setScoreB] = useState(savedPrediction?.score_b ?? 1);
+  const [scoreA, setScoreA] = useState<ScoreDraft>(savedPrediction?.score_a ?? "");
+  const [scoreB, setScoreB] = useState<ScoreDraft>(savedPrediction?.score_b ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(!!savedPrediction);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const hasStarted = new Date(match.starts_at) <= new Date();
+  const canSave = scoreA !== "" && scoreB !== "";
 
   if (hasStarted && savedPrediction) {
     const result = getResult(savedPrediction.score_a, savedPrediction.score_b);
@@ -62,6 +65,7 @@ function ScorePredictInput({
   if (hasStarted) return null;
 
   const resultLabel = () => {
+    if (!canSave) return "Saisis les deux scores pour valider ton pronostic";
     const r = getResult(scoreA, scoreB);
     if (r === "A") return `${match.team_a} gagne`;
     if (r === "B") return `${match.team_b} gagne`;
@@ -69,6 +73,7 @@ function ScorePredictInput({
   };
 
   const handleSave = async () => {
+    if (!canSave) return;
     setSaving(true);
     setErrorMsg(null);
     try {
@@ -96,7 +101,15 @@ function ScorePredictInput({
             max={20}
             value={scoreA}
             onFocus={(e) => e.currentTarget.select()}
-            onChange={(e) => { setSaved(false); setScoreA(Math.min(20, Math.max(0, parseInt(e.target.value, 10) || 0))); }}
+            onChange={(e) => {
+              setSaved(false);
+              const value = e.target.value;
+              if (value === "") {
+                setScoreA("");
+                return;
+              }
+              setScoreA(Math.min(20, Math.max(0, parseInt(value, 10) || 0)));
+            }}
             className="w-14 h-10 text-center text-2xl font-black text-white bg-canal-gray-mid border border-canal-gray-light rounded-xl focus:border-canal-yellow outline-none"
           />
         </div>
@@ -113,7 +126,15 @@ function ScorePredictInput({
             max={20}
             value={scoreB}
             onFocus={(e) => e.currentTarget.select()}
-            onChange={(e) => { setSaved(false); setScoreB(Math.min(20, Math.max(0, parseInt(e.target.value, 10) || 0))); }}
+            onChange={(e) => {
+              setSaved(false);
+              const value = e.target.value;
+              if (value === "") {
+                setScoreB("");
+                return;
+              }
+              setScoreB(Math.min(20, Math.max(0, parseInt(value, 10) || 0)));
+            }}
             className="w-14 h-10 text-center text-2xl font-black text-white bg-canal-gray-mid border border-canal-gray-light rounded-xl focus:border-canal-yellow outline-none"
           />
         </div>
@@ -121,12 +142,14 @@ function ScorePredictInput({
         {/* Valider */}
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !canSave}
           className={cn(
             "mt-4 flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-black transition-colors",
             saved
               ? "bg-green-800/40 text-green-400 border border-green-700/40"
-              : "bg-canal-yellow text-canal-black hover:bg-yellow-400"
+              : canSave
+                ? "bg-canal-yellow text-canal-black hover:bg-yellow-400"
+                : "bg-canal-gray-mid text-canal-gray-muted cursor-not-allowed"
           )}
         >
           {saved ? <><Check size={14} /> Sauvé</> : saving ? "…" : "Valider"}

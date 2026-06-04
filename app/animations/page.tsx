@@ -166,6 +166,9 @@ function BabyfootCard() {
               Le football parallèle de la Canal Cup. Moins de VAR, plus de chaos.
             </p>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-canal-gray-muted">
+              <span className="flex items-center gap-1 text-canal-yellow font-bold">
+                <Users size={12} /> Tournoi d&apos;equipe
+              </span>
               <span className="flex items-center gap-1">
                 <Gamepad2 size={12} /> Bracket & classement babyfoot
               </span>
