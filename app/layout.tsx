@@ -4,6 +4,7 @@ import { TopBar } from "@/components/layout/TopBar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { FloatingFeedback } from "@/components/feedback/FloatingFeedback";
 import { BreakingNews } from "@/components/matches/BreakingNews";
+import { PwaSetup } from "@/components/pwa/PwaSetup";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { PushNotifications } from "@/components/pwa/PushNotifications";
 import { createClient } from "@/lib/supabase/server";
@@ -71,6 +72,7 @@ export default async function RootLayout({
         </main>
         {isAuthenticated && <BottomNav />}
         {isAuthenticated && <FloatingFeedback />}
+        <PwaSetup />
         <InstallPrompt />
         {isAuthenticated && <PushNotifications />}
       </body>

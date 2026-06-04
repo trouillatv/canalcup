@@ -166,7 +166,9 @@
       "PowerShell($env:NODE_OPTIONS=\"--max-old-space-size=4096\"; npx tsc --noEmit 2>&1 | Select-String -Pattern \"error TS\" | Select-Object -First 15; Write-Output \"EXIT=$LASTEXITCODE\")",
       "PowerShell($env:NODE_OPTIONS=\"--max-old-space-size=8192\"; npx tsc --noEmit 2>&1 | Select-String -Pattern \"error TS\" | Select-Object -First 15; Write-Output \"EXIT=$LASTEXITCODE\")",
       "Bash(git show *)",
-      "Bash(npm uninstall *)"
+      "Bash(npm uninstall *)",
+      "Bash(findstr \"public\")",
+      "Bash(xargs grep -l \"history\\\\|previous\\\\|trend\")"
     ]
   }
 }
