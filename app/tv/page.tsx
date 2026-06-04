@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { toNCDate, toNCTime } from "@/lib/utils";
 import { Flag } from "@/components/shared/Flag";
 import { QrCode } from "lucide-react";
@@ -61,6 +61,44 @@ type Slide =
   | "welcome"
   | "topscorerrace"
   | "heatmapwall";
+
+// ─── QR Context: URL et message contextuel selon la slide active ──────────────
+
+interface QRContext {
+  url: string;
+  message: string;
+  subtext: string;
+}
+
+function getQRContext(slide: Slide, data: TVData | null, origin: string): QRContext {
+  if (slide === "prematch" || slide === "officebet") {
+    const match = data?.prematch?.match;
+    return {
+      url: `${origin}/predictions`,
+      message: "⚽ Faites votre pronostic",
+      subtext: match ? `${match.team_a} — ${match.team_b}` : "Votre prono du match",
+    };
+  }
+  if (slide === "quiz") {
+    return { url: `${origin}/quiz-live`, message: "🧠 Quiz en cours", subtext: "Répondez sur votre mobile" };
+  }
+  if (slide === "animations") {
+    return { url: `${origin}/animations`, message: "🎉 Animation", subtext: "Participez maintenant" };
+  }
+  if (slide === "joinqr") {
+    return { url: `${origin}/install`, message: "📲 Installez l'app", subtext: "Scan → Connexion → Prono" };
+  }
+  if (slide === "livematch") {
+    return { url: `${origin}/`, message: "⚡ Live en cours", subtext: "Suivez sur votre mobile" };
+  }
+  if (["general", "toppronos", "classement", "duel", "duelpronos", "tightrace", "services"].includes(slide)) {
+    return { url: `${origin}/classement`, message: "🏆 Classement", subtext: "Votre position ?" };
+  }
+  if (slide === "matinale") {
+    return { url: `${origin}/matinale`, message: "☀️ Brief du jour", subtext: "Tout Canal Cup" };
+  }
+  return { url: `${origin}/`, message: "📱 Canal Cup 2026", subtext: "Scannez & jouez" };
+}
 
 const SLIDE_DURATION = 12000;
 const REFRESH_INTERVAL = 30000;
@@ -1749,27 +1787,64 @@ function SlideNews({ news }: { news: { title: string; link: string }[] }) {
 
 // ─── Slide: Rejoins la Canal Cup (QR géant) ──────────────────────────────────
 
-function SlideJoinQR({ origin }: { origin: string }) {
+function SlideJoinQR({ url }: { url: string }) {
   return (
     <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-20 py-6 sm:py-10 text-center">
       <p className="text-canal-yellow font-black text-2xl sm:text-4xl lg:text-5xl uppercase tracking-widest mb-4 sm:mb-8">
         📣 Rejoins la Canal Cup
       </p>
-      {origin ? (
+      {url ? (
         <img
-          src={`https://api.qrserver.com/v1/create-qr-code/?size=600x600&margin=8&data=${encodeURIComponent(origin)}`}
-          alt="QR code vers l'application Canal Cup"
+          src={`https://api.qrserver.com/v1/create-qr-code/?size=900x900&margin=10&data=${encodeURIComponent(url)}`}
+          alt="QR code Canal Cup"
           className="rounded-2xl bg-white p-3 sm:p-5 w-48 h-48 sm:w-72 sm:h-72 lg:w-96 lg:h-96"
         />
       ) : (
         <QrCode size={200} className="text-canal-gray-muted" />
       )}
       <p className="text-white font-black text-xl sm:text-3xl lg:text-4xl mt-4 sm:mt-8 leading-tight">
-        Scanne pour jouer &amp; pronostiquer
+        Scanne → Installe → Pronostique
       </p>
       <p className="text-canal-gray-muted text-base sm:text-2xl mt-2 sm:mt-3 italic">
-        Pronos · Quiz · Animations · Classement de ton service
+        Premier prono en moins de 2 minutes · Sans téléchargement
       </p>
+    </div>
+  );
+}
+
+// ─── Widget QR permanent (coin bas-droit) ─────────────────────────────────────
+
+function TVQRWidget({ ctx, data }: { ctx: QRContext; data: TVData | null }) {
+  const players = data?.individual?.length ?? 0;
+  const todayPronos = data?.todayStats?.pronos ?? 0;
+
+  if (!ctx.url) return null;
+
+  return (
+    <div className="fixed bottom-16 right-3 sm:bottom-20 sm:right-5 lg:right-8 z-30">
+      <div className="bg-canal-black/95 border border-canal-gray-light rounded-2xl p-3 sm:p-4 flex flex-col items-center gap-2 shadow-2xl">
+        <p className="text-canal-yellow font-black text-[10px] sm:text-xs text-center uppercase tracking-wider leading-tight max-w-[140px] sm:max-w-[180px]">
+          {ctx.message}
+        </p>
+        <img
+          key={ctx.url}
+          src={`https://api.qrserver.com/v1/create-qr-code/?size=600x600&margin=8&bgcolor=ffffff&color=000000&data=${encodeURIComponent(ctx.url)}`}
+          alt="QR code Canal Cup"
+          width={180}
+          height={180}
+          className="rounded-xl bg-white p-1.5 w-28 h-28 sm:w-40 sm:h-40 lg:w-48 lg:h-48 animate-fade-in"
+        />
+        <p className="text-white/50 text-[9px] sm:text-[10px] text-center leading-tight max-w-[140px] sm:max-w-[180px]">
+          {ctx.subtext}
+        </p>
+        {(players > 0 || todayPronos > 0) && (
+          <div className="border-t border-canal-gray-light pt-1.5 flex items-center gap-2 text-[9px] sm:text-[10px] text-canal-gray-muted">
+            {players > 0 && <span className="font-bold text-white/70">{players} joueurs</span>}
+            {players > 0 && todayPronos > 0 && <span className="opacity-40">·</span>}
+            {todayPronos > 0 && <span>{todayPronos} pronos</span>}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -2276,6 +2351,7 @@ export default function TVPage() {
   }, [slides.length]);
 
   const slide = slides[currentSlide];
+  const qrCtx = useMemo(() => getQRContext(slide, data, origin), [slide, data, origin]);
 
   return (
     <PinGate>
@@ -2297,11 +2373,12 @@ export default function TVPage() {
           <div className="flex flex-col items-center gap-1">
             {origin ? (
               <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=4&data=${encodeURIComponent(origin)}`}
-                alt="QR code vers l'application Canal Cup"
+                key={qrCtx.url}
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=4&data=${encodeURIComponent(qrCtx.url)}`}
+                alt="QR code Canal Cup"
                 width={56}
                 height={56}
-                className="rounded-md bg-white p-1 w-10 h-10 sm:w-14 sm:h-14"
+                className="rounded-md bg-white p-1 w-10 h-10 sm:w-14 sm:h-14 animate-fade-in"
               />
             ) : (
               <QrCode size={40} className="text-canal-gray-muted" />
@@ -2355,7 +2432,7 @@ export default function TVPage() {
             {slide === "medals" && <SlideMedals medals={data.medals ?? []} />}
             {slide === "playerofday" && <SlidePlayerOfDay individual={data.individual ?? []} />}
             {slide === "news" && <SlideNews news={data.news ?? []} />}
-            {slide === "joinqr" && <SlideJoinQR origin={origin} />}
+            {slide === "joinqr" && <SlideJoinQR url={`${origin}/install`} />}
             {slide === "robert" && <SlideRobert />}
             {slide === "fail" && <SlideFail brief={data.brief} />}
             {slide === "officebet" && data.prematch && <SlideOfficeBet stats={data.prematch} />}
@@ -2367,6 +2444,9 @@ export default function TVPage() {
           </>
         )}
       </div>
+
+      {/* QR widget permanent — coin bas-droit */}
+      {origin && <TVQRWidget ctx={qrCtx} data={data} />}
 
       {/* Atmospheric status line */}
       <AtmosphericLine />
