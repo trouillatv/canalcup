@@ -62,6 +62,29 @@ type Slide =
   | "topscorerrace"
   | "heatmapwall";
 
+// ─── Goat helper: remplace "Robert" par l'image de chèvre ────────────────────
+
+function withGoat(text: string): React.ReactNode {
+  const parts = text.split("Robert");
+  if (parts.length === 1) return text;
+  return (
+    <>
+      {parts.map((part, i) => (
+        <React.Fragment key={i}>
+          {part}
+          {i < parts.length - 1 && (
+            <img
+              src="/goat.png"
+              alt="🐐"
+              className="inline h-[1em] object-contain align-middle mx-0.5"
+            />
+          )}
+        </React.Fragment>
+      ))}
+    </>
+  );
+}
+
 // ─── QR Context: URL et message contextuel selon la slide active ──────────────
 
 interface QRContext {
@@ -1502,9 +1525,12 @@ function SlidePreMatch({ stats }: { stats: PreMatchStats }) {
       <div className="flex items-end justify-between gap-3 sm:gap-6">
         <div className="flex-1 bg-canal-gray-mid/30 border border-canal-gray-light/20 rounded-2xl px-4 sm:px-6 py-3 sm:py-4">
           <p className="text-canal-gray-muted text-base sm:text-xl italic leading-snug">
-            &ldquo;{getRobertPreMatchPhrase(robertCtx)}&rdquo;
+            &ldquo;{withGoat(getRobertPreMatchPhrase(robertCtx))}&rdquo;
           </p>
-          <p className="text-canal-yellow/60 text-sm sm:text-lg mt-1">— Robert</p>
+          <p className="text-canal-yellow/60 text-sm sm:text-lg mt-1 flex items-center gap-1">
+            —{" "}
+            <img src="/goat.png" alt="🐐" className="h-[1em] object-contain align-middle" />
+          </p>
         </div>
         <p className="text-canal-gray-muted text-base sm:text-xl italic shrink-0 max-w-xs text-right hidden sm:block">{salon}</p>
       </div>
@@ -1871,13 +1897,18 @@ function SlideRobert() {
 
   return (
     <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-20 py-6 sm:py-12 text-center">
-      <p className="text-canal-yellow font-black text-xl sm:text-2xl uppercase tracking-widest mb-6 sm:mb-12">
-        🤖 Robert dit…
+      <p className="text-canal-yellow font-black text-xl sm:text-2xl uppercase tracking-widest mb-6 sm:mb-12 flex items-center justify-center gap-2">
+        <img src="/goat.png" alt="🐐" className="h-8 w-8 sm:h-10 sm:w-10 object-contain" />
+        dit…
       </p>
       <p className="font-black text-2xl sm:text-4xl lg:text-6xl text-white leading-tight max-w-5xl break-words">
-        &ldquo;{phrase}&rdquo;
+        &ldquo;{withGoat(phrase)}&rdquo;
       </p>
-      <p className="text-canal-yellow/70 text-lg sm:text-2xl mt-6 sm:mt-10 font-bold">— Robert, coach officiel</p>
+      <p className="text-canal-yellow/70 text-lg sm:text-2xl mt-6 sm:mt-10 font-bold flex items-center justify-center gap-2">
+        —{" "}
+        <img src="/goat.png" alt="🐐" className="h-[1em] object-contain align-middle" />
+        , coach officiel
+      </p>
     </div>
   );
 }
@@ -2242,7 +2273,7 @@ function AtmosphericLine() {
   if (!phrase) return null;
   return (
     <div className="shrink-0 text-center py-2 border-t border-canal-gray-light/20">
-      <p className="text-canal-gray-muted text-lg italic opacity-70">{phrase}</p>
+      <p className="text-canal-gray-muted text-lg italic opacity-70">{withGoat(phrase)}</p>
     </div>
   );
 }
@@ -2410,7 +2441,9 @@ export default function TVPage() {
                     <span className="text-4xl sm:text-6xl">🏆</span>
                     <p className="text-canal-yellow font-black text-2xl sm:text-3xl">CANAL CUP 2026</p>
                     <p className="text-canal-gray-muted text-xl sm:text-2xl italic">
-                      &ldquo;Aucun match à l&apos;horizon. Robert se repose. Temporairement.&rdquo;
+                      &ldquo;Aucun match à l&apos;horizon.{" "}
+                      <img src="/goat.png" alt="🐐" className="inline h-[1em] object-contain align-middle mx-0.5" />
+                      {" "}se repose. Temporairement.&rdquo;
                     </p>
                   </div>
                 )

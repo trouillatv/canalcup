@@ -546,7 +546,9 @@ function RobertStory({ matchId, isFinished }: { matchId: string; isFinished: boo
     <div className="mx-4 my-3 px-4 py-3 rounded-2xl bg-gradient-to-br from-canal-gray-mid to-canal-gray border border-canal-yellow/20">
       <div className="flex items-center gap-1.5 mb-1.5">
         <Sparkles size={11} className="text-canal-yellow" />
-        <span className="text-xs font-black text-canal-yellow uppercase tracking-wider">Robert commente</span>
+        <span className="text-xs font-black text-canal-yellow uppercase tracking-wider flex items-center gap-1">
+          <img src="/goat.png" alt="🐐" className="h-4 w-4 object-contain" /> commente
+        </span>
       </div>
       <p className="text-sm text-white font-medium leading-snug italic">"{story.phrase}"</p>
     </div>
