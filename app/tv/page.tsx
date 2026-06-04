@@ -1997,18 +1997,17 @@ function SlideRobert() {
   }, []);
 
   return (
-    <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-20 py-6 sm:py-12 text-center">
-      <p className="text-canal-yellow font-black text-xl sm:text-2xl uppercase tracking-widest mb-6 sm:mb-12 flex items-center justify-center gap-2">
-        <img src="/goat.png" alt="🐐" className="h-8 w-8 sm:h-10 sm:w-10 object-contain" />
-        dit…
-      </p>
-      <p className="font-black text-2xl sm:text-4xl lg:text-6xl text-white leading-tight max-w-5xl break-words">
-        &ldquo;{withGoat(phrase)}&rdquo;
-      </p>
-      <p className="text-canal-yellow/70 text-lg sm:text-2xl mt-6 sm:mt-10 font-bold flex items-center justify-center gap-2">
-        —{" "}
-        <img src="/goat.png" alt="🐐" className="h-[1em] object-contain align-middle" />
-        , coach officiel
+    <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-20 py-6 sm:py-12 text-center gap-8 sm:gap-14">
+      <img
+        src="/goat.png"
+        alt="🐐"
+        width={160}
+        height={160}
+        loading="eager"
+        className="w-24 h-24 sm:w-36 sm:h-36 lg:w-40 lg:h-40 object-contain drop-shadow-2xl"
+      />
+      <p className="font-black text-2xl sm:text-4xl lg:text-6xl text-white leading-tight max-w-5xl break-words italic">
+        &ldquo;{phrase}&rdquo;
       </p>
     </div>
   );
