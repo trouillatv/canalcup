@@ -25,12 +25,15 @@ export function InstallPrompt() {
     const ua = navigator.userAgent;
     const ios = /iPhone|iPad|iPod/.test(ua) && !(window as { MSStream?: unknown }).MSStream;
     const android = /Android/.test(ua);
-    const standalone = window.matchMedia("(display-mode: standalone)").matches;
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (navigator as Navigator & { standalone?: boolean }).standalone === true;
     // v2 : nouvelle clé pour éviter que l'ancien dismissed bloque le nouveau banner
-    const wasDismissed = localStorage.getItem("pwa-install-v2") === "dismissed";
+    const wasDismissed = localStorage.getItem("pwa-install-v3") === "dismissed";
     // Paramètre ?reset-pwa=1 pour forcer le réaffichage (debug / démo)
     if (new URLSearchParams(window.location.search).get("reset-pwa") === "1") {
       localStorage.removeItem("pwa-install-v2");
+      localStorage.removeItem("pwa-install-v3");
     }
 
     setPlatform(ios ? "ios" : android ? "android" : null);
@@ -71,7 +74,7 @@ export function InstallPrompt() {
   };
 
   const handleDismiss = () => {
-    localStorage.setItem("pwa-install-v2", "dismissed");
+    localStorage.setItem("pwa-install-v3", "dismissed");
     setDismissed(true);
     setShowGuide(false);
   };

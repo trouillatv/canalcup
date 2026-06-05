@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/daily-content",
       "schedule": "30 12 * * *"
+    },
+    {
+      "path": "/api/cron/vestiaire-moderation",
+      "schedule": "30 18 * * *"
     }
   ]
 }

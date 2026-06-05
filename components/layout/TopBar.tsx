@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, Tv, Inbox, Newspaper, Gamepad2, PartyPopper, Megaphone, MessageCircle } from "lucide-react";
+import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, Tv, Inbox, Newspaper, Gamepad2, PartyPopper, Megaphone, MessageCircle, Download } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -165,6 +165,19 @@ export function TopBar() {
               </Link>
             );
           })}
+
+          <Link
+            href="/install"
+            className={cn(
+              "flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-colors",
+              pathname === "/install"
+                ? "bg-canal-yellow/10 text-canal-yellow"
+                : "text-canal-gray-muted hover:text-white hover:bg-canal-gray-mid"
+            )}
+          >
+            <Download size={18} />
+            Installer l'app
+          </Link>
 
           {isAdmin && (
             <>
