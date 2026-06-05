@@ -114,17 +114,17 @@ export function LeaderboardTabs({
       {tab === "teams" && (
         <div className="space-y-4">
           {teamsSorted.length >= 2 && (
-            <div className="flex items-end justify-center gap-3 h-32">
+            <div className="flex items-end justify-center gap-2 sm:gap-3 h-36 sm:h-32 pt-2 overflow-hidden">
               {[teamsSorted[1], teamsSorted[0], teamsSorted[2]].map((row, i) => {
                 if (!row) return <div key={i} className="w-24" />;
-                const heights = ["h-20", "h-28", "h-16"];
+                const heights = ["h-16 sm:h-20", "h-24 sm:h-28", "h-14 sm:h-16"];
                 const labels = ["🥈", "🥇", "🥉"];
                 return (
                   <Link key={row.team.id} href={`/teams/${row.team.id}`} className="flex flex-col items-center gap-1 w-24 group">
                     <span className="text-sm font-bold text-white text-center leading-tight group-hover:text-canal-yellow transition-colors">{row.team.name}</span>
                     <span className="text-canal-yellow font-black">{row.total}pts</span>
                     <div className={`${heights[i]} w-full bg-canal-gray rounded-t-lg flex items-center justify-center border border-canal-gray-light group-hover:border-canal-yellow/50 transition-colors`}>
-                      <span className="text-2xl">{labels[i]}</span>
+                      <span className="text-xl sm:text-2xl leading-none">{labels[i]}</span>
                     </div>
                   </Link>
                 );
@@ -162,7 +162,17 @@ export function LeaderboardTabs({
 
       {tab === "services" && (
         <div>
-          <p className="text-canal-gray-muted text-xs mb-3">Moyenne de points par personne — comparaison équitable entre services.</p>
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <p className="text-canal-gray-muted text-xs">
+              Moyenne de points par personne — comparaison équitable entre services.
+            </p>
+            <Link
+              href="/services"
+              className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-canal-yellow/30 bg-canal-yellow/10 px-3 py-1 text-[11px] font-black text-canal-yellow hover:bg-canal-yellow/15 transition-colors"
+            >
+              Voir la page
+            </Link>
+          </div>
           <div className="space-y-2">
             {serviceRows.map((row) => (
               <div key={row.service.id} className={`canal-card flex items-center ${row.rank === 1 ? "border border-canal-yellow/30" : ""}`}>

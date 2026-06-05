@@ -1,8 +1,10 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { AdminUserView, UserRole, Service } from "@/lib/supabase/types";
-import { SCORE_EVENT_CATEGORIES_IN_TOTAL } from "@/lib/scoring/config";
+import { SCORE_EVENT_CATEGORIES_IN_TOTAL, weightedContribution } from "@/lib/scoring/config";
 import { getAdminEmails } from "@/lib/data/roles";
+import { normalizeEmail } from "@/lib/auth/email-domain";
+import { computeTeamScores } from "@/lib/data/teams";
 
 // Classement par SERVICE — moyenne de points par personne (les services
 // n'ont pas le même effectif → on compare des moyennes, pas des totaux).
@@ -12,6 +14,27 @@ export interface ServiceLeaderboardRow {
   total: number; // somme des points individuels du service
   average: number; // total / members (1 décimale)
   rank: number;
+}
+
+export interface ServiceMemberRow {
+  user_id: string;
+  display_name: string | null;
+  team_name: string | null;
+  pronos: number;
+  quiz: number;
+  babyfoot: number;
+  animations: number;
+  total: number;
+  rank: number;
+}
+
+export interface ServiceDetailRow {
+  service: Service;
+  members: number;
+  total: number;
+  average: number;
+  rank: number;
+  roster: ServiceMemberRow[];
 }
 
 export async function getAllUsersForAdmin(): Promise<AdminUserView[]> {
@@ -92,7 +115,7 @@ export async function getServiceLeaderboard(): Promise<ServiceLeaderboardRow[]> 
       supabase.from("predictions").select("user_id, points_awarded"),
       supabase.from("bonus_predictions").select("user_id, points_awarded"),
       supabase.from("quiz_answers").select("user_id, points_awarded"),
-      supabase.from("score_events").select("user_id, category, raw_points"),
+      supabase.from("score_events").select("user_id, category, source_type, raw_points"),
       getAdminEmails(),
     ]);
 
@@ -101,7 +124,7 @@ export async function getServiceLeaderboard(): Promise<ServiceLeaderboardRow[]> 
     type SvcRow = { id: string; name: string };
     type UserRow = { id: string; service_id: string | null; email: string | null };
     type PtRow = { user_id: string | null; points_awarded: number | null };
-    type EvRow = { user_id: string | null; category: string | null; raw_points: number | null };
+    type EvRow = { user_id: string | null; category: string | null; source_type: string | null; raw_points: number | null };
 
     // user_id → service_id + effectif par service. Les admins sont EXCLUS
     // (organisateurs hors classement) du compte ET des points.
@@ -126,6 +149,7 @@ export async function getServiceLeaderboard(): Promise<ServiceLeaderboardRow[]> 
     for (const r of (bonuses ?? []) as PtRow[]) add(r.user_id, r.points_awarded);
     for (const r of (quizzes ?? []) as PtRow[]) add(r.user_id, r.points_awarded);
     for (const e of (events ?? []) as EvRow[]) {
+      if (e.source_type === "vote") continue;
       if (e.category && allowed.has(e.category)) add(e.user_id, e.raw_points);
     }
 
@@ -139,6 +163,136 @@ export async function getServiceLeaderboard(): Promise<ServiceLeaderboardRow[]> 
       .filter((r) => r.members > 0); // on n'affiche que les services avec au moins 1 inscrit
 
     rows.sort((a, b) => b.average - a.average || b.total - a.total);
+    rows.forEach((r, i) => (r.rank = i + 1));
+    return rows;
+  } catch {
+    return [];
+  }
+}
+
+export async function getServiceDetail(serviceId: string): Promise<ServiceDetailRow | null> {
+  try {
+    const supabase = await createClient();
+    const [serviceRes, usersRes, serviceRows, individualRows, adminEmails] = await Promise.all([
+      supabase
+        .from("services")
+        .select("id, name, emoji, is_active, sort_order, created_at")
+        .eq("id", serviceId)
+        .maybeSingle(),
+      supabase.from("users").select("id, display_name, name, service_id, email").eq("service_id", serviceId),
+      getServiceLeaderboard(),
+      getIndividualLeaderboard(),
+      getAdminEmails(),
+    ]);
+
+    if (!serviceRes.data) return null;
+
+    const memberIds = new Set(
+      (usersRes.data ?? [])
+        .filter((u: { email: string | null }) => !adminEmails.has(normalizeEmail(u.email ?? "")))
+        .map((u: { id: string }) => u.id)
+    );
+
+    const roster = individualRows
+      .filter((row) => memberIds.has(row.user_id))
+      .map((row) => ({ ...row }))
+      .sort((a, b) => {
+        const nameA = a.display_name ?? "";
+        const nameB = b.display_name ?? "";
+        return b.total - a.total || nameA.localeCompare(nameB);
+      })
+      .map((row, index) => ({ ...row, rank: index + 1 }));
+
+    const aggregate = serviceRows.find((row) => row.service.id === serviceId) ?? null;
+    return {
+      service: serviceRes.data as Service,
+      members: aggregate?.members ?? roster.length,
+      total: aggregate?.total ?? 0,
+      average: aggregate?.average ?? 0,
+      rank: aggregate?.rank ?? 0,
+      roster,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ─── Classement INDIVIDUEL ───
+// En plus du classement par binôme, on classe les PERSONNES. Score perso
+// (même pondération %) = pronos + quiz propres au joueur + babyfoot +
+// animations de son binôme (faits à deux → crédités aux 2 membres).
+// Pronos/quiz sont individuels ici, baby/anim partagés par le binôme.
+export interface IndividualRow {
+  user_id: string;
+  display_name: string | null;
+  team_name: string | null;
+  pronos: number; // pondéré (perso)
+  quiz: number; // pondéré (perso)
+  babyfoot: number; // pondéré (binôme, crédité aux 2)
+  animations: number; // pondéré (binôme, crédité aux 2)
+  total: number;
+  rank: number;
+}
+
+export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
+  try {
+    const supabase = await createClient();
+    const [
+      { data: users },
+      { data: teams },
+      { data: preds },
+      { data: bonuses },
+      { data: quizzes },
+      adminEmails,
+    ] = await Promise.all([
+      supabase.from("users").select("id, display_name, name, team_id, email"),
+      supabase.from("teams").select("id, name"),
+      supabase.from("predictions").select("user_id, points_awarded"),
+      supabase.from("bonus_predictions").select("user_id, points_awarded"),
+      supabase.from("quiz_answers").select("user_id, points_awarded"),
+      getAdminEmails(),
+    ]);
+    if (!users?.length) return [];
+
+    const teamName = new Map((teams ?? []).map((t: { id: string; name: string }) => [t.id, t.name]));
+    // Réutilise le calcul d'équipe pour babyRaw / animRaw par binôme.
+    const teamAgg = await computeTeamScores(supabase, (teams ?? []).map((t: { id: string }) => t.id));
+
+    type PtRow = { user_id: string | null; points_awarded: number | null };
+    const pronosRaw = new Map<string, number>();
+    const quizRaw = new Map<string, number>();
+    const add = (m: Map<string, number>, id: string | null, n: number | null) => {
+      if (!id) return;
+      m.set(id, (m.get(id) ?? 0) + (n ?? 0));
+    };
+    for (const r of (preds ?? []) as PtRow[]) add(pronosRaw, r.user_id, r.points_awarded);
+    for (const r of (bonuses ?? []) as PtRow[]) add(pronosRaw, r.user_id, r.points_awarded);
+    for (const r of (quizzes ?? []) as PtRow[]) add(quizRaw, r.user_id, r.points_awarded);
+
+    type URow = { id: string; display_name: string | null; name: string | null; team_id: string | null; email: string | null };
+    const rows: IndividualRow[] = (users as URow[])
+      .filter((u) => !adminEmails.has((u.email ?? "").toLowerCase())) // admins hors classement
+      .map((u) => {
+        const tb = u.team_id ? teamAgg.get(u.team_id) : undefined;
+        const pronos = weightedContribution("pronostics", pronosRaw.get(u.id) ?? 0);
+        const quiz = weightedContribution("quiz", quizRaw.get(u.id) ?? 0);
+        const babyfoot = weightedContribution("babyfoot", tb?.babyRaw ?? 0);
+        const animations = weightedContribution("animations", tb?.animRaw ?? 0);
+        return {
+          user_id: u.id,
+          display_name: u.display_name ?? u.name ?? null,
+          team_name: u.team_id ? teamName.get(u.team_id) ?? null : null,
+          pronos,
+          quiz,
+          babyfoot,
+          animations,
+          total: pronos + quiz + babyfoot + animations,
+          rank: 0,
+        };
+      })
+      .filter((r) => r.display_name); // joueurs identifiés
+
+    rows.sort((a, b) => b.total - a.total);
     rows.forEach((r, i) => (r.rank = i + 1));
     return rows;
   } catch {

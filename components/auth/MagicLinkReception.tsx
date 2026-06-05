@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { isRequiredEmailDomain, normalizeEmail, REQUIRED_EMAIL_MESSAGE, REQUIRED_EMAIL_SUFFIX } from "@/lib/auth/email-domain";
+import { isRequiredEmailDomain, normalizeEmail, REQUIRED_EMAIL_MESSAGE } from "@/lib/auth/email-domain";
 
 type Tab = "login" | "signup";
 type Status = "idle" | "loading" | "error" | "sent";
@@ -229,8 +229,6 @@ export function MagicLinkReception() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="prenom.nom@canal-plus.com"
-                    pattern={`.+\\${REQUIRED_EMAIL_SUFFIX}`}
-                    title={REQUIRED_EMAIL_MESSAGE}
                     required
                     autoFocus
                     className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow transition-colors"
@@ -275,18 +273,19 @@ export function MagicLinkReception() {
             ) : (
               <form onSubmit={handleSignup} className="space-y-4">
                 <div>
-                  <label className="text-xs text-canal-gray-muted mb-1.5 block font-bold uppercase tracking-wider">Email Canal+</label>
+                  <label className="text-xs text-canal-gray-muted mb-1.5 block font-bold uppercase tracking-wider">Email</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="prenom.nom@canal-plus.com"
-                    pattern={`.+\\${REQUIRED_EMAIL_SUFFIX}`}
-                    title={REQUIRED_EMAIL_MESSAGE}
                     required
                     autoFocus
                     className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow transition-colors"
                   />
+                  <p className="mt-1.5 text-[11px] text-canal-gray-muted">
+                    Adresse Canal+ requise, sauf compte administrateur.
+                  </p>
                 </div>
                 <div>
                   <label className="text-xs text-canal-gray-muted mb-1.5 block font-bold uppercase tracking-wider">Mot de passe</label>
