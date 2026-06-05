@@ -2,11 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import webpush from "web-push";
 
-webpush.setVapidDetails(
-  `mailto:${process.env.VAPID_CONTACT_EMAIL ?? "contact@canalcup.nc"}`,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
+function configureWebPush() {
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const privateKey = process.env.VAPID_PRIVATE_KEY;
+  if (!publicKey || !privateKey) return false;
+
+  webpush.setVapidDetails(
+    `mailto:${process.env.VAPID_CONTACT_EMAIL ?? "contact@canalcup.nc"}`,
+    publicKey,
+    privateKey
+  );
+  return true;
+}
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -24,6 +31,13 @@ export async function POST(request: NextRequest) {
 
   if (profile?.role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  if (!configureWebPush()) {
+    return NextResponse.json(
+      { error: "Configuration push VAPID manquante" },
+      { status: 503 }
+    );
   }
 
   const { title, body, url, userIds } = (await request.json()) as {
