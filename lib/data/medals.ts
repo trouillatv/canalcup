@@ -138,7 +138,7 @@ export async function computeMedals(): Promise<Medal[]> {
       key: "roi_deveine",
       emoji: "💀",
       label: "Roi de la Déveine",
-      description: `${pct}% de pronostics à 0 point. Même Robert est désolé.`,
+      description: `${pct}% de pronostics à 0 point. Même Le Goat est désolé.`,
       team_id: deveine.team_id,
       team_name: deveine.team_name,
       value: `${pct}% à 0pt`,

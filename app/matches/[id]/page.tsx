@@ -527,7 +527,7 @@ function PredictionTrend({ matchId }: { matchId: string }) {
   );
 }
 
-function RobertStory({ matchId, isFinished }: { matchId: string; isFinished: boolean }) {
+function GoatStory({ matchId, isFinished }: { matchId: string; isFinished: boolean }) {
   const [story, setStory] = useState<{ phrase: string } | null>(null);
   const [tried, setTried] = useState(false);
 
@@ -622,9 +622,9 @@ export default function MatchCenterPage() {
       {/* Réactions emoji */}
       <MatchReactions matchId={match.id} isLive={isLive} />
 
-      {/* Robert — commentaire IA post-match */}
+      {/* Le Goat — commentaire IA post-match */}
       {match.status === "finished" && (
-        <RobertStory matchId={match.id} isFinished={true} />
+        <GoatStory matchId={match.id} isFinished={true} />
       )}
 
       {/* Countdown avant coup d'envoi */}

@@ -49,7 +49,6 @@ type Slide =
   | "medals"
   | "playerofday"
   | "news"
-  | "joinqr"
   | "robert"
   | "fail"
   | "officebet"
@@ -107,9 +106,6 @@ function getQRContext(slide: Slide, data: TVData | null, origin: string): QRCont
   if (slide === "animations") {
     return { url: `${origin}/animations`, message: "🎉 Animation", subtext: "Participez maintenant" };
   }
-  if (slide === "joinqr") {
-    return { url: `${origin}/install`, message: "📲 Installez l'app", subtext: "Scan → Connexion → Prono" };
-  }
   if (slide === "livematch") {
     return { url: `${origin}/`, message: "⚡ Live en cours", subtext: "Suivez sur votre mobile" };
   }
@@ -152,7 +148,6 @@ const BASE_SLIDES: Slide[] = [
   "matinale",      // brief matinal
   "fail",          // fail du jour
   "news",          // RSS foot
-  "joinqr",        // install QR
   "revivez",       // archives
 ];
 
@@ -1383,7 +1378,7 @@ function SlidePreMatch({ stats }: { stats: PreMatchStats }) {
   }, [match.starts_at]);
 
   const topTeam = stats.top_result === "A" ? match.team_a : stats.top_result === "B" ? match.team_b : null;
-  const robertCtx = {
+  const goatCtx = {
     teamA: match.team_a,
     teamB: match.team_b,
     topResult: stats.top_result,
@@ -1522,11 +1517,11 @@ function SlidePreMatch({ stats }: { stats: PreMatchStats }) {
         flagB={match.flag_b}
       />
 
-      {/* Robert quote + salon */}
+      {/* Le Goat quote + salon */}
       <div className="flex items-end justify-between gap-3 sm:gap-6">
         <div className="flex-1 bg-canal-gray-mid/30 border border-canal-gray-light/20 rounded-2xl px-4 sm:px-6 py-3 sm:py-4">
           <p className="text-canal-gray-muted text-base sm:text-xl italic leading-snug">
-            &ldquo;{withGoat(getGoatPreMatchPhrase(robertCtx))}&rdquo;
+            &ldquo;{withGoat(getGoatPreMatchPhrase(goatCtx))}&rdquo;
           </p>
           <p className="text-canal-yellow/60 text-sm sm:text-lg mt-1 flex items-center gap-1">
             —{" "}
@@ -1973,7 +1968,7 @@ function SlideFantomes({ players }: { players: string[] }) {
 
 // ─── Slide: Le Goat dit… (punchline du coach IA) ────────────────────────────
 
-const ROBERT_PHRASES: string[] = [
+const GOAT_PHRASES: string[] = [
   ...Object.values(SALON_PREMATCH).flat(),
   "Le Goat ne juge pas. Le Goat observe. Et Le Goat se souvient.",
   "Un bon prono, c'est 50% d'instinct et 50% de chance. Le Goat n'a ni l'un ni l'autre, mais il assume.",
@@ -1982,10 +1977,10 @@ const ROBERT_PHRASES: string[] = [
   "Le babyfoot révèle les caractères. Et parfois, il les détruit.",
 ];
 
-function SlideRobert() {
+function SlideGoat() {
   const [phrase, setPhrase] = useState("");
   useEffect(() => {
-    const pick = () => setPhrase(ROBERT_PHRASES[Math.floor(Math.random() * ROBERT_PHRASES.length)]);
+    const pick = () => setPhrase(GOAT_PHRASES[Math.floor(Math.random() * GOAT_PHRASES.length)]);
     pick();
     const t = setInterval(pick, 6000);
     return () => clearInterval(t);
@@ -2494,8 +2489,6 @@ export default function TVPage() {
   }, [slides.length]);
 
   const slide = slides[currentSlide];
-  const qrCtx = useMemo(() => getQRContext(slide, data, origin), [slide, data, origin]);
-
   return (
     <PinGate>
     <div className="fixed inset-0 bg-canal-black flex flex-col overflow-hidden tv-mode">
@@ -2516,8 +2509,8 @@ export default function TVPage() {
           <div className="flex flex-col items-center gap-1">
             {origin ? (
               <img
-                key={qrCtx.url}
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=4&data=${encodeURIComponent(qrCtx.url)}`}
+                key={`${origin}/p/welcome`}
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=4&data=${encodeURIComponent(`${origin}/p/welcome`)}`}
                 alt="QR code Canal Cup"
                 width={56}
                 height={56}
@@ -2573,8 +2566,7 @@ export default function TVPage() {
             {slide === "medals" && <SlideMedals medals={data.medals ?? []} />}
             {slide === "playerofday" && <SlidePlayerOfDay individual={data.individual ?? []} />}
             {slide === "news" && <SlideNews news={data.news ?? []} />}
-            {slide === "joinqr" && <SlideJoinQR url={`${origin}/install`} />}
-            {slide === "robert" && <SlideRobert />}
+            {slide === "robert" && <SlideGoat />}
             {slide === "fail" && data.brief && <SlideFail brief={data.brief} />}
             {slide === "officebet" && data.prematch && <SlideOfficeBet stats={data.prematch} />}
             {slide === "tightrace" && tightRace && <SlideTightRace race={tightRace} />}
@@ -2589,8 +2581,6 @@ export default function TVPage() {
       </div>
 
       {/* QR widget permanent — coin bas-droit */}
-      {origin && <TVQRWidget ctx={qrCtx} data={data} />}
-
       {/* Atmospheric status line */}
       <AtmosphericLine />
 

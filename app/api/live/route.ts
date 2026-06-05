@@ -86,7 +86,7 @@ export async function GET() {
     id: post.id,
     source: "feed",
     kind: feedKind(post.type),
-    title: post.type === "robert" ? "Robert" : "Canal Cup",
+    title: post.type === "robert" ? "Le Goat" : "Canal Cup",
     author: post.display_name ?? post.email ?? "Canal Cup",
     body: post.body,
     created_at: post.created_at,

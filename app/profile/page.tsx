@@ -14,6 +14,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProfileEditForm } from "@/components/profile/ProfileEditForm";
+import { NotificationToggle } from "@/components/profile/NotificationToggle";
 import { MyTeamsPanel } from "@/components/teams/MyTeamsPanel";
 import { UserCircle2, Users2, Sparkles } from "lucide-react";
 
@@ -99,6 +100,8 @@ export default async function ProfilePage() {
         </h2>
         <ProfileEditForm profile={profile} services={services ?? []} />
       </section>
+
+      <NotificationToggle />
 
       {/* Mes équipes Canal Cup (Phase C multi-team) — remplace l'ancienne
           section "Mon équipe" + le TeamCaptainPanel séparé. Un seul panneau

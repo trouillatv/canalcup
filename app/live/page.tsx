@@ -22,7 +22,7 @@ type LiveItem = {
 const FILTERS: { id: "all" | LiveKind; label: string }[] = [
   { id: "all", label: "Tout" },
   { id: "colleague", label: "Collegues" },
-  { id: "robert", label: "Robert" },
+  { id: "robert", label: "Le Goat" },
   { id: "match", label: "Matchs" },
   { id: "animation", label: "Animations" },
 ];
@@ -42,7 +42,7 @@ function cardTheme(kind: LiveKind) {
   if (kind === "robert") {
     return {
       icon: Bot,
-      label: "Robert",
+      label: "Le Goat",
       shell: "border-canal-yellow/60 bg-canal-yellow text-canal-black",
       iconBox: "bg-canal-black text-canal-yellow",
       meta: "text-canal-black/65",
@@ -92,7 +92,7 @@ function cardTheme(kind: LiveKind) {
 export default function LivePage() {
   const [items, setItems] = useState<LiveItem[]>([]);
   const [filter, setFilter] = useState<"all" | LiveKind>("all");
-  const [showRobert, setShowRobert] = useState(true);
+  const [showGoat, setShowGoat] = useState(true);
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
@@ -102,10 +102,10 @@ export default function LivePage() {
   const visibleItems = useMemo(
     () =>
       items.filter((item) => {
-        if (!showRobert && item.kind === "robert") return false;
+        if (!showGoat && item.kind === "robert") return false;
         return filter === "all" || item.kind === filter;
       }),
-    [items, filter, showRobert]
+    [items, filter, showGoat]
   );
 
   const fetchLive = async () => {
@@ -164,7 +164,7 @@ export default function LivePage() {
           <div>
             <h1 className="canal-headline text-2xl">Canal Cup Live</h1>
             <p className="text-sm text-canal-gray-muted mt-0.5">
-              Evenements, collegues et Robert dans le meme flux.
+              Evenements, collegues et Le Goat dans le meme flux.
             </p>
           </div>
         </div>
@@ -190,16 +190,16 @@ export default function LivePage() {
 
         <button
           type="button"
-          onClick={() => setShowRobert((v) => !v)}
+          onClick={() => setShowGoat((v) => !v)}
           className={cn(
             "inline-flex min-h-10 items-center gap-2 rounded-xl border px-3 text-xs font-black transition-colors",
-            showRobert
+            showGoat
               ? "border-canal-yellow/40 bg-canal-yellow/10 text-canal-yellow"
               : "border-canal-gray-light bg-canal-gray-mid text-canal-gray-muted"
           )}
         >
           <Bot size={15} />
-          {showRobert ? "IA visible" : "IA masquee"}
+          {showGoat ? "IA visible" : "IA masquee"}
         </button>
       </div>
 

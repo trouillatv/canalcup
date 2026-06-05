@@ -41,7 +41,7 @@ export async function POST(req: Request) {
   if (text.length < 3) return NextResponse.json({ error: "Message trop court" }, { status: 400 });
   if (text.length > 1200) return NextResponse.json({ error: "Message trop long (1200 max)" }, { status: 400 });
   if (type === "robert" && !isSocialAdmin(me)) {
-    return NextResponse.json({ error: "Robert est reserve aux admins" }, { status: 403 });
+    return NextResponse.json({ error: "Le Goat est reserve aux admins" }, { status: 403 });
   }
 
   const admin = createAdminClient();
