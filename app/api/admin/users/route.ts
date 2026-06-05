@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getAllUsersForAdmin, logAdminAction } from "@/lib/data/users";
+import { isRequiredEmailDomain, normalizeEmail, REQUIRED_EMAIL_MESSAGE } from "@/lib/auth/email-domain";
 
 async function getCallerEmail(): Promise<string | null> {
   const supabase = await createClient();
@@ -37,8 +38,12 @@ export async function POST(req: Request) {
   const adminEmail = await callerIsAdmin();
   if (!adminEmail) return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
 
-  const { email, role = "user" } = await req.json();
+  const { email: rawEmail, role = "user" } = await req.json();
+  const email = normalizeEmail(rawEmail ?? "");
   if (!email) return NextResponse.json({ error: "Email requis" }, { status: 400 });
+  if (!isRequiredEmailDomain(email)) {
+    return NextResponse.json({ error: REQUIRED_EMAIL_MESSAGE }, { status: 400 });
+  }
 
   const adminClient = createAdminClient();
   const { error } = await adminClient

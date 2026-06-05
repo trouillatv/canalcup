@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Calendar, Trophy, Users, PartyPopper } from "lucide-react";
+import { Calendar, MessageCircle, Megaphone, Trophy, Users, PartyPopper } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { href: "/", icon: Home, label: "Accueil" },
+  { href: "/fil", icon: Megaphone, label: "Fil" },
+  { href: "/vestiaire", icon: MessageCircle, label: "Vestiaire" },
   { href: "/matches", icon: Calendar, label: "Matchs" },
   { href: "/animations", icon: PartyPopper, label: "Anims" },
   { href: "/leaderboard", icon: Trophy, label: "Classement" },

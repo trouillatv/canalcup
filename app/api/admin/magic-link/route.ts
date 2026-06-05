@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isRequiredEmailDomain, normalizeEmail, REQUIRED_EMAIL_MESSAGE } from "@/lib/auth/email-domain";
 
 export async function POST(req: Request) {
   const secret = req.headers.get("x-admin-secret");
@@ -7,8 +8,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { email } = await req.json();
+  const { email: rawEmail } = await req.json();
+  const email = normalizeEmail(rawEmail ?? "");
   if (!email) return NextResponse.json({ error: "Email requis" }, { status: 400 });
+  if (!isRequiredEmailDomain(email)) {
+    return NextResponse.json({ error: REQUIRED_EMAIL_MESSAGE }, { status: 400 });
+  }
 
   const adminClient = createAdminClient();
   const origin = process.env.NEXT_PUBLIC_APP_URL!;

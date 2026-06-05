@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import type { AdminUserView, UserRole, Service } from "@/lib/supabase/types";
 import { Shield, UserCheck, UserX, Send, ChevronDown, Plus, Filter } from "lucide-react";
+import { isRequiredEmailDomain, normalizeEmail, REQUIRED_EMAIL_MESSAGE, REQUIRED_EMAIL_SUFFIX } from "@/lib/auth/email-domain";
 
 const ROLE_LABELS: Record<UserRole, string> = {
   user: "Utilisateur",
@@ -217,6 +218,7 @@ export default function AdminUsersPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<UserRole>("user");
   const [inviting, setInviting] = useState(false);
+  const [inviteError, setInviteError] = useState("");
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -241,12 +243,24 @@ export default function AdminUsersPage() {
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
+    const email = normalizeEmail(inviteEmail);
+    if (!isRequiredEmailDomain(email)) {
+      setInviteError(REQUIRED_EMAIL_MESSAGE);
+      return;
+    }
     setInviting(true);
-    await fetch("/api/admin/users", {
+    setInviteError("");
+    const res = await fetch("/api/admin/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
+      body: JSON.stringify({ email, role: inviteRole }),
     });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setInviteError(data.error ?? "Ajout impossible.");
+      setInviting(false);
+      return;
+    }
     setInviteEmail("");
     setShowInvite(false);
     setInviting(false);
@@ -289,10 +303,13 @@ export default function AdminUsersPage() {
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="prenom.nom@canal-plus.com"
+                pattern={`.+\\${REQUIRED_EMAIL_SUFFIX}`}
+                title={REQUIRED_EMAIL_MESSAGE}
                 required
                 className="w-full bg-canal-gray border border-canal-gray-light rounded-lg px-3 py-2 text-sm text-white placeholder:text-canal-gray-muted"
               />
             </div>
+            {inviteError && <p className="text-sm text-red-400">{inviteError}</p>}
             <div>
               <label className="text-xs text-canal-gray-muted mb-1 block">Rôle</label>
               <select

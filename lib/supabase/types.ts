@@ -20,6 +20,11 @@ export type ScoreCategory = "predictions" | "quiz" | "challenges" | "babyfoot" |
 export type ScoreSourceType =
   | "challenge_entry" | "manual_admin" | "quiz_answer"
   | "babyfoot_match" | "prediction" | "vote" | "award";
+export type FeedPostType = "ambiance" | "photo" | "chambrage" | "match" | "babyfoot" | "quiz" | "animation" | "robert";
+export type SocialStatus = "visible" | "hidden";
+export type VestiaireChannelType = "general" | "match" | "team" | "animation";
+export type ModerationRiskLevel = "low" | "medium" | "high";
+export type ModerationReportStatus = "new" | "reviewed" | "ignored";
 
 // ─── Core entities ────────────────────────────────────────────────────────────
 
@@ -258,6 +263,71 @@ export interface InboxEvent {
   message: string;
   type: InboxEventType;
   is_read: boolean;
+  created_at: string;
+}
+
+export interface FeedPost {
+  id: string;
+  user_id?: string | null;
+  email?: string | null;
+  display_name?: string | null;
+  type: FeedPostType;
+  context_type?: string | null;
+  context_id?: string | null;
+  body: string;
+  image_url?: string | null;
+  status: SocialStatus;
+  hidden_at?: string | null;
+  hidden_by_email?: string | null;
+  created_at: string;
+}
+
+export interface VestiaireChannel {
+  id: string;
+  type: VestiaireChannelType;
+  title: string;
+  description?: string | null;
+  team_id?: string | null;
+  match_id?: string | null;
+  challenge_id?: string | null;
+  is_private: boolean;
+  is_active: boolean;
+  opens_at?: string | null;
+  closes_at?: string | null;
+  created_at: string;
+}
+
+export interface VestiaireMessage {
+  id: string;
+  channel_id: string;
+  user_id?: string | null;
+  email?: string | null;
+  display_name?: string | null;
+  body: string;
+  status: SocialStatus;
+  hidden_at?: string | null;
+  hidden_by_email?: string | null;
+  created_at: string;
+}
+
+export interface ModerationFlaggedItem {
+  source: "feed" | "vestiaire";
+  id: string;
+  author?: string | null;
+  channel?: string | null;
+  excerpt: string;
+  reason: string;
+}
+
+export interface ModerationReport {
+  id: string;
+  window_start: string;
+  window_end: string;
+  risk_level: ModerationRiskLevel;
+  summary: string;
+  flagged_items: ModerationFlaggedItem[];
+  recommendation?: string | null;
+  status: ModerationReportStatus;
   created_at: string;
 }
 

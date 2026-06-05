@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { isRequiredEmailDomain, normalizeEmail, REQUIRED_EMAIL_MESSAGE, REQUIRED_EMAIL_SUFFIX } from "@/lib/auth/email-domain";
 
 type Tab = "login" | "signup";
 type Status = "idle" | "loading" | "error" | "sent";
@@ -69,12 +70,14 @@ export function MagicLinkReception() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail || !password) return;
+    if (!isRequiredEmailDomain(normalizedEmail)) { setErrorMsg(REQUIRED_EMAIL_MESSAGE); return; }
     setStatus("loading");
     setErrorMsg("");
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
 
     if (error) {
       setStatus("error");
@@ -91,7 +94,9 @@ export function MagicLinkReception() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password || !confirm) return;
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail || !password || !confirm) return;
+    if (!isRequiredEmailDomain(normalizedEmail)) { setErrorMsg(REQUIRED_EMAIL_MESSAGE); return; }
     if (password !== confirm) { setErrorMsg("Les mots de passe ne correspondent pas."); return; }
     if (password.length < 8) { setErrorMsg("Le mot de passe doit faire au moins 8 caractères."); return; }
     setStatus("loading");
@@ -103,7 +108,7 @@ export function MagicLinkReception() {
     // routing /onboarding.
     const redirectTo = `${window.location.origin}/auth/callback`;
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: normalizedEmail,
       password,
       options: { emailRedirectTo: redirectTo },
     });
@@ -133,11 +138,13 @@ export function MagicLinkReception() {
   };
 
   const handleForgot = async () => {
-    if (!email) { setErrorMsg("Entre d'abord ton email."); return; }
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) { setErrorMsg("Entre d'abord ton email."); return; }
+    if (!isRequiredEmailDomain(normalizedEmail)) { setErrorMsg(REQUIRED_EMAIL_MESSAGE); return; }
     setForgotSent(false);
     const supabase = createClient();
     const resetUrl = `${window.location.origin}/auth/reset-password`;
-    await supabase.auth.resetPasswordForEmail(email, { redirectTo: resetUrl });
+    await supabase.auth.resetPasswordForEmail(normalizedEmail, { redirectTo: resetUrl });
     setForgotSent(true);
   };
 
@@ -222,6 +229,8 @@ export function MagicLinkReception() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="prenom.nom@canal-plus.com"
+                    pattern={`.+\\${REQUIRED_EMAIL_SUFFIX}`}
+                    title={REQUIRED_EMAIL_MESSAGE}
                     required
                     autoFocus
                     className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow transition-colors"
@@ -272,6 +281,8 @@ export function MagicLinkReception() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="prenom.nom@canal-plus.com"
+                    pattern={`.+\\${REQUIRED_EMAIL_SUFFIX}`}
+                    title={REQUIRED_EMAIL_MESSAGE}
                     required
                     autoFocus
                     className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow transition-colors"

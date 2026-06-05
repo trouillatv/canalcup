@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, Tv, Inbox, Newspaper, Gamepad2, PartyPopper } from "lucide-react";
+import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, Tv, Inbox, Newspaper, Gamepad2, PartyPopper, Megaphone, MessageCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { User } from "@supabase/supabase-js";
 
 const MENU_ITEMS = [
+  { href: "/fil",        icon: Megaphone, label: "Fil d'actualite" },
+  { href: "/vestiaire",  icon: MessageCircle, label: "Vestiaire" },
   { href: "/matches",    icon: Calendar,  label: "Matchs & Pronostics" },
   { href: "/leaderboard", icon: Trophy,   label: "Classement" },
   { href: "/teams",      icon: Users,     label: "Équipes" },
@@ -173,6 +175,7 @@ export function TopBar() {
                 { href: "/admin", label: "📊 QR Code" },
                 { href: "/admin/monitoring", label: "🩺 Monitoring IA" },
                 { href: "/admin/user-audit", label: "👥 Monitoring Users" },
+                { href: "/admin/vestiaire-alertes", label: "Alertes Vestiaire" },
                 { href: "/admin/feedback", label: "💬 Feedback" },
                 { href: "/admin/quiz", label: "Quiz" },
                 { href: "/admin/challenges", label: "Animations" },
