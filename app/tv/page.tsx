@@ -862,29 +862,29 @@ function SlideStandings({ standings }: { standings: StandingRow[] }) {
   }
 
   return (
-    <div className="flex flex-col h-full px-4 sm:px-8 lg:px-12 py-4 sm:py-6">
-      <div className="mb-3 sm:mb-4 shrink-0">
-        <p className="text-canal-yellow font-black text-xl sm:text-2xl uppercase tracking-widest mb-1">
+    <div className="flex flex-col h-full px-4 sm:px-8 lg:px-12 py-3 sm:py-4 overflow-hidden">
+      <div className="mb-2 sm:mb-3 shrink-0">
+        <p className="text-canal-yellow font-black text-lg sm:text-xl uppercase tracking-widest mb-1">
           ⚽ Classement FIFA WC 2026
         </p>
-        <div className="h-1 w-32 bg-canal-yellow" />
+        <div className="h-1 w-24 sm:w-28 bg-canal-yellow" />
       </div>
-      <div className="flex-1 overflow-y-auto grid grid-cols-2 lg:grid-cols-3 gap-x-4 sm:gap-x-8 gap-y-3 sm:gap-y-4 content-start">
+      <div className="flex-1 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-3 sm:gap-x-5 gap-y-2 sm:gap-y-3 content-start overflow-hidden">
         {groups.map(([groupName, rows]) => {
           const sorted = [...rows].sort((a, b) => b.points - a.points || b.goal_diff - a.goal_diff);
           return (
-            <div key={groupName} className="min-w-0">
-              <p className="text-canal-yellow font-black text-xs sm:text-base mb-1 sm:mb-1.5 uppercase">Groupe {groupName}</p>
+            <div key={groupName} className="min-w-0 rounded-2xl border border-canal-gray-light/20 bg-canal-gray-mid/15 px-2.5 py-2 sm:px-3 sm:py-3">
+              <p className="text-canal-yellow font-black text-[10px] sm:text-[11px] mb-1 sm:mb-2 uppercase tracking-wider">Groupe {groupName}</p>
               <div className="space-y-0.5 sm:space-y-1">
-                {sorted.slice(0, 4).map((row, i) => (
+                {sorted.slice(0, 3).map((row, i) => (
                   <div
                     key={row.team_name_fr}
-                    className={`flex items-center gap-1.5 sm:gap-2 ${i < 2 ? "text-white" : "text-canal-gray-muted"}`}
+                    className={`flex items-center gap-1 sm:gap-1.5 ${i < 2 ? "text-white" : "text-canal-gray-muted"}`}
                   >
-                    <span className="w-3 sm:w-4 text-center font-bold text-[11px] sm:text-sm shrink-0">{i + 1}</span>
-                    <Flag flag={row.team_flag} name={row.team_name_fr} className="h-4 sm:h-5 w-auto rounded-sm shrink-0" emojiClassName="text-sm sm:text-lg shrink-0" />
-                    <span className={`flex-1 min-w-0 truncate text-[11px] sm:text-base ${i < 2 ? "font-bold" : ""}`}>{row.team_name_fr}</span>
-                    <span className="font-black text-xs sm:text-lg text-canal-yellow shrink-0">{row.points}</span>
+                    <span className="w-3 text-center font-bold text-[9px] sm:text-[11px] shrink-0">{i + 1}</span>
+                    <Flag flag={row.team_flag} name={row.team_name_fr} className="h-3.5 sm:h-4 w-auto rounded-sm shrink-0" emojiClassName="text-[10px] sm:text-sm shrink-0" />
+                    <span className={`flex-1 min-w-0 truncate text-[10px] sm:text-[11px] ${i < 2 ? "font-bold" : ""}`}>{row.team_name_fr}</span>
+                    <span className="font-black text-[10px] sm:text-[11px] text-canal-yellow shrink-0 tabular-nums">{row.points}</span>
                   </div>
                 ))}
               </div>
