@@ -34,7 +34,39 @@ export async function GET(req: Request) {
     .limit(200);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data ?? [], { headers: { "Cache-Control": "no-store" } });
+
+  const messages = data ?? [];
+  const ids = messages.map((message) => message.id);
+  const { data: reactions } = ids.length
+    ? await admin
+        .from("vestiaire_message_reactions")
+        .select("message_id, user_id, emoji")
+        .in("message_id", ids)
+    : { data: [] };
+
+  const byMessage = new Map<string, Record<string, number>>();
+  const mineByMessage = new Map<string, string[]>();
+  for (const reaction of reactions ?? []) {
+    const counts = byMessage.get(reaction.message_id) ?? {};
+    counts[reaction.emoji] = (counts[reaction.emoji] ?? 0) + 1;
+    byMessage.set(reaction.message_id, counts);
+    if (reaction.user_id === me.userId) {
+      mineByMessage.set(reaction.message_id, [...(mineByMessage.get(reaction.message_id) ?? []), reaction.emoji]);
+    }
+  }
+
+  return NextResponse.json(
+    messages.map((message) => {
+      const counts = byMessage.get(message.id) ?? {};
+      return {
+        ...message,
+        reactions: counts,
+        mine_reactions: mineByMessage.get(message.id) ?? [],
+        reaction_count: Object.values(counts).reduce((sum, n) => sum + n, 0),
+      };
+    }),
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
 
 export async function POST(req: Request) {

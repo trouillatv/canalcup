@@ -2,15 +2,14 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, Tv, Inbox, Newspaper, Gamepad2, PartyPopper, Megaphone, MessageCircle, Download } from "lucide-react";
+import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, Tv, Inbox, Newspaper, Gamepad2, PartyPopper, MessageCircle, Download } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { User } from "@supabase/supabase-js";
 
 const MENU_ITEMS = [
-  { href: "/fil",        icon: Megaphone, label: "Fil d'actualite" },
-  { href: "/vestiaire",  icon: MessageCircle, label: "Vestiaire" },
+  { href: "/live",       icon: MessageCircle, label: "Canal Cup Live" },
   { href: "/matches",    icon: Calendar,  label: "Matchs & Pronostics" },
   { href: "/leaderboard", icon: Trophy,   label: "Classement" },
   { href: "/teams",      icon: Users,     label: "Équipes" },

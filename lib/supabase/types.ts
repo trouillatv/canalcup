@@ -310,6 +310,14 @@ export interface VestiaireMessage {
   created_at: string;
 }
 
+export interface VestiaireMessageReaction {
+  id: string;
+  message_id: string;
+  user_id: string;
+  emoji: "🔥" | "😂" | "👏" | "😱";
+  created_at: string;
+}
+
 export interface ModerationFlaggedItem {
   source: "feed" | "vestiaire";
   id: string;
