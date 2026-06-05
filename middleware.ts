@@ -1,12 +1,24 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { ensureAllowlisted } from "@/lib/auth/allowlist";
 
-// Jamais protégé (dont /tv pour affichage salon commun et /p pour la
-// route group (public) — version grand public, voir
-// docs/PUBLIC_VERSION_ARCHITECTURE.md).
-const PUBLIC_PATHS = ["/auth/callback", "/auth/hash-callback", "/auth/reset-password", "/tv", "/api/tv", "/api/admin/magic-link", "/api/admin/sync-matches", "/api/cron", "/api/babyfoot", "/p", "/offline", "/install"];
+// Public paths
+const PUBLIC_PATHS = [
+  "/auth/callback",
+  "/auth/hash-callback",
+  "/auth/reset-password",
+  "/tv",
+  "/api/tv",
+  "/api/admin/magic-link",
+  "/api/admin/sync-matches",
+  "/api/cron",
+  "/api/babyfoot",
+  "/p",
+  "/offline",
+  "/install",
+];
 
-// Auth requise mais pas profile_completed (onboarding en cours)
+// Auth required but not profile_completed (onboarding in progress)
 const ONBOARDING_PATHS = ["/onboarding"];
 
 function isPublic(pathname: string): boolean {
@@ -21,11 +33,6 @@ function isApiRoute(pathname: string): boolean {
   return pathname.startsWith("/api/");
 }
 
-// Assets statiques servis depuis /public — le matcher Next n'exclut que
-// `_next/*`, `favicon.ico` et 2-3 entrées hard-codées, donc des fichiers
-// type `/CDM-2026.jpeg` passent par le middleware et se font rediriger
-// vers `/` pour les non-authentifiés (= l'image apparaît comme cassée).
-// On bypass dès le début pour toutes les extensions classiques.
 const ASSET_EXT_RE = /\.(jpe?g|png|gif|webp|svg|ico|css|woff2?|ttf|map|txt|xml|mp4|webm|mp3|pdf|json)$/i;
 function isAssetPath(pathname: string): boolean {
   return ASSET_EXT_RE.test(pathname);
@@ -34,7 +41,6 @@ function isAssetPath(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Assets statiques : on laisse Next servir tel quel, jamais d'auth.
   if (isAssetPath(pathname)) {
     return NextResponse.next({ request });
   }
@@ -66,27 +72,26 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Non connecté
   if (!user) {
     if (isApiRoute(pathname)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    // Redirige vers "/" (réception magic link) sauf si déjà là
     if (pathname !== "/") {
-      const home = new URL("/", request.url);
-      return NextResponse.redirect(home);
+      return NextResponse.redirect(new URL("/", request.url));
     }
     return NextResponse.next({ request });
   }
 
-  // ─── Trace "dernière connexion" RÉELLE (1×/jour/user) ────────────────────────
-  // users.last_login_at n'était écrit qu'au clic du magic link, et auth.users.
-  // last_sign_in_at ne bouge qu'au sign-in EXPLICITE (pas au refresh de session).
-  // Conséquence : un user qui rouvre l'app jour après jour avec une session
-  // active n'avait plus aucune date qui bouge — la page audit affichait donc
-  // la date du dernier magic link, pas la dernière vraie connexion.
-  // On bump ici à chaque requête authentifiée, throttlé via cookie (1 write/j
-  // par utilisateur). Cookie httpOnly avec la date du jour comme valeur.
+  // Allowlist = serveur, pas UI.
+  const allow = await ensureAllowlisted(user.email ?? "");
+  if (!allow.ok) {
+    if (isApiRoute(pathname)) {
+      return NextResponse.json({ error: allow.reason }, { status: 403 });
+    }
+    return NextResponse.redirect(new URL(`/?error=${allow.error}`, request.url));
+  }
+
+  // Trace "dernière connexion" réelle (1x/jour/user).
   const todayKey = new Date().toISOString().slice(0, 10);
   if (request.cookies.get("cc-llg")?.value !== todayKey) {
     await supabase
@@ -94,20 +99,17 @@ export async function middleware(request: NextRequest) {
       .update({ last_login_at: new Date().toISOString() })
       .eq("auth_id", user.id);
     supabaseResponse.cookies.set("cc-llg", todayKey, {
-      httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 7,
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
     });
   }
 
-  // Connecté + route onboarding ou API → pas de vérification profile_completed
   if (isOnboarding(pathname) || isApiRoute(pathname)) {
     return supabaseResponse;
   }
 
-  // Pages utilisateur → vérifier profil complété ET cohérent. L'équipe
-  // n'est PLUS un prérequis : un user peut entrer dans l'app sans
-  // équipe, il en aura besoin uniquement pour s'inscrire à une animation
-  // ou pronostiquer (l'API renvoie alors un 400 explicite avec un lien
-  // vers /profile pour rejoindre/créer une équipe).
   const { data: profile } = await supabase
     .from("users")
     .select("profile_completed, service_id, football_level, display_name, name")
@@ -128,7 +130,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|icons|sw\\.js).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|icons|sw\\.js).*)"],
 };

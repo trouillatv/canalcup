@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { checkClientAllowlist } from "@/lib/auth/client-allowlist";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -39,8 +40,18 @@ function ResetPasswordForm() {
 
       // May already have a recovery session
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) setSessionReady(true);
-      else setErrorMsg("Lien invalide ou expiré. Demande un nouveau lien.");
+      if (user) {
+        const allowed = await checkClientAllowlist();
+        if (!allowed?.ok) {
+          await supabase.auth.signOut();
+          setErrorMsg("Cet email n'est pas autorisé. Contacte un admin.");
+          return;
+        }
+        setSessionReady(true);
+        return;
+      }
+
+      setErrorMsg("Lien invalide ou expiré. Demande un nouveau lien.");
     }
 
     initSession();

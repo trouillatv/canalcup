@@ -2,6 +2,7 @@
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { checkClientAllowlist } from "@/lib/auth/client-allowlist";
 
 function HashCallback() {
   const router = useRouter();
@@ -43,13 +44,8 @@ function HashCallback() {
         return;
       }
 
-      const { data: allowed } = await supabase
-        .from("allowlist_users")
-        .select("is_active")
-        .eq("email", session.user.email)
-        .single();
-
-      if (!allowed?.is_active) {
+      const allowed = await checkClientAllowlist();
+      if (!allowed?.ok) {
         await supabase.auth.signOut();
         router.replace("/?error=not_allowed");
         return;

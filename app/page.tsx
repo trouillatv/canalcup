@@ -10,6 +10,7 @@ import { Heart } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { MagicLinkReception } from "@/components/auth/MagicLinkReception";
 import { PronoReminder } from "@/components/predictions/PronoReminder";
+import { ensureAllowlisted } from "@/lib/auth/allowlist";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,12 @@ export default async function RootPage() {
 
   // Non connecté → page de réception magic link
   if (!user) return <MagicLinkReception />;
+
+  const allow = await ensureAllowlisted(user.email ?? "");
+  if (!allow.ok) {
+    await supabase.auth.signOut();
+    return <MagicLinkReception />;
+  }
 
   const [matches, trends, leaderboard, brief, revivez] = await Promise.all([
     getMatches(),

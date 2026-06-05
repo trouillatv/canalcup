@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { isRequiredEmailDomain, normalizeEmail, REQUIRED_EMAIL_MESSAGE } from "@/lib/auth/email-domain";
+import { checkClientAllowlist } from "@/lib/auth/client-allowlist";
 
 type Tab = "login" | "signup";
 type Status = "idle" | "loading" | "error" | "sent";
@@ -35,21 +36,7 @@ export function MagicLinkReception() {
   const reset = () => { setStatus("idle"); setErrorMsg(""); setPassword(""); setConfirm(""); };
 
   const checkAllowlistAndRedirect = async () => {
-    // Délégué à un endpoint server-side qui gère 3 cas :
-    //   - déjà dans allowlist_users (active) → OK
-    //   - email sur un domaine auto-autorisé (ex. canal-plus.com) →
-    //     auto-insertion + OK (pas besoin d'intervention admin)
-    //   - sinon → 403 not_allowed
-    let payload: { ok?: boolean; error?: string; reason?: string } = {};
-    try {
-      const res = await fetch("/api/auth/self-allowlist", {
-        method: "POST",
-        credentials: "same-origin",
-      });
-      payload = await res.json().catch(() => ({}));
-    } catch {
-      /* ignoré → on traite comme not_allowed */
-    }
+    const payload = await checkClientAllowlist();
 
     if (!payload?.ok) {
       const supabase = createClient();
