@@ -168,7 +168,9 @@
       "Bash(git show *)",
       "Bash(npm uninstall *)",
       "Bash(findstr \"public\")",
-      "Bash(xargs grep -l \"history\\\\|previous\\\\|trend\")"
+      "Bash(xargs grep -l \"history\\\\|previous\\\\|trend\")",
+      "Bash(grep -v \"//\\\\|import\\\\|SlideRobert\\\\|ROBERT_PHRASES\\\\|getRobert\\\\|robert\\\\b\")",
+      "Bash(set NODE_OPTIONS=--max-old-space-size=4096)"
     ]
   }
 }

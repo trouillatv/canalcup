@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { toNCTime } from "@/lib/utils";
 import { Flag } from "@/components/shared/Flag";
+import { LocalTime } from "@/components/timezone/LocalTime";
 
 interface MatchRow {
   id: string;
@@ -49,7 +49,7 @@ function CompactRow({ match }: { match: MatchRow }) {
               {match.score_a}–{match.score_b}
             </span>
           ) : (
-            <span className="text-canal-gray-muted">{toNCTime(match.starts_at)}</span>
+            <span className="text-canal-gray-muted"><LocalTime date={match.starts_at} variant="time" /></span>
           )}
         </div>
         <span className={`font-semibold flex-1 min-w-0 truncate text-right ${isFinished ? "text-canal-gray-muted" : "text-white"}`}>

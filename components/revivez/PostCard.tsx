@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import type { RevivezPost } from "@/lib/supabase/types";
-import { cn, toNCDate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { LocalTime } from "@/components/timezone/LocalTime";
 import { Heart, Quote, Camera, Trophy, Bot, Zap } from "lucide-react";
 
 const TYPE_CONFIG = {
@@ -62,7 +63,7 @@ export function PostCard({ post, onVote }: PostCardProps) {
       {/* Footer */}
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-canal-gray-light">
         <span className="text-xs text-canal-gray-muted">
-          {toNCDate(post.created_at)}
+          <LocalTime date={post.created_at} variant="date" />
         </span>
         <button
           onClick={handleVote}

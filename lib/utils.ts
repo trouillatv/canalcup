@@ -7,25 +7,74 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const NC_TIMEZONE = "Pacific/Noumea";
+// Fuseau par défaut = lieu de l'événement (NC). Sert de repli quand on
+// n'a pas la préférence d'un utilisateur (écrans TV, crons, non connecté).
+export const DEFAULT_TZ = "Pacific/Noumea";
 
-export function toNCTime(date: string | Date): string {
-  return formatInTimeZone(new Date(date), NC_TIMEZONE, "HH:mm", { locale: fr });
+// Les 3 territoires Canal+ supportés. NC et Vanuatu sont tous deux en
+// UTC+11 (zones distinctes mais même offset, aucun n'a d'heure d'été) ;
+// Tahiti est en UTC-10 — 21 h d'écart avec les deux autres.
+export const TZ_OPTIONS = [
+  { tz: "Pacific/Noumea", label: "NC", region: "Nouvelle-Calédonie", flag: "🇳🇨" },
+  { tz: "Pacific/Efate", label: "Vanuatu", region: "Vanuatu", flag: "🇻🇺" },
+  { tz: "Pacific/Tahiti", label: "Tahiti", region: "Polynésie française", flag: "🇵🇫" },
+] as const;
+
+export type SupportedTz = (typeof TZ_OPTIONS)[number]["tz"];
+
+// Libellé court à coller après une heure (« 18:00 NC »).
+export function tzLabel(tz: string | null | undefined): string {
+  return TZ_OPTIONS.find((o) => o.tz === tz)?.label ?? "NC";
 }
 
-export function toNCDate(date: string | Date): string {
-  return formatInTimeZone(new Date(date), NC_TIMEZONE, "EEEE d MMMM", {
+// Ramène n'importe quelle valeur à l'une de nos 3 zones (défaut NC).
+// Tolère les alias de fuseau que certains navigateurs renvoient, et à
+// défaut se rabat sur l'offset UTC courant (fixe pour ces territoires).
+export function normalizeTimezone(tz: string | null | undefined): SupportedTz {
+  if (tz && TZ_OPTIONS.some((o) => o.tz === tz)) return tz as SupportedTz;
+  switch (tz) {
+    case "Pacific/Port_Vila":
+      return "Pacific/Efate";
+    case "Pacific/Marquesas": // Marquises (UTC-9:30) → rattaché à la Polynésie
+      return "Pacific/Tahiti";
+    default:
+      return DEFAULT_TZ;
+  }
+}
+
+// Détection navigateur (client only) → l'une de nos 3 zones.
+export function detectTimezone(): SupportedTz {
+  try {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const direct = normalizeTimezone(zone);
+    if (direct !== DEFAULT_TZ || zone === DEFAULT_TZ) return direct;
+    // Repli par offset (minutes à l'est de UTC). Tahiti = -600, NC/Vanuatu = +660.
+    const offset = -new Date().getTimezoneOffset();
+    if (offset <= -570) return "Pacific/Tahiti"; // -9:30 (Marquises) et au-delà
+    if (offset === 660) return "Pacific/Noumea";
+  } catch {
+    /* SSR ou Intl indisponible */
+  }
+  return DEFAULT_TZ;
+}
+
+export function toNCTime(date: string | Date, tz: string = DEFAULT_TZ): string {
+  return formatInTimeZone(new Date(date), tz, "HH:mm", { locale: fr });
+}
+
+export function toNCDate(date: string | Date, tz: string = DEFAULT_TZ): string {
+  return formatInTimeZone(new Date(date), tz, "EEEE d MMMM", {
     locale: fr,
   });
 }
 
-export function toNCDateShort(date: string | Date): string {
-  return formatInTimeZone(new Date(date), NC_TIMEZONE, "d MMM", { locale: fr });
+export function toNCDateShort(date: string | Date, tz: string = DEFAULT_TZ): string {
+  return formatInTimeZone(new Date(date), tz, "d MMM", { locale: fr });
 }
 
-export function isToday(date: string | Date): boolean {
-  const d = formatInTimeZone(new Date(date), NC_TIMEZONE, "yyyy-MM-dd");
-  const today = formatInTimeZone(new Date(), NC_TIMEZONE, "yyyy-MM-dd");
+export function isToday(date: string | Date, tz: string = DEFAULT_TZ): boolean {
+  const d = formatInTimeZone(new Date(date), tz, "yyyy-MM-dd");
+  const today = formatInTimeZone(new Date(), tz, "yyyy-MM-dd");
   return d === today;
 }
 

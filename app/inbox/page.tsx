@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { cn, toNCDate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { LocalTime } from "@/components/timezone/LocalTime";
 import type { InboxEvent } from "@/lib/supabase/types";
 import { Bell, Trophy, Newspaper, Heart, MessageCircle, Star, AlertTriangle } from "lucide-react";
 
@@ -40,7 +41,7 @@ function InboxItem({ event }: { event: InboxEvent }) {
           )}
         </div>
         <p className="text-canal-gray-muted text-xs mt-0.5 leading-relaxed">{event.message}</p>
-        <p className="text-canal-gray-muted text-xs mt-1">{toNCDate(event.created_at)}</p>
+        <p className="text-canal-gray-muted text-xs mt-1"><LocalTime date={event.created_at} variant="date" /></p>
       </div>
     </button>
   );

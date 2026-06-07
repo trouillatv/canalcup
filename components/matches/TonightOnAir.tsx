@@ -1,10 +1,11 @@
 import Link from "next/link";
 import type { Match } from "@/lib/supabase/types";
-import { teamFlag, toNCTime } from "@/lib/utils";
+import { teamFlag } from "@/lib/utils";
 import { getChannelConfig } from "@/lib/channels";
 import { cn } from "@/lib/utils";
 import { Tv2, ChevronRight } from "lucide-react";
 import { TeamLink } from "@/components/teams/TeamLink";
+import { LocalTime } from "@/components/timezone/LocalTime";
 
 interface TonightOnAirProps {
   matches: Match[];
@@ -56,7 +57,7 @@ export function TonightOnAir({ matches, title = "Ce soir en direct" }: TonightOn
                   />
                 </div>
                 <p className="text-canal-gray-muted text-xs mt-0.5">
-                  🕐 {toNCTime(match.starts_at)} NC
+                  🕐 <LocalTime date={match.starts_at} variant="time" withLabel />
                 </p>
               </div>
 

@@ -9,6 +9,7 @@ import { getResult, scoreLabel } from "@/lib/scoring";
 import { Clock, ChevronRight, Check, Lock } from "lucide-react";
 import { Countdown } from "./Countdown";
 import { TeamLink } from "@/components/teams/TeamLink";
+import { useTimezone } from "@/components/timezone/TimezoneProvider";
 
 interface SavedPrediction {
   score_a: number;
@@ -186,6 +187,7 @@ function ScorePredictInput({
 
 export function MatchCard({ match, trend, savedPrediction, compact }: MatchCardProps) {
   const router = useRouter();
+  const { tz, label: tzLbl } = useTimezone();
   const isFinished = match.status === "finished";
   const isLive = match.status === "live";
   const isUpcoming = match.status === "upcoming";
@@ -226,7 +228,7 @@ export function MatchCard({ match, trend, savedPrediction, compact }: MatchCardP
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 text-xs text-canal-gray-muted">
           <Clock size={12} />
-          <span>{toNCDate(match.starts_at)} — {toNCTime(match.starts_at)} NC</span>
+          <span>{toNCDate(match.starts_at, tz)} — {toNCTime(match.starts_at, tz)} {tzLbl}</span>
         </div>
         <div className="flex items-center gap-2">
           {isLive && (

@@ -16,9 +16,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { Service, FootballLevel } from "@/lib/supabase/types";
 import {
-  User, Briefcase, ChevronRight, Users, Plus, Ticket, Check, RefreshCw, AlertCircle,
+  User, Briefcase, ChevronRight, Users, Plus, Ticket, Check, RefreshCw, AlertCircle, Globe,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, DEFAULT_TZ, TZ_OPTIONS, detectTimezone, normalizeTimezone } from "@/lib/utils";
 
 const FOOTBALL_LEVELS: { value: FootballLevel; label: string; desc: string; emoji: string }[] = [
   { value: "expert", label: "Expert", desc: "Je connais le hors-jeu, le faux pivot et les stats xG", emoji: "⚽" },
@@ -47,6 +47,7 @@ function OnboardingInner() {
   const [displayName, setDisplayName] = useState("");
   const [serviceId, setServiceId] = useState("");
   const [footballLevel, setFootballLevel] = useState<FootballLevel | "">("");
+  const [timezone, setTimezone] = useState<string>(DEFAULT_TZ);
   const [teamMode, setTeamMode] = useState<TeamMode>(inviteFromUrl ? "join" : "create");
   const [teamName, setTeamName] = useState("");
   const [inviteCode, setInviteCode] = useState(inviteFromUrl);
@@ -67,6 +68,9 @@ function OnboardingInner() {
 
   // Charge services + pré-remplit le profil + détecte une demande pending.
   useEffect(() => {
+    // Pré-sélection du fuseau via détection navigateur (NC par défaut).
+    setTimezone(detectTimezone());
+
     fetch("/api/services")
       .then((r) => r.json())
       .then((d) => { if (Array.isArray(d)) setServices(d); })
@@ -79,13 +83,14 @@ function OnboardingInner() {
         if (!user) return;
         const { data: row, error: rowErr } = await supabase
           .from("users")
-          .select("id, display_name, name, service_id, football_level, team_id, team_role, profile_completed, team:teams(id, name, created_by_user_id)")
+          .select("id, display_name, name, service_id, football_level, timezone, team_id, team_role, profile_completed, team:teams(id, name, created_by_user_id)")
           .eq("auth_id", user.id)
           .maybeSingle();
         if (rowErr || !row) return;
         if (row.display_name || row.name) setDisplayName(row.display_name ?? row.name ?? "");
         if (row.service_id) setServiceId(row.service_id);
         if (row.football_level) setFootballLevel(row.football_level as FootballLevel);
+        if (row.timezone) setTimezone(normalizeTimezone(row.timezone));
         if (!row.profile_completed && (row.display_name || row.name || row.service_id)) {
           setReturning(true);
         }
@@ -164,6 +169,7 @@ function OnboardingInner() {
       display_name: displayName.trim(),
       service_id: serviceId,
       football_level: footballLevel,
+      timezone,
     });
     if (!baseRes.ok) {
       setError(`Profil : ${baseRes.msg}`);
@@ -334,6 +340,37 @@ function OnboardingInner() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Région / fuseau — pré-rempli par détection navigateur. Les
+              abonnés Pacifique sont sur des fuseaux très différents
+              (NC/Vanuatu UTC+11, Polynésie UTC-10) : ce choix détermine
+              dans quel fuseau l'abonné voit les horaires de match. */}
+          <div>
+            <label className="text-xs text-canal-yellow font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Globe size={12} /> Ta région
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {TZ_OPTIONS.map((o) => (
+                <button
+                  key={o.tz}
+                  type="button"
+                  onClick={() => setTimezone(o.tz)}
+                  className={cn(
+                    "flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border text-xs font-bold transition-all",
+                    timezone === o.tz
+                      ? "bg-canal-yellow text-canal-black border-canal-yellow"
+                      : "bg-canal-gray-mid text-canal-gray-muted border-canal-gray-light hover:text-white"
+                  )}
+                >
+                  <span className="text-lg">{o.flag}</span>
+                  <span className="text-center leading-tight">{o.label}</span>
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-canal-gray-muted mt-1.5 leading-snug">
+              Les horaires de match s&apos;afficheront dans ce fuseau. Modifiable plus tard dans ton profil.
+            </p>
           </div>
 
           {/* Équipe — FACULTATIVE. Repliée par défaut. L'user peut la

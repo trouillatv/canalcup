@@ -8,6 +8,7 @@ import { MatchesTabs } from "@/components/matches/MatchesTabs";
 import { getMatches, getPredictionTrends } from "@/lib/data/matches";
 import { createClient } from "@/lib/supabase/server";
 import { isToday } from "@/lib/utils";
+import { getUserTimezone } from "@/lib/auth/session";
 import { Star, Trophy } from "lucide-react";
 
 // Données live + pronostics par utilisateur → toujours frais.
@@ -51,17 +52,18 @@ async function getMyPredictions(): Promise<SavedMap> {
 }
 
 export default async function MatchesPage() {
-  const [matches, trends, myPredictions] = await Promise.all([
+  const [matches, trends, myPredictions, tz] = await Promise.all([
     getMatches(),
     getPredictionTrends(),
     getMyPredictions(),
+    getUserTimezone(),
   ]);
 
   // Les matchs DU JOUR (heure NC) sont remontés en haut, quel que soit leur
   // statut, et exclus des onglets ci-dessous (sinon enterrés sous les 70+ matchs
   // à venir). En Coupe du Monde il y a ~1 match/jour : c'est le repère utile.
-  const today = matches.filter((m) => isToday(m.starts_at));
-  const rest = matches.filter((m) => !isToday(m.starts_at));
+  const today = matches.filter((m) => isToday(m.starts_at, tz));
+  const rest = matches.filter((m) => !isToday(m.starts_at, tz));
   // Onglet "À venir" : matchs à venir + un éventuel live (peu probable hors
   // aujourd'hui), du plus proche au plus lointain (matches déjà triés croissant).
   const upcoming = rest.filter((m) => m.status === "upcoming" || m.status === "live");

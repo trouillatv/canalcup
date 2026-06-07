@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { Fragment, useState } from "react";
-import { teamFlag, toNCTime, cn } from "@/lib/utils";
+import { teamFlag, cn } from "@/lib/utils";
 import { WC2026_GROUPS } from "@/lib/football/groups-2026";
 import { TeamLink } from "@/components/teams/TeamLink";
+import { LocalTime } from "@/components/timezone/LocalTime";
 
 interface MatchRow {
   id: string;
@@ -119,7 +120,7 @@ function BracketTreeCard({ match, big }: { match: MatchRow; big?: boolean }) {
     >
       <div className="flex items-center justify-between px-2.5 pt-1.5">
         <span className="text-[10px] uppercase tracking-wider text-canal-gray-muted font-bold">
-          {isTbd ? "À venir" : isLive ? <span className="text-red-400 animate-pulse">● Live</span> : isFinished ? "Terminé" : toNCTime(match.starts_at)}
+          {isTbd ? "À venir" : isLive ? <span className="text-red-400 animate-pulse">● Live</span> : isFinished ? "Terminé" : <LocalTime date={match.starts_at} variant="time" />}
         </span>
       </div>
       <BracketTeamLine
@@ -229,7 +230,7 @@ function GroupMatchRow({ m }: { m: MatchRow }) {
         ) : finished ? (
           "Fini"
         ) : (
-          toNCTime(m.starts_at)
+          <LocalTime date={m.starts_at} variant="time" />
         )}
       </span>
       <TeamLink

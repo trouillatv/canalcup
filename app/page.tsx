@@ -5,7 +5,7 @@ import { getTodayBrief, getRevivezPosts } from "@/lib/data/content";
 import { MatchCard } from "@/components/matches/MatchCard";
 import { TonightOnAir } from "@/components/matches/TonightOnAir";
 import { LeaderboardTable } from "@/components/leaderboard/LeaderboardTable";
-import { toNCDate, isToday } from "@/lib/utils";
+import { toNCDate, isToday, tzLabel, normalizeTimezone } from "@/lib/utils";
 import { Heart } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { MagicLinkReception } from "@/components/auth/MagicLinkReception";
@@ -36,7 +36,8 @@ export default async function RootPage() {
   ]);
 
   // Upcoming matches without user prediction
-  const { data: profile } = await supabase.from("users").select("id").eq("auth_id", user.id).single();
+  const { data: profile } = await supabase.from("users").select("id, timezone").eq("auth_id", user.id).single();
+  const tz = normalizeTimezone(profile?.timezone);
   let missingPronoCount = 0;
   if (profile) {
     const now = new Date().toISOString();
@@ -56,7 +57,7 @@ export default async function RootPage() {
   const liveMatches = matches.filter((m) => m.status === "live");
   // Matchs DU JOUR (heure NC) non-live — en CdM il y a ~1 match/jour, c'est le
   // repère utile. Affichés comme les autres (carte normale), "Terminé" inclus.
-  const todayMatches = matches.filter((m) => isToday(m.starts_at) && m.status !== "live");
+  const todayMatches = matches.filter((m) => isToday(m.starts_at, tz) && m.status !== "live");
   // Fallback s'il n'y a aucun match aujourd'hui : le prochain match à venir.
   const nextMatch = matches.find((m) => m.status === "upcoming");
   const tonightMatches = matches.filter((m) => m.status === "upcoming").slice(0, 3);
@@ -66,7 +67,7 @@ export default async function RootPage() {
     <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto">
       <div>
         <p className="text-xs text-canal-gray-muted uppercase tracking-widest mb-1">
-          {toNCDate(new Date())} — Heure NC
+          {toNCDate(new Date(), tz)} — Heure {tzLabel(tz)}
         </p>
         <h1 className="canal-headline text-3xl">
           <span className="text-gradient-yellow">Canal Cup</span>{" "}

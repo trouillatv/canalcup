@@ -15,7 +15,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProfileEditForm } from "@/components/profile/ProfileEditForm";
 import { NotificationToggle } from "@/components/profile/NotificationToggle";
+import { TimezoneSelector } from "@/components/profile/TimezoneSelector";
 import { MyTeamsPanel } from "@/components/teams/MyTeamsPanel";
+import { DEFAULT_TZ } from "@/lib/utils";
 import { UserCircle2, Users2, Sparkles } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +35,7 @@ export default async function ProfilePage() {
   const { data: profile, error: profErr } = await supabase
     .from("users")
     .select(
-      "id, name, display_name, user_slug, email, service_id, football_level, team_id"
+      "id, name, display_name, user_slug, email, service_id, football_level, timezone, team_id"
     )
     .eq("auth_id", authUser.id)
     .maybeSingle();
@@ -102,6 +104,8 @@ export default async function ProfilePage() {
       </section>
 
       <NotificationToggle />
+
+      <TimezoneSelector currentTz={profile.timezone ?? DEFAULT_TZ} />
 
       {/* Mes équipes Canal Cup (Phase C multi-team) — remplace l'ancienne
           section "Mon équipe" + le TeamCaptainPanel séparé. Un seul panneau

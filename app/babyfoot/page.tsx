@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Trophy, Clock, Swords } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toNCDate, toNCTime } from "@/lib/utils";
+import { LocalTime } from "@/components/timezone/LocalTime";
 import { ViewSwitcher } from "@/components/views/ViewSwitcher";
 import { BracketBabyFoot } from "@/components/bracket/BracketBabyFoot";
 import type { BabyFootMatch, Team } from "@/lib/supabase/types";
@@ -35,7 +35,7 @@ function BabyFootMatchCard({ match }: { match: BabyFootMatch }) {
     <div className="canal-card">
       <div className="flex items-center gap-1 text-xs text-canal-gray-muted mb-3">
         <Clock size={12} />
-        <span>{toNCDate(match.starts_at)} — {toNCTime(match.starts_at)}</span>
+        <span><LocalTime date={match.starts_at} variant="datetime" /></span>
         {match.status === "live" && (
           <span className="flex items-center gap-1 text-red-400 font-bold ml-2">
             <span className="live-dot" /> LIVE

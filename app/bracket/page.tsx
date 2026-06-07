@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Trophy } from "lucide-react";
-import { toNCDate, toNCTime } from "@/lib/utils";
+import { LocalTime } from "@/components/timezone/LocalTime";
 import { Flag } from "@/components/shared/Flag";
 import { ViewSwitcher } from "@/components/views/ViewSwitcher";
 import { BracketFifa } from "@/components/bracket/BracketFifa";
@@ -100,7 +100,7 @@ function MatchChip({ match }: { match: MatchRow }) {
         </div>
         <div className="flex items-center justify-between mt-1.5">
           <span className="text-canal-gray-muted text-xs">
-            {isLive ? "🔴 En direct" : `${toNCDate(match.starts_at)} ${toNCTime(match.starts_at)}`}
+            {isLive ? "🔴 En direct" : <><LocalTime date={match.starts_at} variant="date" /> <LocalTime date={match.starts_at} variant="time" /></>}
           </span>
         </div>
       </div>

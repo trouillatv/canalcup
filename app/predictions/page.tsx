@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Trophy, Star, Zap, ArrowLeft, Target, Clock } from "lucide-react";
 import { scoreLabel } from "@/lib/scoring";
-import { teamFlag, toNCDate } from "@/lib/utils";
+import { teamFlag } from "@/lib/utils";
+import { LocalTime } from "@/components/timezone/LocalTime";
 
 const WC_TEAMS = [
   "México","Afrique du Sud","Corée du Sud","République Tchèque","Canada","Bosnie-Herzégovine",
@@ -358,7 +359,7 @@ function PredHistoryRow({ pred }: { pred: PredRow }) {
       }`}>
         {/* Teams */}
         <div className="flex-1 min-w-0">
-          <p className="text-xs text-canal-gray-muted mb-0.5">{toNCDate(m.starts_at)}{m.phase ? ` · ${m.phase}` : ""}</p>
+          <p className="text-xs text-canal-gray-muted mb-0.5"><LocalTime date={m.starts_at} variant="date" />{m.phase ? ` · ${m.phase}` : ""}</p>
           <p className="font-bold text-sm text-white truncate">
             {teamFlag(m.flag_a, m.team_a)} {m.team_a} <span className="text-canal-gray-muted font-normal">vs</span> {m.team_b} {teamFlag(m.flag_b, m.team_b)}
           </p>

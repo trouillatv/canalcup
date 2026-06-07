@@ -61,6 +61,8 @@ export interface User {
   team_id?: string;
   team_role: TeamRole;
   service_id?: string;
+  // Fuseau d'affichage des horaires de match. Défaut 'Pacific/Noumea'.
+  timezone?: string;
   profile_completed: boolean;
   onboarding_step: number;
   last_login_at?: string;

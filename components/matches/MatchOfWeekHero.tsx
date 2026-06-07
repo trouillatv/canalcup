@@ -1,10 +1,11 @@
 import Link from "next/link";
 import type { Match } from "@/lib/supabase/types";
-import { teamFlag, toNCDate, toNCTime } from "@/lib/utils";
+import { teamFlag } from "@/lib/utils";
 import { getChannelConfig } from "@/lib/channels";
 import { Star, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TeamLink } from "@/components/teams/TeamLink";
+import { LocalTime } from "@/components/timezone/LocalTime";
 
 interface MatchOfWeekHeroProps {
   match: Match;
@@ -55,8 +56,8 @@ export function MatchOfWeekHero({ match, tagline }: MatchOfWeekHeroProps) {
             <span className="font-black text-canal-gray-muted text-3xl">VS</span>
           )}
           <div className="text-center mt-1">
-            <p className="text-canal-gray-muted text-xs">{toNCDate(match.starts_at)}</p>
-            <p className="text-white font-bold text-sm">{toNCTime(match.starts_at)} NC</p>
+            <p className="text-canal-gray-muted text-xs"><LocalTime date={match.starts_at} variant="date" /></p>
+            <p className="text-white font-bold text-sm"><LocalTime date={match.starts_at} variant="time" withLabel /></p>
           </div>
         </div>
 

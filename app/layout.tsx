@@ -7,7 +7,9 @@ import { BreakingNews } from "@/components/matches/BreakingNews";
 import { PwaSetup } from "@/components/pwa/PwaSetup";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { PushNotifications } from "@/components/pwa/PushNotifications";
+import { TimezoneProvider } from "@/components/timezone/TimezoneProvider";
 import { createClient } from "@/lib/supabase/server";
+import { DEFAULT_TZ, normalizeTimezone } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Canal Cup 2026",
@@ -48,6 +50,18 @@ export default async function RootLayout({
   const { data: { user } } = await supabase.auth.getUser();
   const isAuthenticated = !!user;
 
+  // Fuseau de l'utilisateur → alimente le contexte d'affichage des heures.
+  // Repli sur NC (lieu de l'événement) si non connecté ou champ absent.
+  let tz: string = DEFAULT_TZ;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("users")
+      .select("timezone")
+      .eq("auth_id", user.id)
+      .maybeSingle();
+    tz = normalizeTimezone(profile?.timezone);
+  }
+
   return (
     <html lang="fr" className="dark">
       <head>
@@ -71,18 +85,20 @@ export default async function RootLayout({
         />
       </head>
       <body className="bg-canal-black text-white antialiased" suppressHydrationWarning>
-        {isAuthenticated && <TopBar />}
-        <main className={isAuthenticated ? "min-h-screen pt-14 safe-bottom" : "min-h-screen"}>
-          {/* Flash info / direct — visible sur TOUTES les pages, masqué tout seul
-              s'il n'y a ni live ni flash (le composant renvoie null). */}
-          {isAuthenticated && <BreakingNews />}
-          {children}
-        </main>
-        {isAuthenticated && <BottomNav />}
-        {isAuthenticated && <FloatingFeedback />}
-        <PwaSetup />
-        <InstallPrompt />
-        {isAuthenticated && <PushNotifications />}
+        <TimezoneProvider tz={tz}>
+          {isAuthenticated && <TopBar />}
+          <main className={isAuthenticated ? "min-h-screen pt-14 safe-bottom" : "min-h-screen"}>
+            {/* Flash info / direct — visible sur TOUTES les pages, masqué tout seul
+                s'il n'y a ni live ni flash (le composant renvoie null). */}
+            {isAuthenticated && <BreakingNews />}
+            {children}
+          </main>
+          {isAuthenticated && <BottomNav />}
+          {isAuthenticated && <FloatingFeedback />}
+          <PwaSetup />
+          <InstallPrompt />
+          {isAuthenticated && <PushNotifications />}
+        </TimezoneProvider>
       </body>
     </html>
   );

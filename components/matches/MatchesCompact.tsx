@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { toNCDate, toNCTime } from "@/lib/utils";
 import { Flag } from "@/components/shared/Flag";
+import { useTimezone } from "@/components/timezone/TimezoneProvider";
 import type { Match } from "@/lib/supabase/types";
 
 interface SavedPrediction { score_a: number; score_b: number; points?: number }
@@ -14,6 +15,7 @@ function CompactRow({
   match: Match;
   prediction?: SavedPrediction;
 }) {
+  const { tz } = useTimezone();
   const isLive = match.status === "live";
   const isFinished = match.status === "finished";
   const hasScore = match.score_a !== null && match.score_a !== undefined;
@@ -40,7 +42,7 @@ function CompactRow({
             </span>
           ) : (
             <span className="text-xs text-canal-gray-muted font-medium">
-              {toNCTime(match.starts_at)}
+              {toNCTime(match.starts_at, tz)}
             </span>
           )}
         </div>
@@ -91,6 +93,7 @@ export function MatchesCompact({
   matches: Match[];
   myPredictions: Record<string, SavedPrediction>;
 }) {
+  const { tz } = useTimezone();
   const live = matches.filter((m) => m.status === "live" || m.status === "halftime");
   const upcoming = matches.filter((m) => m.status === "upcoming");
   const finished = matches.filter((m) => m.status === "finished");
@@ -98,7 +101,7 @@ export function MatchesCompact({
   // Group upcoming by date
   const upcomingByDate = new Map<string, Match[]>();
   for (const m of upcoming) {
-    const day = toNCDate(m.starts_at);
+    const day = toNCDate(m.starts_at, tz);
     if (!upcomingByDate.has(day)) upcomingByDate.set(day, []);
     upcomingByDate.get(day)!.push(m);
   }

@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { cn, toNCDate, toNCTime } from "@/lib/utils";
+import { useTimezone } from "@/components/timezone/TimezoneProvider";
 import { statLabelFr, eventDetailFr } from "@/lib/football/labels";
 import type { FullMatchDetail, MatchEvent, LineupPlayer, PlayerMatchStat, StandingRow, TeamSide } from "@/services/football/types";
 import { MapPin, User, RefreshCw, Clock, Sparkles, Star } from "lucide-react";
@@ -71,10 +72,10 @@ function StatusBadge({ status, minute }: { status: string; minute: number | null
 
 function ScoreBoard({ detail }: { detail: FullMatchDetail }) {
   const { match } = detail;
+  const { tz } = useTimezone();
   const scorers = buildScorers(detail.events);
-  const kickoff = new Date(match.starts_at);
-  const timeStr = kickoff.toLocaleTimeString("fr-NC", { hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Noumea" });
-  const dateStr = kickoff.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+  const timeStr = toNCTime(match.starts_at, tz);
+  const dateStr = toNCDate(match.starts_at, tz);
   const hasScore = match.score_a !== null && match.score_b !== null;
 
   return (
@@ -557,6 +558,7 @@ function GoatStory({ matchId, isFinished }: { matchId: string; isFinished: boole
 
 export default function MatchCenterPage() {
   const { id } = useParams<{ id: string }>();
+  const { tz, label: tzLbl } = useTimezone();
   const [detail, setDetail] = useState<FullMatchDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("timeline");
@@ -672,10 +674,7 @@ export default function MatchCenterPage() {
           <div className="flex items-center gap-2 bg-canal-black/90 border border-canal-gray-light rounded-full px-4 py-2 shadow-xl">
             <Clock size={14} className="text-canal-yellow" />
             <span className="text-sm text-white font-bold">
-              {new Date(match.starts_at).toLocaleString("fr-FR", {
-                weekday: "short", day: "numeric", month: "short",
-                hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Noumea",
-              })} NC
+              {toNCDate(match.starts_at, tz)} · {toNCTime(match.starts_at, tz)} {tzLbl}
             </span>
           </div>
         </div>

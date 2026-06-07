@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { DEFAULT_TZ, normalizeTimezone } from "@/lib/utils";
 import type { UserRole, User } from "@/lib/supabase/types";
 
 const ROLE_HIERARCHY: Record<UserRole, number> = {
@@ -30,6 +31,20 @@ export async function getCurrentProfile(): Promise<User | null> {
     .single();
 
   return data as User | null;
+}
+
+// Fuseau d'affichage de l'utilisateur courant (pour les Server Components
+// qui filtrent/affichent par date — ex. « matchs du jour »). Repli sur NC.
+export async function getUserTimezone(): Promise<string> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return DEFAULT_TZ;
+  const { data } = await supabase
+    .from("users")
+    .select("timezone")
+    .eq("auth_id", user.id)
+    .maybeSingle();
+  return normalizeTimezone(data?.timezone);
 }
 
 export async function getCurrentUserRole(): Promise<UserRole | null> {

@@ -20,6 +20,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { DEFAULT_TZ, TZ_OPTIONS } from "@/lib/utils";
+
+const VALID_TZ = new Set<string>(TZ_OPTIONS.map((o) => o.tz));
 
 function slugify(str: string): string {
   return str
@@ -42,6 +45,11 @@ export async function POST(req: Request) {
   const displayName = typeof body.display_name === "string" ? body.display_name.trim() : "";
   const serviceId = typeof body.service_id === "string" ? body.service_id : "";
   const footballLevel = typeof body.football_level === "string" ? body.football_level : "";
+  // Fuseau facultatif (auto-détecté côté client). Validé sinon repli NC.
+  const timezone =
+    typeof body.timezone === "string" && VALID_TZ.has(body.timezone)
+      ? body.timezone
+      : DEFAULT_TZ;
 
   if (displayName.length < 2) {
     return NextResponse.json({ error: "Pseudo requis (2 caractères min)." }, { status: 400 });
@@ -71,6 +79,7 @@ export async function POST(req: Request) {
     user_slug: slug,
     service_id: serviceId,
     football_level: footballLevel,
+    timezone,
     onboarding_step: 1,
     profile_completed: true,
     updated_at: new Date().toISOString(),
