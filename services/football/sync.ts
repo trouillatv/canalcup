@@ -528,7 +528,7 @@ export async function getMatchDetail(matchId: string): Promise<FullMatchDetail |
       doResync = takeResyncSlot(matchId); // anti-doublon concurrent
     }
   }
-  let refreshResult: { apifHomeId: number } | null = null;
+  let refreshResult: { apifHomeId?: number; tsdbHomeId?: string } | null = null;
   if (doResync) {
     refreshResult = await refreshMatchRow(match);
     const { data: fresh } = await supabase.from("matches").select("*").eq("id", matchId).single();
