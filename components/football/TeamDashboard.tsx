@@ -411,6 +411,12 @@ export function TeamDashboard({ data }: { data: FootballTeamDashboard }) {
               </span>
             ))}
             <span className="text-canal-gray-muted text-xs ml-1 italic">matchs joués CdM 2026</span>
+            {fifaRank && (
+              <span className="ml-auto text-xs text-canal-gray-muted">
+                FIFA&nbsp;<span className="text-white font-bold">#{fifaRank}</span>
+                {confederation && <span className="ml-1">({confederation})</span>}
+              </span>
+            )}
           </div>
         </section>
       )}

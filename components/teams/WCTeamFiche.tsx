@@ -438,9 +438,17 @@ export function WCTeamFiche({ team }: { team: WCTeam }) {
       {tab === "forme" && (
         <div className="space-y-5">
           <section>
-            <h2 className="text-xs font-bold text-canal-yellow uppercase tracking-wider mb-2">
-              Forme — 5 derniers matchs
-            </h2>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-xs font-bold text-canal-yellow uppercase tracking-wider">
+                Forme — 5 derniers matchs
+              </h2>
+              {fifaEntry && (
+                <span className="text-xs text-canal-gray-muted">
+                  FIFA&nbsp;<span className="text-white font-bold">#{fifaEntry.rank}</span>
+                  <span className="ml-1">({fifaEntry.confederation})</span>
+                </span>
+              )}
+            </div>
             {team.form.length > 0 ? (
               <div className="canal-card flex flex-wrap gap-2">
                 {team.form.map((f, i) => {
