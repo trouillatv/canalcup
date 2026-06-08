@@ -18,7 +18,8 @@ import { NotificationToggle } from "@/components/profile/NotificationToggle";
 import { TimezoneSelector } from "@/components/profile/TimezoneSelector";
 import { MyTeamsPanel } from "@/components/teams/MyTeamsPanel";
 import { DEFAULT_TZ } from "@/lib/utils";
-import { UserCircle2, Users2, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { UserCircle2, Users2, Sparkles, PartyPopper } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -217,6 +218,23 @@ export default async function ProfilePage() {
           Cup.
         </p>
       </section>
+
+      {/* Animations — accès direct (onglet supprimé de la nav) */}
+      <Link
+        href="/animations"
+        className="flex items-center justify-between canal-card hover:border-canal-yellow/40 transition-colors group"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-fuchsia-950/40 border border-fuchsia-500/30 flex items-center justify-center shrink-0">
+            <PartyPopper size={16} className="text-fuchsia-300" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-white">Animations & défis</p>
+            <p className="text-xs text-canal-gray-muted">Quiz, babyfoot, photos, jongles…</p>
+          </div>
+        </div>
+        <span className="text-canal-gray-muted text-sm group-hover:text-canal-yellow transition-colors">→</span>
+      </Link>
 
       {/* Déconnexion : déplacée dans la TopBar (icône à droite de l'avatar). */}
     </div>
