@@ -20,6 +20,15 @@ import {
 } from "lucide-react";
 import { cn, DEFAULT_TZ, TZ_OPTIONS, detectTimezone, normalizeTimezone } from "@/lib/utils";
 
+const WC_TEAMS_SORTED = [
+  "Afrique du Sud","Algérie","Allemagne","Angola","Arabie Saoudite","Argentine","Australie",
+  "Belgique","Bosnie-Herzégovine","Brésil","Canada","Cap-Vert","Colombie","Corée du Sud",
+  "Côte d'Ivoire","Croatie","Curaçao","Égypte","Équateur","Espagne","États-Unis","France",
+  "Haïti","Honduras","Iran","Italie","Japon","Maroc","Mexique","Nigéria","Panama","Paraguay",
+  "Pays-Bas","Pérou","Portugal","Qatar","République Tchèque","Sénégal","Suède","Suisse",
+  "Tunisie","Turquie","Uruguay","Venezuela",
+].sort((a, b) => a.localeCompare(b, "fr"));
+
 const FOOTBALL_LEVELS: { value: FootballLevel; label: string; desc: string; emoji: string }[] = [
   { value: "expert", label: "Expert", desc: "Je connais le hors-jeu, le faux pivot et les stats xG", emoji: "⚽" },
   { value: "amateur", label: "Amateur", desc: "Je regarde les grands matchs et je connais les équipes", emoji: "📺" },
@@ -48,6 +57,8 @@ function OnboardingInner() {
   const [serviceId, setServiceId] = useState("");
   const [footballLevel, setFootballLevel] = useState<FootballLevel | "">("");
   const [timezone, setTimezone] = useState<string>(DEFAULT_TZ);
+  const [bonusWinner, setBonusWinner] = useState("");
+  const [bonusTopScorer, setBonusTopScorer] = useState("");
   const [teamMode, setTeamMode] = useState<TeamMode>(inviteFromUrl ? "join" : "create");
   const [teamName, setTeamName] = useState("");
   const [inviteCode, setInviteCode] = useState(inviteFromUrl);
@@ -177,7 +188,23 @@ function OnboardingInner() {
       return;
     }
 
-    // 2. Équipe = FACULTATIVE.
+    // 2. Pronos bonus (facultatifs — pas bloquants si ça échoue).
+    const bonusSaves: Promise<unknown>[] = [];
+    if (bonusWinner.trim()) {
+      bonusSaves.push(fetch("/api/predictions/bonus", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prediction_type: "winner", predicted_value: bonusWinner.trim() }),
+      }).catch(() => {}));
+    }
+    if (bonusTopScorer.trim()) {
+      bonusSaves.push(fetch("/api/predictions/bonus", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prediction_type: "top_scorer", predicted_value: bonusTopScorer.trim() }),
+      }).catch(() => {}));
+    }
+    if (bonusSaves.length) await Promise.all(bonusSaves);
+
+    // 3. Équipe = FACULTATIVE.
     const wantsCreate = teamMode === "create" && teamName.trim().length >= 2 && !currentTeam;
     const wantsJoin = teamMode === "join" && inviteCode.trim().length >= 4;
 
@@ -341,6 +368,44 @@ function OnboardingInner() {
               ))}
             </div>
           </div>
+
+          {/* Pronos bonus — fermés au coup d'envoi du tournoi (11 juin 2026) */}
+          {Date.now() < new Date("2026-06-11T00:00:00Z").getTime() && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-canal-yellow font-bold uppercase tracking-wider mb-1 block">
+                  🏆 Qui va gagner la Coupe du Monde ? <span className="text-canal-gray-muted font-normal normal-case">(+20 pts si correct)</span>
+                </label>
+                <select
+                  value={bonusWinner}
+                  onChange={(e) => setBonusWinner(e.target.value)}
+                  className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-canal-yellow transition-colors"
+                  style={{ color: bonusWinner ? "white" : "#6b7280" }}
+                >
+                  <option value="">— Sélectionner une équipe —</option>
+                  {WC_TEAMS_SORTED.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-canal-yellow font-bold uppercase tracking-wider mb-1 block">
+                  ⚽ Qui sera le meilleur buteur ? <span className="text-canal-gray-muted font-normal normal-case">(+10 pts si correct)</span>
+                </label>
+                <input
+                  type="text"
+                  value={bonusTopScorer}
+                  onChange={(e) => setBonusTopScorer(e.target.value)}
+                  placeholder="Ex : Mbappé, Vinicius Jr…"
+                  maxLength={60}
+                  className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow transition-colors"
+                />
+              </div>
+              <p className="text-[11px] text-canal-gray-muted -mt-2 leading-snug">
+                Facultatif — modifiable depuis&nbsp;<span className="text-canal-yellow">Mes pronos</span>&nbsp;jusqu'au début du tournoi.
+              </p>
+            </div>
+          )}
 
           {/* Région / fuseau — pré-rempli par détection navigateur. Les
               abonnés Pacifique sont sur des fuseaux très différents

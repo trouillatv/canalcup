@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { Trophy, Star, Zap, ArrowLeft, Target, Clock } from "lucide-react";
+import { Trophy, Star, Zap, ArrowLeft, Target, Clock, Lock } from "lucide-react";
+
+const WC_START_MS = new Date("2026-06-11T00:00:00Z").getTime();
 import { scoreLabel } from "@/lib/scoring";
 import { teamFlag } from "@/lib/utils";
 import { LocalTime } from "@/components/timezone/LocalTime";
@@ -58,6 +60,7 @@ interface HistoryStats {
 }
 
 export default function PredictionsPage() {
+  const wcStarted = useMemo(() => Date.now() >= WC_START_MS, []);
   const [saved, setSaved] = useState<BonusPredictions>({});
   const [winner, setWinner] = useState("");
   const [topScorer, setTopScorer] = useState("");
@@ -221,6 +224,11 @@ export default function PredictionsPage() {
                 <span className="font-black text-white flex-1">{saved.winner}</span>
                 <span className="text-canal-yellow font-black">+20 pts</span>
               </div>
+            ) : wcStarted ? (
+              <div className="flex items-center gap-2 text-canal-gray-muted text-sm py-2">
+                <Lock size={14} className="shrink-0" />
+                <span>Pronostic fermé — la Coupe du Monde a commencé.</span>
+              </div>
             ) : (
               <>
                 <div className="grid grid-cols-3 gap-1.5 max-h-48 overflow-y-auto">
@@ -266,6 +274,11 @@ export default function PredictionsPage() {
                 <span className="text-xl">⚽</span>
                 <span className="font-black text-white flex-1">{saved.top_scorer}</span>
                 <span className="text-canal-yellow font-black">+10 pts</span>
+              </div>
+            ) : wcStarted ? (
+              <div className="flex items-center gap-2 text-canal-gray-muted text-sm py-2">
+                <Lock size={14} className="shrink-0" />
+                <span>Pronostic fermé — la Coupe du Monde a commencé.</span>
               </div>
             ) : (
               <>

@@ -9,12 +9,36 @@ import { getMatches, getPredictionTrends } from "@/lib/data/matches";
 import { createClient } from "@/lib/supabase/server";
 import { isToday } from "@/lib/utils";
 import { getUserTimezone } from "@/lib/auth/session";
-import { Star, Trophy } from "lucide-react";
+import { Star, Trophy, Bell } from "lucide-react";
 
 // Données live + pronostics par utilisateur → toujours frais.
 export const dynamic = "force-dynamic";
 
+const WC_START_MS = new Date("2026-06-11T00:00:00Z").getTime();
+
 type SavedMap = Record<string, { score_a: number; score_b: number; points?: number }>;
+
+async function getMissingBonus(): Promise<{ missingWinner: boolean; missingTopScorer: boolean } | null> {
+  // Pas de rappel si le tournoi a commencé
+  if (Date.now() >= WC_START_MS) return null;
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    const { data: profile } = await supabase.from("users").select("id").eq("auth_id", user.id).single();
+    if (!profile) return null;
+    const { data: bonuses } = await supabase
+      .from("bonus_predictions")
+      .select("prediction_type")
+      .eq("user_id", profile.id)
+      .in("prediction_type", ["winner", "top_scorer"]);
+    const saved = new Set((bonuses ?? []).map((b: { prediction_type: string }) => b.prediction_type));
+    const missingWinner = !saved.has("winner");
+    const missingTopScorer = !saved.has("top_scorer");
+    if (!missingWinner && !missingTopScorer) return null;
+    return { missingWinner, missingTopScorer };
+  } catch { return null; }
+}
 
 async function getMyPredictions(): Promise<SavedMap> {
   try {
@@ -52,11 +76,12 @@ async function getMyPredictions(): Promise<SavedMap> {
 }
 
 export default async function MatchesPage() {
-  const [matches, trends, myPredictions, tz] = await Promise.all([
+  const [matches, trends, myPredictions, tz, missingBonus] = await Promise.all([
     getMatches(),
     getPredictionTrends(),
     getMyPredictions(),
     getUserTimezone(),
+    getMissingBonus(),
   ]);
 
   // Les matchs DU JOUR (heure NC) sont remontés en haut, quel que soit leur
@@ -92,10 +117,30 @@ export default async function MatchesPage() {
               href="/predictions"
               className="flex items-center gap-1.5 text-xs font-bold text-canal-yellow border border-canal-yellow/30 rounded-xl px-3 py-2 hover:bg-canal-yellow/10 transition-colors"
             >
-              <Star size={12} /> Bonus
+              <Star size={12} /> Mes pronos
             </Link>
           </div>
         </div>
+
+        {missingBonus && (
+          <Link
+            href="/predictions"
+            className="flex items-start gap-3 rounded-xl border border-canal-yellow/30 bg-canal-yellow/10 px-4 py-3 hover:bg-canal-yellow/15 transition-colors"
+          >
+            <Bell size={16} className="text-canal-yellow shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-canal-yellow">Pronostics bonus à remplir avant le tournoi !</p>
+              <p className="text-xs text-canal-gray-muted mt-0.5">
+                {[
+                  missingBonus.missingWinner && "🏆 Vainqueur (+20 pts)",
+                  missingBonus.missingTopScorer && "⚽ Meilleur buteur (+10 pts)",
+                ].filter(Boolean).join(" · ")}
+                {" — ferme le 11 juin"}
+              </p>
+            </div>
+            <span className="text-canal-yellow text-xs font-bold shrink-0 mt-0.5">Remplir →</span>
+          </Link>
+        )}
 
         {today.length > 0 && (
           <section>

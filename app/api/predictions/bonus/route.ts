@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+// Pronostics "winner" et "top_scorer" fermés au coup d'envoi du tournoi.
+const WC_START_MS = new Date("2026-06-11T00:00:00Z").getTime();
+const LOCKED_TYPES = new Set(["winner", "top_scorer"]);
+
 export async function GET() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -25,6 +29,9 @@ export async function POST(req: Request) {
   const { prediction_type, predicted_value } = await req.json();
   if (!prediction_type || !predicted_value) {
     return NextResponse.json({ error: "prediction_type et predicted_value requis" }, { status: 400 });
+  }
+  if (LOCKED_TYPES.has(prediction_type) && Date.now() >= WC_START_MS) {
+    return NextResponse.json({ error: "Les pronostics du tournoi sont fermés depuis le début de la Coupe du Monde." }, { status: 403 });
   }
 
   const { data: profile } = await supabase
