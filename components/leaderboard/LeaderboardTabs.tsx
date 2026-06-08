@@ -141,14 +141,24 @@ export function LeaderboardTabs({
 
       {tab === "individual" && (
         <div>
-          <p className="text-canal-gray-muted text-xs mb-3">Score perso : <span className="text-white font-bold">pronos + quiz</span> uniquement (hors points du binôme).</p>
+          <p className="text-canal-gray-muted text-xs mb-2">Score perso : <span className="text-white font-bold">pronos + quiz</span> uniquement (hors points du binôme).</p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs mb-3 px-0.5">
+            <span className="text-canal-gray-muted">🎯 Résultat correct <span className="text-canal-yellow font-bold">+5 pts</span></span>
+            <span className="text-canal-gray-muted">🎰 Score exact <span className="text-canal-yellow font-bold">+10 pts</span></span>
+            <span className="text-canal-gray-muted">⚡ Quiz rapide <span className="text-canal-yellow font-bold">+5 pts</span></span>
+            <span className="text-canal-gray-muted">🧠 Quiz correct <span className="text-canal-yellow font-bold">+3 pts</span></span>
+          </div>
           <PlayerList rows={individualRows} metric="perso" />
         </div>
       )}
 
       {tab === "pronos" && (
         <div>
-          <p className="text-canal-gray-muted text-xs mb-3">Classement sur les seuls points de <span className="text-white font-bold">pronostics</span> (pondérés).</p>
+          <p className="text-canal-gray-muted text-xs mb-2">Classement sur les seuls points de <span className="text-white font-bold">pronostics</span>.</p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs mb-3 px-0.5">
+            <span className="text-canal-gray-muted">🎯 Résultat correct (V/N/D) <span className="text-canal-yellow font-bold">+5 pts</span></span>
+            <span className="text-canal-gray-muted">🎰 Score exact <span className="text-canal-yellow font-bold">+10 pts</span></span>
+          </div>
           <PlayerList rows={individualRows} metric="pronos" />
         </div>
       )}

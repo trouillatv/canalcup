@@ -139,6 +139,12 @@ export default function PredictionsPage() {
         </div>
       )}
 
+      {/* Rappel des règles de points */}
+      <div className="canal-card flex flex-wrap gap-x-4 gap-y-1 text-xs py-2.5">
+        <span className="text-canal-gray-muted">🎯 Résultat correct (V/N/D) <span className="text-canal-yellow font-bold">+5 pts</span></span>
+        <span className="text-canal-gray-muted">🎰 Score exact <span className="text-canal-yellow font-bold">+10 pts</span></span>
+      </div>
+
       {/* Tabs */}
       <div className="flex gap-1 bg-canal-gray rounded-xl p-1">
         {(["historique", "bonus"] as const).map((t) => (
