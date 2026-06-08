@@ -191,7 +191,7 @@ export async function getTeams(): Promise<Team[]> {
     const admin = createAdminClient();
     const { data, error } = await admin
       .from("teams")
-      .select("*, members:users!team_id(id,display_name,name)");
+      .select("*, members:users!team_id(*)");
     if (error) return [];
     if (!data?.length) return [];
     const agg = await computeTeamScores(
