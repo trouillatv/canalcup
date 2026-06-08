@@ -198,7 +198,7 @@ export async function getTeams(): Promise<Team[]> {
     // Groupe les membres par team_id
     type MRow = { team_id: string; user: { id: string; display_name: string | null; name: string | null } | null };
     const byTeam = new Map<string, { id: string; display_name: string | null; name: string | null }[]>();
-    for (const row of (memberships ?? []) as MRow[]) {
+    for (const row of (memberships ?? []) as unknown as MRow[]) {
       if (!row.user) continue;
       if (!byTeam.has(row.team_id)) byTeam.set(row.team_id, []);
       byTeam.get(row.team_id)!.push(row.user);
