@@ -20,6 +20,7 @@ export interface ServiceMemberRow {
   user_id: string;
   display_name: string | null;
   team_name: string | null;
+  football_level: string | null;
   pronos: number;
   quiz: number;
   babyfoot: number;
@@ -34,7 +35,9 @@ export interface ServiceDetailRow {
   total: number;
   average: number;
   rank: number;
+  outOf: number;
   roster: ServiceMemberRow[];
+  footballLevels: { expert: number; amateur: number; ambiance: number };
 }
 
 export async function getAllUsersForAdmin(): Promise<AdminUserView[]> {
@@ -179,7 +182,7 @@ export async function getServiceDetail(serviceId: string): Promise<ServiceDetail
         .select("id, name, emoji, is_active, sort_order, created_at")
         .eq("id", serviceId)
         .maybeSingle(),
-      supabase.from("users").select("id, display_name, name, service_id, email").eq("service_id", serviceId),
+      supabase.from("users").select("id, display_name, name, service_id, email, football_level").eq("service_id", serviceId),
       getServiceLeaderboard(),
       getIndividualLeaderboard(),
       getAdminEmails(),
@@ -187,21 +190,29 @@ export async function getServiceDetail(serviceId: string): Promise<ServiceDetail
 
     if (!serviceRes.data) return null;
 
-    const memberIds = new Set(
-      (usersRes.data ?? [])
-        .filter((u: { email: string | null }) => !adminEmails.has(normalizeEmail(u.email ?? "")))
-        .map((u: { id: string }) => u.id)
+    type UserWithLevel = { id: string; email: string | null; football_level: string | null };
+    const nonAdminUsers = (usersRes.data ?? [] as UserWithLevel[]).filter(
+      (u: UserWithLevel) => !adminEmails.has(normalizeEmail(u.email ?? ""))
     );
+    const memberIds = new Set(nonAdminUsers.map((u: UserWithLevel) => u.id));
+    const levelByUser = new Map(nonAdminUsers.map((u: UserWithLevel) => [u.id, u.football_level]));
 
-    const roster = individualRows
+    const roster: ServiceMemberRow[] = individualRows
       .filter((row) => memberIds.has(row.user_id))
-      .map((row) => ({ ...row }))
-      .sort((a, b) => {
-        const nameA = a.display_name ?? "";
-        const nameB = b.display_name ?? "";
-        return b.total - a.total || nameA.localeCompare(nameB);
-      })
-      .map((row, index) => ({ ...row, rank: index + 1 }));
+      .sort((a, b) => b.total - a.total || (a.display_name ?? "").localeCompare(b.display_name ?? ""))
+      .map((row, index) => ({
+        ...row,
+        football_level: levelByUser.get(row.user_id) ?? null,
+        rank: index + 1,
+      }));
+
+    const footballLevels = { expert: 0, amateur: 0, ambiance: 0 };
+    for (const u of nonAdminUsers) {
+      const lvl = (u as UserWithLevel).football_level;
+      if (lvl === "expert") footballLevels.expert++;
+      else if (lvl === "amateur") footballLevels.amateur++;
+      else footballLevels.ambiance++;
+    }
 
     const aggregate = serviceRows.find((row) => row.service.id === serviceId) ?? null;
     return {
@@ -210,7 +221,9 @@ export async function getServiceDetail(serviceId: string): Promise<ServiceDetail
       total: aggregate?.total ?? 0,
       average: aggregate?.average ?? 0,
       rank: aggregate?.rank ?? 0,
+      outOf: serviceRows.length,
       roster,
+      footballLevels,
     };
   } catch {
     return null;
