@@ -1,0 +1,72 @@
+# Ping /api/cron/live-matches toutes les 5 min PENDANT la Coupe du Monde.
+#
+# Pourquoi un workflow dédié (en plus de sync-matches.yml @15 min) : pendant
+# un match, on veut des scores/buts frais. */5 est la cadence minimale de
+# GitHub Actions. L'endpoint /api/cron/live-matches est LÉGER et garde-fou :
+# hors fenêtre live d'un match il sort immédiatement, 0 appel API-Football.
+# Pour une cadence plus fine (~90 s) sur un gros match, lancer en local
+# scripts/auto-live.js. Le live "à la lecture" (90 s quand des gens sont sur
+# l'app) complète déjà ce ping de fond.
+#
+# Secrets repo requis (déjà configurés pour sync-matches.yml) :
+#   - CRON_SECRET  : même valeur que la var Vercel CRON_SECRET
+#   - APP_BASE_URL : URL prod (ex. https://canal-cup.vercel.app — sans / final)
+#
+# Fenêtre : 11/06/2026 → 19/07/2026. Hors fenêtre, sortie en succès sans appel.
+# Échec d'appel = NON bloquant (exit 0, log seulement) — l'endpoint est
+# idempotent, le ping suivant rattrape.
+
+name: Live matchs WC2026 (scores, externe)
+
+on:
+  schedule:
+    # Toutes les 5 min (UTC). GitHub Actions = best-effort, déclenchement
+    # parfois différé de quelques minutes (acceptable, endpoint idempotent).
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+# Jamais 2 pings live concurrents.
+concurrency:
+  group: live-matches
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Garde de fenêtre Coupe du Monde
+        id: window
+        run: |
+          TODAY="$(date -u +%Y-%m-%d)"
+          START="2026-06-11"
+          END="2026-07-19"
+          if [[ "$TODAY" < "$START" || "$TODAY" > "$END" ]]; then
+            echo "[$TODAY] hors fenêtre CdM ($START → $END) — skip."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "[$TODAY] dans la fenêtre CdM — ping live."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Ping /api/cron/live-matches
+        if: steps.window.outputs.run == 'true'
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+        run: |
+          if [ -z "$CRON_SECRET" ] || [ -z "$APP_BASE_URL" ]; then
+            echo "::warning::CRON_SECRET ou APP_BASE_URL manquant — skip."
+            exit 0
+          fi
+          URL="${APP_BASE_URL%/}/api/cron/live-matches"
+          echo "→ GET $URL ($(date -u +%H:%M:%SZ))"
+          CODE=$(curl -sS -m 90 -o /tmp/live.out -w "%{http_code}" \
+            -H "Authorization: Bearer $CRON_SECRET" "$URL" || echo "000")
+          echo "HTTP $CODE"
+          echo "--- réponse ---"; cat /tmp/live.out 2>/dev/null | head -c 2000; echo
+          if [ "$CODE" != "200" ]; then
+            echo "::warning::live HTTP $CODE (non bloquant — rattrapé au prochain ping)"
+          fi
+          exit 0

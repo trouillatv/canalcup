@@ -112,7 +112,7 @@ function durationMs(start: string, end: string | null): string {
 }
 
 // Budget quotidien visé (miroir de DAILY_CALL_BUDGET dans services/football/sync.ts)
-const DAILY_CALL_BUDGET = 90;
+const DAILY_CALL_BUDGET = 4000;
 
 // Tableau stratégie quota (référence indicative)
 const QUOTA_STRATEGY = [

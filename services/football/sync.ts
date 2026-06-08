@@ -348,8 +348,10 @@ const RESYNC_FINISHED_MS = 30 * 60_000;
 const RESYNC_LIVE_FALLBACK_MS = 5 * 60_000;
 const POST_MATCH_WINDOW_MS = 5 * 60 * 60_000; // ~kickoff + 5 h : couvre le +2 h
 
-// ── Budget quotidien API-Football (plan gratuit = 100/j ; on vise 90 max) ────
-const DAILY_CALL_BUDGET = 90;
+// ── Budget quotidien API-Football (forfait payant = 7500/j ; on vise 4000 max,
+// large marge sous le plafond). Au-delà, apifRemainingToday tombe à 0 et le
+// resync live s'étale au MAX : c'est ce qui bridait tout à 90/j auparavant. ──
+const DAILY_CALL_BUDGET = 4000;
 const CALLS_PER_LIVE_RESYNC = 3; // refreshMatchRow + events + stats par resync live
 const MATCH_MINUTES = 90;        // durée de jeu d'un match (référence du budget)
 const MIN_RESYNC_MS = 90_000;    // jamais sous 90 s, même avec beaucoup de quota
