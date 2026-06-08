@@ -120,7 +120,7 @@ function BracketTreeCard({ match, big }: { match: MatchRow; big?: boolean }) {
     >
       <div className="flex items-center justify-between px-2.5 pt-1.5">
         <span className="text-[10px] uppercase tracking-wider text-canal-gray-muted font-bold">
-          {isTbd ? "À venir" : isLive ? <span className="text-red-400 animate-pulse">● Live</span> : isFinished ? "Terminé" : <LocalTime date={match.starts_at} variant="time" />}
+          {isTbd ? "À venir" : isLive ? <span className="text-red-400 animate-pulse">● Live</span> : isFinished ? "Terminé" : <><LocalTime date={match.starts_at} variant="dateShort" /> <LocalTime date={match.starts_at} variant="time" /></>}
         </span>
       </div>
       <BracketTeamLine
@@ -224,13 +224,16 @@ function GroupMatchRow({ m }: { m: MatchRow }) {
   const hasScore = m.score_a !== null && m.score_a !== undefined && m.score_b !== null && m.score_b !== undefined;
   return (
     <div className="flex items-center gap-2 text-xs py-2 border-b border-canal-gray-light/15 last:border-0">
-      <span className="w-12 shrink-0 text-[11px] text-canal-gray-muted text-center">
+      <span className="w-16 shrink-0 text-[11px] text-canal-gray-muted text-center">
         {live ? (
           <span className="text-red-400 font-bold animate-pulse">● live</span>
         ) : finished ? (
           "Fini"
         ) : (
-          <LocalTime date={m.starts_at} variant="time" />
+          <span className="flex flex-col items-center leading-tight">
+            <LocalTime date={m.starts_at} variant="dateShort" />
+            <LocalTime date={m.starts_at} variant="time" />
+          </span>
         )}
       </span>
       <TeamLink

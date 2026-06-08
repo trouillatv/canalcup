@@ -43,13 +43,16 @@ function CompactRow({ match }: { match: MatchRow }) {
         <span className={`font-semibold flex-1 min-w-0 truncate ${isFinished ? "text-canal-gray-muted" : "text-white"}`}>
           {match.team_a || "—"}
         </span>
-        <div className="shrink-0 w-14 text-center">
+        <div className="shrink-0 w-16 text-center">
           {(isLive || isFinished) && hasScore ? (
             <span className={`font-black ${isLive ? "text-red-400" : "text-canal-yellow"}`}>
               {match.score_a}–{match.score_b}
             </span>
           ) : (
-            <span className="text-canal-gray-muted"><LocalTime date={match.starts_at} variant="time" /></span>
+            <span className="text-canal-gray-muted flex flex-col items-center leading-tight text-[11px]">
+              <LocalTime date={match.starts_at} variant="dateShort" />
+              <LocalTime date={match.starts_at} variant="time" />
+            </span>
           )}
         </div>
         <span className={`font-semibold flex-1 min-w-0 truncate text-right ${isFinished ? "text-canal-gray-muted" : "text-white"}`}>
