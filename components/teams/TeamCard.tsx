@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Team } from "@/lib/supabase/types";
 
-import { Users, ChevronRight, Clock } from "lucide-react";
+import { ChevronRight, Clock } from "lucide-react";
 
 interface TeamCardProps {
   team: Team;
@@ -45,6 +45,15 @@ export function TeamCard({ team, rank, showDetails, hasPendingRequest, pendingCo
               )}
             </div>
             <p className="text-xs text-canal-gray-muted italic truncate">{team.slogan}</p>
+            {team.members && team.members.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {team.members.map((m) => (
+                  <span key={m.id} className="text-[10px] bg-canal-gray-mid border border-canal-gray-light text-canal-gray-muted px-1.5 py-0.5 rounded-full">
+                    {m.display_name ?? m.name}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col items-end gap-1 flex-shrink-0">
@@ -52,12 +61,6 @@ export function TeamCard({ team, rank, showDetails, hasPendingRequest, pendingCo
               {team.total_points}
             </span>
             <span className="text-xs text-canal-gray-muted">pts</span>
-            {team.members && (
-              <div className="flex items-center gap-1 text-xs text-canal-gray-muted">
-                <Users size={10} />
-                <span>{team.members.length}</span>
-              </div>
-            )}
           </div>
 
           <ChevronRight size={16} className="text-canal-gray-muted flex-shrink-0" />
