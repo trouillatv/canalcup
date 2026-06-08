@@ -79,9 +79,6 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
       {/* ─── En-tête équipe ─── */}
       <div className="canal-card border border-canal-yellow/30 bg-gradient-to-br from-canal-yellow/10 to-transparent">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-canal-yellow text-canal-black flex items-center justify-center font-black text-2xl shrink-0">
-            {d.team.initials}
-          </div>
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-black text-white truncate">{d.team.name}</h1>
             {d.team.slogan && <p className="text-canal-gray-muted text-sm italic truncate">{d.team.slogan}</p>}
