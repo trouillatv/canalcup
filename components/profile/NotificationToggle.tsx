@@ -162,8 +162,8 @@ export function NotificationToggle() {
         >
           <span
             className={cn(
-              "absolute top-1 h-6 w-6 rounded-full bg-white shadow-sm transition-transform",
-              enabled ? "translate-x-6" : "translate-x-1"
+              "absolute top-1 h-6 w-6 rounded-full transition-transform",
+              enabled ? "bg-canal-black translate-x-6" : "bg-canal-gray-muted translate-x-1"
             )}
           />
         </button>
