@@ -6,7 +6,6 @@ import { ArrowLeft, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Flag } from "@/components/shared/Flag";
 import { LocalTime } from "@/components/timezone/LocalTime";
-import { formCode } from "@/lib/football/wc-teams";
 import { wcTeamHref } from "@/lib/football/wc-teams-index";
 import type { FootballTeamDashboard, WCMatchSummary, FootballGroupRow } from "@/lib/data/football-team";
 
@@ -222,7 +221,11 @@ export function TeamDashboard({ data }: { data: FootballTeamDashboard }) {
     else router.push("/bracket");
   };
 
-  const formBadges = wcTeam.form.slice(0, 5);
+  // Forme CdM calculée à partir des vrais résultats DB (pastMatches), pas du JSON statique pré-tournoi
+  const formBadges = pastMatches
+    .filter(m => m.result !== null)
+    .slice(-5)
+    .map(m => m.result as "W" | "D" | "L");
 
   // Joueur le plus valorisé (valeur numérique max parmi les joueurs)
   const topPlayer = wcTeam.players
@@ -394,26 +397,20 @@ export function TeamDashboard({ data }: { data: FootballTeamDashboard }) {
       {/* ── FORME ────────────────────────────────────────────────────────── */}
       {formBadges.length > 0 && (
         <section>
-          <SectionTitle>Forme récente</SectionTitle>
+          <SectionTitle>Forme en Coupe du Monde</SectionTitle>
           <div className="canal-card flex flex-wrap items-center gap-2">
-            {formBadges.map((f, i) => {
-              const c = formCode(f);
-              return (
-                <span
-                  key={i}
-                  className={cn(
-                    "w-8 h-8 rounded-full border flex items-center justify-center text-xs font-black shrink-0",
-                    FORM_STYLE[c]
-                  )}
-                  title={f}
-                >
-                  {c}
-                </span>
-              );
-            })}
-            {formBadges.length > 0 && (
-              <span className="text-canal-gray-muted text-xs ml-1 italic">5 derniers matchs</span>
-            )}
+            {formBadges.map((r, i) => (
+              <span
+                key={i}
+                className={cn(
+                  "w-8 h-8 rounded-full border flex items-center justify-center text-xs font-black shrink-0",
+                  FORM_STYLE[r === "W" ? "V" : r === "L" ? "D" : "N"]
+                )}
+              >
+                {FORM_DOT_LABEL[r]}
+              </span>
+            ))}
+            <span className="text-canal-gray-muted text-xs ml-1 italic">matchs joués CdM 2026</span>
           </div>
         </section>
       )}
