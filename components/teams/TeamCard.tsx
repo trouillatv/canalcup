@@ -1,12 +1,13 @@
 import Link from "next/link";
 import type { Team } from "@/lib/supabase/types";
 import { pointsBadge } from "@/lib/utils";
-import { Users, ChevronRight } from "lucide-react";
+import { Users, ChevronRight, Clock } from "lucide-react";
 
 interface TeamCardProps {
   team: Team;
   rank?: number;
   showDetails?: boolean;
+  hasPendingRequest?: boolean;
 }
 
 const TEAM_COLORS = [
@@ -15,7 +16,7 @@ const TEAM_COLORS = [
   "border-l-yellow-700",
 ];
 
-export function TeamCard({ team, rank, showDetails }: TeamCardProps) {
+export function TeamCard({ team, rank, showDetails, hasPendingRequest }: TeamCardProps) {
   const borderColor = rank ? TEAM_COLORS[(rank - 1) % 3] : "border-l-canal-gray-light";
 
   return (
@@ -40,9 +41,14 @@ export function TeamCard({ team, rank, showDetails }: TeamCardProps) {
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-bold text-white truncate">{team.name}</h3>
               <span className="text-lg flex-shrink-0">{pointsBadge(team.total_points)}</span>
+              {hasPendingRequest && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 border border-orange-500/30 px-2 py-0.5 text-[10px] font-bold text-orange-400">
+                  <Clock size={9} /> En attente
+                </span>
+              )}
             </div>
             <p className="text-xs text-canal-gray-muted italic truncate">{team.slogan}</p>
             {showDetails && (

@@ -1,11 +1,22 @@
 import Link from "next/link";
 import { getTeams } from "@/lib/data/teams";
 import { TeamCard } from "@/components/teams/TeamCard";
+import { createClient } from "@/lib/supabase/server";
 
 export const revalidate = 60;
 
 export default async function TeamsPage() {
-  const sorted = await getTeams();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const [sorted, pendingRes] = await Promise.all([
+    getTeams(),
+    user
+      ? supabase.from("team_join_requests").select("team_id").eq("user_id", user.id).eq("status", "pending")
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const pendingTeamIds = new Set((pendingRes.data ?? []).map((r: { team_id: string }) => r.team_id));
 
   return (
     <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto">
@@ -35,7 +46,7 @@ export default async function TeamsPage() {
       ) : (
         <div className="space-y-3">
           {sorted.map((team, i) => (
-            <TeamCard key={team.id} team={team} rank={i + 1} showDetails />
+            <TeamCard key={team.id} team={team} rank={i + 1} showDetails hasPendingRequest={pendingTeamIds.has(team.id)} />
           ))}
         </div>
       )}
