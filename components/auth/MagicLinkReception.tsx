@@ -35,6 +35,17 @@ export function MagicLinkReception() {
 
   const reset = () => { setStatus("idle"); setErrorMsg(""); setPassword(""); setConfirm(""); };
 
+  const isAllowedEmail = async (email: string): Promise<boolean> => {
+    if (isRequiredEmailDomain(email)) return true;
+    try {
+      const res = await fetch(`/api/auth/pre-check?email=${encodeURIComponent(email)}`);
+      const data = await res.json().catch(() => ({ allowed: false }));
+      return !!data?.allowed;
+    } catch {
+      return false;
+    }
+  };
+
   const checkAllowlistAndRedirect = async () => {
     const payload = await checkClientAllowlist();
 
@@ -59,7 +70,7 @@ export function MagicLinkReception() {
     e.preventDefault();
     const normalizedEmail = normalizeEmail(email);
     if (!normalizedEmail || !password) return;
-    if (!isRequiredEmailDomain(normalizedEmail)) { setErrorMsg(REQUIRED_EMAIL_MESSAGE); return; }
+    if (!await isAllowedEmail(normalizedEmail)) { setErrorMsg(REQUIRED_EMAIL_MESSAGE); return; }
     setStatus("loading");
     setErrorMsg("");
 
@@ -83,7 +94,7 @@ export function MagicLinkReception() {
     e.preventDefault();
     const normalizedEmail = normalizeEmail(email);
     if (!normalizedEmail || !password || !confirm) return;
-    if (!isRequiredEmailDomain(normalizedEmail)) { setErrorMsg(REQUIRED_EMAIL_MESSAGE); return; }
+    if (!await isAllowedEmail(normalizedEmail)) { setErrorMsg(REQUIRED_EMAIL_MESSAGE); return; }
     if (password !== confirm) { setErrorMsg("Les mots de passe ne correspondent pas."); return; }
     if (password.length < 8) { setErrorMsg("Le mot de passe doit faire au moins 8 caractères."); return; }
     setStatus("loading");
@@ -127,7 +138,7 @@ export function MagicLinkReception() {
   const handleForgot = async () => {
     const normalizedEmail = normalizeEmail(email);
     if (!normalizedEmail) { setErrorMsg("Entre d'abord ton email."); return; }
-    if (!isRequiredEmailDomain(normalizedEmail)) { setErrorMsg(REQUIRED_EMAIL_MESSAGE); return; }
+    if (!await isAllowedEmail(normalizedEmail)) { setErrorMsg(REQUIRED_EMAIL_MESSAGE); return; }
     setForgotSent(false);
     const supabase = createClient();
     const resetUrl = `${window.location.origin}/auth/reset-password`;
