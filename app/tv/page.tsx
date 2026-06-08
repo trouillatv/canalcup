@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { toNCDate, toNCTime } from "@/lib/utils";
 import { Flag } from "@/components/shared/Flag";
-import { QrCode } from "lucide-react";
+import { QrCode, Maximize2, Minimize2 } from "lucide-react";
 import type { Match, LeaderboardRow, MorningBrief, RevivezPost, CanalCupEvent, Challenge } from "@/lib/supabase/types";
 import type { IndividualRow } from "@/lib/data/teams";
 import type { ServiceLeaderboardRow } from "@/lib/data/users";
@@ -2412,6 +2412,21 @@ export default function TVPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [data, setData] = useState<TVData | null>(null);
   const [origin, setOrigin] = useState<string>("");
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
 
   const fetchData = () => {
     fetch("/api/tv")
@@ -2505,6 +2520,16 @@ export default function TVPage() {
             <p className="text-canal-gray-muted text-xs sm:text-sm">Heure NC</p>
             <LiveClock />
           </div>
+          <button
+            onClick={toggleFullscreen}
+            title={isFullscreen ? "Quitter le plein écran" : "Plein écran"}
+            className="flex flex-col items-center gap-1 px-2 py-1 rounded-lg hover:bg-canal-gray-mid/60 active:scale-95 transition-all cursor-pointer"
+          >
+            {isFullscreen
+              ? <Minimize2 size={22} className="text-canal-yellow" />
+              : <Maximize2 size={22} className="text-canal-gray-muted hover:text-white transition-colors" />}
+            <span className="text-[10px] text-canal-gray-muted">{isFullscreen ? "Réduire" : "Plein écran"}</span>
+          </button>
           <div className="w-px h-8 sm:h-10 bg-canal-gray-light" />
           <div className="flex flex-col items-center gap-1">
             {origin ? (
