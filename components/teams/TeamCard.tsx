@@ -56,10 +56,8 @@ export function TeamCard({ team, rank, showDetails, hasPendingRequest, pendingCo
             )}
           </div>
 
-          <div className="flex flex-col items-end gap-1 flex-shrink-0">
-            <span className="text-canal-yellow font-black text-lg">
-              {team.total_points}
-            </span>
+          <div className="flex items-baseline gap-1 flex-shrink-0">
+            <span className="text-canal-yellow font-black text-lg">{team.total_points}</span>
             <span className="text-xs text-canal-gray-muted">pts</span>
           </div>
 

@@ -186,22 +186,27 @@ export async function getTeamScores(): Promise<Record<string, number>> {
 export async function getTeams(): Promise<Team[]> {
   try {
     const supabase = await createClient();
-    // Admin client nécessaire pour lire les membres des autres équipes
-    // (RLS sur users bloque la lecture cross-équipe avec le client session).
     const admin = createAdminClient();
-    const { data, error } = await admin
-      .from("teams")
-      .select("*, members:users!team_id(*)");
+    // Source de vérité des membres : team_memberships (pas users.team_id)
+    const [{ data, error }, { data: memberships }] = await Promise.all([
+      admin.from("teams").select("*"),
+      admin.from("team_memberships").select("team_id, user:users(id, display_name, name)"),
+    ]);
     if (error) return [];
     if (!data?.length) return [];
-    const agg = await computeTeamScores(
-      supabase,
-      data.map((t) => t.id)
-    );
-    // total_points écrasé par le score calculé (jamais la valeur de seed),
-    // puis tri par ce score.
+
+    // Groupe les membres par team_id
+    type MRow = { team_id: string; user: { id: string; display_name: string | null; name: string | null } | null };
+    const byTeam = new Map<string, { id: string; display_name: string | null; name: string | null }[]>();
+    for (const row of (memberships ?? []) as MRow[]) {
+      if (!row.user) continue;
+      if (!byTeam.has(row.team_id)) byTeam.set(row.team_id, []);
+      byTeam.get(row.team_id)!.push(row.user);
+    }
+
+    const agg = await computeTeamScores(supabase, data.map((t) => t.id));
     return (data as Team[])
-      .map((t) => ({ ...t, total_points: agg.get(t.id)?.total ?? 0 }))
+      .map((t) => ({ ...t, members: byTeam.get(t.id) ?? [], total_points: agg.get(t.id)?.total ?? 0 }))
       .sort((a, b) => b.total_points - a.total_points);
   } catch {
     return [];
