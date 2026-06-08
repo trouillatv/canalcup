@@ -73,7 +73,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
       <header className="canal-card border border-canal-yellow/25 bg-gradient-to-br from-canal-yellow/10 to-transparent">
         <div className="flex items-start gap-4">
           <div className="h-16 w-16 rounded-2xl bg-canal-yellow text-canal-black flex items-center justify-center font-black text-2xl shrink-0">
-            {service.emoji ?? initials}
+            {initials}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">

@@ -179,7 +179,7 @@ export async function getServiceDetail(serviceId: string): Promise<ServiceDetail
     const [serviceRes, usersRes, serviceRows, individualRows, adminEmails] = await Promise.all([
       supabase
         .from("services")
-        .select("id, name, emoji, is_active, sort_order, created_at")
+        .select("id, name, is_active, sort_order, created_at")
         .eq("id", serviceId)
         .maybeSingle(),
       supabase.from("users").select("id, display_name, name, service_id, email, football_level").eq("service_id", serviceId),

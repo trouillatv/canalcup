@@ -8,7 +8,7 @@ export const revalidate = 60;
 export default async function ServicesPage() {
   const supabase = await createClient();
   const [{ data: services }, rows] = await Promise.all([
-    supabase.from("services").select("id, name, emoji, is_active, sort_order").eq("is_active", true).order("sort_order"),
+    supabase.from("services").select("id, name, is_active, sort_order").eq("is_active", true).order("sort_order"),
     getServiceLeaderboard(),
   ]);
 
@@ -45,7 +45,7 @@ export default async function ServicesPage() {
             >
               <div className="flex items-start gap-3">
                 <div className="h-12 w-12 rounded-2xl bg-canal-yellow/10 border border-canal-yellow/20 flex items-center justify-center text-2xl">
-                  {service.emoji ?? "🏢"}
+                  {"🏢"}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
