@@ -14,7 +14,6 @@ const MENU_ITEMS = [
   { href: "/leaderboard", icon: Trophy,   label: "Classement" },
   { href: "/teams",      icon: Users,     label: "Équipes" },
   { href: "/schedule",   icon: CalendarDays, label: "Calendrier CdM" },
-  { href: "/bracket",    icon: Globe2,       label: "Tableau CdM" },
   { href: "/wc-teams",   icon: Globe2,    label: "Sélections CdM" },
   { href: "/services",   icon: Building2, label: "Services" },
   { href: "/babyfoot",   icon: Gamepad2,  label: "Babyfoot" },
