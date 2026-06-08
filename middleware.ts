@@ -9,6 +9,7 @@ const PUBLIC_PATHS = [
   "/auth/reset-password",
   "/tv",
   "/api/tv",
+  "/api/auth/pre-check",
   "/api/admin/magic-link",
   "/api/admin/sync-matches",
   "/api/cron",
