@@ -206,7 +206,8 @@ export async function getTeams(): Promise<Team[]> {
 
     const agg = await computeTeamScores(supabase, data.map((t) => t.id));
     return (data as Team[])
-      .map((t) => ({ ...t, members: byTeam.get(t.id) ?? [], total_points: agg.get(t.id)?.total ?? 0 }))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((t) => ({ ...t, members: (byTeam.get(t.id) ?? []) as any, total_points: agg.get(t.id)?.total ?? 0 }))
       .sort((a, b) => b.total_points - a.total_points);
   } catch {
     return [];
