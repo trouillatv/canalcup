@@ -9,6 +9,7 @@ import { Flag } from "@/components/shared/Flag";
 import { ViewSwitcher } from "@/components/views/ViewSwitcher";
 import { BracketFifa } from "@/components/bracket/BracketFifa";
 import { BracketCompact } from "@/components/bracket/BracketCompact";
+import { wcTeamHref } from "@/lib/football/wc-teams-index";
 
 const VIEW_KEY = "bracket-view";
 
@@ -134,10 +135,20 @@ function GroupStandings({ rows }: { rows: StandingRow[] }) {
             >
               <td className="py-1 text-center font-bold">{i + 1}</td>
               <td className="py-1">
-                <span className="flex items-center gap-1">
-                  <Flag flag={row.team_flag} name={row.team_name_fr} className="h-4 w-auto rounded-sm" />
-                  <span className={i < 2 ? "font-semibold" : ""}>{row.team_name_fr}</span>
-                </span>
+                {(() => {
+                  const href = wcTeamHref(row.team_name_fr);
+                  const inner = (
+                    <span className="flex items-center gap-1">
+                      <Flag flag={row.team_flag} name={row.team_name_fr} className="h-4 w-auto rounded-sm" />
+                      <span className={i < 2 ? "font-semibold" : ""}>{row.team_name_fr}</span>
+                    </span>
+                  );
+                  return href ? (
+                    <Link href={href} className="hover:text-canal-yellow transition-colors" onClick={(e) => e.stopPropagation()}>
+                      {inner}
+                    </Link>
+                  ) : inner;
+                })()}
               </td>
               <td className="py-1 text-center">{row.played}</td>
               <td className="py-1 text-center">{row.won}</td>

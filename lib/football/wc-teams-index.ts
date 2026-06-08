@@ -28,9 +28,9 @@ function slugify(name: string): string {
 
 const SLUG_SET = new Set((index as { name: string; slug: string }[]).map((t) => t.slug));
 
-/** Lien vers la fiche de l'équipe, ou null si aucune donnée docs. */
+/** Lien vers la fiche condensée de l'équipe (/football/teams/[slug]), ou null si absente. */
 export function wcTeamHref(name: string): string | null {
   if (!name) return null;
   const slug = slugify(NAME_ALIASES[name] ?? name);
-  return SLUG_SET.has(slug) ? `/wc-team/${slug}` : null;
+  return SLUG_SET.has(slug) ? `/football/teams/${slug}` : null;
 }
