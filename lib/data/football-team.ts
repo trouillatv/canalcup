@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getWCTeamBySlug, type WCTeam } from "@/lib/football/wc-teams";
 import { groupLetterForTeam, WC2026_GROUPS } from "@/lib/football/groups-2026";
+import { getFIFARank, type Confederation } from "@/lib/football/fifa-ranks";
 
 // Normalise un nom d'équipe pour comparaison : sans accents, minuscules, espaces seuls.
 function normName(n: string): string {
@@ -73,6 +74,8 @@ export interface FootballGroupRow {
 export interface FootballTeamDashboard {
   wcTeam: WCTeam;
   groupLetter: string | null;
+  fifaRank: number | null;
+  confederation: Confederation | null;
   groupStandings: FootballGroupRow[];
   pastMatches: WCMatchSummary[];
   upcomingMatches: WCMatchSummary[];
@@ -147,6 +150,7 @@ export async function getFootballTeamDashboard(slug: string): Promise<FootballTe
   if (!wcTeam) return null;
 
   const groupLetter = groupLetterForTeam(wcTeam.name);
+  const fifaEntry = getFIFARank(wcTeam.name);
 
   try {
     const supabase = await createClient();
@@ -207,10 +211,17 @@ export async function getFootballTeamDashboard(slug: string): Promise<FootballTe
       }
     }
 
-    return { wcTeam, groupLetter, groupStandings, pastMatches, upcomingMatches, wcStats };
+    return {
+      wcTeam, groupLetter,
+      fifaRank: fifaEntry?.rank ?? null,
+      confederation: fifaEntry?.confederation ?? null,
+      groupStandings, pastMatches, upcomingMatches, wcStats,
+    };
   } catch {
     return {
       wcTeam, groupLetter,
+      fifaRank: fifaEntry?.rank ?? null,
+      confederation: fifaEntry?.confederation ?? null,
       groupStandings: initGroupFromStatic(groupLetter),
       pastMatches: [], upcomingMatches: [],
       wcStats: { ...ZERO_STATS },

@@ -190,7 +190,7 @@ function UpcomingMatchRow({ match }: { match: WCMatchSummary }) {
 
 export function TeamDashboard({ data }: { data: FootballTeamDashboard }) {
   const router = useRouter();
-  const { wcTeam, groupLetter, groupStandings, pastMatches, upcomingMatches, wcStats } = data;
+  const { wcTeam, groupLetter, fifaRank, confederation, groupStandings, pastMatches, upcomingMatches, wcStats } = data;
 
   const goBack = () => {
     if (typeof window !== "undefined" && window.history.length > 1) router.back();
@@ -243,10 +243,18 @@ export function TeamDashboard({ data }: { data: FootballTeamDashboard }) {
           <div className="flex-1 min-w-0">
             <h1 className="canal-headline text-xl truncate">{wcTeam.name}</h1>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+              {fifaRank && (
+                <span className="text-canal-yellow text-xs font-black">
+                  FIFA #{fifaRank}
+                </span>
+              )}
+              {confederation && (
+                <span className="text-canal-gray-muted text-xs font-medium">{confederation}</span>
+              )}
               {groupLetter && (
                 <Link
                   href={`/bracket?group=${groupLetter}`}
-                  className="text-canal-yellow text-xs font-bold hover:underline underline-offset-2"
+                  className="text-canal-gray-muted text-xs hover:text-canal-yellow transition-colors"
                 >
                   Groupe {groupLetter} →
                 </Link>
@@ -255,9 +263,6 @@ export function TeamDashboard({ data }: { data: FootballTeamDashboard }) {
                 <span className="text-canal-gray-muted text-xs">
                   Effectif&nbsp;: <span className="text-white font-bold">{wcTeam.squadValue}</span>
                 </span>
-              )}
-              {wcTeam.players.length > 0 && (
-                <span className="text-canal-gray-muted text-xs">{wcTeam.players.length} joueurs</span>
               )}
             </div>
           </div>
