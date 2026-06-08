@@ -547,12 +547,22 @@ export async function getMatchDetail(matchId: string): Promise<FullMatchDetail |
     .from("match_events").select("*").eq("match_id", matchId).order("minute", { ascending: true });
   events = (dbEvents ?? []) as MatchEvent[];
 
-  if ((!events.length || force) && isActive) {
+  // Détecte une corruption connue : si tous les events sont "away" alors qu'il
+  // y en a plusieurs, c'est le signe que homeTeamId=0 a été utilisé lors d'un
+  // sync précédent. On force une resync pour corriger, même hors fenêtre.
+  const allAway = events.length > 1 && events.every((e) => e.team_side === "away");
+
+  if ((!events.length || force || allAway) && isActive) {
     let fresh: MatchEvent[] = [];
     if (apifId && hasApiFootball()) {
       // apifHomeId provient du fixture déjà fetché par refreshMatchRow ; sans
       // lui tous les buts seraient tagués "away" (team_side incorrect en TV).
-      const homeTeamId = refreshResult?.apifHomeId ?? 0;
+      // Si pas de resync ce tour-ci, on fetch le fixture uniquement pour l'ID home.
+      let homeTeamId = refreshResult?.apifHomeId ?? 0;
+      if (!homeTeamId) {
+        const fixtureJson = await apifFetch(`/fixtures?id=${apifId}`);
+        homeTeamId = fixtureJson?.response?.[0]?.teams?.home?.id ?? 0;
+      }
       fresh = await syncEventsApiF(matchId, apifId, homeTeamId);
     } else if (externalId) fresh = await syncEventsTsdb(matchId, externalId, "");
     if (fresh.length) events = fresh; // sinon on garde la DB
