@@ -304,7 +304,7 @@ async function stampFinishedAt(
 // Retourne l'ID APIF de l'équipe home quand disponible (nécessaire pour
 // assigner team_side correctement dans syncEventsApiF).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function refreshMatchRow(match: any): Promise<{ apifHomeId: number } | null> {
+async function refreshMatchRow(match: any): Promise<{ apifHomeId?: number; tsdbHomeId?: string } | null> {
   const supabase = createAdminClient();
   if (match.apif_id && hasApiFootball()) {
     const json = await apifFetch(`/fixtures?id=${match.apif_id}`);
@@ -325,7 +325,7 @@ async function refreshMatchRow(match: any): Promise<{ apifHomeId: number } | nul
   } else if (match.external_id) {
     const json = await tsdbFetch(`/lookupevent.php?id=${match.external_id}`);
     const e = json?.events?.[0];
-    if (!e) return;
+    if (!e) return null;
     const status = tsdbStatus(e);
     await supabase.from("matches").update({
       status,
@@ -337,6 +337,7 @@ async function refreshMatchRow(match: any): Promise<{ apifHomeId: number } | nul
       updated_at: new Date().toISOString(),
     }).eq("id", match.id);
     await stampFinishedAt(supabase, match.id, status);
+    return { tsdbHomeId: e.idHomeTeam ?? "" };
   }
   return null;
 }
@@ -555,16 +556,22 @@ export async function getMatchDetail(matchId: string): Promise<FullMatchDetail |
   if ((!events.length || force || allAway) && isActive) {
     let fresh: MatchEvent[] = [];
     if (apifId && hasApiFootball()) {
-      // apifHomeId provient du fixture déjà fetché par refreshMatchRow ; sans
-      // lui tous les buts seraient tagués "away" (team_side incorrect en TV).
-      // Si pas de resync ce tour-ci, on fetch le fixture uniquement pour l'ID home.
+      // apifHomeId depuis refreshMatchRow (même fetch fixture) ou fetch dédié.
       let homeTeamId = refreshResult?.apifHomeId ?? 0;
       if (!homeTeamId) {
         const fixtureJson = await apifFetch(`/fixtures?id=${apifId}`);
         homeTeamId = fixtureJson?.response?.[0]?.teams?.home?.id ?? 0;
       }
       fresh = await syncEventsApiF(matchId, apifId, homeTeamId);
-    } else if (externalId) fresh = await syncEventsTsdb(matchId, externalId, "");
+    } else if (externalId) {
+      // tsdbHomeId depuis refreshMatchRow (même fetch lookupevent) ou fetch dédié.
+      let homeExtId = refreshResult?.tsdbHomeId ?? "";
+      if (!homeExtId) {
+        const eventJson = await tsdbFetch(`/lookupevent.php?id=${externalId}`);
+        homeExtId = eventJson?.events?.[0]?.idHomeTeam ?? "";
+      }
+      fresh = await syncEventsTsdb(matchId, externalId, homeExtId);
+    }
     if (fresh.length) events = fresh; // sinon on garde la DB
   }
 
