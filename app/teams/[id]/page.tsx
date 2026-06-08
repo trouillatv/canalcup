@@ -98,6 +98,19 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
             </div>
           )}
         </div>
+        {d.team.pendingRequests.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-orange-500/20 flex items-center gap-2 text-xs">
+            <Clock size={13} className="text-orange-400 shrink-0" />
+            <span className="text-orange-400 font-bold">
+              {d.team.pendingRequests.length} demande{d.team.pendingRequests.length > 1 ? "s" : ""} d&apos;adhésion en attente
+            </span>
+            {viewerIsCaptain && (
+              <Link href="/profile" className="ml-auto text-canal-yellow underline underline-offset-2 font-bold shrink-0">
+                Valider →
+              </Link>
+            )}
+          </div>
+        )}
         {viewerIsCaptain && d.team.inviteCode && (
           <div className="mt-3 pt-3 border-t border-canal-gray-light flex items-center gap-2 text-xs">
             <Ticket size={13} className="text-canal-yellow" />

@@ -9,14 +9,19 @@ export default async function TeamsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [sorted, pendingRes] = await Promise.all([
+  const [sorted, pendingRes, allPendingRes] = await Promise.all([
     getTeams(),
     user
       ? supabase.from("team_join_requests").select("team_id").eq("user_id", user.id).eq("status", "pending")
       : Promise.resolve({ data: [] }),
+    supabase.from("team_join_requests").select("team_id").eq("status", "pending"),
   ]);
 
   const pendingTeamIds = new Set((pendingRes.data ?? []).map((r: { team_id: string }) => r.team_id));
+  const pendingCountByTeam = (allPendingRes.data ?? []).reduce((acc: Record<string, number>, r: { team_id: string }) => {
+    acc[r.team_id] = (acc[r.team_id] ?? 0) + 1;
+    return acc;
+  }, {});
 
   return (
     <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto">
@@ -46,7 +51,7 @@ export default async function TeamsPage() {
       ) : (
         <div className="space-y-3">
           {sorted.map((team, i) => (
-            <TeamCard key={team.id} team={team} rank={i + 1} showDetails hasPendingRequest={pendingTeamIds.has(team.id)} />
+            <TeamCard key={team.id} team={team} rank={i + 1} showDetails hasPendingRequest={pendingTeamIds.has(team.id)} pendingCount={pendingCountByTeam[team.id] ?? 0} />
           ))}
         </div>
       )}

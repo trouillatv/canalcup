@@ -8,6 +8,7 @@ interface TeamCardProps {
   rank?: number;
   showDetails?: boolean;
   hasPendingRequest?: boolean;
+  pendingCount?: number;
 }
 
 const TEAM_COLORS = [
@@ -16,7 +17,7 @@ const TEAM_COLORS = [
   "border-l-yellow-700",
 ];
 
-export function TeamCard({ team, rank, showDetails, hasPendingRequest }: TeamCardProps) {
+export function TeamCard({ team, rank, showDetails, hasPendingRequest, pendingCount = 0 }: TeamCardProps) {
   const borderColor = rank ? TEAM_COLORS[(rank - 1) % 3] : "border-l-canal-gray-light";
 
   return (
@@ -47,6 +48,11 @@ export function TeamCard({ team, rank, showDetails, hasPendingRequest }: TeamCar
               {hasPendingRequest && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 border border-orange-500/30 px-2 py-0.5 text-[10px] font-bold text-orange-400">
                   <Clock size={9} /> En attente
+                </span>
+              )}
+              {pendingCount > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 border border-orange-500/30 px-2 py-0.5 text-[10px] font-bold text-orange-400">
+                  <Clock size={9} /> {pendingCount} à valider
                 </span>
               )}
             </div>
