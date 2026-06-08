@@ -7,6 +7,7 @@
 
 import index from "@/data/wc-teams-index.json";
 import { WC2026_GROUPS } from "@/lib/football/groups-2026";
+import { getFIFARank } from "@/lib/football/fifa-ranks";
 
 // Noms utilisés ailleurs (poules officielles, pronostics) ≠ noms docs.
 const NAME_ALIASES: Record<string, string> = {
@@ -44,13 +45,14 @@ export function wcTeamFicheHref(name: string): string | null {
 }
 
 /** Liste des 48 sélections qualifiées, triées par ordre alphabétique français. */
-export function allWCTeamsFiche(): Array<{ name: string; slug: string; group: string }> {
+export function allWCTeamsFiche(): Array<{ name: string; slug: string; group: string; fifaRank: number | null }> {
   return WC2026_GROUPS
     .flatMap((g) =>
       g.teams.map((t) => {
         const canonical = NAME_ALIASES[t] ?? t;
         const slug = slugify(canonical);
-        return { name: canonical, slug, group: g.letter };
+        const entry = getFIFARank(canonical) ?? getFIFARank(t);
+        return { name: canonical, slug, group: g.letter, fifaRank: entry?.rank ?? null };
       })
     )
     .filter((t) => SLUG_SET.has(t.slug))

@@ -28,6 +28,11 @@ export default function WCTeamsPage() {
             <span className="flex-1 font-semibold text-sm text-white group-hover:text-canal-yellow transition-colors">
               {team.name}
             </span>
+            {team.fifaRank != null && (
+              <span className="text-[11px] font-black text-canal-yellow/70 tabular-nums shrink-0">
+                #{team.fifaRank}
+              </span>
+            )}
             <span className="text-[11px] font-black text-canal-gray-muted bg-canal-gray-mid px-2 py-0.5 rounded-md shrink-0">
               Gr. {team.group}
             </span>

@@ -9,6 +9,7 @@ import { Flag } from "@/components/shared/Flag";
 import { formCode, type WCTeam } from "@/lib/football/wc-teams";
 import { groupLetterForTeam } from "@/lib/football/groups-2026";
 import { wcTeamHref } from "@/lib/football/wc-teams-index";
+import { getFIFARank } from "@/lib/football/fifa-ranks";
 
 type TabKey = "effectif" | "infos" | "forme";
 
@@ -192,6 +193,7 @@ export function WCTeamFiche({ team }: { team: WCTeam }) {
   const grouped = groupPlayers(team.players);
   // Poule officielle (bracket) de l'équipe — null si hors tirage des 48.
   const poolLetter = groupLetterForTeam(team.name);
+  const fifaEntry = getFIFARank(team.name);
 
   // Charge les stats compétition une seule fois, à la 1re bascule "stats".
   useEffect(() => {
@@ -254,6 +256,12 @@ export function WCTeamFiche({ team }: { team: WCTeam }) {
                 team.group && (
                   <span className="text-canal-yellow text-xs font-bold">Poule {team.group}</span>
                 )
+              )}
+              {fifaEntry && (
+                <span className="text-canal-gray-muted text-xs">
+                  FIFA&nbsp;<span className="text-white font-bold">#{fifaEntry.rank}</span>
+                  <span className="ml-1 text-canal-gray-muted">({fifaEntry.confederation})</span>
+                </span>
               )}
               {team.squadValue && (
                 <span className="text-canal-gray-muted text-xs">
