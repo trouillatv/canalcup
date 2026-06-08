@@ -473,8 +473,15 @@ export function WCTeamFiche({ team }: { team: WCTeam }) {
               </p>
             </div>
             <div className="canal-card text-center">
-              <p className="text-canal-gray-muted text-xs">Poule (données)</p>
-              <p className="text-white font-black text-xl mt-1">{team.group ?? "—"}</p>
+              <p className="text-canal-gray-muted text-xs">Classement FIFA</p>
+              {fifaEntry ? (
+                <>
+                  <p className="text-white font-black text-xl mt-1">#{fifaEntry.rank}</p>
+                  <p className="text-canal-gray-muted text-xs mt-0.5">{fifaEntry.confederation}</p>
+                </>
+              ) : (
+                <p className="text-white font-black text-xl mt-1">—</p>
+              )}
             </div>
           </div>
 
