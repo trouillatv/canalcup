@@ -26,6 +26,13 @@ const FORM_STYLE: Record<string, string> = {
   "?": "bg-canal-gray-mid text-canal-gray-muted border-canal-gray-light",
 };
 
+const FORM_DOT: Record<"W" | "D" | "L", string> = {
+  W: "bg-green-500",
+  D: "bg-yellow-400",
+  L: "bg-red-500",
+};
+const FORM_DOT_LABEL: Record<"W" | "D" | "L", string> = { W: "V", D: "N", L: "P" };
+
 // ─── Sous-composants ──────────────────────────────────────────────────────────
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -72,6 +79,7 @@ function GroupTable({
             <th className="text-center pb-1.5 w-10 font-medium">Buts</th>
             <th className="text-center pb-1.5 w-8 font-medium">+/-</th>
             <th className="text-center pb-1.5 w-7 font-black text-canal-yellow">Pts</th>
+            <th className="text-center pb-1.5 font-medium pl-1 hidden sm:table-cell">Forme</th>
           </tr>
         </thead>
         <tbody>
@@ -116,6 +124,23 @@ function GroupTable({
                 </td>
                 <td className={cn("py-1.5 text-center font-black", me ? "text-canal-yellow text-sm" : i < 2 ? "text-canal-yellow" : "text-canal-gray-muted")}>
                   {row.points}
+                </td>
+                <td className="py-1.5 pl-1.5 hidden sm:table-cell">
+                  {row.wcForm.length > 0 ? (
+                    <span className="flex items-center gap-0.5">
+                      {row.wcForm.map((r, idx) => (
+                        <span
+                          key={idx}
+                          title={FORM_DOT_LABEL[r]}
+                          className={cn("w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black text-white shrink-0", FORM_DOT[r])}
+                        >
+                          {FORM_DOT_LABEL[r]}
+                        </span>
+                      ))}
+                    </span>
+                  ) : (
+                    <span className="text-canal-gray-muted/40 text-[10px]">—</span>
+                  )}
                 </td>
               </tr>
             );

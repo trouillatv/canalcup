@@ -69,6 +69,8 @@ export interface FootballGroupRow {
   goals_against: number;
   goal_diff: number;
   points: number;
+  /** Résultats chronologiques des matchs de groupe joués (W/D/L). */
+  wcForm: Array<"W" | "D" | "L">;
 }
 
 export interface FootballTeamDashboard {
@@ -103,6 +105,7 @@ function initGroupFromStatic(groupLetter: string | null): FootballGroupRow[] {
     team_name_fr: name, team_flag: "",
     rank: i + 1, played: 0, won: 0, draw: 0, lost: 0,
     goals_for: 0, goals_against: 0, goal_diff: 0, points: 0,
+    wcForm: [],
   }));
 }
 
@@ -115,22 +118,34 @@ type RawMatch = {
 };
 
 function computeGroupStandings(matches: RawMatch[]): FootballGroupRow[] {
-  type T = { name: string; flag: string; played: number; won: number; draw: number; lost: number; gf: number; ga: number };
+  type T = {
+    name: string; flag: string;
+    played: number; won: number; draw: number; lost: number; gf: number; ga: number;
+    form: Array<"W" | "D" | "L">;
+  };
   const map = new Map<string, T>();
   const ensure = (name: string, flag: string | null): T => {
-    if (!map.has(name)) map.set(name, { name, flag: flag ?? "", played: 0, won: 0, draw: 0, lost: 0, gf: 0, ga: 0 });
+    if (!map.has(name)) map.set(name, { name, flag: flag ?? "", played: 0, won: 0, draw: 0, lost: 0, gf: 0, ga: 0, form: [] });
     return map.get(name)!;
   };
-  for (const m of matches) {
+  const sorted = [...matches].sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  for (const m of sorted) {
     const a = ensure(m.team_a, m.flag_a);
     const b = ensure(m.team_b, m.flag_b);
     if (m.status === "finished" && m.score_a != null && m.score_b != null) {
       a.played++; b.played++;
       a.gf += m.score_a; a.ga += m.score_b;
       b.gf += m.score_b; b.ga += m.score_a;
-      if (m.score_a > m.score_b) { a.won++; b.lost++; }
-      else if (m.score_a < m.score_b) { b.won++; a.lost++; }
-      else { a.draw++; b.draw++; }
+      if (m.score_a > m.score_b) {
+        a.won++; b.lost++;
+        a.form.push("W"); b.form.push("L");
+      } else if (m.score_a < m.score_b) {
+        b.won++; a.lost++;
+        b.form.push("W"); a.form.push("L");
+      } else {
+        a.draw++; b.draw++;
+        a.form.push("D"); b.form.push("D");
+      }
     }
   }
   return [...map.values()]
@@ -140,6 +155,7 @@ function computeGroupStandings(matches: RawMatch[]): FootballGroupRow[] {
       team_name_fr: t.name, team_flag: t.flag, rank: i + 1,
       played: t.played, won: t.won, draw: t.draw, lost: t.lost,
       goals_for: t.gf, goals_against: t.ga, goal_diff: t.gf - t.ga, points: t.points,
+      wcForm: t.form,
     }));
 }
 
