@@ -3,6 +3,17 @@
 import { useState, useEffect } from "react";
 import { Bell, X } from "lucide-react";
 
+const DISMISS_KEY = "push-notif-dismissed-v2";
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
 export function PushNotifications() {
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -13,7 +24,7 @@ export function PushNotifications() {
   useEffect(() => {
     if (!("Notification" in window) || !("serviceWorker" in navigator)) return;
 
-    const wasDismissed = localStorage.getItem("push-notif-dismissed") === "true";
+    const wasDismissed = localStorage.getItem(DISMISS_KEY) === "true";
     setPermission(Notification.permission);
     setDismissed(wasDismissed);
 
@@ -38,7 +49,7 @@ export function PushNotifications() {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: publicKey,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
       });
 
       await fetch("/api/push/subscribe", {
@@ -56,7 +67,7 @@ export function PushNotifications() {
   };
 
   const handleDismiss = () => {
-    localStorage.setItem("push-notif-dismissed", "true");
+    localStorage.setItem(DISMISS_KEY, "true");
     setDismissed(true);
   };
 

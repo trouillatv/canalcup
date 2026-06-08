@@ -76,7 +76,7 @@ export function NotificationToggle() {
       });
 
       if (!response.ok) throw new Error("subscribe_failed");
-      localStorage.removeItem("push-notif-dismissed");
+      localStorage.removeItem("push-notif-dismissed-v2");
       setEnabled(true);
     } catch {
       setError("Activation impossible pour le moment.");
@@ -101,7 +101,7 @@ export function NotificationToggle() {
         await subscription.unsubscribe();
       }
 
-      localStorage.setItem("push-notif-dismissed", "true");
+      localStorage.setItem("push-notif-dismissed-v2", "true");
       setEnabled(false);
     } catch {
       setError("Desactivation impossible pour le moment.");
