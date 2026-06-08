@@ -175,7 +175,7 @@ export function LeaderboardTabs({
           </div>
           <div className="space-y-2">
             {serviceRows.map((row) => (
-              <div key={row.service.id} className={`canal-card flex items-center ${row.rank === 1 ? "border border-canal-yellow/30" : ""}`}>
+              <Link key={row.service.id} href={`/services/${row.service.id}`} className={`canal-card flex items-center hover:bg-canal-gray-mid transition-colors ${row.rank === 1 ? "border border-canal-yellow/30" : ""}`}>
                 <div className="w-8 text-center font-black text-lg flex-shrink-0">{medal(row.rank)}</div>
                 <div className="flex-1 min-w-0 ml-1">
                   <p className="font-bold text-white truncate text-sm">{row.service.name}</p>
@@ -185,7 +185,7 @@ export function LeaderboardTabs({
                   <p className="font-black text-canal-yellow text-lg tabular-nums">{row.average}</p>
                   <p className="text-[11px] text-canal-gray-muted">pts / pers.</p>
                 </div>
-              </div>
+              </Link>
             ))}
             {serviceRows.length === 0 && (
               <div className="canal-card text-center py-6 text-canal-gray-muted text-sm">Aucun service classé.</div>
