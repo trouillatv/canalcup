@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Team, LeaderboardRow } from "@/lib/supabase/types";
 import { SCORE_EVENT_CATEGORIES_IN_TOTAL, weightedContribution } from "@/lib/scoring/config";
 import { getAdminEmails } from "@/lib/data/roles";
@@ -185,9 +186,12 @@ export async function getTeamScores(): Promise<Record<string, number>> {
 export async function getTeams(): Promise<Team[]> {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
+    // Admin client nécessaire pour lire les membres des autres équipes
+    // (RLS sur users bloque la lecture cross-équipe avec le client session).
+    const admin = createAdminClient();
+    const { data, error } = await admin
       .from("teams")
-      .select("*, members:users!team_id(*)");
+      .select("*, members:users!team_id(id,display_name,name)");
     if (error) return [];
     if (!data?.length) return [];
     const agg = await computeTeamScores(
