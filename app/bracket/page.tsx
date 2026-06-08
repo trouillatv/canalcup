@@ -9,7 +9,7 @@ import { Flag } from "@/components/shared/Flag";
 import { ViewSwitcher } from "@/components/views/ViewSwitcher";
 import { BracketFifa } from "@/components/bracket/BracketFifa";
 import { BracketCompact } from "@/components/bracket/BracketCompact";
-import { wcTeamHref } from "@/lib/football/wc-teams-index";
+import { wcTeamFicheHref } from "@/lib/football/wc-teams-index";
 
 const VIEW_KEY = "bracket-view";
 
@@ -136,7 +136,7 @@ function GroupStandings({ rows }: { rows: StandingRow[] }) {
               <td className="py-1 text-center font-bold">{i + 1}</td>
               <td className="py-1">
                 {(() => {
-                  const href = wcTeamHref(row.team_name_fr);
+                  const href = wcTeamFicheHref(row.team_name_fr);
                   const inner = (
                     <span className="flex items-center gap-1">
                       <Flag flag={row.team_flag} name={row.team_name_fr} className="h-4 w-auto rounded-sm" />

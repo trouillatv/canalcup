@@ -28,9 +28,16 @@ function slugify(name: string): string {
 
 const SLUG_SET = new Set((index as { name: string; slug: string }[]).map((t) => t.slug));
 
-/** Lien vers la fiche condensée de l'équipe (/football/teams/[slug]), ou null si absente. */
+/** Lien vers la vue condensée tournoi (/football/teams/[slug]) — matchs, stats, groupe. */
 export function wcTeamHref(name: string): string | null {
   if (!name) return null;
   const slug = slugify(NAME_ALIASES[name] ?? name);
   return SLUG_SET.has(slug) ? `/football/teams/${slug}` : null;
+}
+
+/** Lien vers la fiche effectif (/wc-team/[slug]) — effectif, forme, calendrier. */
+export function wcTeamFicheHref(name: string): string | null {
+  if (!name) return null;
+  const slug = slugify(NAME_ALIASES[name] ?? name);
+  return SLUG_SET.has(slug) ? `/wc-team/${slug}` : null;
 }

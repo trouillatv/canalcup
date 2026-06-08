@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Users, Newspaper, TrendingUp, Shirt, BarChart3, Award } from "lucide-react";
+import { ArrowLeft, Users, Newspaper, TrendingUp, Shirt, BarChart3, Award, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Flag } from "@/components/shared/Flag";
 import { formCode, type WCTeam } from "@/lib/football/wc-teams";
 import { groupLetterForTeam } from "@/lib/football/groups-2026";
+import { wcTeamHref } from "@/lib/football/wc-teams-index";
 
 type TabKey = "effectif" | "infos" | "forme";
 
@@ -267,6 +268,18 @@ export function WCTeamFiche({ team }: { team: WCTeam }) {
           <div className="mt-3 pt-3 border-t border-canal-gray-light/30">
             <p className="text-xs text-canal-gray-muted">Prochain match officiel</p>
             <p className="text-sm text-white font-bold mt-0.5">⚽ {team.nextMatch}</p>
+          </div>
+        )}
+        {wcTeamHref(team.name) && (
+          <div className="mt-3 pt-3 border-t border-canal-gray-light/30">
+            <Link
+              href={wcTeamHref(team.name)!}
+              className="flex items-center gap-2 text-xs font-bold text-canal-yellow hover:text-yellow-300 transition-colors"
+            >
+              <BarChart2 size={13} />
+              Vue tournoi — matchs, classement, stats
+              <span className="ml-auto text-canal-yellow/50">→</span>
+            </Link>
           </div>
         )}
       </div>
