@@ -67,7 +67,7 @@ export async function getTeamDashboard(teamId: string): Promise<TeamDashboard | 
   if (!team) return null;
 
   const [
-    { data: membersRaw },
+    { data: membershipsRaw },
     { data: allTeams },
     { data: matches },
     { data: babyMatches },
@@ -75,7 +75,10 @@ export async function getTeamDashboard(teamId: string): Promise<TeamDashboard | 
     leaderboard,
     adminEmails,
   ] = await Promise.all([
-    supabase.from("users").select("id, display_name, name, team_role, email").eq("team_id", teamId),
+    // Source de vérité multi-équipes : team_memberships (pas users.team_id).
+    supabase.from("team_memberships")
+      .select("role, user:users(id, display_name, name, email)")
+      .eq("team_id", teamId),
     supabase.from("teams").select("id"),
     supabase.from("matches").select("id, status, score_a, score_b, starts_at, team_a, team_b"),
     supabase.from("babyfoot_matches").select("team_a_id, team_b_id, score_a, score_b, status, starts_at").or(`team_a_id.eq.${teamId},team_b_id.eq.${teamId}`),
@@ -84,7 +87,14 @@ export async function getTeamDashboard(teamId: string): Promise<TeamDashboard | 
     getAdminEmails(),
   ]);
 
-  const members = (membersRaw ?? []) as { id: string; display_name: string | null; name: string | null; team_role: string | null; email: string | null }[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const members = ((membershipsRaw ?? []) as any[]).map((row) => ({
+    id: row.user?.id as string,
+    display_name: row.user?.display_name as string | null,
+    name: row.user?.name as string | null,
+    email: row.user?.email as string | null,
+    team_role: row.role as string | null,
+  })).filter((m) => !!m.id);
   const memberIds = members.map((m) => m.id);
   const nameOf = (id: string) => {
     const m = members.find((x) => x.id === id);
