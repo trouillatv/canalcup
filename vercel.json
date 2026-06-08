@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/match-start-push",
-      "schedule": "* * * * *"
+      "schedule": "0 7 * * *"
     },
     {
       "path": "/api/cron/morning-brief",
