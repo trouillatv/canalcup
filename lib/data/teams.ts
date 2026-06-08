@@ -187,7 +187,7 @@ export async function getTeams(): Promise<Team[]> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("teams")
-      .select("*, members:users(*)");
+      .select("*, members:users!team_id(*)");
     if (error) return [];
     if (!data?.length) return [];
     const agg = await computeTeamScores(
