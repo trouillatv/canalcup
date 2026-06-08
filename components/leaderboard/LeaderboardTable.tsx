@@ -39,11 +39,6 @@ export function LeaderboardTable({ rows, compact }: LeaderboardTableProps) {
               {row.rank === 1 ? "🥇" : row.rank === 2 ? "🥈" : row.rank === 3 ? "🥉" : row.rank}
             </div>
 
-            {/* Avatar */}
-            <div className="w-8 h-8 rounded-full bg-canal-gray-mid border border-canal-gray-light flex items-center justify-center flex-shrink-0 mr-2">
-              <span className="text-sm font-black text-canal-yellow">{row.team.name[0]}</span>
-            </div>
-
             {/* Name */}
             <div className="flex-1 min-w-0">
               <p className="font-bold text-white truncate text-sm">{row.team.name}</p>
