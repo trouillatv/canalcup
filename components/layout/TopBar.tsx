@@ -190,6 +190,7 @@ export function TopBar() {
                 { href: "/admin/monitoring", label: "🩺 Monitoring IA" },
                 { href: "/admin/user-audit", label: "👥 Monitoring Users" },
                 { href: "/admin/vestiaire-alertes", label: "Alertes Vestiaire" },
+                { href: "/admin/push", label: "🔔 Push notifications" },
                 { href: "/admin/feedback", label: "💬 Feedback" },
                 { href: "/admin/quiz", label: "Quiz" },
                 { href: "/admin/challenges", label: "Animations" },

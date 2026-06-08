@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/match-start-push",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/cron/morning-brief",
       "schedule": "0 19 * * *"
     },
