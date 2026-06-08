@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calendar, MessageCircle, Trophy, Globe, CircleUserRound } from "lucide-react";
+import { Calendar, MessageCircle, Trophy, Globe, CircleUserRound, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/live",        icon: MessageCircle,    label: "Live" },
   { href: "/matches",     icon: Calendar,         label: "Matchs" },
   { href: "/leaderboard", icon: Trophy,           label: "Classement" },
+  { href: "/services",    icon: Building2,        label: "Services" },
   { href: "/bracket",     icon: Globe,            label: "Tournoi" },
   { href: "/profile",     icon: CircleUserRound,  label: "Profil" },
 ];
@@ -29,7 +30,7 @@ export function BottomNav() {
               key={href}
               href={href}
               className={cn(
-                "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-150 min-w-[56px]",
+                "flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all duration-150 min-w-0",
                 isActive
                   ? "text-canal-yellow"
                   : "text-canal-gray-muted hover:text-white"
