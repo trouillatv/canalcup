@@ -30,17 +30,6 @@ export function TeamCard({ team, rank, showDetails, hasPendingRequest, pendingCo
             </div>
           )}
 
-          {/* Avatar */}
-          <div className="w-10 h-10 rounded-full bg-canal-gray-mid border border-canal-gray-light flex items-center justify-center flex-shrink-0">
-            {team.logo_url ? (
-              <img src={team.logo_url} alt={team.name} className="w-8 h-8 object-cover rounded-full" />
-            ) : (
-              <span className="text-lg font-black text-canal-yellow">
-                {team.name[0]}
-              </span>
-            )}
-          </div>
-
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-bold text-white truncate">{team.name}</h3>
@@ -57,9 +46,6 @@ export function TeamCard({ team, rank, showDetails, hasPendingRequest, pendingCo
               )}
             </div>
             <p className="text-xs text-canal-gray-muted italic truncate">{team.slogan}</p>
-            {showDetails && (
-              <p className="text-xs text-canal-yellow mt-0.5 truncate">{team.reputation_label}</p>
-            )}
           </div>
 
           <div className="flex flex-col items-end gap-1 flex-shrink-0">
