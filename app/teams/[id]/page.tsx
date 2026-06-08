@@ -11,7 +11,7 @@ import { ScoreBreakdown } from "@/components/scoring/ScoreBreakdown";
 import { PredictionHeatmap } from "@/components/shared/PredictionHeatmap";
 import {
   ArrowLeft, Trophy, Grid3x3, Target, Brain, Gamepad2, PartyPopper,
-  Users, Crown, Ticket, Calendar, Flame, Sparkles,
+  Users, Crown, Ticket, Calendar, Flame, Sparkles, Clock, UserPlus,
 } from "lucide-react";
 
 export const revalidate = 60;
@@ -196,7 +196,14 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
 
       {/* ─── Membres (cliquables) ─── */}
       <div>
-        <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider mb-2 flex items-center gap-1.5"><Users size={14} />Membres ({d.team.memberCount})</h2>
+        <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider mb-2 flex items-center gap-1.5">
+          <Users size={14} />Membres ({d.team.memberCount}/{d.team.maxMembers})
+          {d.team.slotsLeft > 0 && (
+            <span className="ml-auto text-[10px] font-bold text-canal-gray-muted normal-case">
+              {d.team.slotsLeft} place{d.team.slotsLeft > 1 ? "s" : ""} libre{d.team.slotsLeft > 1 ? "s" : ""}
+            </span>
+          )}
+        </h2>
         <div className="space-y-2">
           {d.team.members.map((m) => {
             const inner = (
@@ -219,6 +226,37 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
           })}
         </div>
       </div>
+
+      {/* ─── Demandes en attente ─── */}
+      {d.team.pendingRequests.length > 0 && (
+        <div>
+          <h2 className="text-sm font-bold text-orange-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <Clock size={14} /> En attente de validation ({d.team.pendingRequests.length})
+          </h2>
+          <div className="space-y-2">
+            {d.team.pendingRequests.map((r) => (
+              <div key={r.userId} className="canal-card flex items-center gap-3 border border-orange-500/20 bg-orange-950/10">
+                <div className="w-9 h-9 rounded-full bg-orange-900/30 border border-orange-500/30 flex items-center justify-center shrink-0">
+                  <UserPlus size={15} className="text-orange-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-white text-sm truncate">{r.name}</p>
+                  <p className="text-xs text-orange-400/70">Demande envoyée le {fmtDate(r.createdAt)}</p>
+                </div>
+                <span className="text-[10px] font-bold text-orange-400 bg-orange-900/30 border border-orange-500/30 px-2 py-1 rounded-full shrink-0">
+                  En attente
+                </span>
+              </div>
+            ))}
+          </div>
+          {viewerIsCaptain && (
+            <p className="text-xs text-canal-gray-muted mt-2 flex items-center gap-1.5">
+              <Sparkles size={11} className="text-canal-yellow" />
+              Valide ou refuse depuis <Link href="/profile" className="text-canal-yellow underline">ton profil → Mes équipes</Link>.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* ─── Activité récente ─── */}
       {d.recentActivity.length > 0 && (

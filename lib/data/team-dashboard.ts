@@ -25,6 +25,8 @@ export interface TeamDashboard {
     memberCount: number;
     maxMembers: number;
     members: { id: string; name: string; isCaptain: boolean; isAdmin: boolean }[];
+    slotsLeft: number;
+    pendingRequests: { userId: string; name: string; createdAt: string }[];
   };
   ranks: { global: number | null; pronos: number | null; quiz: number | null; babyfoot: number | null; animations: number | null; outOf: number };
   lbRow: LeaderboardRow | null;
@@ -72,6 +74,7 @@ export async function getTeamDashboard(teamId: string): Promise<TeamDashboard | 
     { data: matches },
     { data: babyMatches },
     { data: challenges },
+    { data: pendingRaw },
     leaderboard,
     adminEmails,
   ] = await Promise.all([
@@ -83,6 +86,11 @@ export async function getTeamDashboard(teamId: string): Promise<TeamDashboard | 
     supabase.from("matches").select("id, status, score_a, score_b, starts_at, team_a, team_b"),
     supabase.from("babyfoot_matches").select("team_a_id, team_b_id, score_a, score_b, status, starts_at").or(`team_a_id.eq.${teamId},team_b_id.eq.${teamId}`),
     supabase.from("challenges").select("id, title"),
+    supabase.from("team_join_requests")
+      .select("id, user_id, created_at, requester:users(display_name, name)")
+      .eq("team_id", teamId)
+      .eq("status", "pending")
+      .order("created_at"),
     getLeaderboard(),
     getAdminEmails(),
   ]);
@@ -240,11 +248,18 @@ export async function getTeamDashboard(teamId: string): Promise<TeamDashboard | 
       createdAt: team.created_at ?? null,
       memberCount: members.length,
       maxMembers: TEAM_MAX_MEMBERS,
+      slotsLeft: Math.max(0, TEAM_MAX_MEMBERS - members.length),
       members: members.map((m) => ({
         id: m.id,
         name: m.display_name ?? m.name ?? "Joueur",
         isCaptain: m.team_role === "captain",
         isAdmin: adminEmails.has((m.email ?? "").toLowerCase()),
+      })),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      pendingRequests: (pendingRaw ?? []).map((r: any) => ({
+        userId: r.user_id as string,
+        name: (r.requester?.display_name ?? r.requester?.name ?? "Inconnu") as string,
+        createdAt: r.created_at as string,
       })),
     },
     ranks,
