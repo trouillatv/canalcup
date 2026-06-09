@@ -128,7 +128,7 @@ export function TopBar() {
         "fixed top-14 left-0 z-40 w-72 bg-canal-gray border-r border-canal-gray-light h-[calc(100dvh-3.5rem)] transition-transform duration-200",
         menuOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        <nav className="p-3 space-y-1">
+        <nav className="p-3 space-y-1 h-full overflow-y-auto pb-6">
           <Link
             href="/"
             className={cn(

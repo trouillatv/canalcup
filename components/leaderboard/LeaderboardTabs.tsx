@@ -155,9 +155,24 @@ export function LeaderboardTabs({
       {tab === "pronos" && (
         <div>
           <p className="text-canal-gray-muted text-xs mb-2">Classement sur les seuls points de <span className="text-white font-bold">pronostics</span>.</p>
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs mb-3 px-0.5">
-            <span className="text-canal-gray-muted">🎯 Résultat correct (V/N/D) <span className="text-canal-yellow font-bold">+5 pts</span></span>
-            <span className="text-canal-gray-muted">🎰 Score exact <span className="text-canal-yellow font-bold">+10 pts</span></span>
+          <div className="canal-card mb-3 space-y-2.5 text-xs">
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              <span className="text-canal-gray-muted">🎰 Score exact <span className="text-canal-yellow font-bold">+10 pts</span></span>
+              <span className="text-canal-gray-muted">🎯 Bon résultat (V/N/D) <span className="text-canal-yellow font-bold">+5 pts</span></span>
+              <span className="text-canal-gray-muted">↔ Bonne différence de buts <span className="text-canal-yellow font-bold">+3 pts</span></span>
+            </div>
+            <div className="border-t border-canal-gray-mid pt-2">
+              <p className="text-[10px] font-bold text-canal-gray-muted uppercase tracking-wide mb-1.5">Multiplicateurs phases finales</p>
+              <div className="flex flex-wrap gap-x-3 gap-y-1">
+                <span className="text-canal-gray-muted">Groupes <span className="text-white font-semibold">×1</span></span>
+                <span className="text-canal-gray-muted">1/8 <span className="text-canal-yellow font-bold">×1.5</span></span>
+                <span className="text-canal-gray-muted">1/4 <span className="text-canal-yellow font-bold">×2</span></span>
+                <span className="text-canal-gray-muted">½ finale <span className="text-canal-yellow font-bold">×2.5</span></span>
+                <span className="text-canal-gray-muted">3ème place <span className="text-canal-yellow font-bold">×2</span></span>
+                <span className="text-canal-yellow/90 font-bold">Finale ×3</span>
+              </div>
+              <p className="text-[10px] text-canal-gray-muted/60 mt-1.5">Ex. score exact en finale = 10 × 3 = <span className="text-canal-yellow font-bold">30 pts</span></p>
+            </div>
           </div>
           <PlayerList rows={individualRows} metric="pronos" />
         </div>

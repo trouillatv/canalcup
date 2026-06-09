@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calendar, MessageCircle, Trophy, CalendarDays, CircleUserRound } from "lucide-react";
+import { Calendar, MessageCircle, Trophy, CircleUserRound, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/live",        icon: MessageCircle,    label: "Live" },
   { href: "/matches",     icon: Calendar,         label: "Matchs" },
   { href: "/leaderboard", icon: Trophy,           label: "Classement" },
-  { href: "/schedule",    icon: CalendarDays,     label: "Calendrier" },
+  { href: "/bracket",     icon: LayoutGrid,       label: "Tournoi" },
   { href: "/profile",     icon: CircleUserRound,  label: "Profil" },
 ];
 

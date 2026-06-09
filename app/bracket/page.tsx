@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Trophy } from "lucide-react";
+import { ArrowLeft, Trophy, CalendarDays } from "lucide-react";
 import { LocalTime } from "@/components/timezone/LocalTime";
 import { Flag } from "@/components/shared/Flag";
 import { ViewSwitcher } from "@/components/views/ViewSwitcher";
@@ -232,7 +232,7 @@ function BracketPageInner() {
   const groupParam = useSearchParams().get("group");
   const [data, setData] = useState<BracketData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState("standard");
+  const [view, setView] = useState("fifa");
 
   // Deep-link "?group=X" (depuis une fiche équipe) → vue fifa sur la poule.
   // Sinon, préférence de vue persistée.
@@ -272,7 +272,16 @@ function BracketPageInner() {
             </h1>
             <p className="text-canal-gray-muted text-sm">FIFA World Cup 2026</p>
           </div>
-          <ViewSwitcher view={view} onChange={handleViewChange} modes={["standard", "fifa", "compact"]} />
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href="/schedule"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-canal-gray-mid text-canal-gray-muted hover:text-white text-xs font-bold transition-colors"
+            >
+              <CalendarDays size={14} />
+              <span className="hidden sm:inline">Calendrier</span>
+            </Link>
+            <ViewSwitcher view={view} onChange={handleViewChange} modes={["fifa", "compact"]} />
+          </div>
         </div>
 
         {loading && (
