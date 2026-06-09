@@ -87,7 +87,7 @@ export default async function RootLayout({
       <body className="bg-canal-black text-white antialiased" suppressHydrationWarning>
         <TimezoneProvider tz={tz}>
           {isAuthenticated && <TopBar />}
-          <main className={isAuthenticated ? "min-h-screen pt-14 safe-bottom" : "min-h-screen"}>
+          <main className={isAuthenticated ? "min-h-screen pt-safe-topbar safe-bottom" : "min-h-screen"}>
             {/* Flash info / direct — visible sur TOUTES les pages, masqué tout seul
                 s'il n'y a ni live ni flash (le composant renvoie null). */}
             {isAuthenticated && <BreakingNews />}

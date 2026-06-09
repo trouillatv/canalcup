@@ -71,7 +71,8 @@ export function TopBar() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 bg-canal-black/95 backdrop-blur-sm border-b border-canal-gray-light h-14 flex items-center px-4 gap-3">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-canal-black/95 backdrop-blur-sm border-b border-canal-gray-light header-safe-top">
+        <div className="h-14 flex items-center px-4 gap-3">
         {/* Hamburger */}
         <button
           onClick={() => setMenuOpen((v) => !v)}
@@ -114,6 +115,7 @@ export function TopBar() {
             </>
           )}
         </div>
+        </div>
       </header>
 
       {/* Drawer overlay */}
@@ -126,7 +128,8 @@ export function TopBar() {
 
       {/* Drawer */}
       <div className={cn(
-        "fixed top-14 left-0 z-40 w-72 bg-canal-gray border-r border-canal-gray-light h-[calc(100dvh-3.5rem)] transition-transform duration-200",
+        "fixed left-0 z-40 w-72 bg-canal-gray border-r border-canal-gray-light transition-transform duration-200",
+        "top-[calc(3.5rem+env(safe-area-inset-top,0px))] h-[calc(100dvh-3.5rem-env(safe-area-inset-top,0px))]",
         menuOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <nav className="p-3 space-y-1 h-full overflow-y-auto pb-6">

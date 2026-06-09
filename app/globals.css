@@ -107,6 +107,16 @@
     padding-bottom: calc(80px + env(safe-area-inset-bottom));
   }
 
+  /* TopBar header : fond qui remonte sous la status bar iOS */
+  .header-safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Main content : compense la TopBar + safe area en haut */
+  .pt-safe-topbar {
+    padding-top: calc(3.5rem + env(safe-area-inset-top, 0px));
+  }
+
   @supports (height: 100dvh) {
     html,
     body {
