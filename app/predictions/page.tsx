@@ -9,17 +9,57 @@ import { scoreLabel } from "@/lib/scoring";
 import { teamFlag } from "@/lib/utils";
 import { LocalTime } from "@/components/timezone/LocalTime";
 
+// 48 équipes qualifiées — tirage officiel du 5 décembre 2025 (aligné sur groups-2026.ts)
 const WC_TEAMS = [
-  "México","Afrique du Sud","Corée du Sud","République Tchèque","Canada","Bosnie-Herzégovine",
-  "États-Unis","Paraguay","Brésil","Maroc","Qatar","Suisse","Haïti","Écosse",
-  "Allemagne","Curaçao","Côte d'Ivoire","Équateur","Pays-Bas","Japon","Australie",
-  "Turquie","Belgique","Égypte","Arabie Saoudite","Uruguay","Espagne","Cap-Vert","Suède","Tunisie",
-  "France","Argentine","Portugal","Angleterre","Italie","Croatie","Sénégal","Nigéria",
-  "Japon","Iran","Mexique","Colombia","Pérou","Venezuela","Honduras","Panama",
+  "Mexique","Corée du Sud","Afrique du Sud","République Tchèque",
+  "Canada","Suisse","Qatar","Bosnie-Herzégovine",
+  "Brésil","Maroc","Écosse","Haïti",
+  "États-Unis","Australie","Paraguay","Turquie",
+  "Allemagne","Équateur","Côte d'Ivoire","Curaçao",
+  "Pays-Bas","Japon","Tunisie","Suède",
+  "Belgique","Iran","Égypte","Nouvelle-Zélande",
+  "Espagne","Uruguay","Arabie Saoudite","Cap-Vert",
+  "France","Sénégal","Norvège","Irak",
+  "Argentine","Autriche","Algérie","Jordanie",
+  "Portugal","Colombie","Ouzbékistan","RD Congo",
+  "Angleterre","Croatie","Ghana","Panama",
 ];
 
-// Deduplicate + sort
-const TEAMS_SORTED = [...new Set(WC_TEAMS)].sort((a, b) => a.localeCompare(b, "fr"));
+const TEAMS_SORTED = [...WC_TEAMS].sort((a, b) => a.localeCompare(b, "fr"));
+
+// 30 meilleurs buteurs potentiels (équipes qualifiées uniquement)
+const TOP_SCORERS = [
+  { name: "Erling Haaland",      country: "Norvège",          flag: "🇳🇴" },
+  { name: "Kylian Mbappé",       country: "France",           flag: "🇫🇷" },
+  { name: "Vinicius Jr",         country: "Brésil",           flag: "🇧🇷" },
+  { name: "Harry Kane",          country: "Angleterre",       flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+  { name: "Lamine Yamal",        country: "Espagne",          flag: "🇪🇸" },
+  { name: "Alexander Isak",      country: "Suède",            flag: "🇸🇪" },
+  { name: "Julián Álvarez",      country: "Argentine",        flag: "🇦🇷" },
+  { name: "Lautaro Martínez",    country: "Argentine",        flag: "🇦🇷" },
+  { name: "Florian Wirtz",       country: "Allemagne",        flag: "🇩🇪" },
+  { name: "Jamal Musiala",       country: "Allemagne",        flag: "🇩🇪" },
+  { name: "Rafael Leão",         country: "Portugal",         flag: "🇵🇹" },
+  { name: "Gonçalo Ramos",       country: "Portugal",         flag: "🇵🇹" },
+  { name: "Cody Gakpo",          country: "Pays-Bas",         flag: "🇳🇱" },
+  { name: "Romelu Lukaku",       country: "Belgique",         flag: "🇧🇪" },
+  { name: "Darwin Núñez",        country: "Uruguay",          flag: "🇺🇾" },
+  { name: "Luis Díaz",           country: "Colombie",         flag: "🇨🇴" },
+  { name: "Youssef En-Nesyri",   country: "Maroc",            flag: "🇲🇦" },
+  { name: "Patrik Schick",       country: "Rép. Tchèque",     flag: "🇨🇿" },
+  { name: "Mohamed Salah",       country: "Égypte",           flag: "🇪🇬" },
+  { name: "Arda Güler",          country: "Turquie",          flag: "🇹🇷" },
+  { name: "Christian Pulisic",   country: "États-Unis",       flag: "🇺🇸" },
+  { name: "Raphinha",            country: "Brésil",           flag: "🇧🇷" },
+  { name: "Sébastien Haller",    country: "Côte d'Ivoire",    flag: "🇨🇮" },
+  { name: "Cristiano Ronaldo",   country: "Portugal",         flag: "🇵🇹" },
+  { name: "Álvaro Morata",       country: "Espagne",          flag: "🇪🇸" },
+  { name: "Mohammed Kudus",      country: "Ghana",            flag: "🇬🇭" },
+  { name: "Jonathan David",      country: "Canada",           flag: "🇨🇦" },
+  { name: "Santiago Giménez",    country: "Mexique",          flag: "🇲🇽" },
+  { name: "Ritsu Dōan",          country: "Japon",            flag: "🇯🇵" },
+  { name: "Sadio Mané",          country: "Sénégal",          flag: "🇸🇳" },
+];
 
 interface BonusPredictions {
   winner?: string;
@@ -64,6 +104,7 @@ export default function PredictionsPage() {
   const [saved, setSaved] = useState<BonusPredictions>({});
   const [winner, setWinner] = useState("");
   const [topScorer, setTopScorer] = useState("");
+  const [topScorerSearch, setTopScorerSearch] = useState("");
   const [saving, setSaving] = useState<string | null>(null);
   const [done, setDone] = useState<Record<string, boolean>>({});
   const [history, setHistory] = useState<PredRow[]>([]);
@@ -284,11 +325,40 @@ export default function PredictionsPage() {
               <>
                 <input
                   type="text"
-                  placeholder="Ex: Mbappé, Vinicius Jr…"
-                  value={topScorer}
-                  onChange={(e) => setTopScorer(e.target.value)}
-                  className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder-canal-gray-muted focus:border-canal-yellow outline-none text-sm"
+                  placeholder="Rechercher un joueur ou un pays…"
+                  value={topScorerSearch}
+                  onChange={(e) => setTopScorerSearch(e.target.value)}
+                  className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-2.5 text-white placeholder-canal-gray-muted focus:border-canal-yellow outline-none text-sm"
                 />
+                <div className="grid grid-cols-2 gap-1.5 max-h-60 overflow-y-auto pr-1">
+                  {TOP_SCORERS.filter(
+                    (p) =>
+                      p.name.toLowerCase().includes(topScorerSearch.toLowerCase()) ||
+                      p.country.toLowerCase().includes(topScorerSearch.toLowerCase())
+                  ).map((player) => (
+                    <button
+                      key={player.name}
+                      onClick={() => setTopScorer(player.name)}
+                      className={`px-3 py-2 rounded-lg text-xs font-bold transition-colors text-left ${
+                        topScorer === player.name
+                          ? "bg-canal-yellow text-canal-black"
+                          : "bg-canal-gray-mid text-white hover:bg-canal-gray-light"
+                      }`}
+                    >
+                      <span className="block truncate">{player.flag} {player.name}</span>
+                      <span className={`block text-xs font-normal truncate ${topScorer === player.name ? "text-canal-black/60" : "text-canal-gray-muted"}`}>
+                        {player.country}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {topScorer && (
+                  <div className="flex items-center gap-2 bg-canal-gray-mid rounded-xl px-4 py-2.5 text-sm">
+                    <span>⚽</span>
+                    <span className="font-bold text-white flex-1">{topScorer}</span>
+                    <button onClick={() => setTopScorer("")} className="text-canal-gray-muted hover:text-white text-xs">✕</button>
+                  </div>
+                )}
                 <button
                   onClick={() => save("top_scorer", topScorer)}
                   disabled={!topScorer.trim() || saving === "top_scorer"}
