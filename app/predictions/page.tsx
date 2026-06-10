@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { Trophy, Star, Zap, ArrowLeft, Target, Clock, Lock } from "lucide-react";
+import { Trophy, Star, Zap, ArrowLeft, Target, Clock, Lock, Pencil } from "lucide-react";
 
 const WC_START_MS = new Date("2026-06-11T00:00:00Z").getTime();
 import { scoreLabel } from "@/lib/scoring";
@@ -105,6 +105,7 @@ export default function PredictionsPage() {
   const [winner, setWinner] = useState("");
   const [topScorer, setTopScorer] = useState("");
   const [topScorerSearch, setTopScorerSearch] = useState("");
+  const [editing, setEditing] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [done, setDone] = useState<Record<string, boolean>>({});
   const [history, setHistory] = useState<PredRow[]>([]);
@@ -259,13 +260,22 @@ export default function PredictionsPage() {
               </div>
             </div>
 
-            {saved.winner ? (
+            {saved.winner && !editing.winner ? (
               <div className="flex items-center gap-3 bg-canal-gray-mid rounded-xl px-4 py-3">
                 <span className="text-xl">🏆</span>
                 <span className="font-black text-white flex-1">{saved.winner}</span>
+                {!wcStarted && (
+                  <button
+                    onClick={() => { setWinner(saved.winner!); setEditing((e) => ({ ...e, winner: true })); }}
+                    className="p-1.5 text-canal-gray-muted hover:text-canal-yellow transition-colors"
+                    title="Modifier"
+                  >
+                    <Pencil size={14} />
+                  </button>
+                )}
                 <span className="text-canal-yellow font-black">+20 pts</span>
               </div>
-            ) : wcStarted ? (
+            ) : wcStarted && !saved.winner ? (
               <div className="flex items-center gap-2 text-canal-gray-muted text-sm py-2">
                 <Lock size={14} className="shrink-0" />
                 <span>Pronostic fermé — la Coupe du Monde a commencé.</span>
@@ -287,13 +297,23 @@ export default function PredictionsPage() {
                     </button>
                   ))}
                 </div>
-                <button
-                  onClick={() => save("winner", winner)}
-                  disabled={!winner || saving === "winner"}
-                  className="w-full py-3 rounded-xl bg-canal-yellow text-canal-black font-black disabled:opacity-40"
-                >
-                  {saving === "winner" ? "Enregistrement…" : done.winner ? "✅ Sauvegardé !" : "Valider mon choix"}
-                </button>
+                <div className="flex gap-2">
+                  {editing.winner && (
+                    <button
+                      onClick={() => setEditing((e) => ({ ...e, winner: false }))}
+                      className="flex-1 py-3 rounded-xl bg-canal-gray-mid text-white font-black"
+                    >
+                      Annuler
+                    </button>
+                  )}
+                  <button
+                    onClick={async () => { await save("winner", winner); setEditing((e) => ({ ...e, winner: false })); }}
+                    disabled={!winner || saving === "winner"}
+                    className="flex-1 py-3 rounded-xl bg-canal-yellow text-canal-black font-black disabled:opacity-40"
+                  >
+                    {saving === "winner" ? "Enregistrement…" : done.winner ? "✅ Sauvegardé !" : "Valider mon choix"}
+                  </button>
+                </div>
               </>
             )}
           </div>
@@ -310,13 +330,26 @@ export default function PredictionsPage() {
               </div>
             </div>
 
-            {saved.top_scorer ? (
+            {saved.top_scorer && !editing.top_scorer ? (
               <div className="flex items-center gap-3 bg-canal-gray-mid rounded-xl px-4 py-3">
                 <span className="text-xl">⚽</span>
                 <span className="font-black text-white flex-1">{saved.top_scorer}</span>
+                {!wcStarted && (
+                  <button
+                    onClick={() => {
+                      setTopScorer(saved.top_scorer!);
+                      setTopScorerSearch(saved.top_scorer!);
+                      setEditing((e) => ({ ...e, top_scorer: true }));
+                    }}
+                    className="p-1.5 text-canal-gray-muted hover:text-canal-yellow transition-colors"
+                    title="Modifier"
+                  >
+                    <Pencil size={14} />
+                  </button>
+                )}
                 <span className="text-canal-yellow font-black">+10 pts</span>
               </div>
-            ) : wcStarted ? (
+            ) : wcStarted && !saved.top_scorer ? (
               <div className="flex items-center gap-2 text-canal-gray-muted text-sm py-2">
                 <Lock size={14} className="shrink-0" />
                 <span>Pronostic fermé — la Coupe du Monde a commencé.</span>
@@ -369,13 +402,23 @@ export default function PredictionsPage() {
                     <button onClick={() => { setTopScorer(""); setTopScorerSearch(""); }} className="text-canal-gray-muted hover:text-white text-xs">✕</button>
                   </div>
                 )}
-                <button
-                  onClick={() => save("top_scorer", topScorer)}
-                  disabled={!topScorer.trim() || saving === "top_scorer"}
-                  className="w-full py-3 rounded-xl bg-canal-yellow text-canal-black font-black disabled:opacity-40"
-                >
-                  {saving === "top_scorer" ? "Enregistrement…" : done.top_scorer ? "✅ Sauvegardé !" : "Valider mon choix"}
-                </button>
+                <div className="flex gap-2">
+                  {editing.top_scorer && (
+                    <button
+                      onClick={() => setEditing((e) => ({ ...e, top_scorer: false }))}
+                      className="flex-1 py-3 rounded-xl bg-canal-gray-mid text-white font-black"
+                    >
+                      Annuler
+                    </button>
+                  )}
+                  <button
+                    onClick={async () => { await save("top_scorer", topScorer); setEditing((e) => ({ ...e, top_scorer: false })); }}
+                    disabled={!topScorer.trim() || saving === "top_scorer"}
+                    className="flex-1 py-3 rounded-xl bg-canal-yellow text-canal-black font-black disabled:opacity-40"
+                  >
+                    {saving === "top_scorer" ? "Enregistrement…" : done.top_scorer ? "✅ Sauvegardé !" : "Valider mon choix"}
+                  </button>
+                </div>
               </>
             )}
           </div>
