@@ -327,7 +327,17 @@ export default function PredictionsPage() {
                   type="text"
                   placeholder="Rechercher un joueur ou un pays…"
                   value={topScorerSearch}
-                  onChange={(e) => setTopScorerSearch(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setTopScorerSearch(val);
+                    if (!val.trim()) { setTopScorer(""); return; }
+                    const filtered = TOP_SCORERS.filter(
+                      (p) =>
+                        p.name.toLowerCase().includes(val.toLowerCase()) ||
+                        p.country.toLowerCase().includes(val.toLowerCase())
+                    );
+                    setTopScorer(filtered.length > 0 ? filtered[0].name : "");
+                  }}
                   className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-2.5 text-white placeholder-canal-gray-muted focus:border-canal-yellow outline-none text-sm"
                 />
                 <div className="grid grid-cols-2 gap-1.5 max-h-60 overflow-y-auto pr-1">
@@ -338,7 +348,7 @@ export default function PredictionsPage() {
                   ).map((player) => (
                     <button
                       key={player.name}
-                      onClick={() => setTopScorer(player.name)}
+                      onClick={() => { setTopScorer(player.name); setTopScorerSearch(player.name); }}
                       className={`px-3 py-2 rounded-lg text-xs font-bold transition-colors text-left ${
                         topScorer === player.name
                           ? "bg-canal-yellow text-canal-black"
@@ -356,7 +366,7 @@ export default function PredictionsPage() {
                   <div className="flex items-center gap-2 bg-canal-gray-mid rounded-xl px-4 py-2.5 text-sm">
                     <span>⚽</span>
                     <span className="font-bold text-white flex-1">{topScorer}</span>
-                    <button onClick={() => setTopScorer("")} className="text-canal-gray-muted hover:text-white text-xs">✕</button>
+                    <button onClick={() => { setTopScorer(""); setTopScorerSearch(""); }} className="text-canal-gray-muted hover:text-white text-xs">✕</button>
                   </div>
                 )}
                 <button
