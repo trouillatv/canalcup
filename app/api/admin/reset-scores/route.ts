@@ -64,15 +64,8 @@ export async function POST() {
     results.predictions = error ? `ERREUR: ${error.message}` : `OK (${count ?? "?"} ligne(s) mise(s) à jour)`;
   }
 
-  // 4. Pronostics bonus — reset points seulement
-  {
-    const { error, count } = await db
-      .from("bonus_predictions")
-      .update({ points_awarded: 0 })
-      .gte("created_at", "2000-01-01")
-      .select("id", { count: "exact", head: true });
-    results.bonus_predictions = error ? `ERREUR: ${error.message}` : `OK (${count ?? "?"} ligne(s) mise(s) à jour)`;
-  }
+  // 4. Pronostics bonus — NON MODIFIÉS (vainqueur + buteur conservés)
+  results.bonus_predictions = "ignoré (conservé tel quel)";
 
   // 5. Réponses quiz — reset points seulement
   {
