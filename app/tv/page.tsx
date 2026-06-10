@@ -2554,30 +2554,34 @@ export default function TVPage() {
   const cursorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    const handler = () => setIsFullscreen(
+      !!(document.fullscreenElement || (document as unknown as Record<string,unknown>).webkitFullscreenElement)
+    );
     document.addEventListener("fullscreenchange", handler);
-    return () => document.removeEventListener("fullscreenchange", handler);
+    document.addEventListener("webkitfullscreenchange", handler);
+    return () => {
+      document.removeEventListener("fullscreenchange", handler);
+      document.removeEventListener("webkitfullscreenchange", handler);
+    };
   }, []);
 
+  // Cache le curseur après 3 s d'inactivité — toujours actif sur la page TV,
+  // indépendamment du fullscreen (Samsung TV ne déclenche pas toujours fullscreenchange).
   useEffect(() => {
-    if (!isFullscreen) {
-      setCursorVisible(true);
-      if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
-      return;
-    }
     const showCursor = () => {
       setCursorVisible(true);
       if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
       cursorTimerRef.current = setTimeout(() => setCursorVisible(false), 3000);
     };
-    // Hide immediately on entering fullscreen, show on move
     cursorTimerRef.current = setTimeout(() => setCursorVisible(false), 3000);
     document.addEventListener("mousemove", showCursor);
+    document.addEventListener("pointermove", showCursor);
     return () => {
       document.removeEventListener("mousemove", showCursor);
+      document.removeEventListener("pointermove", showCursor);
       if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
     };
-  }, [isFullscreen]);
+  }, []);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -2675,7 +2679,7 @@ export default function TVPage() {
   const slide = slides[currentSlide];
   return (
     <PinGate>
-    <div className={`fixed inset-0 bg-canal-black flex flex-col overflow-hidden tv-mode${isFullscreen && !cursorVisible ? " cursor-none" : ""}`}>
+    <div className={`fixed inset-0 bg-canal-black flex flex-col overflow-hidden tv-mode${!cursorVisible ? " cursor-none" : ""}`}>
       <FlashOverlay />
       {/* Header */}
       <header className="flex items-center justify-between px-4 sm:px-8 lg:px-12 py-3 sm:py-4 border-b border-canal-gray-light shrink-0">
