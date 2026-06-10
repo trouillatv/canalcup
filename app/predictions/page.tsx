@@ -381,7 +381,7 @@ export default function PredictionsPage() {
                   ).map((player) => (
                     <button
                       key={player.name}
-                      onClick={() => { setTopScorer(player.name); setTopScorerSearch(player.name); }}
+                      onClick={() => setTopScorer(player.name)}
                       className={`px-3 py-2 rounded-lg text-xs font-bold transition-colors text-left ${
                         topScorer === player.name
                           ? "bg-canal-yellow text-canal-black"
