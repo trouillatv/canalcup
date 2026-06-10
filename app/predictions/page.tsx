@@ -51,6 +51,7 @@ const TOP_SCORERS = [
   { name: "Arda Güler",          country: "Turquie",          flag: "🇹🇷" },
   { name: "Christian Pulisic",   country: "États-Unis",       flag: "🇺🇸" },
   { name: "Raphinha",            country: "Brésil",           flag: "🇧🇷" },
+  { name: "Antoine Griezmann",   country: "France",           flag: "🇫🇷" },
   { name: "Sébastien Haller",    country: "Côte d'Ivoire",    flag: "🇨🇮" },
   { name: "Cristiano Ronaldo",   country: "Portugal",         flag: "🇵🇹" },
   { name: "Álvaro Morata",       country: "Espagne",          flag: "🇪🇸" },
@@ -58,7 +59,7 @@ const TOP_SCORERS = [
   { name: "Jonathan David",      country: "Canada",           flag: "🇨🇦" },
   { name: "Santiago Giménez",    country: "Mexique",          flag: "🇲🇽" },
   { name: "Ritsu Dōan",          country: "Japon",            flag: "🇯🇵" },
-  { name: "Sadio Mané",          country: "Sénégal",          flag: "🇸🇳" },
+  { name: "Ousmane Dembélé",     country: "France",           flag: "🇫🇷" },
 ];
 
 interface BonusPredictions {
@@ -395,7 +396,12 @@ export default function PredictionsPage() {
                     </button>
                   ))}
                 </div>
-                {topScorer && (
+                {topScorer && !TOP_SCORERS.some(
+                  (p) => p.name === topScorer && (
+                    p.name.toLowerCase().includes(topScorerSearch.toLowerCase()) ||
+                    p.country.toLowerCase().includes(topScorerSearch.toLowerCase())
+                  )
+                ) && (
                   <div className="flex items-center gap-2 bg-canal-gray-mid rounded-xl px-4 py-2.5 text-sm">
                     <span>⚽</span>
                     <span className="font-bold text-white flex-1">{topScorer}</span>
