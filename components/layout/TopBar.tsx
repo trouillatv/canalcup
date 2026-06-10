@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, Tv, Inbox, Newspaper, Gamepad2, PartyPopper, MessageCircle, Download, Building2, Globe2, CalendarDays, Target } from "lucide-react";
+import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, Tv, Inbox, Newspaper, Gamepad2, PartyPopper, MessageCircle, Download, Building2, Globe2, CalendarDays, Target, Medal } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,7 @@ const MENU_ITEMS = [
   { href: "/matches",    icon: Calendar,  label: "Matchs & Pronostics" },
   { href: "/predictions", icon: Target,   label: "Mes pronos" },
   { href: "/leaderboard", icon: Trophy,   label: "Classement" },
+  { href: "/meilleur-11", icon: Medal,    label: "Stats Tournoi" },
   { href: "/teams",      icon: Users,     label: "Équipes" },
   { href: "/schedule",   icon: CalendarDays, label: "Calendrier CdM" },
   { href: "/wc-teams",   icon: Globe2,    label: "Sélections CdM" },
