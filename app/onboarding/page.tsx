@@ -19,15 +19,17 @@ import {
   User, Briefcase, ChevronRight, Users, Plus, Ticket, Check, RefreshCw, AlertCircle, Globe,
 } from "lucide-react";
 import { cn, DEFAULT_TZ, TZ_OPTIONS, detectTimezone, normalizeTimezone } from "@/lib/utils";
+import { WC_QUALIFIED_TEAMS, WC_ATTACKERS_2026 } from "@/lib/football/wc-attackers-2026";
 
-const WC_TEAMS_SORTED = [
-  "Afrique du Sud","Algérie","Allemagne","Angola","Arabie Saoudite","Argentine","Australie",
-  "Belgique","Bosnie-Herzégovine","Brésil","Canada","Cap-Vert","Colombie","Corée du Sud",
-  "Côte d'Ivoire","Croatie","Curaçao","Égypte","Équateur","Espagne","États-Unis","France",
-  "Haïti","Honduras","Iran","Italie","Japon","Maroc","Mexique","Nigéria","Panama","Paraguay",
-  "Pays-Bas","Pérou","Portugal","Qatar","République Tchèque","Sénégal","Suède","Suisse",
-  "Tunisie","Turquie","Uruguay","Venezuela",
-].sort((a, b) => a.localeCompare(b, "fr"));
+// 48 équipes qualifiées — alignées sur lib/football/groups-2026.ts
+const WC_TEAMS_SORTED = [...WC_QUALIFIED_TEAMS].sort((a, b) => a.localeCompare(b, "fr"));
+
+// Attaquants regroupés par pays pour le <select> du meilleur buteur
+const ATTACKERS_BY_COUNTRY = WC_ATTACKERS_2026.reduce<Record<string, typeof WC_ATTACKERS_2026>>((acc, p) => {
+  (acc[p.country] ??= []).push(p);
+  return acc;
+}, {});
+const ATTACKER_COUNTRIES = Object.keys(ATTACKERS_BY_COUNTRY).sort((a, b) => a.localeCompare(b, "fr"));
 
 const FOOTBALL_LEVELS: { value: FootballLevel; label: string; desc: string; emoji: string }[] = [
   { value: "expert", label: "Expert", desc: "Je connais le hors-jeu, le faux pivot et les stats xG", emoji: "⚽" },
@@ -392,14 +394,21 @@ function OnboardingInner() {
                 <label className="text-xs text-canal-yellow font-bold uppercase tracking-wider mb-1 block">
                   ⚽ Qui sera le meilleur buteur ? <span className="text-canal-gray-muted font-normal normal-case">(+10 pts si correct)</span>
                 </label>
-                <input
-                  type="text"
+                <select
                   value={bonusTopScorer}
                   onChange={(e) => setBonusTopScorer(e.target.value)}
-                  placeholder="Ex : Mbappé, Vinicius Jr…"
-                  maxLength={60}
-                  className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-white placeholder:text-canal-gray-muted text-sm focus:outline-none focus:border-canal-yellow transition-colors"
-                />
+                  className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-canal-yellow transition-colors"
+                  style={{ color: bonusTopScorer ? "white" : "#6b7280" }}
+                >
+                  <option value="">— Sélectionner un joueur —</option>
+                  {ATTACKER_COUNTRIES.map((country) => (
+                    <optgroup key={country} label={`${ATTACKERS_BY_COUNTRY[country][0].flag} ${country}`}>
+                      {ATTACKERS_BY_COUNTRY[country].map((p) => (
+                        <option key={p.name} value={p.name}>{p.name}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
               </div>
               <p className="text-[11px] text-canal-gray-muted -mt-2 leading-snug">
                 Facultatif — modifiable depuis&nbsp;<span className="text-canal-yellow">Mes pronos</span>&nbsp;jusqu'au début du tournoi.
