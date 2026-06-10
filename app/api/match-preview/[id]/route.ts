@@ -12,19 +12,44 @@ function isAttacker(pos: string | null): boolean {
   return /attaquant|avant|ailier|buteur/i.test(pos ?? "");
 }
 
+function positionGroup(pos: string | null): "gk" | "def" | "mid" | "fwd" | null {
+  const p = (pos ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  if (/gardien|goalkeeper|keeper/.test(p)) return "gk";
+  if (/defenseur|defender|arriere|lateral|back/.test(p)) return "def";
+  if (/milieu|midfielder/.test(p)) return "mid";
+  if (/attaquant|avant|ailier|buteur|forward|striker|winger/.test(p)) return "fwd";
+  return null;
+}
+
+type PlayerEntry = { name: string; position: string | null; club: string | null };
+
 function teamDossier(name: string) {
   const t: WCTeam | null = getWCTeamByName(name);
-  if (!t) return { name, form: [], formCodes: [], recentScores: [], keyPlayers: [], squadValue: null };
+  if (!t) return { name, form: [], formCodes: [], recentScores: [], keyPlayers: [], keyPlayersByPos: { gk: [], def: [], mid: [], fwd: [] }, squadValue: null };
   const keyPlayers = t.players
     .filter((p) => isAttacker(p.position))
     .slice(0, 5)
-    .map((p) => ({ name: p.name, position: p.position, club: p.club }));
+    .map((p): PlayerEntry => ({ name: p.name, position: p.position, club: p.club }));
+
+  const byPos: Record<string, PlayerEntry[]> = { gk: [], def: [], mid: [], fwd: [] };
+  for (const p of t.players) {
+    const g = positionGroup(p.position);
+    if (g) byPos[g].push({ name: p.name, position: p.position, club: p.club });
+  }
+  const keyPlayersByPos = {
+    gk:  byPos.gk.slice(0, 1),
+    def: byPos.def.slice(0, 3),
+    mid: byPos.mid.slice(0, 3),
+    fwd: byPos.fwd.slice(0, 4),
+  };
+
   return {
     name: t.name,
     form: t.form.slice(0, 5),
     formCodes: t.form.slice(0, 5).map(formCode),
     recentScores: t.recentScores.slice(0, 5),
     keyPlayers,
+    keyPlayersByPos,
     squadValue: t.squadValue,
   };
 }
