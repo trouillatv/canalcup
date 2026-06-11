@@ -15,7 +15,7 @@ export async function GET() {
 
   const admin = createAdminClient();
   const [{ data: allUsers }, { data: subs }] = await Promise.all([
-    admin.from("users").select("id, display_name, name"),
+    admin.from("users").select("id, auth_id, display_name, name"),
     admin.from("push_subscriptions").select("user_id, endpoint"),
   ]);
 
@@ -26,15 +26,15 @@ export async function GET() {
   }, {});
 
   const subscribers = (allUsers ?? [])
-    .filter((u: { id: string }) => subscribedIds.has(u.id))
-    .map((u: { id: string; display_name: string; name: string }) => ({
+    .filter((u: { auth_id: string | null }) => !!u.auth_id && subscribedIds.has(u.auth_id))
+    .map((u: { id: string; auth_id: string | null; display_name: string; name: string }) => ({
       user_id: u.id,
       display_name: u.display_name ?? u.name ?? "—",
-      endpoint: subsByUserId[u.id],
+      endpoint: u.auth_id ? subsByUserId[u.auth_id] : undefined,
     }));
 
   const nonSubscribers = (allUsers ?? [])
-    .filter((u: { id: string }) => !subscribedIds.has(u.id))
+    .filter((u: { auth_id: string | null }) => !u.auth_id || !subscribedIds.has(u.auth_id))
     .map((u: { id: string; display_name: string; name: string }) => ({
       id: u.id,
       display_name: u.display_name ?? u.name ?? "—",

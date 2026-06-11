@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import webpush from "web-push";
 
 function configureWebPush() {
@@ -47,9 +48,25 @@ export async function POST(request: NextRequest) {
     userIds?: string[];
   };
 
-  let query = supabase.from("push_subscriptions").select("subscription");
+  const admin = createAdminClient();
+  let targetAuthIds: string[] | null = null;
+
   if (userIds?.length) {
-    query = query.in("user_id", userIds);
+    const { data: users } = await admin
+      .from("users")
+      .select("id, auth_id")
+      .in("id", userIds);
+
+    const ids = new Set(userIds);
+    for (const user of users ?? []) {
+      if (user.auth_id) ids.add(user.auth_id);
+    }
+    targetAuthIds = Array.from(ids);
+  }
+
+  let query = admin.from("push_subscriptions").select("subscription, user_id");
+  if (targetAuthIds?.length) {
+    query = query.in("user_id", targetAuthIds);
   }
 
   const { data: rows } = await query;
