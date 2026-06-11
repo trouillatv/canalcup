@@ -38,9 +38,8 @@ export async function POST() {
   {
     const { error, count } = await db
       .from("matches")
-      .update({ score_a: null, score_b: null, status: "upcoming", is_settled: false })
-      .neq("status", "upcoming")
-      .select("id", { count: "exact", head: true });
+      .update({ score_a: null, score_b: null, status: "upcoming", is_settled: false }, { count: "exact" })
+      .neq("status", "upcoming");
     results.matches = error ? `ERREUR: ${error.message}` : `OK (${count ?? "?"} ligne(s) mise(s) à jour)`;
   }
 
@@ -48,9 +47,8 @@ export async function POST() {
   {
     const { error, count } = await db
       .from("player_match_stats")
-      .delete()
-      .gte("created_at", "2000-01-01")
-      .select("id", { count: "exact", head: true });
+      .delete({ count: "exact" })
+      .gte("created_at", "2000-01-01");
     results.player_match_stats = error ? `ERREUR: ${error.message}` : `OK (${count ?? "?"} ligne(s) supprimée(s))`;
   }
 
@@ -58,9 +56,8 @@ export async function POST() {
   {
     const { error, count } = await db
       .from("predictions")
-      .update({ points_awarded: 0, prediction_result: null })
-      .gte("created_at", "2000-01-01")
-      .select("id", { count: "exact", head: true });
+      .update({ points_awarded: 0, prediction_result: null }, { count: "exact" })
+      .gte("created_at", "2000-01-01");
     results.predictions = error ? `ERREUR: ${error.message}` : `OK (${count ?? "?"} ligne(s) mise(s) à jour)`;
   }
 
@@ -71,9 +68,8 @@ export async function POST() {
   {
     const { error, count } = await db
       .from("quiz_answers")
-      .update({ points_awarded: 0 })
-      .gte("created_at", "2000-01-01")
-      .select("id", { count: "exact", head: true });
+      .update({ points_awarded: 0 }, { count: "exact" })
+      .gte("created_at", "2000-01-01");
     results.quiz_answers = error ? `ERREUR: ${error.message}` : `OK (${count ?? "?"} ligne(s) mise(s) à jour)`;
   }
 
@@ -81,9 +77,8 @@ export async function POST() {
   {
     const { error, count } = await db
       .from("score_events")
-      .delete()
-      .gte("created_at", "2000-01-01")
-      .select("id", { count: "exact", head: true });
+      .delete({ count: "exact" })
+      .gte("created_at", "2000-01-01");
     results.score_events = error ? `ERREUR: ${error.message}` : `OK (${count ?? "?"} ligne(s) supprimée(s))`;
   }
 
@@ -91,9 +86,8 @@ export async function POST() {
   {
     const { error, count } = await db
       .from("babyfoot_matches")
-      .update({ score_a: null, score_b: null, status: "upcoming" })
-      .eq("status", "finished")
-      .select("id", { count: "exact", head: true });
+      .update({ score_a: null, score_b: null, status: "upcoming" }, { count: "exact" })
+      .eq("status", "finished");
     results.babyfoot_matches = error ? `ERREUR: ${error.message}` : `OK (${count ?? "?"} ligne(s) mise(s) à jour)`;
   }
 

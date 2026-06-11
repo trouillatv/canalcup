@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { cn, DEFAULT_TZ, TZ_OPTIONS, detectTimezone, normalizeTimezone } from "@/lib/utils";
 import { WC_QUALIFIED_TEAMS, WC_ATTACKERS_2026 } from "@/lib/football/wc-attackers-2026";
+import { WC_START_MS } from "@/lib/tournament";
 
 // 48 équipes qualifiées — alignées sur lib/football/groups-2026.ts
 const WC_TEAMS_SORTED = [...WC_QUALIFIED_TEAMS].sort((a, b) => a.localeCompare(b, "fr"));
@@ -371,8 +372,8 @@ function OnboardingInner() {
             </div>
           </div>
 
-          {/* Pronos bonus — fermés au coup d'envoi du tournoi (11 juin 2026) */}
-          {Date.now() < new Date("2026-06-11T00:00:00Z").getTime() && (
+          {/* Pronos bonus — fermés au coup d'envoi du tournoi (12 juin 2026, 06h NC) */}
+          {Date.now() < WC_START_MS && (
             <div className="space-y-4">
               <div>
                 <label className="text-xs text-canal-yellow font-bold uppercase tracking-wider mb-1 block">

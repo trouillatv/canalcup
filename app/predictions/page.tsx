@@ -4,11 +4,11 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Trophy, Star, Zap, ArrowLeft, Target, Clock, Lock, Pencil } from "lucide-react";
 
-const WC_START_MS = new Date("2026-06-11T00:00:00Z").getTime();
 import { scoreLabel } from "@/lib/scoring";
 import { teamFlag } from "@/lib/utils";
 import { LocalTime } from "@/components/timezone/LocalTime";
 import { WC_ATTACKERS_2026 as TOP_SCORERS } from "@/lib/football/wc-attackers-2026";
+import { WC_START_MS } from "@/lib/tournament";
 
 // 48 équipes qualifiées — tirage officiel du 5 décembre 2025 (aligné sur groups-2026.ts)
 const WC_TEAMS = [
