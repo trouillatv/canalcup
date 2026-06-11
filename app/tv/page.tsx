@@ -59,7 +59,8 @@ type Slide =
   | "visionnaire"
   | "drama"
   | "fantomes"
-  | "squads";
+  | "squads"
+  | "notifcta";
 
 // ─── Goat helper: remplace "Le Goat" par l'image de chèvre ────────────────────
 
@@ -143,6 +144,7 @@ const BASE_SLIDES: Slide[] = [
   "topscorerrace", // paris meilleur buteur
   "services",      // classement services
   "welcome",       // nouveaux joueurs
+  "notifcta",      // CTA activation notifications push
   "fantomes",      // joueurs inactifs
   "bracket",       // phase à élimination
   "medals",        // médailles absurdes
@@ -2543,6 +2545,91 @@ function PinGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// ─── Slide : CTA activation notifications push ────────────────────────────────
+
+const NOTIF_LINES = [
+  {
+    main: "Votre téléphone est silencieux.",
+    sub: "Canal Cup vous a envoyé 3 notifs ce matin. Dans le vide. Dramatique.",
+  },
+  {
+    main: "Vous apprenez les résultats par la rumeur ?",
+    sub: "Il y a une option \"notifier\" dans votre profil. Elle vous attend depuis le début.",
+  },
+  {
+    main: "Le Goat a essayé de vous contacter.",
+    sub: "Boîte vocale pleine. Notifications désactivées. Signal de fumée en cours d'étude.",
+  },
+  {
+    main: "Cloche grise = âme en peine.",
+    sub: "Un simple clic dans votre profil et la cloche devient jaune. C'est la vie qui reprend.",
+  },
+  {
+    main: "Votre concurrent vient de pronostiquer.",
+    sub: "Il a reçu une notif. Vous, vous regardez cet écran. Coïncidence ?",
+  },
+];
+
+function SlideNotifCTA() {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setIdx((i) => (i + 1) % NOTIF_LINES.length), 5000);
+    return () => clearInterval(t);
+  }, []);
+
+  const line = NOTIF_LINES[idx];
+
+  return (
+    <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-24 py-6 sm:py-10 text-center gap-4 sm:gap-8">
+
+      {/* Icône cloche animée */}
+      <div className="relative">
+        <div className="w-20 h-20 sm:w-32 sm:h-32 rounded-full bg-canal-gray-mid/60 border-2 border-canal-gray-light flex items-center justify-center">
+          <span className="text-4xl sm:text-6xl grayscale">🔕</span>
+        </div>
+        <span className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 w-6 h-6 sm:w-9 sm:h-9 bg-red-500 rounded-full flex items-center justify-center text-white font-black text-xs sm:text-base animate-pulse">
+          !
+        </span>
+      </div>
+
+      {/* Titre */}
+      <div>
+        <p className="text-canal-yellow font-black text-xs sm:text-sm uppercase tracking-widest mb-2 sm:mb-3">
+          📵 Notifications désactivées
+        </p>
+        <p className="font-black text-2xl sm:text-4xl lg:text-5xl text-white leading-tight max-w-4xl">
+          {line.main}
+        </p>
+      </div>
+
+      {/* Punchline */}
+      <p className="text-canal-gray-muted text-base sm:text-2xl lg:text-3xl italic max-w-3xl leading-snug">
+        {line.sub}
+      </p>
+
+      {/* CTA */}
+      <div className="flex flex-col items-center gap-2 sm:gap-3 mt-2 sm:mt-4">
+        <p className="text-white/40 text-xs sm:text-base uppercase tracking-widest font-bold">La solution en 2 secondes</p>
+        <div className="flex items-center gap-3 sm:gap-5 bg-canal-gray-mid/50 border border-canal-yellow/30 rounded-2xl px-5 sm:px-8 py-3 sm:py-4">
+          <span className="text-2xl sm:text-4xl">📱</span>
+          <div className="text-left">
+            <p className="text-white font-black text-sm sm:text-xl">Ouvrir votre profil</p>
+            <p className="text-canal-yellow text-xs sm:text-base">Appuyer sur la cloche 🔔 — c&apos;est tout.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Dots */}
+      <div className="flex gap-1.5">
+        {NOTIF_LINES.map((_, i) => (
+          <span key={i} className={`h-1.5 rounded-full transition-all ${i === idx ? "w-6 bg-canal-yellow" : "w-1.5 bg-canal-gray-light"}`} />
+        ))}
+      </div>
+
+    </div>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function TVPage() {
@@ -2775,6 +2862,7 @@ export default function TVPage() {
             {slide === "fantomes" && data.fantomes && <SlideFantomes players={data.fantomes} />}
             {slide === "welcome" && <SlideWelcome players={data.newPlayers ?? []} />}
             {slide === "topscorerrace" && <SlideTopScorerRace bets={data.topScorerBets ?? []} />}
+            {slide === "notifcta" && <SlideNotifCTA />}
           </>
         )}
       </div>
