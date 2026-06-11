@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bell, BellOff, Send, RefreshCw } from "lucide-react";
+import { Bell, BellOff, Send, RefreshCw, Calendar, ChevronRight } from "lucide-react";
 
 interface PushStats {
   subscribed: number;
@@ -17,6 +17,19 @@ interface PushStats {
   nonSubscribers: { id: string; display_name: string }[];
 }
 
+interface UpcomingMatch {
+  id: string;
+  team_a: string;
+  team_b: string;
+  flag_a?: string;
+  flag_b?: string;
+  starts_at: string;
+  phase?: string;
+  stage?: string;
+}
+
+type TabId = "broadcast" | "match";
+
 export default function AdminPushPage() {
   const [stats, setStats] = useState<PushStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,6 +37,14 @@ export default function AdminPushPage() {
   const [title, setTitle] = useState("Canal Cup 2026");
   const [body, setBody] = useState("");
   const [result, setResult] = useState<{ sent: number; total: number } | null>(null);
+  const [tab, setTab] = useState<TabId>("broadcast");
+
+  const [matches, setMatches] = useState<UpcomingMatch[]>([]);
+  const [matchLoading, setMatchLoading] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState<UpcomingMatch | null>(null);
+  const [matchMsg, setMatchMsg] = useState("");
+  const [matchSending, setMatchSending] = useState(false);
+  const [matchResult, setMatchResult] = useState<{ sent: number; total: number } | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -33,7 +54,26 @@ export default function AdminPushPage() {
       .catch(() => setLoading(false));
   };
 
+  const loadMatches = () => {
+    setMatchLoading(true);
+    fetch("/api/matches")
+      .then((r) => r.json())
+      .then((d) => {
+        const all: UpcomingMatch[] = Array.isArray(d) ? d : (d.matches ?? []);
+        const upcoming = all
+          .filter((m: UpcomingMatch & { status?: string }) => m.status === "upcoming")
+          .slice(0, 20);
+        setMatches(upcoming);
+        setMatchLoading(false);
+      })
+      .catch(() => setMatchLoading(false));
+  };
+
   useEffect(load, []);
+
+  useEffect(() => {
+    if (tab === "match" && matches.length === 0) loadMatches();
+  }, [tab]);
 
   const send = async () => {
     if (!body.trim()) return;
@@ -47,6 +87,32 @@ export default function AdminPushPage() {
     const d = await res.json();
     setResult(d);
     setSending(false);
+  };
+
+  const selectMatch = (m: UpcomingMatch) => {
+    setSelectedMatch(m);
+    const dt = new Date(m.starts_at);
+    const timeStr = dt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    setMatchMsg(`⚽ ${m.team_a} vs ${m.team_b} — ${timeStr} · Canal Cup 2026`);
+    setMatchResult(null);
+  };
+
+  const sendMatchPush = async () => {
+    if (!selectedMatch || !matchMsg.trim()) return;
+    setMatchSending(true);
+    setMatchResult(null);
+    const res = await fetch("/api/push/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "Canal Cup 2026",
+        body: matchMsg,
+        url: `/matches/${selectedMatch.id}`,
+      }),
+    });
+    const d = await res.json();
+    setMatchResult(d);
+    setMatchSending(false);
   };
 
   return (
@@ -74,37 +140,132 @@ export default function AdminPushPage() {
         </div>
       )}
 
-      {/* Formulaire d'envoi */}
-      <div className="canal-card space-y-3">
-        <p className="text-canal-yellow font-bold text-sm flex items-center gap-2">
-          <Send size={14} /> Envoyer un push à tous les abonnés ({stats?.subscribed ?? 0})
-        </p>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Titre"
-          className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-3 py-2 text-sm text-white placeholder:text-canal-gray-muted outline-none focus:border-canal-yellow/50"
-        />
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          placeholder="Message…"
-          rows={3}
-          className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-3 py-2 text-sm text-white placeholder:text-canal-gray-muted outline-none focus:border-canal-yellow/50 resize-none"
-        />
-        <button
-          onClick={send}
-          disabled={sending || !body.trim()}
-          className="w-full py-2.5 bg-canal-yellow text-canal-black font-black rounded-xl text-sm disabled:opacity-40 hover:bg-canal-yellow-hover transition-colors"
-        >
-          {sending ? "Envoi…" : "Envoyer"}
-        </button>
-        {result && (
-          <p className="text-xs text-center text-green-400">
-            ✓ Envoyé à {result.sent}/{result.total} abonné{result.total > 1 ? "s" : ""}
-          </p>
-        )}
+      {/* Tabs */}
+      <div className="flex gap-2">
+        {(["broadcast", "match"] as TabId[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors ${
+              tab === t
+                ? "bg-canal-yellow text-canal-black"
+                : "bg-canal-gray-mid text-canal-gray-muted hover:text-white"
+            }`}
+          >
+            {t === "broadcast" ? "📣 Broadcast" : "⚽ Par match"}
+          </button>
+        ))}
       </div>
+
+      {/* Broadcast tab */}
+      {tab === "broadcast" && (
+        <div className="canal-card space-y-3">
+          <p className="text-canal-yellow font-bold text-sm flex items-center gap-2">
+            <Send size={14} /> Envoyer un push à tous les abonnés ({stats?.subscribed ?? 0})
+          </p>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Titre"
+            className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-3 py-2 text-sm text-white placeholder:text-canal-gray-muted outline-none focus:border-canal-yellow/50"
+          />
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder="Message…"
+            rows={3}
+            className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-3 py-2 text-sm text-white placeholder:text-canal-gray-muted outline-none focus:border-canal-yellow/50 resize-none"
+          />
+          <button
+            onClick={send}
+            disabled={sending || !body.trim()}
+            className="w-full py-2.5 bg-canal-yellow text-canal-black font-black rounded-xl text-sm disabled:opacity-40 hover:bg-canal-yellow-hover transition-colors"
+          >
+            {sending ? "Envoi…" : "Envoyer"}
+          </button>
+          {result && (
+            <p className="text-xs text-center text-green-400">
+              ✓ Envoyé à {result.sent}/{result.total} abonné{result.total > 1 ? "s" : ""}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Per-match tab */}
+      {tab === "match" && (
+        <div className="space-y-4">
+          {/* Match list */}
+          <div className="canal-card space-y-2">
+            <p className="text-canal-yellow font-bold text-sm flex items-center gap-2">
+              <Calendar size={14} /> Matchs à venir — sélectionne pour notifier
+            </p>
+            {matchLoading && (
+              <div className="flex items-center justify-center py-4">
+                <div className="w-5 h-5 border-2 border-canal-yellow border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+            {!matchLoading && matches.length === 0 && (
+              <p className="text-xs text-canal-gray-muted text-center py-3">Aucun match à venir.</p>
+            )}
+            {matches.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => selectMatch(m)}
+                className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors ${
+                  selectedMatch?.id === m.id
+                    ? "border-canal-yellow bg-canal-yellow/10"
+                    : "border-canal-gray-light bg-canal-gray-mid hover:border-canal-yellow/40"
+                }`}
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-white">
+                    {m.team_a} vs {m.team_b}
+                  </p>
+                  <p className="text-xs text-canal-gray-muted">
+                    {new Date(m.starts_at).toLocaleString("fr-FR", {
+                      weekday: "short", day: "numeric", month: "short",
+                      hour: "2-digit", minute: "2-digit",
+                    })}
+                    {m.stage ? ` · ${m.stage}` : ""}
+                  </p>
+                </div>
+                <ChevronRight size={14} className="text-canal-gray-muted shrink-0" />
+              </button>
+            ))}
+          </div>
+
+          {/* Send form for selected match */}
+          {selectedMatch && (
+            <div className="canal-card space-y-3">
+              <p className="text-canal-yellow font-bold text-sm">
+                Notification pour : {selectedMatch.team_a} vs {selectedMatch.team_b}
+              </p>
+              <textarea
+                value={matchMsg}
+                onChange={(e) => setMatchMsg(e.target.value)}
+                rows={3}
+                className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-xl px-3 py-2 text-sm text-white placeholder:text-canal-gray-muted outline-none focus:border-canal-yellow/50 resize-none"
+              />
+              <p className="text-xs text-canal-gray-muted">
+                Le lien pointera vers la fiche du match ({`/matches/${selectedMatch.id}`}).
+              </p>
+              <button
+                onClick={sendMatchPush}
+                disabled={matchSending || !matchMsg.trim()}
+                className="w-full py-2.5 bg-canal-yellow text-canal-black font-black rounded-xl text-sm disabled:opacity-40 hover:bg-canal-yellow-hover transition-colors flex items-center justify-center gap-2"
+              >
+                <Send size={14} />
+                {matchSending ? "Envoi…" : `Notifier ${stats?.subscribed ?? 0} abonné${(stats?.subscribed ?? 0) > 1 ? "s" : ""}`}
+              </button>
+              {matchResult && (
+                <p className="text-xs text-center text-green-400">
+                  ✓ Envoyé à {matchResult.sent}/{matchResult.total} abonné{matchResult.total > 1 ? "s" : ""}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Liste abonnés */}
       {stats && stats.subscribers.length > 0 && (
