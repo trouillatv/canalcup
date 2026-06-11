@@ -1,7 +1,7 @@
 import { requireRole } from "@/lib/auth/session";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  await requireRole("admin");
+  await requireRole("event_admin");
   return (
     <div>
       <div className="px-4 pt-2 pb-1 border-b border-canal-gray-light bg-canal-gray-mid/30">

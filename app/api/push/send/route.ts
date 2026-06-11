@@ -25,12 +25,12 @@ export async function POST(request: NextRequest) {
   }
 
   const { data: profile } = await supabase
-    .from("users")
-    .select("role")
-    .eq("auth_id", user.id)
+    .from("allowlist_users")
+    .select("role, is_active")
+    .eq("email", user.email)
     .single();
 
-  if (profile?.role !== "admin") {
+  if (!profile?.is_active || !["admin", "event_admin", "super_admin"].includes(profile.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

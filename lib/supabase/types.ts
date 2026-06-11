@@ -153,6 +153,7 @@ export interface Prediction {
   predicted_score_b?: number;
   points_awarded: number;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface BonusPrediction {
