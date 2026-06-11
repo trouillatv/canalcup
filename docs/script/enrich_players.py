@@ -179,13 +179,18 @@ def collect_manual(teams: list[dict[str, Any]]) -> list[dict[str, Any]]:
         country = team.get("name")
         for p in team.get("players", []) or []:
             row = empty_player()
+            caps_val = p.get("caps")
+            goals_val = p.get("selection_goals") or p.get("goals")
             row.update(
                 name=p.get("name"),
                 country=country,
                 position=normalize_position(p.get("position")),
                 club=p.get("club") or None,
+                age=p.get("age") or None,
+                caps=caps_val if caps_val != "" else None,
+                goals=goals_val if goals_val not in ("", None) else None,
                 source="manual",
-                source_url=None,
+                source_url=p.get("stats_source_url") or None,
                 retrieved_at=ts,
             )
             if row["name"]:

@@ -6,7 +6,14 @@ import { Bell, BellOff, Send, RefreshCw } from "lucide-react";
 interface PushStats {
   subscribed: number;
   total: number;
-  subscribers: { user_id: string; display_name: string; endpoint: string }[];
+  subscribers: {
+    user_id: string;
+    display_name: string;
+    email: string;
+    login: string;
+    country: string;
+    endpoint: string;
+  }[];
   nonSubscribers: { id: string; display_name: string }[];
 }
 
@@ -109,7 +116,14 @@ export default function AdminPushPage() {
             {stats.subscribers.map((u) => (
               <div key={u.user_id} className="canal-card py-2.5 flex items-center gap-2">
                 <Bell size={13} className="text-canal-yellow shrink-0" />
-                <span className="text-sm text-white font-medium">{u.display_name}</span>
+                <div className="min-w-0">
+                  <p className="text-sm text-white font-medium truncate">
+                    {u.display_name} <span className="text-canal-gray-muted">({u.login})</span>
+                  </p>
+                  <p className="text-xs text-canal-gray-muted truncate">
+                    {u.country}
+                  </p>
+                </div>
               </div>
             ))}
           </div>

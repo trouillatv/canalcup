@@ -64,6 +64,7 @@ export async function POST(req: Request) {
         predicted_score_a: scoreA,
         predicted_score_b: scoreB,
         points_awarded,
+        updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id,match_id" }
     )

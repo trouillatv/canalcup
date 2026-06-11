@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import webpush from "web-push";
 
 function configureWebPush() {
@@ -24,12 +25,12 @@ export async function POST(request: NextRequest) {
   }
 
   const { data: profile } = await supabase
-    .from("users")
-    .select("role")
-    .eq("auth_id", user.id)
+    .from("allowlist_users")
+    .select("role, is_active")
+    .eq("email", user.email)
     .single();
 
-  if (profile?.role !== "admin") {
+  if (!profile?.is_active || !["admin", "event_admin", "super_admin"].includes(profile.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -47,9 +48,25 @@ export async function POST(request: NextRequest) {
     userIds?: string[];
   };
 
-  let query = supabase.from("push_subscriptions").select("subscription");
+  const admin = createAdminClient();
+  let targetAuthIds: string[] | null = null;
+
   if (userIds?.length) {
-    query = query.in("user_id", userIds);
+    const { data: users } = await admin
+      .from("users")
+      .select("id, auth_id")
+      .in("id", userIds);
+
+    const ids = new Set(userIds);
+    for (const user of users ?? []) {
+      if (user.auth_id) ids.add(user.auth_id);
+    }
+    targetAuthIds = Array.from(ids);
+  }
+
+  let query = admin.from("push_subscriptions").select("subscription, user_id");
+  if (targetAuthIds?.length) {
+    query = query.in("user_id", targetAuthIds);
   }
 
   const { data: rows } = await query;
