@@ -58,7 +58,8 @@ type Slide =
   | "hallofshame"
   | "visionnaire"
   | "drama"
-  | "fantomes";
+  | "fantomes"
+  | "squads";
 
 // ─── Goat helper: remplace "Le Goat" par l'image de chèvre ────────────────────
 
@@ -125,6 +126,7 @@ const FLASH_POLL_INTERVAL = 10000;
 // "animations" et toute slide vide sont filtrées dynamiquement (voir TVPage).
 const BASE_SLIDES: Slide[] = [
   "prematch",      // analyse pré-match
+  "squads",        // effectifs des équipes du jour
   "general",       // classement individuel global
   "officebet",     // distribution pronos V/N/D
   "match",         // matchs du jour
@@ -1245,12 +1247,14 @@ function PreMatchCountdown({ targetIso, msLeft }: { targetIso: string; msLeft: n
 }
 
 // Panneau pré-match qui TOURNE : forme · derniers matchs · joueurs clés · compos
+interface DossierPlayer { name: string; position: string | null; club: string | null }
 interface DossierTeam {
   name: string;
   form: string[];
   formCodes: ("V" | "N" | "D" | "?")[];
   recentScores: string[];
-  keyPlayers: { name: string; position: string | null; club: string | null }[];
+  keyPlayers: DossierPlayer[];
+  keyPlayersByPos?: { gk: DossierPlayer[]; def: DossierPlayer[]; mid: DossierPlayer[]; fwd: DossierPlayer[] };
   squadValue: string | null;
 }
 interface MatchPreview {
@@ -1530,6 +1534,139 @@ function SlidePreMatch({ stats }: { stats: PreMatchStats }) {
         </div>
         <p className="text-canal-gray-muted text-base sm:text-xl italic shrink-0 max-w-xs text-right hidden sm:block">{salon}</p>
       </div>
+    </div>
+  );
+}
+
+// ─── Slide : effectifs des équipes jouant aujourd'hui ────────────────────────
+
+const POS_CONFIG = [
+  { key: "gk"  as const, label: "GB",  textColor: "text-yellow-400", borderColor: "border-yellow-500/40" },
+  { key: "def" as const, label: "DEF", textColor: "text-blue-400",   borderColor: "border-blue-500/40" },
+  { key: "mid" as const, label: "MIL", textColor: "text-green-400",  borderColor: "border-green-500/40" },
+  { key: "fwd" as const, label: "ATT", textColor: "text-red-400",    borderColor: "border-red-500/40" },
+];
+
+function SquadColumn({ team, flagEl }: { team: DossierTeam; flagEl: React.ReactNode }) {
+  const byPos = team.keyPlayersByPos;
+  return (
+    <div className="flex-1 min-w-0 flex flex-col gap-2 sm:gap-3 overflow-hidden">
+      {/* Team header */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        {flagEl}
+        <p className="font-black text-base sm:text-2xl text-white truncate">{team.name}</p>
+      </div>
+      {/* Players by position */}
+      <div className="space-y-1.5 sm:space-y-2.5 overflow-y-auto">
+        {POS_CONFIG.map(({ key, label, textColor, borderColor }) => {
+          const players = byPos?.[key] ?? [];
+          if (players.length === 0) return null;
+          return (
+            <div key={key} className={`border-l-2 ${borderColor} pl-2 sm:pl-3`}>
+              <p className={`text-[10px] sm:text-xs font-black uppercase tracking-widest mb-0.5 sm:mb-1 ${textColor}`}>{label}</p>
+              {players.map((p) => (
+                <div key={p.name} className="flex items-baseline gap-1 sm:gap-2 leading-tight">
+                  <span className="text-white font-bold text-xs sm:text-lg truncate">{p.name}</span>
+                  {p.club && <span className="text-canal-gray-muted text-[10px] sm:text-sm truncate hidden sm:inline">· {p.club}</span>}
+                </div>
+              ))}
+            </div>
+          );
+        })}
+        {!byPos && team.keyPlayers.map((p) => (
+          <p key={p.name} className="text-white text-xs sm:text-lg truncate">{p.name}</p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SlideTodaySquads({ matches }: { matches: Match[] }) {
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const todayEnd   = new Date(); todayEnd.setHours(23, 59, 59, 999);
+  const todayUpcoming = matches.filter((m) => {
+    const t = new Date(m.starts_at).getTime();
+    return t >= todayStart.getTime() && t <= todayEnd.getTime() && m.status === "upcoming";
+  });
+
+  const [idx, setIdx] = useState(0);
+  const [previews, setPreviews] = useState<Record<string, MatchPreview>>({});
+
+  const matchIds = todayUpcoming.map((m) => m.id).join(",");
+  useEffect(() => {
+    for (const m of todayUpcoming) {
+      if (previews[m.id]) continue;
+      fetch(`/api/match-preview/${m.id}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => { if (d) setPreviews((p) => ({ ...p, [m.id]: d })); })
+        .catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchIds]);
+
+  useEffect(() => {
+    if (todayUpcoming.length <= 1) return;
+    const t = setInterval(() => setIdx((i) => (i + 1) % todayUpcoming.length), 10000);
+    return () => clearInterval(t);
+  }, [todayUpcoming.length]);
+
+  if (todayUpcoming.length === 0) return null;
+
+  const match = todayUpcoming[idx % todayUpcoming.length];
+  const preview = previews[match.id];
+
+  return (
+    <div className="flex flex-col h-full px-4 sm:px-8 lg:px-16 py-3 sm:py-5 gap-2 sm:gap-4 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between shrink-0">
+        <p className="text-canal-yellow font-black text-base sm:text-2xl uppercase tracking-widest">
+          🏟️ EFFECTIFS DU JOUR
+        </p>
+        <p className="text-canal-gray-muted text-xs sm:text-lg">
+          {todayUpcoming.length > 1 && `Match ${idx + 1}/${todayUpcoming.length} · `}
+          {toNCTime(match.starts_at)} NC
+        </p>
+      </div>
+
+      {/* VS banner */}
+      <div className="flex items-center justify-center gap-3 sm:gap-8 shrink-0">
+        <div className="flex items-center gap-2">
+          <Flag flag={match.flag_a} name={match.team_a} className="h-5 sm:h-9 w-auto rounded-sm" emojiClassName="text-xl sm:text-4xl" />
+          <p className="font-black text-lg sm:text-3xl text-white">{match.team_a}</p>
+        </div>
+        <span className="text-canal-gray-muted font-black text-base sm:text-2xl">VS</span>
+        <div className="flex items-center gap-2">
+          <p className="font-black text-lg sm:text-3xl text-white">{match.team_b}</p>
+          <Flag flag={match.flag_b} name={match.team_b} className="h-5 sm:h-9 w-auto rounded-sm" emojiClassName="text-xl sm:text-4xl" />
+        </div>
+      </div>
+
+      {/* Squads */}
+      {!preview ? (
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-canal-gray-muted text-xl sm:text-2xl animate-pulse">Chargement des effectifs…</p>
+        </div>
+      ) : (
+        <div className="flex-1 flex gap-3 sm:gap-8 min-h-0 overflow-hidden">
+          <SquadColumn
+            team={preview.home}
+            flagEl={<Flag flag={match.flag_a} name={match.team_a} className="h-5 sm:h-8 w-auto rounded-sm shrink-0" emojiClassName="text-lg sm:text-3xl" />}
+          />
+          <div className="w-px bg-canal-gray-light/30 shrink-0 self-stretch" />
+          <SquadColumn
+            team={preview.away}
+            flagEl={<Flag flag={match.flag_b} name={match.team_b} className="h-5 sm:h-8 w-auto rounded-sm shrink-0" emojiClassName="text-lg sm:text-3xl" />}
+          />
+        </div>
+      )}
+
+      {todayUpcoming.length > 1 && (
+        <div className="flex justify-center gap-1.5 shrink-0">
+          {todayUpcoming.map((m, i) => (
+            <span key={m.id} className={`h-1.5 rounded-full transition-all ${i === idx % todayUpcoming.length ? "w-6 bg-canal-yellow" : "w-1.5 bg-canal-gray-light"}`} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -2417,30 +2554,34 @@ export default function TVPage() {
   const cursorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    const handler = () => setIsFullscreen(
+      !!(document.fullscreenElement || (document as unknown as Record<string,unknown>).webkitFullscreenElement)
+    );
     document.addEventListener("fullscreenchange", handler);
-    return () => document.removeEventListener("fullscreenchange", handler);
+    document.addEventListener("webkitfullscreenchange", handler);
+    return () => {
+      document.removeEventListener("fullscreenchange", handler);
+      document.removeEventListener("webkitfullscreenchange", handler);
+    };
   }, []);
 
+  // Cache le curseur après 3 s d'inactivité — toujours actif sur la page TV,
+  // indépendamment du fullscreen (Samsung TV ne déclenche pas toujours fullscreenchange).
   useEffect(() => {
-    if (!isFullscreen) {
-      setCursorVisible(true);
-      if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
-      return;
-    }
     const showCursor = () => {
       setCursorVisible(true);
       if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
       cursorTimerRef.current = setTimeout(() => setCursorVisible(false), 3000);
     };
-    // Hide immediately on entering fullscreen, show on move
     cursorTimerRef.current = setTimeout(() => setCursorVisible(false), 3000);
     document.addEventListener("mousemove", showCursor);
+    document.addEventListener("pointermove", showCursor);
     return () => {
       document.removeEventListener("mousemove", showCursor);
+      document.removeEventListener("pointermove", showCursor);
       if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
     };
-  }, [isFullscreen]);
+  }, []);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -2493,6 +2634,15 @@ export default function TVPage() {
   const hasTopScorerBets = !!data?.topScorerBets?.length;
   const hasAnyMatch = !!data?.matches?.some((m) => ["live", "halftime", "upcoming", "finished"].includes(m.status));
   const hasLiveMatch = !!data?.matches?.some((m) => m.status === "live" || m.status === "halftime");
+  const hasTodayUpcoming = (() => {
+    if (!data?.matches) return false;
+    const s = new Date(); s.setHours(0, 0, 0, 0);
+    const e = new Date(); e.setHours(23, 59, 59, 999);
+    return data.matches.some((m) => {
+      const t = new Date(m.starts_at).getTime();
+      return t >= s.getTime() && t <= e.getTime() && m.status === "upcoming";
+    });
+  })();
 
   const slides = BASE_SLIDES.filter((s) => {
     if (s === "match") return hasAnyMatch;
@@ -2514,6 +2664,7 @@ export default function TVPage() {
     if (s === "visionnaire") return hasVisionnaire;
     if (s === "drama") return hasDrama;
     if (s === "fantomes") return hasFantomes;
+    if (s === "squads") return hasTodayUpcoming;
     return true;
   });
 
@@ -2528,7 +2679,7 @@ export default function TVPage() {
   const slide = slides[currentSlide];
   return (
     <PinGate>
-    <div className={`fixed inset-0 bg-canal-black flex flex-col overflow-hidden tv-mode${isFullscreen && !cursorVisible ? " cursor-none" : ""}`}>
+    <div className={`fixed inset-0 bg-canal-black flex flex-col overflow-hidden tv-mode${!cursorVisible ? " cursor-none" : ""}`}>
       <FlashOverlay />
       {/* Header */}
       <header className="flex items-center justify-between px-4 sm:px-8 lg:px-12 py-3 sm:py-4 border-b border-canal-gray-light shrink-0">
@@ -2597,6 +2748,7 @@ export default function TVPage() {
                   </div>
                 )
             )}
+            {slide === "squads" && <SlideTodaySquads matches={data.matches} />}
             {slide === "upcoming" && (
               <SlideUpcoming events={data.events ?? []} matches={data.matches} />
             )}
