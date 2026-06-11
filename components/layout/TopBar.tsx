@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, Tv, Inbox, Newspaper, Gamepad2, PartyPopper, MessageCircle, Download, Building2, Globe2, CalendarDays, Target, Medal } from "lucide-react";
-import { useEffect, useState } from "react";
+import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, Tv, Inbox, Newspaper, Gamepad2, PartyPopper, MessageCircle, Download, Building2, Globe2, CalendarDays, Target, Medal, Bell, BellRing } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { User } from "@supabase/supabase-js";
@@ -32,6 +32,47 @@ export function TopBar() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [unread, setUnread] = useState(0);
+  const [pushState, setPushState] = useState<"unknown" | "subscribed" | "denied" | "unsupported" | "idle">("unknown");
+
+  const refreshPushState = useCallback(async () => {
+    if (typeof window === "undefined" || !("Notification" in window) || !("serviceWorker" in navigator)) {
+      setPushState("unsupported"); return;
+    }
+    if (Notification.permission === "denied") { setPushState("denied"); return; }
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      setPushState(sub ? "subscribed" : "idle");
+    } catch { setPushState("idle"); }
+  }, []);
+
+  useEffect(() => { if (user) refreshPushState(); }, [user, refreshPushState]);
+
+  const togglePush = async () => {
+    if (pushState === "unsupported" || pushState === "denied") return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      if (pushState === "subscribed") {
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          await sub.unsubscribe();
+          await fetch("/api/push/subscribe", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: sub.endpoint }) });
+        }
+        setPushState("idle");
+      } else {
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") { setPushState("denied"); return; }
+        const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+        if (!vapidKey) return;
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: vapidKey,
+        });
+        await fetch("/api/push/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(sub.toJSON()) });
+        setPushState("subscribed");
+      }
+    } catch { /* permission refusée ou erreur réseau */ }
+  };
 
   useEffect(() => {
     const supabase = createClient();
@@ -98,6 +139,24 @@ export function TopBar() {
         <div className="flex items-center gap-1.5">
           {user && (
             <>
+              {/* Cloche notifications push */}
+              {pushState !== "unsupported" && (
+                <button
+                  onClick={togglePush}
+                  aria-label={pushState === "subscribed" ? "Désactiver les notifications" : "Activer les notifications"}
+                  title={
+                    pushState === "subscribed" ? "Notifications activées" :
+                    pushState === "denied" ? "Notifications bloquées par le navigateur" :
+                    "Activer les notifications"
+                  }
+                  className="p-1.5 rounded-lg transition-colors"
+                >
+                  {pushState === "subscribed"
+                    ? <BellRing size={16} className="text-canal-yellow" />
+                    : <Bell size={16} className={pushState === "denied" ? "text-red-400/50" : "text-canal-gray-muted hover:text-white"} />
+                  }
+                </button>
+              )}
               <Link
                 href="/profile"
                 aria-label="Mon profil"
