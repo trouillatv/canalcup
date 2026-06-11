@@ -26,6 +26,7 @@ interface UpcomingMatch {
   starts_at: string;
   phase?: string;
   stage?: string;
+  status?: string;
 }
 
 type TabId = "broadcast" | "match";
@@ -61,7 +62,7 @@ export default function AdminPushPage() {
       .then((d) => {
         const all: UpcomingMatch[] = Array.isArray(d) ? d : (d.matches ?? []);
         const upcoming = all
-          .filter((m: UpcomingMatch & { status?: string }) => m.status === "upcoming")
+          .filter((m) => m.status === "upcoming")
           .slice(0, 20);
         setMatches(upcoming);
         setMatchLoading(false);
@@ -73,6 +74,8 @@ export default function AdminPushPage() {
 
   useEffect(() => {
     if (tab === "match" && matches.length === 0) loadMatches();
+    // loadMatches is stable (only uses setters); matches.length intentionally omitted
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
   const send = async () => {
