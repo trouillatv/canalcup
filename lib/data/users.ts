@@ -1,7 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { AdminUserView, UserRole, Service } from "@/lib/supabase/types";
-import { SCORE_EVENT_CATEGORIES_IN_TOTAL, weightedContribution } from "@/lib/scoring/config";
+import { SCORE_EVENT_CATEGORIES_IN_TOTAL } from "@/lib/scoring/config";
 import { getAdminEmails } from "@/lib/data/roles";
 import { normalizeEmail } from "@/lib/auth/email-domain";
 import { computeTeamScores } from "@/lib/data/teams";
@@ -287,10 +287,10 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
       .filter((u) => !adminEmails.has((u.email ?? "").toLowerCase())) // admins hors classement
       .map((u) => {
         const tb = u.team_id ? teamAgg.get(u.team_id) : undefined;
-        const pronos = weightedContribution("pronostics", pronosRaw.get(u.id) ?? 0);
-        const quiz = weightedContribution("quiz", quizRaw.get(u.id) ?? 0);
-        const babyfoot = weightedContribution("babyfoot", tb?.babyRaw ?? 0);
-        const animations = weightedContribution("animations", tb?.animRaw ?? 0);
+        const pronos = Math.round(pronosRaw.get(u.id) ?? 0);
+        const quiz = Math.round(quizRaw.get(u.id) ?? 0);
+        const babyfoot = Math.round(tb?.babyRaw ?? 0);
+        const animations = Math.round(tb?.animRaw ?? 0);
         return {
           user_id: u.id,
           display_name: u.display_name ?? u.name ?? null,

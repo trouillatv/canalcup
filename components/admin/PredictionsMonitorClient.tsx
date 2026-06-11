@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -14,7 +14,7 @@ import {
   Filter,
   Medal,
   Sigma,
-  Send,
+  Bell,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -385,16 +385,6 @@ export default function PredictionsMonitorClient() {
                     {u.points != null && (
                       <span className="text-[10px] text-canal-gray-muted tabular-nums">{u.points} pts</span>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => sendIndividualPush(u)}
-                      loading={sendingTo === u.user_id}
-                      loadingText="…"
-                      leftIcon={<Send size={11} />}
-                    >
-                      Push
-                    </Button>
                   </div>
                 </div>
 
@@ -412,7 +402,7 @@ export default function PredictionsMonitorClient() {
                     <p className="text-white font-medium truncate">{u.team_name ?? "—"}</p>
                   </div>
                   <div className="bg-canal-gray-mid rounded-lg px-2.5 py-2">
-                    <p className="text-canal-gray-muted">Dernière modif.</p>
+                    <p className="text-canal-gray-muted">Dernière saisie</p>
                     <p className="text-white font-medium">{formatTime(u.prediction_updated_at)}</p>
                   </div>
                 </div>
@@ -446,8 +436,22 @@ export default function PredictionsMonitorClient() {
             {missing.map((u) => (
               <div key={u.user_id} className="canal-card flex flex-col gap-2">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-bold text-white truncate">{u.display_name}</p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {u.has_push_subscription && (
+                        <button
+                          type="button"
+                          onClick={() => sendIndividualPush(u)}
+                          disabled={sendingTo === u.user_id}
+                          title={`Notifier ${u.display_name}`}
+                          aria-label={`Notifier ${u.display_name}`}
+                          className="w-7 h-7 rounded-lg bg-canal-yellow/10 text-canal-yellow hover:bg-canal-yellow hover:text-canal-black disabled:opacity-50 transition-colors flex items-center justify-center shrink-0"
+                        >
+                          <Bell size={13} className={sendingTo === u.user_id ? "animate-pulse" : ""} />
+                        </button>
+                      )}
+                      <p className="font-bold text-white truncate">{u.display_name}</p>
+                    </div>
                     <p className="text-xs text-canal-gray-muted truncate">
                       {u.login} · {u.service_name ?? "Sans service"} · {u.team_name ?? "Sans équipe"}
                     </p>
@@ -465,16 +469,9 @@ export default function PredictionsMonitorClient() {
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-[11px] text-canal-gray-muted">{u.email}</p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => sendIndividualPush(u)}
-                    loading={sendingTo === u.user_id}
-                    loadingText="…"
-                    leftIcon={<Send size={11} />}
-                  >
-                    Push
-                  </Button>
+                  {!u.has_push_subscription && (
+                    <span className="text-[11px] text-canal-gray-muted">Notifications non activées</span>
+                  )}
                 </div>
               </div>
             ))}

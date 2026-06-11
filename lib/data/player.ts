@@ -280,12 +280,13 @@ export async function getPlayerDashboard(userId: string): Promise<PlayerDashboar
   const predPoints = predList.reduce((s, p) => s + (p.points_awarded ?? 0), 0);
   const recentPreds = predList.slice(0, 6).map((p) => {
     const m = p.match_id ? matchById.get(p.match_id) : undefined;
+    const finished = m?.status === "finished" && m.score_a != null && m.score_b != null;
     return {
       id: p.id,
       label: m ? `${m.team_a} – ${m.team_b}` : "Match",
       status: classify(p),
       score: p.predicted_score_a != null && p.predicted_score_b != null ? `${p.predicted_score_a}–${p.predicted_score_b}` : "—",
-      points: p.points_awarded ?? 0,
+      points: finished ? p.points_awarded ?? 0 : 0,
       created_at: p.created_at,
     };
   });

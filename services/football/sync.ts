@@ -6,7 +6,7 @@ import { cache, matchTTL, TTL } from "./cache";
 import { tsdbTimeline, tsdbStatus, apifEvents, apifLineup, apifStats, apifPlayerStats, apifStatus } from "./transformers";
 import { toFrench, toFlag } from "@/lib/football/team-names";
 import { generatePlayerRatings } from "@/services/ai/generators/player-ratings";
-import type { FullMatchDetail, MatchEvent, LineupPlayer, MatchStat, PlayerMatchStat } from "./types";
+import type { FullMatchDetail, MatchEvent, LineupPlayer, MatchStat, PlayerMatchStat, StandingRow } from "./types";
 
 const TSDB = "https://www.thesportsdb.com/api/v1/json/3";
 const APIF = "https://v3.football.api-sports.io";
@@ -509,6 +509,115 @@ export async function refreshLiveMatches(): Promise<number> {
 
 // ─── Full match detail ────────────────────────────────────────────────────────
 
+type GroupMatchRow = {
+  team_a: string;
+  team_b: string;
+  flag_a: string | null;
+  flag_b: string | null;
+  status: string | null;
+  score_a: number | null;
+  score_b: number | null;
+};
+
+async function loadLiveGroupStandings(
+  supabase: ReturnType<typeof createAdminClient>,
+  stage: string
+): Promise<StandingRow[] | undefined> {
+  const { data: matches } = await supabase
+    .from("matches")
+    .select("team_a, team_b, flag_a, flag_b, status, score_a, score_b")
+    .eq("phase", "Groupe")
+    .eq("stage", stage);
+
+  if (!matches?.length) return undefined;
+
+  type TeamStanding = {
+    name: string;
+    flag: string;
+    played: number;
+    won: number;
+    draw: number;
+    lost: number;
+    goalsFor: number;
+    goalsAgainst: number;
+  };
+
+  const teams = new Map<string, TeamStanding>();
+  const ensure = (name: string, flag: string | null): TeamStanding => {
+    const existing = teams.get(name);
+    if (existing) {
+      if (!existing.flag && flag) existing.flag = flag;
+      return existing;
+    }
+    const row = {
+      name,
+      flag: flag ?? "",
+      played: 0,
+      won: 0,
+      draw: 0,
+      lost: 0,
+      goalsFor: 0,
+      goalsAgainst: 0,
+    };
+    teams.set(name, row);
+    return row;
+  };
+
+  for (const match of matches as GroupMatchRow[]) {
+    const home = ensure(match.team_a, match.flag_a);
+    const away = ensure(match.team_b, match.flag_b);
+    const countsForTable = match.status === "live" || match.status === "halftime" || match.status === "finished";
+    if (!countsForTable || match.score_a == null || match.score_b == null) continue;
+    const scoreA = match.score_a;
+    const scoreB = match.score_b;
+
+    home.played += 1;
+    away.played += 1;
+    home.goalsFor += scoreA;
+    home.goalsAgainst += scoreB;
+    away.goalsFor += scoreB;
+    away.goalsAgainst += scoreA;
+
+    if (scoreA > scoreB) {
+      home.won += 1;
+      away.lost += 1;
+    } else if (scoreA < scoreB) {
+      away.won += 1;
+      home.lost += 1;
+    } else {
+      home.draw += 1;
+      away.draw += 1;
+    }
+  }
+
+  return [...teams.values()]
+    .map((team) => {
+      const goalDiff = team.goalsFor - team.goalsAgainst;
+      return {
+        team_name: team.name,
+        team_name_fr: team.name,
+        team_flag: team.flag,
+        group_name: stage,
+        played: team.played,
+        won: team.won,
+        draw: team.draw,
+        lost: team.lost,
+        goals_for: team.goalsFor,
+        goals_against: team.goalsAgainst,
+        goal_diff: goalDiff,
+        points: team.won * 3 + team.draw,
+        rank: 0,
+      };
+    })
+    .sort((a, b) =>
+      b.points - a.points ||
+      b.goal_diff - a.goal_diff ||
+      b.goals_for - a.goals_for ||
+      a.team_name.localeCompare(b.team_name)
+    )
+    .map((team, index) => ({ ...team, rank: index + 1 }));
+}
+
 export async function getMatchDetail(matchId: string): Promise<FullMatchDetail | null> {
   const cacheKey = `match:${matchId}`;
   const cached = cache.get<FullMatchDetail>(cacheKey);
@@ -614,7 +723,8 @@ export async function getMatchDetail(matchId: string): Promise<FullMatchDetail |
     const fresh = await syncPlayerStatsApiF(matchId, apifId);
     if (fresh.length) playerStats = fresh;
   }
-  if (!playerStats.length && status === "finished" && lineups) {
+  const hasPlayerRatings = playerStats.some((p) => p.rating != null);
+  if ((!playerStats.length || !hasPlayerRatings) && status === "finished" && lineups) {
     playerStats = await syncPlayerRatingsEstimate(
       matchId,
       { team_a: match.team_a, team_b: match.team_b, score_a: match.score_a, score_b: match.score_b, phase: match.phase },
@@ -624,14 +734,8 @@ export async function getMatchDetail(matchId: string): Promise<FullMatchDetail |
   }
 
   // ── Standings ─────────────────────────────────────────────────────────────
-  let standings;
-  if (match.phase === "Groupe" || match.phase === "Group Stage") {
-    const { data: rows } = await supabase
-      .from("standings").select("*")
-      .eq("competition", "FIFA World Cup 2026")
-      .order("points", { ascending: false });
-    standings = rows ?? undefined;
-  }
+  const isGroupMatch = (match.phase === "Groupe" || match.phase === "Group Stage") && !!match.stage;
+  const standings = isGroupMatch ? await loadLiveGroupStandings(supabase, match.stage) : undefined;
 
   const detail: FullMatchDetail = {
     match: {

@@ -21,6 +21,7 @@ export interface PredictionMonitorUserRow {
   display_name: string;
   email: string;
   login: string;
+  has_push_subscription: boolean;
   service_id: string | null;
   service_name: string | null;
   team_id: string | null;
@@ -42,6 +43,7 @@ export interface PredictionMonitorMissingUserRow {
   display_name: string;
   email: string;
   login: string;
+  has_push_subscription: boolean;
   service_id: string | null;
   service_name: string | null;
   team_id: string | null;
@@ -131,7 +133,7 @@ function byCountThenName(a: ParticipationBucket, b: ParticipationBucket): number
 export async function getMatchPredictionMonitor(matchId?: string | null): Promise<PredictionMonitorPayload | null> {
   const admin = createAdminClient();
 
-  const [{ data: matchRows }, { data: allowlistRows }, { data: profileRows }, { data: predictionsRows }] = await Promise.all([
+  const [{ data: matchRows }, { data: allowlistRows }, { data: profileRows }, { data: predictionsRows }, { data: pushRows }] = await Promise.all([
     admin
       .from("matches")
       .select("id, team_a, team_b, flag_a, flag_b, starts_at, status, score_a, score_b")
@@ -139,11 +141,11 @@ export async function getMatchPredictionMonitor(matchId?: string | null): Promis
     admin.from("allowlist_users").select("email, role, is_active"),
     admin
       .from("users")
-      .select("id, email, display_name, name, team_id, service_id, profile_completed, team:teams!team_id(id, name), service:services!service_id(id, name)"),
+      .select("id, auth_id, email, display_name, name, team_id, service_id, profile_completed, team:teams!team_id(id, name), service:services!service_id(id, name)"),
     matchId
       ? admin
           .from("predictions")
-          .select("user_id, prediction_result, predicted_score_a, predicted_score_b, created_at, updated_at")
+          .select("user_id, prediction_result, predicted_score_a, predicted_score_b, created_at")
           .eq("match_id", matchId)
       : Promise.resolve({ data: [] as Array<{
           user_id: string;
@@ -151,8 +153,8 @@ export async function getMatchPredictionMonitor(matchId?: string | null): Promis
           predicted_score_a: number | null;
           predicted_score_b: number | null;
           created_at: string;
-          updated_at: string | null;
         }> }),
+    admin.from("push_subscriptions").select("user_id"),
   ]);
 
   const matches = (matchRows ?? []) as PredictionMonitorMatchOption[];
@@ -171,7 +173,6 @@ export async function getMatchPredictionMonitor(matchId?: string | null): Promis
     predicted_score_a: number | null;
     predicted_score_b: number | null;
     created_at: string;
-    updated_at: string | null;
   }>;
   const predictedUserIds = [...new Set(predictions.map((p) => p.user_id))];
 
@@ -179,10 +180,11 @@ export async function getMatchPredictionMonitor(matchId?: string | null): Promis
     predictedUserIds.length
       ? admin
           .from("users")
-          .select("id, email, display_name, name, team_id, service_id, profile_completed")
+          .select("id, auth_id, email, display_name, name, team_id, service_id, profile_completed")
           .in("id", predictedUserIds)
       : Promise.resolve({ data: [] as Array<{
           id: string;
+          auth_id: string | null;
           email: string;
           display_name: string | null;
           name: string | null;
@@ -196,6 +198,7 @@ export async function getMatchPredictionMonitor(matchId?: string | null): Promis
 
   const userRows = (profileRows ?? []) as Array<{
     id: string;
+    auth_id: string | null;
     email: string;
     display_name: string | null;
     name: string | null;
@@ -203,6 +206,7 @@ export async function getMatchPredictionMonitor(matchId?: string | null): Promis
     service_id: string | null;
     profile_completed: boolean | null;
   }>;
+  const pushAuthIds = new Set((pushRows ?? []).map((row: { user_id: string }) => row.user_id));
   const usersByEmail = new Map(userRows.map((u) => [u.email.toLowerCase(), u]));
   const usersById = new Map((usersResp.data ?? []).map((u) => [u.id, u]));
 
@@ -274,6 +278,7 @@ export async function getMatchPredictionMonitor(matchId?: string | null): Promis
         display_name: u.display_name ?? u.name ?? u.email.split("@")[0] ?? "—",
         email: u.email,
         login,
+        has_push_subscription: !!u.auth_id && pushAuthIds.has(u.auth_id),
         service_id: u.service_id ?? null,
         service_name: serviceName,
         team_id: u.team_id ?? null,
@@ -285,7 +290,7 @@ export async function getMatchPredictionMonitor(matchId?: string | null): Promis
         predicted_score_b,
         prediction_result: p.prediction_result,
         prediction_created_at: p.created_at,
-        prediction_updated_at: p.updated_at ?? p.created_at,
+        prediction_updated_at: p.created_at,
         points,
         outcome,
       } satisfies PredictionMonitorUserRow;
@@ -310,6 +315,7 @@ export async function getMatchPredictionMonitor(matchId?: string | null): Promis
         display_name: u.display_name ?? u.name ?? u.email.split("@")[0] ?? "—",
         email: u.email,
         login,
+        has_push_subscription: !!u.auth_id && pushAuthIds.has(u.auth_id),
         service_id: u.service_id ?? null,
         service_name: serviceName,
         team_id: u.team_id ?? null,

@@ -19,31 +19,69 @@ function positionBucket(raw: string | null | undefined): "GK" | "DEF" | "MID" | 
   return null;
 }
 
+function normName(raw: string): string {
+  return raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function shortNameKey(raw: string): string {
+  const parts = raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+  if (parts.length < 2) return normName(raw);
+  return `${parts[0][0]}${parts[parts.length - 1]}`;
+}
+
 export async function GET() {
   const supabase = createAdminClient();
 
   // Récupère stats joueurs + lineups + matchs en parallèle.
-  const [statsRes, lineupsRes, matchesRes] = await Promise.all([
+  const { data: matchesRaw } = await supabase
+    .from("matches")
+    .select("id, team_a, team_b, phase, stage, status")
+    .eq("status", "finished");
+
+  const matches = (matchesRaw ?? []).filter((m) =>
+    m.phase === "Groupe" ? Boolean(m.stage) : m.phase !== "Groupe"
+  );
+  const matchIds = matches.map((m) => m.id);
+
+  if (matchIds.length === 0) {
+    return NextResponse.json(
+      { players: [], teams: [], best_xi: { gk: [], def: [], mid: [], fwd: [] }, total_matches: 0 },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+  }
+
+  const [statsRes, lineupsRes, eventsRes] = await Promise.all([
     supabase
       .from("player_match_stats")
-      .select("match_id, team_side, player_name, rating, goals, assists, yellow_cards, red_cards, is_motm"),
+      .select("match_id, team_side, player_name, rating, goals, assists, yellow_cards, red_cards, is_motm")
+      .in("match_id", matchIds),
     supabase
       .from("match_lineups")
-      .select("match_id, team_side, player_name, position, is_starting"),
+      .select("match_id, team_side, player_name, position, is_starting")
+      .in("match_id", matchIds),
     supabase
-      .from("matches")
-      .select("id, team_a, team_b, status")
-      .eq("status", "finished"),
+      .from("match_events")
+      .select("match_id, team_side, player_name, assist_player_name, type")
+      .in("match_id", matchIds),
   ]);
 
-  const stats = statsRes.data ?? [];
+  const stats = (statsRes.data ?? []).filter((r) => r.rating != null);
   const lineups = lineupsRes.data ?? [];
-  const matches = matchesRes.data ?? [];
+  const events = eventsRes.data ?? [];
 
   if (stats.length === 0) {
     return NextResponse.json(
       { players: [], teams: [], best_xi: { gk: [], def: [], mid: [], fwd: [] }, total_matches: 0 },
-      { headers: { "Cache-Control": "s-maxage=300, stale-while-revalidate=120" } }
+      { headers: { "Cache-Control": "no-store" } }
     );
   }
 
@@ -92,6 +130,7 @@ export async function GET() {
   };
 
   const byPlayer = new Map<string, Agg>();
+  const playerKeyIndex = new Map<string, string>();
   const teamGoals = new Map<string, number>();
   const teamRating = new Map<string, { sum: number; count: number }>();
 
@@ -109,6 +148,8 @@ export async function GET() {
         yellow_cards: 0, red_cards: 0, motm: 0,
         ratingSum: 0, ratingCount: 0,
       });
+      playerKeyIndex.set(`${teamName}|||${normName(r.player_name)}`, key);
+      playerKeyIndex.set(`${teamName}|||${shortNameKey(r.player_name)}`, key);
     }
     const a = byPlayer.get(key)!;
     a.matches += 1;
@@ -127,6 +168,37 @@ export async function GET() {
         tr.sum += Number(r.rating); tr.count += 1;
         teamRating.set(teamName, tr);
       }
+    }
+  }
+
+  for (const e of events) {
+    const teamMap = matchTeams.get(e.match_id);
+    if (!teamMap) continue;
+    const teamName = e.team_side === "home" ? teamMap.home : teamMap.away;
+    const ensurePlayer = (playerName: string) => {
+      const key =
+        playerKeyIndex.get(`${teamName}|||${normName(playerName)}`) ??
+        playerKeyIndex.get(`${teamName}|||${shortNameKey(playerName)}`) ??
+        `${playerName}|||${teamName}`;
+      if (!byPlayer.has(key)) {
+        byPlayer.set(key, {
+          player_name: playerName, team: teamName,
+          matches: 0, goals: 0, assists: 0,
+          yellow_cards: 0, red_cards: 0, motm: 0,
+          ratingSum: 0, ratingCount: 0,
+        });
+        playerKeyIndex.set(`${teamName}|||${normName(playerName)}`, key);
+        playerKeyIndex.set(`${teamName}|||${shortNameKey(playerName)}`, key);
+      }
+      return byPlayer.get(key)!;
+    };
+
+    if (e.type === "goal" && e.player_name) {
+      ensurePlayer(e.player_name).goals += 1;
+      if (teamName) teamGoals.set(teamName, (teamGoals.get(teamName) ?? 0) + 1);
+    }
+    if (e.type === "goal" && e.assist_player_name) {
+      ensurePlayer(e.assist_player_name).assists += 1;
     }
   }
 
@@ -174,6 +246,6 @@ export async function GET() {
 
   return NextResponse.json(
     { players, teams, best_xi, total_matches: matches.length },
-    { headers: { "Cache-Control": "s-maxage=300, stale-while-revalidate=120" } }
+    { headers: { "Cache-Control": "no-store" } }
   );
 }
