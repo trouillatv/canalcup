@@ -659,7 +659,7 @@ export default function MatchCenterPage() {
         {tabs.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={cn(
-              "flex-1 min-w-0 px-1 py-3 text-[13px] sm:text-base font-black leading-tight transition-colors relative",
+              "flex-1 min-w-0 px-0.5 py-3 text-[10px] sm:text-base font-black leading-tight transition-colors relative",
               tab === t.key ? "text-canal-yellow border-b-2 border-canal-yellow" : "text-canal-gray-muted hover:text-white"
             )}
           >
