@@ -112,26 +112,35 @@ export async function generateMatchStory(ctx: MatchStoryContext): Promise<void> 
   const phrase = result.phrase ?? "Match terminé.";
   const emoji = result.emoji ?? "⚽";
 
+  // Save to match_stories (best-effort — table might not exist yet)
   await supabase.from("match_stories").upsert(
-    {
-      match_id: ctx.matchId,
-      phrase,
-      stats_json: statsJson,
-    },
+    { match_id: ctx.matchId, phrase, stats_json: statsJson },
     { onConflict: "match_id" }
-  );
-
-  // Publier aussi dans le live cup sous forme de commentaire "Le Goat"
-  await supabase.from("feed_posts").insert({
-    type: "robert",
-    context_type: "match",
-    context_id: ctx.matchId,
-    display_name: "Le Goat",
-    body: `${emoji} **${ctx.teamA} ${ctx.scoreA}–${ctx.scoreB} ${ctx.teamB}** — ${phrase}`,
-    status: "visible",
-  }).then(({ error }) => {
-    if (error) console.error(`[match-story] feed_posts insert failed: ${error.message}`);
+  ).then(({ error }) => {
+    if (error) console.warn(`[match-story] match_stories upsert: ${error.message}`);
   });
 
-  console.log(`[match-story] match=${ctx.matchId} story generated + posted to live cup`);
+  // Post to live cup as Le Goat comment — check no duplicate first
+  const { data: existingPost } = await supabase
+    .from("feed_posts")
+    .select("id")
+    .eq("type", "robert")
+    .eq("context_type", "match")
+    .eq("context_id", ctx.matchId)
+    .maybeSingle();
+
+  if (!existingPost) {
+    const { error: feedErr } = await supabase.from("feed_posts").insert({
+      type: "robert",
+      context_type: "match",
+      context_id: ctx.matchId,
+      display_name: "Le Goat",
+      body: `${emoji} **${ctx.teamA} ${ctx.scoreA}–${ctx.scoreB} ${ctx.teamB}** — ${phrase}`,
+      status: "visible",
+    });
+    if (feedErr) console.error(`[match-story] feed_posts insert failed: ${feedErr.message}`);
+    else console.log(`[match-story] match=${ctx.matchId} story posted to live cup`);
+  }
+
+  console.log(`[match-story] match=${ctx.matchId} story generated`);
 }
