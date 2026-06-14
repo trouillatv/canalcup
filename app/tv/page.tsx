@@ -804,7 +804,7 @@ function SlideResults({ matches, matchEvents }: { matches: Match[]; matchEvents:
               </div>
 
               {/* Team A */}
-              <div className="space-y-0.5">
+              <div>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <Flag flag={m.flag_a} name={m.team_a} className="h-3.5 w-auto rounded-sm shrink-0" emojiClassName="text-sm shrink-0" />
@@ -818,13 +818,17 @@ function SlideResults({ matches, matchEvents }: { matches: Match[]; matchEvents:
                     </span>
                   )}
                 </div>
-                {scorers?.home.map((s, i) => (
-                  <p key={i} className="text-[10px] sm:text-xs text-canal-gray-muted pl-5 leading-tight">⚽ {s}</p>
-                ))}
+                {scorers?.home && scorers.home.length > 0 && (
+                  <p className="text-[10px] sm:text-xs text-canal-gray-muted pl-5 leading-snug mt-0.5">
+                    {scorers.home.map((s, i) => (
+                      <span key={i}>{i > 0 && <span className="mx-1 opacity-40">·</span>}⚽ {s}</span>
+                    ))}
+                  </p>
+                )}
               </div>
 
               {/* Team B */}
-              <div className="space-y-0.5">
+              <div>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <Flag flag={m.flag_b} name={m.team_b} className="h-3.5 w-auto rounded-sm shrink-0" emojiClassName="text-sm shrink-0" />
@@ -838,9 +842,13 @@ function SlideResults({ matches, matchEvents }: { matches: Match[]; matchEvents:
                     </span>
                   )}
                 </div>
-                {scorers?.away.map((s, i) => (
-                  <p key={i} className="text-[10px] sm:text-xs text-canal-gray-muted pl-5 leading-tight">⚽ {s}</p>
-                ))}
+                {scorers?.away && scorers.away.length > 0 && (
+                  <p className="text-[10px] sm:text-xs text-canal-gray-muted pl-5 leading-snug mt-0.5">
+                    {scorers.away.map((s, i) => (
+                      <span key={i}>{i > 0 && <span className="mx-1 opacity-40">·</span>}⚽ {s}</span>
+                    ))}
+                  </p>
+                )}
               </div>
 
               {/* No score yet placeholder */}
