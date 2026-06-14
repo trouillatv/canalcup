@@ -2571,13 +2571,12 @@ const NOTIF_LINES = [
 ];
 
 function SlideNotifCTA() {
-  const [idx, setIdx] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setIdx((i) => (i + 1) % NOTIF_LINES.length), 5000);
-    return () => clearInterval(t);
-  }, []);
-
-  const line = NOTIF_LINES[idx];
+  // Une seule phrase aléatoire par affichage — pas de rotation pour éviter
+  // l'impression que la slide passe "plusieurs fois de suite".
+  const line = useMemo(
+    () => NOTIF_LINES[Math.floor(Math.random() * NOTIF_LINES.length)],
+    []
+  );
 
   return (
     <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-24 py-6 sm:py-10 text-center gap-4 sm:gap-8">
@@ -2617,13 +2616,6 @@ function SlideNotifCTA() {
             <p className="text-canal-yellow text-xs sm:text-base">Appuyer sur la cloche 🔔 — c&apos;est tout.</p>
           </div>
         </div>
-      </div>
-
-      {/* Dots */}
-      <div className="flex gap-1.5">
-        {NOTIF_LINES.map((_, i) => (
-          <span key={i} className={`h-1.5 rounded-full transition-all ${i === idx ? "w-6 bg-canal-yellow" : "w-1.5 bg-canal-gray-light"}`} />
-        ))}
       </div>
 
     </div>
@@ -2730,14 +2722,21 @@ export default function TVPage() {
       return t >= s.getTime() && t <= e.getTime() && m.status === "upcoming";
     });
   })();
+  // Médailles : seulement à partir de la phase éliminatoire
+  const hasEliminationPhase = !!data?.matches?.some(
+    (m) => m.phase && !["Groupe", "groupe", "Group Stage", "group"].includes(m.phase)
+  );
+  // Quiz : seulement si des points quiz ont été attribués
+  const hasQuizData = !!data?.individual?.some((r) => r.quiz > 0);
 
   const slides = BASE_SLIDES.filter((s) => {
     if (s === "match") return hasAnyMatch;
     if (s === "livematch") return hasLiveMatch;
     if (s === "animations") return hasChallenges;
-    if (s === "general" || s === "quiz" || s === "playerofday") return hasIndividual;
+    if (s === "general" || s === "playerofday") return hasIndividual;
+    if (s === "quiz") return hasIndividual && hasQuizData;
     if (s === "services") return hasServices;
-    if (s === "medals") return hasMedals;
+    if (s === "medals") return hasMedals && hasEliminationPhase;
     if (s === "news") return hasNews;
     if (s === "standings") return hasStandings;
     if (s === "officebet") return hasPrematch;
@@ -2752,6 +2751,7 @@ export default function TVPage() {
     if (s === "drama") return hasDrama;
     if (s === "fantomes") return hasFantomes;
     if (s === "squads") return hasTodayUpcoming;
+    if (s === "notifcta") return !!data && !hasLiveMatch;
     return true;
   });
 

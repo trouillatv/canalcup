@@ -52,17 +52,20 @@ export async function computeMedals(): Promise<Medal[]> {
 
   if (!rows?.length) return [];
 
-  // Normalize rows
+  // Normalize rows — exclure les utilisateurs sans équipe (team_id null)
+  // pour éviter le groupe "Inconnu" qui aggrège tous les non-affectés.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const preds: PredRow[] = (rows as any[]).map((r) => ({
-    team_id: r.team_id,
-    team_name: r.team?.name ?? "Inconnu",
-    predicted_score_a: r.predicted_score_a ?? 0,
-    predicted_score_b: r.predicted_score_b ?? 0,
-    points_awarded: r.points_awarded ?? 0,
-    actual_a: r.match?.score_a ?? null,
-    actual_b: r.match?.score_b ?? null,
-  })).filter((r) => r.actual_a !== null);
+  const preds: PredRow[] = (rows as any[])
+    .filter((r) => r.team_id && r.team?.name)
+    .map((r) => ({
+      team_id: r.team_id,
+      team_name: r.team.name as string,
+      predicted_score_a: r.predicted_score_a ?? 0,
+      predicted_score_b: r.predicted_score_b ?? 0,
+      points_awarded: r.points_awarded ?? 0,
+      actual_a: r.match?.score_a ?? null,
+      actual_b: r.match?.score_b ?? null,
+    })).filter((r) => r.actual_a !== null);
 
   // Aggregate by team
   const teams = new Map<string, TeamStats>();

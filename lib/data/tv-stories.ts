@@ -48,7 +48,7 @@ export async function getHallOfShame(supabase: SupabaseClient): Promise<HallOfSh
 
     const { data: preds } = await supabase
       .from("predictions")
-      .select("user_id, predicted_score_a, predicted_score_b")
+      .select("user_id, team_id, predicted_score_a, predicted_score_b")
       .eq("match_id", match.id)
       .not("predicted_score_a", "is", null)
       .not("predicted_score_b", "is", null);
@@ -58,6 +58,7 @@ export async function getHallOfShame(supabase: SupabaseClient): Promise<HallOfSh
     const withError = preds
       .map((p) => ({
         user_id: p.user_id as string,
+        team_id: p.team_id as string | null,
         predicted_score_a: p.predicted_score_a as number,
         predicted_score_b: p.predicted_score_b as number,
         error:
@@ -70,17 +71,20 @@ export async function getHallOfShame(supabase: SupabaseClient): Promise<HallOfSh
 
     if (!withError.length) return null;
 
-    const { data: users } = await supabase
-      .from("users")
-      .select("auth_id, display_name, name")
-      .in("auth_id", withError.map((p) => p.user_id));
+    const teamIds = [...new Set(withError.map((p) => p.team_id).filter(Boolean))] as string[];
 
-    const nameMap = new Map((users ?? []).map((u) => [u.auth_id, userName(u)]));
+    const [usersResult, teamsResult] = await Promise.all([
+      supabase.from("users").select("auth_id, display_name, name").in("auth_id", withError.map((p) => p.user_id)),
+      teamIds.length ? supabase.from("teams").select("id, name").in("id", teamIds) : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+    ]);
+
+    const nameMap = new Map((usersResult.data ?? []).map((u) => [u.auth_id, userName(u)]));
+    const teamMap = new Map((teamsResult.data ?? []).map((t) => [t.id, t.name as string]));
 
     return {
       match_label: `${match.team_a} ${match.score_a}–${match.score_b} ${match.team_b}`,
       shame: withError.map((p) => ({
-        name: nameMap.get(p.user_id) ?? "Anonyme",
+        name: nameMap.get(p.user_id) ?? (p.team_id ? teamMap.get(p.team_id) : null) ?? "Anonyme",
         predicted: `${p.predicted_score_a}–${p.predicted_score_b}`,
       })),
     };
@@ -98,19 +102,26 @@ export async function getVisionnaire(supabase: SupabaseClient): Promise<Visionna
 
     const { data: preds } = await supabase
       .from("predictions")
-      .select("user_id")
+      .select("user_id, team_id")
       .eq("match_id", match.id)
       .eq("predicted_score_a", match.score_a)
       .eq("predicted_score_b", match.score_b);
 
     if (!preds?.length) return null;
 
-    const { data: users } = await supabase
-      .from("users")
-      .select("auth_id, display_name, name")
-      .in("auth_id", preds.map((p) => p.user_id as string));
+    const teamIds = [...new Set(preds.map((p) => p.team_id).filter(Boolean))] as string[];
+    const [usersResult, teamsResult] = await Promise.all([
+      supabase.from("users").select("auth_id, display_name, name").in("auth_id", preds.map((p) => p.user_id as string)),
+      teamIds.length ? supabase.from("teams").select("id, name").in("id", teamIds) : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+    ]);
+    const teamMap = new Map((teamsResult.data ?? []).map((t) => [t.id, t.name as string]));
 
-    const seers = (users ?? []).map(userName).filter(Boolean);
+    const seers = preds.map((p) => {
+      const u = (usersResult.data ?? []).find((u) => u.auth_id === p.user_id);
+      return userName(u ?? null) !== "Anonyme"
+        ? userName(u ?? null)
+        : (p.team_id ? teamMap.get(p.team_id as string) : null) ?? "Anonyme";
+    }).filter((n) => n !== "Anonyme");
     if (!seers.length) return null;
 
     return {
