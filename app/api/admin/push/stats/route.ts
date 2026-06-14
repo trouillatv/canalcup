@@ -3,6 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { TZ_OPTIONS, normalizeTimezone } from "@/lib/utils";
 
+function loginFromEmail(email: string | null | undefined) {
+  return email?.split("@")[0] || "—";
+}
+
 export async function GET() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -35,7 +39,7 @@ export async function GET() {
         email: u.email,
         timezone,
         country: TZ_OPTIONS.find((opt) => opt.tz === timezone)?.region ?? "Nouvelle-Calédonie",
-        login: u.email.split("@")[0],
+        login: loginFromEmail(u.email),
         display_name: u.display_name ?? u.name ?? "—",
         endpoint: u.auth_id ? subsByUserId[u.auth_id] : undefined,
       };
@@ -43,8 +47,9 @@ export async function GET() {
 
   const nonSubscribers = (allUsers ?? [])
     .filter((u: { auth_id: string | null }) => !u.auth_id || !subscribedIds.has(u.auth_id))
-    .map((u: { id: string; display_name: string; name: string }) => ({
+    .map((u: { id: string; email: string | null; display_name: string; name: string }) => ({
       id: u.id,
+      login: loginFromEmail(u.email),
       display_name: u.display_name ?? u.name ?? "—",
     }));
 

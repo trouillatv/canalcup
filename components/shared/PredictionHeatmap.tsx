@@ -104,7 +104,7 @@ export function PredictionHeatmap({ mode, items = [], rows = [], compact }: Prop
             {STYLE[sel.outcome].emoji} {sel.label}
           </span>
           <span className="text-canal-gray-muted shrink-0">
-            prono <span className="text-white font-bold">{sel.predicted}</span>
+            prono <span className="text-white font-bold">{sel.actual ? sel.predicted : "saisi"}</span>
             {sel.actual && <> · réel <span className="text-white font-bold">{sel.actual}</span></>}
           </span>
         </div>

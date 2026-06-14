@@ -75,7 +75,7 @@ export default async function LeaderboardPage() {
             ))}
           </div>
           <p className="text-[10px] text-canal-gray-muted mt-2 italic">
-            Pronos &amp; quiz : pondérés au classement individuel. Babyfoot &amp; animations : au classement par binôme.
+            Pronos &amp; quiz : points bruts au classement individuel. Babyfoot &amp; animations : au classement par binôme.
           </p>
         </div>
       </div>

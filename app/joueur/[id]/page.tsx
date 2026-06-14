@@ -171,7 +171,9 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
             {ps.recent.map((r) => (
               <div key={r.id} className="flex items-center gap-2 text-xs">
                 <span>{PRED_BADGE[r.status].e}</span>
-                <span className="text-white flex-1 truncate">{r.label} <span className="text-canal-gray-muted">({r.score})</span></span>
+                <span className="text-white flex-1 truncate">
+                  {r.label} <span className="text-canal-gray-muted">({r.status === "pending" ? "prono saisi" : r.score})</span>
+                </span>
                 {r.points > 0 && <span className="text-canal-yellow font-bold">+{r.points}</span>}
               </div>
             ))}

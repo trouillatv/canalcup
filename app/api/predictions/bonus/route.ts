@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { WC_START_MS } from "@/lib/tournament";
 
 // Pronostics "winner" et "top_scorer" fermés au coup d'envoi du tournoi.
-const WC_START_MS = new Date("2026-06-11T00:00:00Z").getTime();
 const LOCKED_TYPES = new Set(["winner", "top_scorer"]);
 
 export async function GET() {

@@ -8,10 +8,11 @@ import { statLabelFr, eventDetailFr } from "@/lib/football/labels";
 import type { FullMatchDetail, MatchEvent, LineupPlayer, PlayerMatchStat, StandingRow, TeamSide } from "@/services/football/types";
 import { MapPin, User, RefreshCw, Clock, Sparkles, Star } from "lucide-react";
 import { MatchReactions } from "@/components/matches/MatchReactions";
+import { MatchComments } from "@/components/matches/MatchComments";
 import { Countdown } from "@/components/matches/Countdown";
 import { TeamLink } from "@/components/teams/TeamLink";
 
-type Tab = "timeline" | "lineups" | "stats" | "notes" | "pronos" | "standings";
+type Tab = "timeline" | "lineups" | "stats" | "notes" | "pronos" | "chat" | "standings";
 
 const EVENT_ICONS: Record<string, string> = {
   goal: "⚽", yellow_card: "🟨", red_card: "🟥",
@@ -278,7 +279,7 @@ function Standings({ rows }: { rows: StandingRow[] }) {
         const groupRows = rows.filter((r) => r.group_name === group).sort((a, b) => a.rank - b.rank);
         return (
           <div key={group}>
-            <p className="text-xs font-black text-canal-yellow uppercase tracking-wider mb-2">{group}</p>
+            <p className="text-lg sm:text-2xl font-black text-canal-yellow uppercase tracking-wide mb-3">{group}</p>
             <div className="space-y-1">
               {groupRows.map((r, i) => (
                 <div key={i} className={cn(
@@ -562,7 +563,9 @@ export default function MatchCenterPage() {
   const [detail, setDetail] = useState<FullMatchDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("timeline");
+  const [chatUnread, setChatUnread] = useState(0);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const isLive = detail?.match.status === "live" || detail?.match.status === "halftime";
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/matches/${id}`);
@@ -578,6 +581,20 @@ export default function MatchCenterPage() {
     return () => clearInterval(interval);
   }, [load, detail?.match.status]);
 
+  useEffect(() => {
+    if (!id || tab === "chat") return;
+    const loadUnread = () => {
+      fetch(`/api/matches/${id}/comments?summary=1`, { credentials: "same-origin" })
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => setChatUnread(d?.unread ?? 0))
+        .catch(() => {});
+    };
+    loadUnread();
+    if (!isLive) return;
+    const interval = setInterval(loadUnread, 15000);
+    return () => clearInterval(interval);
+  }, [id, isLive, tab]);
+
   if (loading) return (
     <div className="min-h-screen bg-canal-black flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-canal-yellow border-t-transparent rounded-full animate-spin" />
@@ -591,13 +608,12 @@ export default function MatchCenterPage() {
   );
 
   const { match, events, lineups, stats, playerStats, standings } = detail;
-  const isLive = match.status === "live" || match.status === "halftime";
 
   // Match test (amical/démo) = phase "Groupe" SANS stage. Les vrais matchs de
   // poule portent un stage ("Groupe A/B…") ; les matchs à élimination directe
   // ont une autre phase. On masque l'onglet "Groupe" (classement) pour ces
   // matchs test, qui n'appartiennent à aucune poule.
-  const isTestMatch = match.phase === "Groupe" && !match.stage;
+  const isGroupMatch = (match.phase === "Groupe" || match.phase === "Group Stage") && !!match.stage;
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: "timeline", label: "Timeline", count: events.length || undefined },
@@ -605,7 +621,8 @@ export default function MatchCenterPage() {
     { key: "stats", label: "Stats", count: stats.length || undefined },
     { key: "notes", label: "Notes", count: playerStats.length || undefined },
     { key: "pronos", label: "Pronos" },
-    ...(isTestMatch ? [] : [{ key: "standings" as Tab, label: "Groupe" }]),
+    { key: "chat", label: "Chat", count: chatUnread || undefined },
+    ...(isGroupMatch ? [{ key: "standings" as Tab, label: "Groupe" }] : []),
   ];
 
   return (
@@ -642,12 +659,20 @@ export default function MatchCenterPage() {
         {tabs.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={cn(
-              "flex-1 py-3 text-xs font-bold transition-colors relative",
+              "flex-1 min-w-0 px-0.5 py-3 text-[10px] sm:text-base font-black leading-tight transition-colors relative",
               tab === t.key ? "text-canal-yellow border-b-2 border-canal-yellow" : "text-canal-gray-muted hover:text-white"
             )}
           >
             {t.label}
-            {t.count ? <span className="ml-1 text-canal-gray-muted">({t.count})</span> : null}
+            {t.count ? (
+              t.key === "chat" ? (
+                <span className="ml-1.5 inline-flex min-w-5 h-5 px-1.5 items-center justify-center rounded-full bg-canal-yellow text-canal-black text-[10px] font-black tabular-nums">
+                  {t.count > 99 ? "99+" : t.count}
+                </span>
+              ) : (
+                <span className="ml-1 text-canal-gray-muted">({t.count})</span>
+              )
+            ) : null}
           </button>
         ))}
       </div>
@@ -666,6 +691,7 @@ export default function MatchCenterPage() {
         {tab === "stats" && <Stats stats={stats} teamA={match.team_a} teamB={match.team_b} />}
         {tab === "notes" && <TopPlayers players={playerStats} teamA={match.team_a} teamB={match.team_b} />}
         {tab === "pronos" && <PredictionTrend matchId={match.id} />}
+        {tab === "chat" && <MatchComments matchId={match.id} isLive={isLive} onUnreadChange={setChatUnread} />}
         {tab === "standings" && <Standings rows={(standings ?? []) as StandingRow[]} />}
       </div>
 

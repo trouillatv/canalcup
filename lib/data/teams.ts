@@ -292,7 +292,7 @@ export async function getLeaderboard(): Promise<LeaderboardRow[]> {
 
 // ─── Classement INDIVIDUEL ─────────────────────────────────────────────────────
 // En plus du classement par binôme, on classe les PERSONNES. Score perso (même
-// pondération %) = pronos + quiz PROPRES au joueur + babyfoot + animations de
+// points bruts = pronos + quiz PROPRES au joueur + babyfoot + animations de
 // son binôme (faits à deux → crédités aux 2 membres). Pronos/quiz sont donc
 // individuels ici, baby/anim partagés par le binôme.
 
@@ -300,10 +300,12 @@ export interface IndividualRow {
   user_id: string;
   display_name: string | null;
   team_name: string | null;
-  pronos: number; // pondéré (perso)
-  quiz: number; // pondéré (perso)
-  babyfoot: number; // pondéré (binôme, crédité aux 2)
-  animations: number; // pondéré (binôme, crédité aux 2)
+  pronos: number; // brut (perso)
+  quiz: number; // brut (perso)
+  babyfoot: number; // brut (binôme, crédité aux 2)
+  animations: number; // brut (binôme, crédité aux 2)
+  pronosCount: number;
+  quizCount: number;
   total: number;
   rank: number;
 }
@@ -335,28 +337,42 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
     type PtRow = { user_id: string | null; points_awarded: number | null };
     const pronosRaw = new Map<string, number>();
     const quizRaw = new Map<string, number>();
+    const pronosCount = new Map<string, number>();
+    const quizCount = new Map<string, number>();
     const add = (m: Map<string, number>, id: string | null, n: number | null) => {
       if (!id) return;
       m.set(id, (m.get(id) ?? 0) + (n ?? 0));
     };
-    for (const r of (preds ?? []) as PtRow[]) add(pronosRaw, r.user_id, r.points_awarded);
+    const inc = (m: Map<string, number>, id: string | null) => {
+      if (!id) return;
+      m.set(id, (m.get(id) ?? 0) + 1);
+    };
+    for (const r of (preds ?? []) as PtRow[]) {
+      add(pronosRaw, r.user_id, r.points_awarded);
+      if (r.points_awarded !== null) inc(pronosCount, r.user_id); // matchs évalués uniquement
+    }
     for (const r of (bonuses ?? []) as PtRow[]) add(pronosRaw, r.user_id, r.points_awarded);
-    for (const r of (quizzes ?? []) as PtRow[]) add(quizRaw, r.user_id, r.points_awarded);
+    for (const r of (quizzes ?? []) as PtRow[]) {
+      add(quizRaw, r.user_id, r.points_awarded);
+      inc(quizCount, r.user_id);
+    }
 
     type URow = { id: string; display_name: string | null; name: string | null; team_id: string | null; email: string | null };
     const rows: IndividualRow[] = (users as URow[])
       .filter((u) => !adminEmails.has((u.email ?? "").toLowerCase())) // admins hors classement
       .map((u) => {
         const tb = u.team_id ? teamAgg.get(u.team_id) : undefined;
-        const pronos = weightedContribution("pronostics", pronosRaw.get(u.id) ?? 0);
-        const quiz = weightedContribution("quiz", quizRaw.get(u.id) ?? 0);
-        const babyfoot = weightedContribution("babyfoot", tb?.babyRaw ?? 0);
-        const animations = weightedContribution("animations", tb?.animRaw ?? 0);
+        const pronos = Math.round(pronosRaw.get(u.id) ?? 0);
+        const quiz = Math.round(quizRaw.get(u.id) ?? 0);
+        const babyfoot = Math.round(tb?.babyRaw ?? 0);
+        const animations = Math.round(tb?.animRaw ?? 0);
         return {
           user_id: u.id,
           display_name: u.display_name ?? u.name ?? null,
           team_name: u.team_id ? teamName.get(u.team_id) ?? null : null,
           pronos, quiz, babyfoot, animations,
+          pronosCount: pronosCount.get(u.id) ?? 0,
+          quizCount: quizCount.get(u.id) ?? 0,
           total: pronos + quiz + babyfoot + animations,
           rank: 0,
         };

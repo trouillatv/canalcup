@@ -50,10 +50,10 @@ function PlayerList({ rows, metric }: { rows: IndividualRow[]; metric: PlayerMet
               <p className="text-[11px] text-canal-gray-muted truncate">
                 {r.team_name ?? "Sans binôme"}
                 {metric === "general" && (
-                  <span className="text-canal-gray-muted/70"> · 🎯{r.pronos} 🧠{r.quiz} ⚽{r.babyfoot} 🎉{r.animations}</span>
+                  <span className="text-canal-gray-muted/70"> · 🎯{r.pronosCount} pronos 🧠{r.quizCount} quiz</span>
                 )}
                 {metric === "perso" && (
-                  <span className="text-canal-gray-muted/70"> · 🎯{r.pronos} 🧠{r.quiz}</span>
+                  <span className="text-canal-gray-muted/70"> · 🎯{r.pronosCount} pronos 🧠{r.quizCount} quiz</span>
                 )}
               </p>
             </div>
@@ -180,7 +180,7 @@ export function LeaderboardTabs({
 
       {tab === "quiz" && (
         <div>
-          <p className="text-canal-gray-muted text-xs mb-3">Classement sur les seuls points de <span className="text-white font-bold">quiz</span> (pondérés).</p>
+          <p className="text-canal-gray-muted text-xs mb-3">Classement sur les seuls points de <span className="text-white font-bold">quiz</span>.</p>
           <PlayerList rows={individualRows} metric="quiz" />
         </div>
       )}

@@ -10,11 +10,10 @@ import { createClient } from "@/lib/supabase/server";
 import { isToday } from "@/lib/utils";
 import { getUserTimezone } from "@/lib/auth/session";
 import { Star, Trophy, Bell } from "lucide-react";
+import { WC_START_MS } from "@/lib/tournament";
 
 // Données live + pronostics par utilisateur → toujours frais.
 export const dynamic = "force-dynamic";
-
-const WC_START_MS = new Date("2026-06-11T00:00:00Z").getTime();
 
 type SavedMap = Record<string, { score_a: number; score_b: number; points?: number }>;
 

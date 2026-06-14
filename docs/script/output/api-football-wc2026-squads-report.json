@@ -1,0 +1,379 @@
+{
+  "generated_at": "2026-06-11T06:03:02.892Z",
+  "apply": true,
+  "selection_count": 48,
+  "source_team_count": 59,
+  "skipped_non_fixture_count": 11,
+  "skipped_non_fixture_teams": [
+    "Cameroun",
+    "Chili",
+    "Costa Rica",
+    "Danemark",
+    "Honduras",
+    "Mali",
+    "Nigeria",
+    "Oman",
+    "Pologne",
+    "Roumanie",
+    "Ukraine"
+  ],
+  "synced_count": 48,
+  "failed_count": 0,
+  "total_players": 1248,
+  "results": [
+    {
+      "canal_name": "Afrique du Sud",
+      "api_football_team_id": 1531,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Algérie",
+      "api_football_team_id": 1532,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Allemagne",
+      "api_football_team_id": 25,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Angleterre",
+      "api_football_team_id": 10,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Arabie Saoudite",
+      "api_football_team_id": 23,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Argentine",
+      "api_football_team_id": 26,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Australie",
+      "api_football_team_id": 20,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Autriche",
+      "api_football_team_id": 775,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Belgique",
+      "api_football_team_id": 1,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Bosnie-Herzégovine",
+      "api_football_team_id": 1113,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Brésil",
+      "api_football_team_id": 6,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Cameroun",
+      "ok": false,
+      "reason": "not_in_worldcup_fixtures",
+      "players": 0
+    },
+    {
+      "canal_name": "Canada",
+      "api_football_team_id": 5529,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Cap-Vert",
+      "api_football_team_id": 1533,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Chili",
+      "ok": false,
+      "reason": "not_in_worldcup_fixtures",
+      "players": 0
+    },
+    {
+      "canal_name": "Colombie",
+      "api_football_team_id": 8,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Corée du Sud",
+      "api_football_team_id": 17,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Costa Rica",
+      "ok": false,
+      "reason": "not_in_worldcup_fixtures",
+      "players": 0
+    },
+    {
+      "canal_name": "Côte d'Ivoire",
+      "api_football_team_id": 1501,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Croatie",
+      "api_football_team_id": 3,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Curaçao",
+      "api_football_team_id": 5530,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Danemark",
+      "ok": false,
+      "reason": "not_in_worldcup_fixtures",
+      "players": 0
+    },
+    {
+      "canal_name": "Écosse",
+      "api_football_team_id": 1108,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Égypte",
+      "api_football_team_id": 32,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Équateur",
+      "api_football_team_id": 2382,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Espagne",
+      "api_football_team_id": 9,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "États-Unis",
+      "api_football_team_id": 2384,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "France",
+      "api_football_team_id": 2,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Ghana",
+      "api_football_team_id": 1504,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Haïti",
+      "api_football_team_id": 2386,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Honduras",
+      "ok": false,
+      "reason": "not_in_worldcup_fixtures",
+      "players": 0
+    },
+    {
+      "canal_name": "Irak",
+      "api_football_team_id": 1567,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Iran",
+      "api_football_team_id": 22,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Japon",
+      "api_football_team_id": 12,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Jordanie",
+      "api_football_team_id": 1548,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Mali",
+      "ok": false,
+      "reason": "not_in_worldcup_fixtures",
+      "players": 0
+    },
+    {
+      "canal_name": "Maroc",
+      "api_football_team_id": 31,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Mexique",
+      "api_football_team_id": 16,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Nigeria",
+      "ok": false,
+      "reason": "not_in_worldcup_fixtures",
+      "players": 0
+    },
+    {
+      "canal_name": "Norvège",
+      "api_football_team_id": 1090,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Nouvelle-Zélande",
+      "api_football_team_id": 4673,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Oman",
+      "ok": false,
+      "reason": "not_in_worldcup_fixtures",
+      "players": 0
+    },
+    {
+      "canal_name": "Ouzbékistan",
+      "api_football_team_id": 1568,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Panama",
+      "api_football_team_id": 11,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Paraguay",
+      "api_football_team_id": 2380,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Pays-Bas",
+      "api_football_team_id": 1118,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Pologne",
+      "ok": false,
+      "reason": "not_in_worldcup_fixtures",
+      "players": 0
+    },
+    {
+      "canal_name": "Portugal",
+      "api_football_team_id": 27,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Qatar",
+      "api_football_team_id": 1569,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "RD Congo",
+      "api_football_team_id": 1508,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Roumanie",
+      "ok": false,
+      "reason": "not_in_worldcup_fixtures",
+      "players": 0
+    },
+    {
+      "canal_name": "Sénégal",
+      "api_football_team_id": 13,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Suède",
+      "api_football_team_id": 5,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Suisse",
+      "api_football_team_id": 15,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Tchéquie",
+      "api_football_team_id": 770,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Tunisie",
+      "api_football_team_id": 28,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Turquie",
+      "api_football_team_id": 777,
+      "ok": true,
+      "players": 26
+    },
+    {
+      "canal_name": "Ukraine",
+      "ok": false,
+      "reason": "not_in_worldcup_fixtures",
+      "players": 0
+    },
+    {
+      "canal_name": "Uruguay",
+      "api_football_team_id": 7,
+      "ok": true,
+      "players": 26
+    }
+  ]
+}

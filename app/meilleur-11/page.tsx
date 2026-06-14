@@ -118,6 +118,7 @@ export default function Meilleur11Page() {
   const [sortKey, setSortKey] = useState<SortKey>("avg_rating");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [posFilter, setPosFilter] = useState<string>("ALL");
+  const [teamFilter, setTeamFilter] = useState<string>("ALL");
 
   useEffect(() => {
     fetch("/api/tournament/stats")
@@ -128,13 +129,20 @@ export default function Meilleur11Page() {
 
   const sortedPlayers = useMemo(() => {
     if (!data) return [];
-    let list = posFilter === "ALL" ? data.players : data.players.filter((p) => p.position === posFilter);
+    let list = data.players;
+    if (posFilter !== "ALL") list = list.filter((p) => p.position === posFilter);
+    if (teamFilter !== "ALL") list = list.filter((p) => p.team === teamFilter);
     return [...list].sort((a, b) => {
       const va = (a[sortKey] as number | null) ?? -1;
       const vb = (b[sortKey] as number | null) ?? -1;
       return sortDir === "desc" ? vb - va : va - vb;
     });
-  }, [data, sortKey, sortDir, posFilter]);
+  }, [data, sortKey, sortDir, posFilter, teamFilter]);
+
+  const teams = useMemo(() => {
+    if (!data) return [];
+    return Array.from(new Set(data.players.map((p) => p.team).filter(Boolean))).sort((a, b) => a.localeCompare(b, "fr"));
+  }, [data]);
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir((d) => (d === "desc" ? "asc" : "desc"));
@@ -220,6 +228,20 @@ export default function Meilleur11Page() {
                 {pos === "ALL" ? "Tous" : POSITION_LABEL[pos]}
               </button>
             ))}
+          </div>
+          <div>
+            <label className="sr-only" htmlFor="team-filter">Filtrer par équipe</label>
+            <select
+              id="team-filter"
+              value={teamFilter}
+              onChange={(e) => setTeamFilter(e.target.value)}
+              className="w-full rounded-lg border border-canal-gray-light bg-canal-gray px-3 py-2 text-sm font-bold text-white outline-none focus:border-canal-yellow"
+            >
+              <option value="ALL">Toutes les équipes</option>
+              {teams.map((team) => (
+                <option key={team} value={team}>{team}</option>
+              ))}
+            </select>
           </div>
 
           <div className="canal-card overflow-x-auto p-0">

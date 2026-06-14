@@ -14,7 +14,7 @@ interface PushStats {
     country: string;
     endpoint: string;
   }[];
-  nonSubscribers: { id: string; display_name: string }[];
+  nonSubscribers: { id: string; display_name: string; login: string }[];
 }
 
 interface UpcomingMatch {
@@ -307,7 +307,9 @@ export default function AdminPushPage() {
             {stats.nonSubscribers.map((u) => (
               <div key={u.id} className="canal-card py-2.5 flex items-center gap-2 opacity-50">
                 <BellOff size={13} className="text-canal-gray-muted shrink-0" />
-                <span className="text-sm text-canal-gray-muted">{u.display_name}</span>
+                <span className="text-sm text-canal-gray-muted truncate">
+                  {u.display_name} <span>({u.login})</span>
+                </span>
               </div>
             ))}
           </div>

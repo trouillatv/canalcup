@@ -85,7 +85,7 @@ export function TopBar() {
         .select("role")
         .eq("email", u.email)
         .single();
-      if (data?.role === "admin" || data?.role === "super_admin") setIsAdmin(true);
+      if (data?.role === "event_admin" || data?.role === "admin" || data?.role === "super_admin") setIsAdmin(true);
     };
     checkRole();
   }, []);
@@ -251,7 +251,8 @@ export function TopBar() {
                 <p className="text-xs text-canal-yellow font-bold uppercase tracking-wider">Admin</p>
               </div>
               {[
-                { href: "/admin", label: "📊 QR Code" },
+                { href: "/admin", label: "Dashboard admin" },
+                { href: "/admin/predictions-monitor", label: "Admin pronos" },
                 { href: "/admin/monitoring", label: "🩺 Monitoring IA" },
                 { href: "/admin/user-audit", label: "👥 Monitoring Users" },
                 { href: "/admin/vestiaire-alertes", label: "Alertes Vestiaire" },
