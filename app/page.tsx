@@ -35,22 +35,27 @@ export default async function RootPage() {
     getRevivezPosts(),
   ]);
 
-  // Upcoming matches without user prediction
+  // Pronos de l'utilisateur (pour pré-remplir/afficher dans chaque MatchCard)
+  // + compte des matchs à venir sans prono (bandeau de rappel).
   const { data: profile } = await supabase.from("users").select("id, timezone").eq("auth_id", user.id).single();
   const tz = normalizeTimezone(profile?.timezone);
   let missingPronoCount = 0;
+  const savedPredictions: Record<string, { score_a: number; score_b: number; points?: number }> = {};
   if (profile) {
+    const { data: preds } = await supabase
+      .from("predictions")
+      .select("match_id, predicted_score_a, predicted_score_b, points_awarded")
+      .eq("user_id", profile.id);
+    for (const p of preds ?? []) {
+      savedPredictions[p.match_id] = {
+        score_a: p.predicted_score_a,
+        score_b: p.predicted_score_b,
+        points: p.points_awarded ?? undefined,
+      };
+    }
     const now = new Date().toISOString();
     const upcoming = matches.filter((m) => m.status === "upcoming" && m.starts_at > now);
-    if (upcoming.length > 0) {
-      const { data: preds } = await supabase
-        .from("predictions")
-        .select("match_id")
-        .eq("user_id", profile.id)
-        .in("match_id", upcoming.map((m) => m.id));
-      const predictedIds = new Set((preds ?? []).map((p) => p.match_id));
-      missingPronoCount = upcoming.filter((m) => !predictedIds.has(m.id)).length;
-    }
+    missingPronoCount = upcoming.filter((m) => !savedPredictions[m.id]).length;
   }
 
   // Matchs LIVE — section dédiée en haut, masquée s'il n'y en a aucun.
@@ -93,7 +98,7 @@ export default async function RootPage() {
           </div>
           <div className="space-y-3">
             {liveMatches.map((m) => (
-              <MatchCard key={m.id} match={m} trend={trends[m.id]} />
+              <MatchCard key={m.id} match={m} trend={trends[m.id]} savedPrediction={savedPredictions[m.id]} />
             ))}
           </div>
         </section>
@@ -111,7 +116,7 @@ export default async function RootPage() {
           </div>
           <div className="space-y-4">
             {todayMatches.map((m) => (
-              <MatchCard key={m.id} match={m} trend={trends[m.id]} />
+              <MatchCard key={m.id} match={m} trend={trends[m.id]} savedPrediction={savedPredictions[m.id]} />
             ))}
           </div>
         </section>
@@ -126,7 +131,7 @@ export default async function RootPage() {
                 Tous les matchs →
               </Link>
             </div>
-            <MatchCard match={nextMatch} trend={trends[nextMatch.id]} />
+            <MatchCard match={nextMatch} trend={trends[nextMatch.id]} savedPrediction={savedPredictions[nextMatch.id]} />
           </section>
         )
       )}
