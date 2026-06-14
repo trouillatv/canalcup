@@ -109,14 +109,29 @@ export async function generateMatchStory(ctx: MatchStoryContext): Promise<void> 
     statsJson = { ...statsJson, tokens: geminiResult.tokens, cost_eur: geminiResult.estimatedCostEur };
   }
 
+  const phrase = result.phrase ?? "Match terminé.";
+  const emoji = result.emoji ?? "⚽";
+
   await supabase.from("match_stories").upsert(
     {
       match_id: ctx.matchId,
-      phrase: result.phrase ?? "Match terminé.",
+      phrase,
       stats_json: statsJson,
     },
     { onConflict: "match_id" }
   );
 
-  console.log(`[match-story] match=${ctx.matchId} story generated`);
+  // Publier aussi dans le live cup sous forme de commentaire "Le Goat"
+  await supabase.from("feed_posts").insert({
+    type: "robert",
+    context_type: "match",
+    context_id: ctx.matchId,
+    display_name: "Le Goat",
+    body: `${emoji} **${ctx.teamA} ${ctx.scoreA}–${ctx.scoreB} ${ctx.teamB}** — ${phrase}`,
+    status: "visible",
+  }).then(({ error }) => {
+    if (error) console.error(`[match-story] feed_posts insert failed: ${error.message}`);
+  });
+
+  console.log(`[match-story] match=${ctx.matchId} story generated + posted to live cup`);
 }
