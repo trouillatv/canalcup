@@ -2737,6 +2737,7 @@ export default function TVPage() {
     if (s === "quiz") return hasIndividual && hasQuizData;
     if (s === "services") return hasServices;
     if (s === "medals") return hasMedals && hasEliminationPhase;
+    if (s === "bracket") return hasEliminationPhase;
     if (s === "news") return hasNews;
     if (s === "standings") return hasStandings;
     if (s === "officebet") return hasPrematch;
