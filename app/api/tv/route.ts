@@ -281,6 +281,23 @@ export async function GET() {
     }
   } catch {}
 
+  // Goalscorer events for the results slide (finished / live / halftime matches)
+  let matchEvents: Array<{ match_id: string; team_side: string; player_name: string | null; type: string; minute: number | null; extra_minute: number | null; detail: string | null }> = [];
+  try {
+    const scorableIds = matches
+      .filter((m) => m.status === "finished" || m.status === "live" || m.status === "halftime")
+      .map((m) => m.id);
+    if (scorableIds.length > 0) {
+      const { data: evts } = await supabase
+        .from("match_events")
+        .select("match_id, team_side, player_name, type, minute, extra_minute, detail")
+        .in("match_id", scorableIds)
+        .in("type", ["goal", "penalty"])
+        .order("minute", { ascending: true });
+      matchEvents = evts ?? [];
+    }
+  } catch {}
+
   return NextResponse.json({
     matches,
     leaderboard,
@@ -301,6 +318,7 @@ export async function GET() {
     heatmap,
     hallofshame,
     visionnaire,
+    matchEvents,
     drama,
     fantomes,
   });

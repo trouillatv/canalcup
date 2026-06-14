@@ -60,7 +60,8 @@ type Slide =
   | "drama"
   | "fantomes"
   | "squads"
-  | "notifcta";
+  | "notifcta"
+  | "results";
 
 // ─── Goat helper: remplace "Le Goat" par l'image de chèvre ────────────────────
 
@@ -131,6 +132,7 @@ const BASE_SLIDES: Slide[] = [
   "general",       // classement individuel global
   "officebet",     // distribution pronos V/N/D
   "match",         // matchs du jour
+  "results",       // résultats + buteurs du jour
   "hallofshame",   // pires pronos du dernier match
   "playerofday",   // meilleur joueur individuel
   "visionnaire",   // score exact trouvé
@@ -214,6 +216,17 @@ interface TVData {
   visionnaire?: VisionnaireData | null;
   drama?: DramaData | null;
   fantomes?: string[];
+  matchEvents?: MatchEventEntry[];
+}
+
+interface MatchEventEntry {
+  match_id: string;
+  team_side: string;
+  player_name: string | null;
+  type: string;
+  minute: number | null;
+  extra_minute: number | null;
+  detail: string | null;
 }
 
 // ─── Ambiance Banner ─────────────────────────────────────────────────────────
@@ -697,6 +710,147 @@ function SlideMatch({ matches }: { matches: Match[] }) {
       {match.is_match_of_week && (
         <div className="mt-6 sm:mt-12 canal-badge text-base sm:text-xl px-4 sm:px-6 py-2">⭐ Match de la semaine</div>
       )}
+    </div>
+  );
+}
+
+// ─── Slide: Résultats du jour ─────────────────────────────────────────────────
+
+function SlideResults({ matches, matchEvents }: { matches: Match[]; matchEvents: MatchEventEntry[] }) {
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+
+  const todayMatches = matches
+    .filter((m) => {
+      const t = new Date(m.starts_at).getTime();
+      return t >= todayStart.getTime() && t <= todayEnd.getTime();
+    })
+    .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+
+  if (!todayMatches.length) return null;
+
+  // Grouped events by match
+  const eventsByMatch = new Map<string, MatchEventEntry[]>();
+  for (const e of matchEvents) {
+    if (!eventsByMatch.has(e.match_id)) eventsByMatch.set(e.match_id, []);
+    eventsByMatch.get(e.match_id)!.push(e);
+  }
+
+  const buildScorers = (matchId: string): { home: string[]; away: string[] } => {
+    const evts = (eventsByMatch.get(matchId) ?? []).sort(
+      (a, b) => (a.minute ?? 0) - (b.minute ?? 0)
+    );
+    const home: string[] = [];
+    const away: string[] = [];
+    for (const e of evts) {
+      const isOwn = (e.detail ?? "").toLowerCase().includes("own");
+      const side = isOwn ? (e.team_side === "home" ? "away" : "home") : e.team_side;
+      const min = `${e.minute ?? "?"}${e.extra_minute ? `+${e.extra_minute}` : ""}′`;
+      const label = `${e.player_name ?? "?"}  ${min}${isOwn ? " (csc)" : e.type === "penalty" ? " (p)" : ""}`;
+      if (side === "home") home.push(label);
+      else away.push(label);
+    }
+    return { home, away };
+  };
+
+  const cols =
+    todayMatches.length === 1 ? "grid-cols-1 max-w-xl mx-auto" :
+    todayMatches.length === 2 ? "grid-cols-1 sm:grid-cols-2" :
+    todayMatches.length === 3 ? "grid-cols-1 sm:grid-cols-3" :
+    "grid-cols-2";
+
+  return (
+    <div className="flex flex-col h-full px-4 sm:px-8 lg:px-10 py-3 sm:py-4">
+      <div className="mb-2 sm:mb-3 shrink-0">
+        <p className="text-canal-yellow font-black text-base sm:text-xl uppercase tracking-widest">
+          📅 Matchs du jour
+        </p>
+        <div className="h-0.5 w-20 bg-canal-yellow mt-1" />
+      </div>
+
+      <div className={`flex-1 grid gap-2 sm:gap-3 content-center ${cols} w-full`}>
+        {todayMatches.map((m) => {
+          const isLive = m.status === "live";
+          const isHalf = m.status === "halftime";
+          const isFinished = m.status === "finished";
+          const hasScore = !isLive && !isHalf ? isFinished : true;
+          const scorers = hasScore ? buildScorers(m.id) : null;
+
+          return (
+            <div
+              key={m.id}
+              className={`rounded-2xl border px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col gap-2 ${
+                isLive || isHalf
+                  ? "border-red-500/40 bg-red-950/20"
+                  : isFinished
+                  ? "border-canal-gray-light/30 bg-canal-gray-mid/20"
+                  : "border-canal-gray-light/20 bg-canal-gray-mid/10"
+              }`}
+            >
+              {/* Status badge */}
+              <div className="flex items-center justify-between gap-2">
+                {isLive && (
+                  <span className="flex items-center gap-1 text-[10px] sm:text-xs font-black text-red-400 uppercase tracking-widest">
+                    <span className="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse" />
+                    {(m as Match & { minute?: number }).minute ? `LIVE ${(m as Match & { minute?: number }).minute}′` : "LIVE"}
+                  </span>
+                )}
+                {isHalf && <span className="text-[10px] sm:text-xs font-black text-orange-400 uppercase tracking-widest">MI-TEMPS</span>}
+                {isFinished && <span className="text-[10px] sm:text-xs font-bold text-canal-gray-muted uppercase">TERMINÉ</span>}
+                {!isLive && !isHalf && !isFinished && (
+                  <span className="text-[10px] sm:text-xs font-bold text-canal-yellow">{toNCTime(m.starts_at)} NC</span>
+                )}
+                {m.stage && <span className="text-[9px] sm:text-[10px] text-canal-gray-muted shrink-0">{m.stage}</span>}
+              </div>
+
+              {/* Team A */}
+              <div className="space-y-0.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Flag flag={m.flag_a} name={m.team_a} className="h-3.5 w-auto rounded-sm shrink-0" emojiClassName="text-sm shrink-0" />
+                    <span className={`font-bold text-sm sm:text-base truncate ${isFinished && (m.score_a ?? 0) > (m.score_b ?? 0) ? "text-canal-yellow" : "text-white"}`}>
+                      {m.team_a}
+                    </span>
+                  </div>
+                  {(isLive || isHalf || isFinished) && (
+                    <span className={`font-black text-xl sm:text-2xl tabular-nums shrink-0 ${isFinished && (m.score_a ?? 0) > (m.score_b ?? 0) ? "text-canal-yellow" : "text-white"}`}>
+                      {m.score_a ?? 0}
+                    </span>
+                  )}
+                </div>
+                {scorers?.home.map((s, i) => (
+                  <p key={i} className="text-[10px] sm:text-xs text-canal-gray-muted pl-5 leading-tight">⚽ {s}</p>
+                ))}
+              </div>
+
+              {/* Team B */}
+              <div className="space-y-0.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Flag flag={m.flag_b} name={m.team_b} className="h-3.5 w-auto rounded-sm shrink-0" emojiClassName="text-sm shrink-0" />
+                    <span className={`font-bold text-sm sm:text-base truncate ${isFinished && (m.score_b ?? 0) > (m.score_a ?? 0) ? "text-canal-yellow" : "text-white"}`}>
+                      {m.team_b}
+                    </span>
+                  </div>
+                  {(isLive || isHalf || isFinished) && (
+                    <span className={`font-black text-xl sm:text-2xl tabular-nums shrink-0 ${isFinished && (m.score_b ?? 0) > (m.score_a ?? 0) ? "text-canal-yellow" : "text-white"}`}>
+                      {m.score_b ?? 0}
+                    </span>
+                  )}
+                </div>
+                {scorers?.away.map((s, i) => (
+                  <p key={i} className="text-[10px] sm:text-xs text-canal-gray-muted pl-5 leading-tight">⚽ {s}</p>
+                ))}
+              </div>
+
+              {/* No score yet placeholder */}
+              {(isLive || isHalf) && !scorers?.home.length && !scorers?.away.length && (
+                <p className="text-[10px] text-canal-gray-muted text-center italic">Aucun but pour l&apos;instant</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -2723,6 +2877,15 @@ export default function TVPage() {
       return t >= s.getTime() && t <= e.getTime() && m.status === "upcoming";
     });
   })();
+  const hasTodayMatches = (() => {
+    if (!data?.matches) return false;
+    const s = new Date(); s.setHours(0, 0, 0, 0);
+    const e = new Date(); e.setHours(23, 59, 59, 999);
+    return data.matches.some((m) => {
+      const t = new Date(m.starts_at).getTime();
+      return t >= s.getTime() && t <= e.getTime();
+    });
+  })();
   // Médailles : seulement à partir de la phase éliminatoire
   const hasEliminationPhase = !!data?.matches?.some(
     (m) => m.phase && !["Groupe", "groupe", "Group Stage", "group"].includes(m.phase)
@@ -2753,6 +2916,7 @@ export default function TVPage() {
     if (s === "drama") return hasDrama;
     if (s === "fantomes") return hasFantomes;
     if (s === "squads") return hasTodayUpcoming;
+    if (s === "results") return hasTodayMatches;
     return true;
   });
 
@@ -2853,6 +3017,7 @@ export default function TVPage() {
               <SlideUpcoming events={data.events ?? []} matches={data.matches} />
             )}
             {slide === "match" && <SlideMatch matches={data.matches} />}
+            {slide === "results" && <SlideResults matches={data.matches} matchEvents={data.matchEvents ?? []} />}
             {slide === "livematch" && <SlideLiveMatch matches={data.matches} />}
             {slide === "standings" && <SlideStandings standings={data.standings ?? []} />}
             {slide === "bracket" && <SlideBracket />}
