@@ -144,7 +144,6 @@ const BASE_SLIDES: Slide[] = [
   "topscorerrace", // paris meilleur buteur
   "services",      // classement services
   "welcome",       // nouveaux joueurs
-  "notifcta",      // CTA activation notifications push
   "fantomes",      // joueurs inactifs
   "bracket",       // phase à élimination
   "medals",        // médailles absurdes
@@ -2631,6 +2630,8 @@ export default function TVPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [cursorVisible, setCursorVisible] = useState(true);
   const cursorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Position aléatoire du slide notifcta — recalculée quand les conditions changent
+  const notifctaPosRef = useRef<number>(-1);
 
   useEffect(() => {
     const handler = () => setIsFullscreen(
@@ -2752,9 +2753,20 @@ export default function TVPage() {
     if (s === "drama") return hasDrama;
     if (s === "fantomes") return hasFantomes;
     if (s === "squads") return hasTodayUpcoming;
-    if (s === "notifcta") return !!data && !hasLiveMatch;
     return true;
   });
+
+  // Insérer notifcta à une position aléatoire stable (réinitialisée si la condition change)
+  const showNotifcta = !!data && !hasLiveMatch;
+  if (showNotifcta) {
+    if (notifctaPosRef.current < 0) {
+      notifctaPosRef.current = Math.floor(Math.random() * (slides.length + 1));
+    }
+    const pos = Math.min(notifctaPosRef.current, slides.length);
+    slides.splice(pos, 0, "notifcta");
+  } else {
+    notifctaPosRef.current = -1;
+  }
 
   useEffect(() => {
     const t = setInterval(
