@@ -323,7 +323,7 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
     ] = await Promise.all([
       supabase.from("users").select("id, display_name, name, team_id, email"),
       supabase.from("teams").select("id, name"),
-      supabase.from("predictions").select("user_id, points_awarded"),
+      supabase.from("predictions").select("user_id, points_awarded, match:matches(is_settled)"),
       supabase.from("bonus_predictions").select("user_id, points_awarded"),
       supabase.from("quiz_answers").select("user_id, points_awarded"),
       getAdminEmails(),
@@ -335,6 +335,10 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
     const teamAgg = await computeTeamScores(supabase, (teams ?? []).map((t: { id: string }) => t.id));
 
     type PtRow = { user_id: string | null; points_awarded: number | null };
+    // Le prono embarque le match pour distinguer « évalué » (match settled) de
+    // « en attente » : points_awarded vaut 0 dans les deux cas (colonne NOT NULL
+    // DEFAULT 0), donc seul is_settled permet de compter les pronos réellement notés.
+    type PredRow = PtRow & { match: { is_settled: boolean | null } | null };
     const pronosRaw = new Map<string, number>();
     const quizRaw = new Map<string, number>();
     const pronosCount = new Map<string, number>();
@@ -347,9 +351,9 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
       if (!id) return;
       m.set(id, (m.get(id) ?? 0) + 1);
     };
-    for (const r of (preds ?? []) as PtRow[]) {
+    for (const r of (preds ?? []) as unknown as PredRow[]) {
       add(pronosRaw, r.user_id, r.points_awarded);
-      if (r.points_awarded !== null) inc(pronosCount, r.user_id); // matchs évalués uniquement
+      if (r.match?.is_settled) inc(pronosCount, r.user_id); // matchs évalués uniquement
     }
     for (const r of (bonuses ?? []) as PtRow[]) add(pronosRaw, r.user_id, r.points_awarded);
     for (const r of (quizzes ?? []) as PtRow[]) {
