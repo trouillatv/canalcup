@@ -349,7 +349,7 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
     };
     for (const r of (preds ?? []) as PtRow[]) {
       add(pronosRaw, r.user_id, r.points_awarded);
-      inc(pronosCount, r.user_id);
+      if (r.points_awarded !== null) inc(pronosCount, r.user_id); // matchs évalués uniquement
     }
     for (const r of (bonuses ?? []) as PtRow[]) add(pronosRaw, r.user_id, r.points_awarded);
     for (const r of (quizzes ?? []) as PtRow[]) {
