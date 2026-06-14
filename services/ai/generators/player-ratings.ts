@@ -32,7 +32,9 @@ function blank(side: TeamSide, name: string, matchId: string): PlayerMatchStat {
   };
 }
 
-// Agrège les événements par joueur (titulaires uniquement).
+// Agrège les événements par joueur.
+// Si les compos sont absentes (lineup vide), seed le map depuis les events
+// pour générer au moins les notes des joueurs ayant marqué/été sanctionnés.
 function tally(ctx: RatingContext): Map<string, PlayerMatchStat> {
   const map = new Map<string, PlayerMatchStat>();
   const add = (side: TeamSide, p: LineupPlayer) => {
@@ -40,6 +42,16 @@ function tally(ctx: RatingContext): Map<string, PlayerMatchStat> {
   };
   ctx.homeLineup.forEach((p) => add("home", p));
   ctx.awayLineup.forEach((p) => add("away", p));
+
+  // Mode dégradé : si aucune lineup, on seed depuis les events (buts, cartons, passes déc.)
+  if (map.size === 0) {
+    for (const e of ctx.events) {
+      if (e.player_name && !map.has(`${e.team_side}:${e.player_name}`))
+        map.set(`${e.team_side}:${e.player_name}`, blank(e.team_side, e.player_name, ctx.matchId));
+      if (e.assist_player_name && !map.has(`${e.team_side}:${e.assist_player_name}`))
+        map.set(`${e.team_side}:${e.assist_player_name}`, blank(e.team_side, e.assist_player_name, ctx.matchId));
+    }
+  }
 
   for (const e of ctx.events) {
     const key = `${e.team_side}:${e.player_name}`;
@@ -92,15 +104,19 @@ function eventSummary(ctx: RatingContext): string {
 
 /** Notes estimées pour un match fini. Toujours source "gemini" (= estimé). */
 export async function generatePlayerRatings(ctx: RatingContext): Promise<PlayerMatchStat[]> {
-  const useGemini = process.env.MOCK_AI !== "true" && !!process.env.GEMINI_API_KEY;
+  const homeStarters = ctx.homeLineup.filter((p) => p.is_starting).map((p) => p.player_name);
+  const awayStarters = ctx.awayLineup.filter((p) => p.is_starting).map((p) => p.player_name);
+  // Gemini requiert des noms de joueurs : on l'utilise seulement si on a les compos.
+  const useGemini = process.env.MOCK_AI !== "true" && !!process.env.GEMINI_API_KEY
+    && (homeStarters.length > 0 || awayStarters.length > 0);
   if (!useGemini) return heuristic(ctx);
 
   try {
     const prompt = PROMPTS.playerRatings({
       teamA: ctx.teamA, teamB: ctx.teamB, scoreA: ctx.scoreA, scoreB: ctx.scoreB,
       phase: ctx.phase,
-      homeStarters: ctx.homeLineup.filter((p) => p.is_starting).map((p) => p.player_name),
-      awayStarters: ctx.awayLineup.filter((p) => p.is_starting).map((p) => p.player_name),
+      homeStarters,
+      awayStarters,
       events: eventSummary(ctx),
     });
     const res = await callGemini<{
