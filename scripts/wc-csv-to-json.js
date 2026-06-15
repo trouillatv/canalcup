@@ -47,6 +47,34 @@ const canonicalSlug = (sel) => {
   return SLUG_ALIASES[s] || s;
 };
 
+// ── Appariement de noms (effectif API-Football abrégé « M. Maignan » ↔ scrape
+//    TM nom complet « Mike Maignan ») — même logique que backfill-tm-values.js.
+const COMBINING = /[̀-ͯ]/g;
+function normName(s) {
+  return String(s || "").normalize("NFD").replace(COMBINING, "").replace(/&/g, "and")
+    .replace(/[^a-zA-Z0-9]+/g, " ").trim().toLowerCase();
+}
+const PARTICLES = new Set(["de", "del", "della", "di", "da", "dos", "van", "von", "der",
+  "den", "la", "le", "el", "al", "bin", "ben", "mc", "mac", "san", "st"]);
+function surnameOf(n) {
+  const t = n.split(" ").filter(Boolean);
+  if (t.length <= 1) return n;
+  let i = t.length - 1;
+  while (i - 1 >= 1 && PARTICLES.has(t[i - 1])) i--;
+  return t.slice(i).join(" ");
+}
+function initialOf(n) { return (n.split(" ").filter(Boolean)[0] || "").charAt(0); }
+function tokenSetKey(n) { return n.split(" ").filter(Boolean).sort().join(" "); }
+function cleanClub(raw) {
+  if (!raw) return null;
+  const c = String(raw).replace(/\s*\([^)]*\)\s*$/, "").trim(); // retire « (Pays) »
+  return c && c !== "Sans club" ? c : null;
+}
+function cleanValue(raw) {
+  const v = String(raw || "").trim();
+  return v && v !== "-" ? v : null;
+}
+
 function parseCsv(file) {
   const lines = fs
     .readFileSync(file, "utf8")
@@ -104,8 +132,13 @@ function main() {
     process.exit(1);
   }
 
-  // ── Merge prudent par équipe ────────────────────────────────────────────
-  let updated = 0;
+  // ── Merge par JOUEUR (PAS de remplacement en bloc) ────────────────────────
+  //  On met à jour value/club depuis le scrape TM en PRÉSERVANT les champs
+  //  API-Football de chaque joueur (api_football_id, photo, caps, age, number,
+  //  position…). Remplacer players[] en entier perdrait l'effectif API-Football
+  //  (photos + lien des notes de match) — bug corrigé ici.
+  let updatedTeams = 0;
+  let updatedPlayers = 0;
   const kept = [];
   const skipped = [];
   for (const team of teams) {
@@ -117,14 +150,57 @@ function main() {
     const oldCount = team.players?.length ?? 0;
     if (fresh.length < MIN_PLAYERS || (oldCount > 0 && fresh.length < oldCount * 0.5)) {
       skipped.push(`${team.name} (${fresh.length} vs ${oldCount} — gardé)`);
-      continue; // ne JAMAIS régresser
+      continue; // scrape partiel — on ne touche pas cette équipe
     }
-    team.players = fresh;
-    updated++;
+
+    // Index du scrape pour cette équipe.
+    const byNorm = new Map();
+    const bySurname = new Map();
+    const byTokenSet = new Map();
+    for (const fp of fresh) {
+      const n = normName(fp.name);
+      byNorm.set(n, fp);
+      const sn = surnameOf(n);
+      if (!bySurname.has(sn)) bySurname.set(sn, []);
+      bySurname.get(sn).push({ fp, initial: initialOf(n) });
+      const ts = tokenSetKey(n);
+      if (!byTokenSet.has(ts)) byTokenSet.set(ts, []);
+      byTokenSet.get(ts).push(fp);
+    }
+
+    const used = new Set();
+    let teamTouched = false;
+    for (const player of team.players || []) {
+      const n = normName(player.name);
+      let m = null;
+      if (byNorm.has(n) && !used.has(byNorm.get(n))) {
+        m = byNorm.get(n);
+      } else {
+        const cands = (bySurname.get(surnameOf(n)) || []).filter((c) => !used.has(c.fp));
+        if (cands.length === 1) m = cands[0].fp;
+        else if (cands.length > 1) {
+          const byIni = cands.filter((c) => c.initial === initialOf(n));
+          if (byIni.length === 1) m = byIni[0].fp;
+        }
+      }
+      if (!m) {
+        const cands = (byTokenSet.get(tokenSetKey(n)) || []).filter((fp) => !used.has(fp));
+        if (cands.length === 1) m = cands[0];
+      }
+      if (!m) continue;
+      used.add(m);
+
+      const club = cleanClub(m.club);
+      const value = cleanValue(m.value);
+      if (value != null && player.value !== value) { player.value = value; teamTouched = true; updatedPlayers++; }
+      if (club != null && player.club !== club) { player.club = club; teamTouched = true; }
+    }
+    if (teamTouched) updatedTeams++;
   }
 
-  if (updated === 0) {
-    console.log("• Aucune équipe mise à jour (rien à écrire).");
+  const updated = updatedTeams;
+  if (updatedPlayers === 0) {
+    console.log("• Aucune valeur/club à mettre à jour (rien à écrire).");
     process.exit(0);
   }
 
@@ -138,7 +214,7 @@ function main() {
   const index = teams.map((t) => ({ name: t.name, slug: t.slug }));
   fs.writeFileSync(INDEX_OUT, JSON.stringify(index, null, 2) + "\n", "utf8");
 
-  console.log(`✓ ${updated} sélections mises à jour → ${path.relative(ROOT, outPath)}`);
+  console.log(`✓ ${updatedPlayers} joueurs (value/club) sur ${updated} sélections mis à jour → ${path.relative(ROOT, outPath)}`);
   if (skipped.length) console.log(`  ⚠ ${skipped.length} gardées (scrape partiel) : ${skipped.join(", ")}`);
   if (kept.length) console.log(`  • ${kept.length} hors CSV, inchangées : ${kept.join(", ")}`);
   process.exit(0);
