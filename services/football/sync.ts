@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { cache, matchTTL, TTL } from "./cache";
 import { tsdbTimeline, tsdbStatus, apifEvents, apifLineup, apifStats, apifPlayerStats, apifStatus } from "./transformers";
 import { toFrench, toFlag } from "@/lib/football/team-names";
+import { groupLetterForTeam } from "@/lib/football/groups-2026";
 import { generatePlayerRatings } from "@/services/ai/generators/player-ratings";
 import type { FullMatchDetail, MatchEvent, LineupPlayer, MatchStat, PlayerMatchStat, StandingRow } from "./types";
 
@@ -505,15 +506,45 @@ type GroupMatchRow = {
 
 async function loadLiveGroupStandings(
   supabase: ReturnType<typeof createAdminClient>,
-  stage: string
+  teamA: string
 ): Promise<StandingRow[] | undefined> {
-  const { data: matches } = await supabase
+  // ⚠️ Le champ `stage` ne contient PAS la lettre de poule mais la journée
+  // ("Group Stage - 1/2/3"), commune aux 12 groupes. On reconstruit donc le
+  // groupe depuis les confrontations : en round-robin à 4, chaque équipe
+  // affronte exactement ses 3 adversaires de poule → { teamA } ∪ { adversaires
+  // de teamA } = les 4 équipes du groupe. Robuste même quand les noms d'équipes
+  // ne sont pas normalisés (FR/EN mélangés en base).
+  const { data: allGroup } = await supabase
     .from("matches")
-    .select("team_a, team_b, flag_a, flag_b, status, score_a, score_b")
-    .eq("phase", "Groupe")
-    .eq("stage", stage);
+    .select("team_a, team_b, flag_a, flag_b, status, score_a, score_b, stage")
+    .eq("phase", "Groupe");
 
-  if (!matches?.length) return undefined;
+  const groupMatches = ((allGroup ?? []) as (GroupMatchRow & { stage: string | null })[])
+    .filter((m) => typeof m.stage === "string" && m.stage.startsWith("Group Stage"));
+  if (!groupMatches.length) return undefined;
+
+  // Équipes du groupe de teamA (teamA + ses adversaires)
+  const groupTeams = new Set<string>([teamA]);
+  for (const m of groupMatches) {
+    if (m.team_a === teamA) groupTeams.add(m.team_b);
+    else if (m.team_b === teamA) groupTeams.add(m.team_a);
+  }
+  if (groupTeams.size < 2) return undefined;
+
+  // Ne garder que les rencontres internes au groupe
+  const matches = groupMatches.filter(
+    (m) => groupTeams.has(m.team_a) && groupTeams.has(m.team_b)
+  );
+  if (!matches.length) return undefined;
+
+  // Libellé du groupe (lettre officielle) — on tente sur chaque équipe car
+  // certains noms en base ne se résolvent pas (variantes API non normalisées).
+  let letter: string | null = null;
+  for (const t of groupTeams) {
+    letter = groupLetterForTeam(t);
+    if (letter) break;
+  }
+  const groupName = letter ? `Groupe ${letter}` : "Classement du groupe";
 
   type TeamStanding = {
     name: string;
@@ -581,7 +612,7 @@ async function loadLiveGroupStandings(
         team_name: team.name,
         team_name_fr: team.name,
         team_flag: team.flag,
-        group_name: stage,
+        group_name: groupName,
         played: team.played,
         won: team.won,
         draw: team.draw,
@@ -711,7 +742,7 @@ export async function getMatchDetail(matchId: string): Promise<FullMatchDetail |
 
   // ── Standings ─────────────────────────────────────────────────────────────
   const isGroupMatch = (match.phase === "Groupe" || match.phase === "Group Stage") && !!match.stage;
-  const standings = isGroupMatch ? await loadLiveGroupStandings(supabase, match.stage) : undefined;
+  const standings = isGroupMatch ? await loadLiveGroupStandings(supabase, match.team_a) : undefined;
 
   const detail: FullMatchDetail = {
     match: {
