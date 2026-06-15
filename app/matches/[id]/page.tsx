@@ -13,7 +13,7 @@ import { MatchComments } from "@/components/matches/MatchComments";
 import { Countdown } from "@/components/matches/Countdown";
 import { TeamLink } from "@/components/teams/TeamLink";
 
-type Tab = "timeline" | "lineups" | "terrain" | "stats" | "notes" | "pronos" | "chat" | "standings";
+type Tab = "timeline" | "lineups" | "stats" | "notes" | "pronos" | "chat" | "standings";
 
 const EVENT_ICONS: Record<string, string> = {
   goal: "⚽", yellow_card: "🟨", red_card: "🟥",
@@ -565,11 +565,12 @@ export default function MatchCenterPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("timeline");
   const [chatUnread, setChatUnread] = useState(0);
+  const [notesView, setNotesView] = useState<"pitch" | "list">("pitch");
 
   // Onglet initial depuis l'URL (?tab=chat) — utilisé par les notifications push.
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    const valid: Tab[] = ["timeline", "lineups", "terrain", "stats", "notes", "pronos", "chat", "standings"];
+    const valid: Tab[] = ["timeline", "lineups", "stats", "notes", "pronos", "chat", "standings"];
     if (t && (valid as string[]).includes(t)) setTab(t as Tab);
   }, []);
 
@@ -627,7 +628,6 @@ export default function MatchCenterPage() {
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: "timeline", label: "Timeline", count: events.length || undefined },
     { key: "lineups", label: "Compos" },
-    { key: "terrain", label: "Terrain" },
     { key: "stats", label: "Stats", count: stats.length || undefined },
     { key: "notes", label: "Notes", count: playerStats.length || undefined },
     { key: "pronos", label: "Pronos" },
@@ -698,15 +698,36 @@ export default function MatchCenterPage() {
                   : "Compositions non disponibles pour ce match."}
               </p>
         )}
-        {tab === "terrain" && (
-          lineups
-            ? <PitchLineup lineups={lineups} playerStats={playerStats} events={events} teamA={match.team_a} teamB={match.team_b} />
-            : <p className="text-center text-canal-gray-muted text-sm py-12">
-                Terrain disponible dès que les compositions officielles sont publiées (~40 min avant le coup d&apos;envoi).
-              </p>
-        )}
         {tab === "stats" && <Stats stats={stats} teamA={match.team_a} teamB={match.team_b} />}
-        {tab === "notes" && <TopPlayers players={playerStats} teamA={match.team_a} teamB={match.team_b} />}
+        {tab === "notes" && (
+          <div className="py-2">
+            <div className="flex gap-1 bg-canal-gray rounded-xl p-1 mb-3 w-fit mx-auto">
+              {(["pitch", "list"] as const).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setNotesView(v)}
+                  className={cn(
+                    "px-4 py-1.5 rounded-lg text-xs font-bold transition-colors",
+                    notesView === v ? "bg-canal-yellow text-canal-black" : "text-canal-gray-muted hover:text-white"
+                  )}
+                >
+                  {v === "pitch" ? "⚽ Terrain" : "📋 Liste"}
+                </button>
+              ))}
+            </div>
+            {notesView === "pitch" ? (
+              lineups ? (
+                <PitchLineup lineups={lineups} playerStats={playerStats} events={events} teamA={match.team_a} teamB={match.team_b} />
+              ) : (
+                <p className="text-center text-canal-gray-muted text-sm py-12">
+                  Terrain disponible dès la publication des compositions (~40 min avant le coup d&apos;envoi).
+                </p>
+              )
+            ) : (
+              <TopPlayers players={playerStats} teamA={match.team_a} teamB={match.team_b} />
+            )}
+          </div>
+        )}
         {tab === "pronos" && <PredictionTrend matchId={match.id} />}
         {tab === "chat" && <MatchComments matchId={match.id} isLive={isLive} onUnreadChange={setChatUnread} />}
         {tab === "standings" && <Standings rows={(standings ?? []) as StandingRow[]} />}
