@@ -312,7 +312,12 @@ export interface IndividualRow {
 
 export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
   try {
-    const supabase = await createClient();
+    // Client ADMIN : le classement agrège les pronos/quiz de TOUS les joueurs.
+    // Avec le client soumis à RLS, la lecture des pronos des AUTRES joueurs est
+    // tronquée → totaux sous-évalués et variables selon le visiteur (un joueur
+    // pouvait afficher 45 pts au classement alors qu'il en avait 55 en pronos).
+    // On n'expose ici que des totaux agrégés, jamais les pronos individuels.
+    const supabase = createAdminClient();
     const [
       { data: users },
       { data: teams },

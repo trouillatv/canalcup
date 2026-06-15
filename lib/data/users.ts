@@ -103,7 +103,9 @@ export async function getServices(): Promise<Service[]> {
  */
 export async function getServiceLeaderboard(): Promise<ServiceLeaderboardRow[]> {
   try {
-    const supabase = await createClient();
+    // Client ADMIN : agrégat cross-joueurs. Avec RLS, les pronos/quiz des
+    // autres joueurs sont tronqués → totaux de service sous-évalués.
+    const supabase = createAdminClient();
     const [
       { data: services },
       { data: users },
@@ -249,7 +251,9 @@ export interface IndividualRow {
 
 export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
   try {
-    const supabase = await createClient();
+    // Client ADMIN : agrégat cross-joueurs (cf. getServiceLeaderboard) — sinon
+    // RLS tronque la lecture des pronos/quiz des autres joueurs.
+    const supabase = createAdminClient();
     const [
       { data: users },
       { data: teams },
