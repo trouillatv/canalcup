@@ -98,6 +98,7 @@ async function syncLineupsOnce(matchUuid, apifId, homeTeamApifId) {
   const players = [];
   for (const teamData of raw) {
     const side = teamData.team?.id === homeTeamApifId ? "home" : "away";
+    const formation = teamData.formation ?? null; // ex. "4-3-3" (pour la vue Terrain)
     (teamData.startXI ?? []).forEach((p) => players.push({
       match_id: matchUuid, team_side: side,
       player_name: p.player?.name ?? "",
@@ -105,6 +106,7 @@ async function syncLineupsOnce(matchUuid, apifId, homeTeamApifId) {
       shirt_number: p.player?.number ?? 0,
       position: p.player?.pos ?? null,
       formation_position: p.player?.grid ?? null,
+      role: formation,
       is_starting: true,
     }));
     (teamData.substitutes ?? []).forEach((p) => players.push({
@@ -113,6 +115,7 @@ async function syncLineupsOnce(matchUuid, apifId, homeTeamApifId) {
       player_id: p.player?.id ? String(p.player.id) : null,
       shirt_number: p.player?.number ?? 0,
       position: p.player?.pos ?? null,
+      role: formation,
       is_starting: false,
     }));
   }

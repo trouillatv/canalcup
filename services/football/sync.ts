@@ -699,12 +699,17 @@ export async function getMatchDetail(matchId: string): Promise<FullMatchDetail |
   const buildLineups = (rows: LineupPlayer[]) => {
     const home = rows.filter((p) => p.team_side === "home");
     const away = rows.filter((p) => p.team_side === "away");
+    // role est repurposé pour la formation ("4-3-3") ; on ne l'expose que si
+    // ça ressemble vraiment à une formation (d'anciennes données ont role="player").
+    const asFormation = (rows: LineupPlayer[]) => {
+      const f = rows.find((p) => /^\d+(-\d+)+$/.test(p.role ?? ""))?.role;
+      return f ?? undefined;
+    };
     return {
       home,
       away,
-      // Formation d'équipe stockée (repurpose) dans role sur chaque joueur.
-      home_formation: home.find((p) => p.role)?.role ?? undefined,
-      away_formation: away.find((p) => p.role)?.role ?? undefined,
+      home_formation: asFormation(home),
+      away_formation: asFormation(away),
     };
   };
   if (dbLineups?.length) lineups = buildLineups(dbLineups as LineupPlayer[]);

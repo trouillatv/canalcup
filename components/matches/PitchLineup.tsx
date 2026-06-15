@@ -42,38 +42,44 @@ function parseGrid(g?: string): { row: number; col: number } | null {
   return { row: r, col: c };
 }
 
-// Regroupe les titulaires en lignes (par grid.row), triées colonne croissante.
-// Fallback si pas de grid : on découpe selon la formation ("4-3-3").
-function toRows(players: LineupPlayer[], formation?: string): LineupPlayer[][] {
-  const starters = players.filter((p) => p.is_starting);
-  const haveGrid = starters.some((p) => parseGrid(p.formation_position));
+// Ligne d'un joueur d'après son poste (G/D/M/F ou Gardien/Défenseur/…).
+function posRow(pos: string): number {
+  const s = (pos || "").trim().toUpperCase();
+  if (s.startsWith("G")) return 0; // gardien
+  if (s.startsWith("D")) return 1; // défenseur
+  if (s.startsWith("M")) return 2; // milieu
+  return 3; // attaquant (F / A / …)
+}
 
-  if (haveGrid) {
+// Regroupe les titulaires en lignes. Priorité au grid « ligne:colonne » (vrai
+// placement) ; sinon repli robuste sur le POSTE (G/D/M/F) — garantit que les 11
+// s'affichent même sans grid ni formation valide (données seedées/anciennes).
+function toRows(players: LineupPlayer[]): LineupPlayer[][] {
+  const starters = players.filter((p) => p.is_starting);
+  if (!starters.length) return [];
+  const gridCount = starters.filter((p) => parseGrid(p.formation_position)).length;
+
+  if (gridCount >= Math.ceil(starters.length * 0.7)) {
     const byRow = new Map<number, LineupPlayer[]>();
     for (const p of starters) {
       const g = parseGrid(p.formation_position);
-      const row = g?.row ?? 1;
+      const row = g?.row ?? posRow(p.position) + 1; // joueur sans grid → par poste
       if (!byRow.has(row)) byRow.set(row, []);
       byRow.get(row)!.push(p);
     }
     return [...byRow.keys()]
       .sort((a, b) => a - b)
       .map((row) =>
-        byRow
-          .get(row)!
-          .sort((a, b) => (parseGrid(a.formation_position)?.col ?? 0) - (parseGrid(b.formation_position)?.col ?? 0))
+        byRow.get(row)!.sort(
+          (a, b) => (parseGrid(a.formation_position)?.col ?? 99) - (parseGrid(b.formation_position)?.col ?? 99)
+        )
       );
   }
 
-  // Fallback formation : [GK, ...lignes]
-  const lines = (formation ?? "4-3-3").split("-").map((n) => parseInt(n, 10)).filter(Number.isFinite);
-  const rows: LineupPlayer[][] = [[starters[0]].filter(Boolean)];
-  let i = 1;
-  for (const n of lines) {
-    rows.push(starters.slice(i, i + n));
-    i += n;
-  }
-  return rows;
+  // Repli par poste : 4 lignes (GK / DEF / MID / FWD), vides retirées.
+  const buckets: LineupPlayer[][] = [[], [], [], []];
+  for (const p of starters) buckets[posRow(p.position)].push(p);
+  return buckets.filter((b) => b.length);
 }
 
 function PlayerDot({
@@ -88,7 +94,7 @@ function PlayerDot({
   mirror: boolean;
 }) {
   const [imgOk, setImgOk] = useState(true);
-  const url = photoUrl(player.player_id);
+  const url = photoUrl(player.player_id ?? stat?.player_id);
   const rating = stat?.rating ?? null;
   const yellow = (stat?.yellow_cards ?? 0) > 0;
   const red = (stat?.red_cards ?? 0) > 0;
@@ -144,18 +150,16 @@ function PlayerDot({
 
 function HalfPitch({
   players,
-  formation,
   stats,
   subbedOffIds,
   mirror,
 }: {
   players: LineupPlayer[];
-  formation?: string;
   stats: Map<string, PlayerMatchStat>;
   subbedOffIds: Set<string>;
   mirror: boolean;
 }) {
-  const rows = toRows(players, formation);
+  const rows = toRows(players);
   // mirror = équipe du bas : on inverse l'ordre des lignes (gardien en bas).
   const ordered = mirror ? [...rows].reverse() : rows;
 
@@ -195,7 +199,7 @@ export function PitchLineup({ lineups, playerStats, events, teamA, teamB }: Prop
 
   const statBySide = (side: "home" | "away") => {
     const m = new Map<string, PlayerMatchStat>();
-    for (const s of playerStats) if (s.team_side === side && s.player_id) m.set(s.player_id, s);
+    for (const s of playerStats) if (s.team_side === side) m.set(s.player_id ?? `name:${s.player_name}`, s);
     return m;
   };
 
@@ -237,8 +241,8 @@ export function PitchLineup({ lineups, playerStats, events, teamA, teamB }: Prop
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-40 h-16 border border-white/30 border-b-0" />
         </div>
 
-        <HalfPitch players={lineups.home} formation={lineups.home_formation} stats={statBySide("home")} subbedOffIds={subbedOff("home")} mirror={false} />
-        <HalfPitch players={lineups.away} formation={lineups.away_formation} stats={statBySide("away")} subbedOffIds={subbedOff("away")} mirror={true} />
+        <HalfPitch players={lineups.home} stats={statBySide("home")} subbedOffIds={subbedOff("home")} mirror={false} />
+        <HalfPitch players={lineups.away} stats={statBySide("away")} subbedOffIds={subbedOff("away")} mirror={true} />
       </div>
 
       <p className="text-[10px] text-canal-gray-muted text-center mt-2">
