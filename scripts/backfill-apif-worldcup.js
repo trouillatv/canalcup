@@ -1,14 +1,14 @@
-// backfill-apif-worldcup.js — renseigne matches.apif_id pour les 72 matchs de
-// la phase de groupes de la Coupe du Monde 2026, en mappant chaque match de
+﻿// backfill-apif-worldcup.js — renseigne matches.apif_id pour tous les matchs de
+// la Coupe du Monde 2026, en mappant chaque match de
 // notre base (noms FR) au fixture API-Football correspondant (league=1,
 // season=2026, noms EN).
 //
-// Sécurité : DRY-RUN par défaut. Affiche les 72 correspondances, signale tout
-// match non apparié ou tout écart d'horaire (>2 min) entre base et API.
-// N'écrit en base QUE si on passe --apply.
+// Sécurité : DRY-RUN par défaut. Affiche les correspondances, signale tout
+// match non appariÃ© ou tout Ã©cart d'horaire (>2 min) entre base et API.
+// N'Ã©crit en base QUE si on passe --apply.
 //
-//   node scripts/backfill-apif-worldcup.js          → dry-run (aucune écriture)
-//   node scripts/backfill-apif-worldcup.js --apply   → applique les apif_id
+//   node scripts/backfill-apif-worldcup.js          â†’ dry-run (aucune Ã©criture)
+//   node scripts/backfill-apif-worldcup.js --apply   â†’ applique les apif_id
 
 const fs = require("fs");
 const path = require("path");
@@ -32,23 +32,23 @@ if (!KEY || !URL || !SERVICE) { console.error("Env manquantes (.env.local)."); p
 
 const sb = createClient(URL, SERVICE, { auth: { autoRefreshToken: false, persistSession: false } });
 
-// Nom EN (API-Football) → nom FR (notre base). 48 équipes.
+// Nom EN (API-Football) â†’ nom FR (notre base). 48 Ã©quipes.
 const EN2FR = {
-  "South Africa": "Afrique du Sud", "Algeria": "Algérie", "Germany": "Allemagne",
+  "South Africa": "Afrique du Sud", "Algeria": "AlgÃ©rie", "Germany": "Allemagne",
   "England": "Angleterre", "Saudi Arabia": "Arabie Saoudite", "Argentina": "Argentine",
   "Australia": "Australie", "Austria": "Autriche", "Belgium": "Belgique",
-  "Bosnia & Herzegovina": "Bosnie-Herzégovine", "Brazil": "Brésil", "Canada": "Canada",
-  "Cape Verde Islands": "Cap-Vert", "Colombia": "Colombie", "South Korea": "Corée du Sud",
-  "Ivory Coast": "Côte d'Ivoire", "Croatia": "Croatie", "Curaçao": "Curaçao",
-  "Scotland": "Écosse", "Egypt": "Égypte", "Ecuador": "Équateur", "Spain": "Espagne",
-  "USA": "États-Unis", "France": "France", "Ghana": "Ghana", "Haiti": "Haïti",
+  "Bosnia & Herzegovina": "Bosnie-HerzÃ©govine", "Brazil": "BrÃ©sil", "Canada": "Canada",
+  "Cape Verde Islands": "Cap-Vert", "Colombia": "Colombie", "South Korea": "CorÃ©e du Sud",
+  "Ivory Coast": "CÃ´te d'Ivoire", "Croatia": "Croatie", "CuraÃ§ao": "CuraÃ§ao",
+  "Scotland": "Ã‰cosse", "Egypt": "Ã‰gypte", "Ecuador": "Ã‰quateur", "Spain": "Espagne",
+  "USA": "Ã‰tats-Unis", "France": "France", "Ghana": "Ghana", "Haiti": "HaÃ¯ti",
   "Iraq": "Irak", "Iran": "Iran", "Japan": "Japon", "Jordan": "Jordanie",
-  "Morocco": "Maroc", "Mexico": "Mexique", "Norway": "Norvège",
-  "New Zealand": "Nouvelle-Zélande", "Uzbekistan": "Ouzbékistan", "Panama": "Panama",
+  "Morocco": "Maroc", "Mexico": "Mexique", "Norway": "NorvÃ¨ge",
+  "New Zealand": "Nouvelle-ZÃ©lande", "Uzbekistan": "OuzbÃ©kistan", "Panama": "Panama",
   "Paraguay": "Paraguay", "Netherlands": "Pays-Bas", "Portugal": "Portugal",
-  "Qatar": "Qatar", "Congo DR": "RD Congo", "Czech Republic": "République Tchèque",
-  "Senegal": "Sénégal", "Sweden": "Suède", "Switzerland": "Suisse",
-  "Tunisia": "Tunisie", "Türkiye": "Turquie", "Uruguay": "Uruguay",
+  "Qatar": "Qatar", "Congo DR": "RD Congo", "Czech Republic": "RÃ©publique TchÃ¨que",
+  "Senegal": "SÃ©nÃ©gal", "Sweden": "SuÃ¨de", "Switzerland": "Suisse",
+  "Tunisia": "Tunisie", "TÃ¼rkiye": "Turquie", "Uruguay": "Uruguay",
 };
 
 async function apif(p) {
@@ -62,12 +62,11 @@ async function apif(p) {
   const fixtures = fx.response ?? [];
   console.log(`API-Football : ${fixtures.length} fixtures (league 1, saison 2026)\n`);
 
-  // Matchs de groupe en base, sans apif_id.
+  // Tous les matchs WC2026 en base, sans apif_id.
   const { data: dbMatches } = await sb
     .from("matches")
-    .select("id, team_a, team_b, starts_at, apif_id")
-    .eq("phase", "Groupe")
-    .gte("starts_at", "2026-06-11");
+    .select("id, team_a, team_b, starts_at, apif_id, phase")
+    .eq("competition", "Coupe du Monde 2026");
 
   const ok = [];
   const problems = [];
@@ -75,21 +74,25 @@ async function apif(p) {
   for (const f of fixtures) {
     const enH = f.teams.home.name, enA = f.teams.away.name;
     const frH = EN2FR[enH], frA = EN2FR[enA];
-    if (!frH || !frA) { problems.push(`❓ Nom non mappé : ${enH} vs ${enA} (fixture ${f.fixture.id})`); continue; }
+    if (!frH || !frA) { problems.push(`â“ Nom non mappÃ© : ${enH} vs ${enA} (fixture ${f.fixture.id})`); continue; }
 
-    const m = (dbMatches ?? []).find((d) => d.team_a === frH && d.team_b === frA);
-    if (!m) { problems.push(`❌ Pas de match en base pour ${frH} vs ${frA} (fixture ${f.fixture.id}, ${f.fixture.date})`); continue; }
+    const m = (dbMatches ?? []).find(
+      (d) =>
+        (d.team_a === frH && d.team_b === frA) ||
+        (d.team_a === frA && d.team_b === frH)
+    );
+    if (!m) { problems.push(`âŒ Pas de match en base pour ${frH} vs ${frA} (fixture ${f.fixture.id}, ${f.fixture.date})`); continue; }
 
     const dtApi = new Date(f.fixture.date).getTime();
     const dtDb = new Date(m.starts_at).getTime();
     const driftMin = Math.abs(dtApi - dtDb) / 60000;
-    const flag = driftMin > 2 ? `  ⚠ écart horaire ${driftMin.toFixed(0)}min (base ${m.starts_at})` : "";
+    const flag = driftMin > 2 ? `  âš  Ã©cart horaire ${driftMin.toFixed(0)}min (base ${m.starts_at})` : "";
     ok.push({ id: m.id, apif: f.fixture.id, label: `${frH} vs ${frA}`, date: f.fixture.date, already: m.apif_id, flag });
   }
 
-  console.log(`✅ Appariés : ${ok.length}/72`);
-  ok.forEach((o) => console.log(`   ${o.apif}  ${o.label.padEnd(34)} ${o.date}${o.already ? " (déjà: " + o.already + ")" : ""}${o.flag}`));
-  if (problems.length) { console.log(`\n⚠ Problèmes (${problems.length}) :`); problems.forEach((p) => console.log("   " + p)); }
+  console.log(`✅ Appariés : ${ok.length}`);
+  ok.forEach((o) => console.log(`   ${o.apif}  ${o.label.padEnd(34)} ${o.date}${o.already ? " (dÃ©jÃ : " + o.already + ")" : ""}${o.flag}`));
+  if (problems.length) { console.log(`\nâš  ProblÃ¨mes (${problems.length}) :`); problems.forEach((p) => console.log("   " + p)); }
 
   if (!APPLY) { console.log(`\n— DRY-RUN — relance avec --apply pour écrire les ${ok.length} apif_id.`); return; }
 
@@ -98,5 +101,6 @@ async function apif(p) {
     const { error } = await sb.from("matches").update({ apif_id: o.apif, external_id: o.apif }).eq("id", o.id);
     if (error) console.warn(`   write KO ${o.label}: ${error.message}`); else n++;
   }
-  console.log(`\n✅ ${n} apif_id écrits en base.`);
+  console.log(`\nâœ… ${n} apif_id Ã©crits en base.`);
 })();
+

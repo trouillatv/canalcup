@@ -53,3 +53,5 @@ docs/script/output/selection-stats-report.json
 docs/script/output/enrichment-state.json
 docs/script/output/*.log
 docs/script/_*.html
+
+.vercel

@@ -5,7 +5,7 @@ Plateforme RSE Canal+ Nouvelle-Calédonie pour la Coupe du Monde 2026.
 ## Stack
 - Next.js 15 (App Router) sur Vercel
 - Supabase (Postgres + Auth + RLS)
-- API-Football (live scores, events, lineups) — fallback TheSportsDB
+- API-Football (live scores, events, lineups, notes joueurs)
 - Gemini (brief IA matinal)
 
 ## Scripts utiles

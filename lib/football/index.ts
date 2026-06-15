@@ -1,7 +1,6 @@
-// Entry point — returns real or mock provider based on env
+// Entry point — returns the football provider required by the app.
 import { ApiFootballProvider } from "./api-football";
 import { MockFootballProvider } from "./mock";
-import { TheSportsDBProvider } from "./thesportsdb";
 import type { FootballProvider } from "./provider";
 
 export type { FootballProvider, LiveMatch, MatchDetail, MatchEvent, MatchLineup, MatchStat } from "./provider";
@@ -15,7 +14,7 @@ export function getFootballProvider(): FootballProvider {
   } else if (process.env.API_FOOTBALL_KEY) {
     _provider = new ApiFootballProvider();
   } else {
-    _provider = new TheSportsDBProvider();
+    throw new Error("API_FOOTBALL_KEY is required for football data");
   }
   return _provider;
 }

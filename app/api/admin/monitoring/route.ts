@@ -1,11 +1,11 @@
-// GET /api/admin/monitoring — agrège l'état de santé externe de l'app :
-//   - Clés API (Gemini, API-Football) : présence + test live
+﻿// GET /api/admin/monitoring â€” agrÃ¨ge l'Ã©tat de santÃ© externe de l'app :
+//   - ClÃ©s API (Gemini, API-Football) : prÃ©sence + test live
 //   - Quota API-Football : current/limit/day via /status
 //   - Crons : 5 derniers runs par job depuis cron_runs
 //   - Scraping joueurs : date du dernier fichier
-//   - Comparatif data sources : API-Football vs TheSportsDB
+//   - Comparatif data sources : API-Football
 //
-// Protégé par isAdminRequest (auth Supabase + allowlist).
+// ProtÃ©gÃ© par isAdminRequest (auth Supabase + allowlist).
 
 import { NextResponse } from "next/server";
 import fs from "fs";
@@ -14,30 +14,30 @@ import { isAdminRequest } from "@/lib/auth/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getLiveSyncBudget } from "@/services/football/sync";
 
-// Schedules définies dans vercel.json. À garder en sync (ou parser le
+// Schedules dÃ©finies dans vercel.json. Ã€ garder en sync (ou parser le
 // fichier au runtime, mais c'est en .json donc statique).
 const CRON_SCHEDULES: Record<string, { expr: string; label: string; what: string }> = {
   "morning-brief": {
     expr: "0 19 * * *",
     label: "tous les jours 6h NC (19h UTC)",
     what:
-      "Génère la Matinale du jour (Gemini ou MOCK) à partir des scores de la veille + classement + match du soir. Persiste 1 ligne dans morning_briefs, diffuse 1 courrier inbox 'matinale' à chaque utilisateur. Idempotent (skip si déjà générée).",
+      "GÃ©nÃ¨re la Matinale du jour (Gemini ou MOCK) Ã  partir des scores de la veille + classement + match du soir. Persiste 1 ligne dans morning_briefs, diffuse 1 courrier inbox 'matinale' Ã  chaque utilisateur. Idempotent (skip si dÃ©jÃ  gÃ©nÃ©rÃ©e).",
   },
   "sync-matches": {
     expr: "0 8 * * *",
     label: "tous les jours 19h NC (8h UTC)",
     what:
-      "Sync les fixtures WC2026 et les scores live depuis API-Football (si clé) sinon TheSportsDB. Met à jour standings, déclenche le 'settle' des matchs FT (calcul des points pronostics finalisés).",
+      "Sync les fixtures WC2026 et les scores live depuis API-Football. Met Ã  jour standings, dÃ©clenche le 'settle' des matchs FT (calcul des points pronostics finalisÃ©s).",
   },
   "daily-content": {
     expr: "30 12 * * *",
     label: "tous les jours 23h30 NC (12h30 UTC)",
     what:
-      "Génère 3 contenus IA après les matchs du soir : fun fact, mot du coach, wall of shame. Diffuse 1 courrier inbox 'roast' à chaque utilisateur (anti-doublon journalier). Tracke le coût Gemini.",
+      "GÃ©nÃ¨re 3 contenus IA aprÃ¨s les matchs du soir : fun fact, mot du coach, wall of shame. Diffuse 1 courrier inbox 'roast' Ã  chaque utilisateur (anti-doublon journalier). Tracke le coÃ»t Gemini.",
   },
 };
 
-// Parser cron simple : ne supporte que 'M H * * *' (quotidien à H:M UTC).
+// Parser cron simple : ne supporte que 'M H * * *' (quotidien Ã  H:M UTC).
 // Suffisant pour tous nos crons actuels.
 function parseNextRun(expr: string): Date | null {
   const parts = expr.split(/\s+/);
@@ -62,9 +62,9 @@ type KeyStatus =
   | { state: "error"; detail: string };
 
 // Cache process-local 10 sec : les sondes externes (Gemini /models +
-// API-Football /status) sont CHÈRES (latence 500ms-2s). Si l'admin
-// laisse le toggle auto-refresh 30s actif, on ne tape PAS les API à
-// chaque tick — un refresh récent vaut une vérité partagée.
+// API-Football /status) sont CHÃˆRES (latence 500ms-2s). Si l'admin
+// laisse le toggle auto-refresh 30s actif, on ne tape PAS les API Ã 
+// chaque tick â€” un refresh rÃ©cent vaut une vÃ©ritÃ© partagÃ©e.
 const probeCache = new Map<string, { ts: number; value: unknown }>();
 const PROBE_TTL_MS = 10_000;
 
@@ -79,8 +79,8 @@ function cached<T>(key: string, fn: () => Promise<T>): Promise<T> {
   });
 }
 
-// Timeout 2 sec sur les sondes externes pour éviter qu'un endpoint
-// fantôme bloque le rendu de la page entière.
+// Timeout 2 sec sur les sondes externes pour Ã©viter qu'un endpoint
+// fantÃ´me bloque le rendu de la page entiÃ¨re.
 async function fetchWithTimeout(url: string, opts: RequestInit = {}, ms = 2000) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), ms);
@@ -101,7 +101,7 @@ async function checkGeminiUncached(): Promise<KeyStatus> {
     );
     if (res.ok) {
       const j = await res.json();
-      return { state: "ok", detail: `${j.models?.length ?? 0} modèles dispos` };
+      return { state: "ok", detail: `${j.models?.length ?? 0} modÃ¨les dispos` };
     }
     return { state: "error", detail: `HTTP ${res.status}` };
   } catch (e) {
@@ -153,7 +153,7 @@ const checkApiFootball = () => cached<FootballStatus>("apif", checkApiFootballUn
 async function lastScrapingDate(): Promise<{ file: string; mtime: string } | null> {
   // L'enrichissement joueurs est un Python externe qui produit
   // docs/script/output/wc-teams-enriched*.json. On lit la date de
-  // modification la plus récente.
+  // modification la plus rÃ©cente.
   try {
     const dir = path.join(process.cwd(), "docs", "script", "output");
     if (!fs.existsSync(dir)) return null;
@@ -181,8 +181,8 @@ export async function GET(req: Request) {
 
   const supabase = createAdminClient();
 
-  // Crons : pour chaque job — schedule, prochain run, dernier run,
-  // état "à l'heure", erreurs récentes, et les 5 derniers runs.
+  // Crons : pour chaque job â€” schedule, prochain run, dernier run,
+  // Ã©tat "Ã  l'heure", erreurs rÃ©centes, et les 5 derniers runs.
   const KNOWN_JOBS = ["sync-matches", "morning-brief", "daily-content"];
   const nowMs = Date.now();
   const sevenDaysAgo = new Date(nowMs - 7 * 24 * 3600 * 1000).toISOString();
@@ -210,7 +210,7 @@ export async function GET(req: Request) {
   }> = {};
 
   for (const job of KNOWN_JOBS) {
-    const meta = CRON_SCHEDULES[job] ?? { expr: "—", label: "inconnu", what: "" };
+    const meta = CRON_SCHEDULES[job] ?? { expr: "â€”", label: "inconnu", what: "" };
     const nextRun = parseNextRun(meta.expr);
 
     const { data: recentRuns } = await supabase
@@ -230,7 +230,7 @@ export async function GET(req: Request) {
       .eq("status", "failure")
       .gte("started_at", sevenDaysAgo);
 
-    // Cumul depuis le début : on parcourt TOUS les runs success de ce job
+    // Cumul depuis le dÃ©but : on parcourt TOUS les runs success de ce job
     // et on somme les champs meta.gemini_cost_eur et meta.apif_calls.
     const { data: allRuns } = await supabase
       .from("cron_runs")
@@ -279,7 +279,7 @@ export async function GET(req: Request) {
     };
   }
 
-  // On charge les sondes externes EN PARALLÈLE avant de construire le
+  // On charge les sondes externes EN PARALLÃˆLE avant de construire le
   // comparatif (qui en a besoin pour le scraping last_used).
   const [gemini, football, scraping, resyncBudget] = await Promise.all([
     checkGemini(),
@@ -288,11 +288,10 @@ export async function GET(req: Request) {
     getLiveSyncBudget(supabase).catch(() => null),
   ]);
 
-  // Dernière utilisation de chaque source data — pour le comparatif.
-  // api-football et thesportsdb sont appelées par le cron sync-matches
-  // (et accessoirement par les scripts manuels qui modifient matches).
-  // On prend le max entre le dernier run sync-matches OK et le dernier
-  // updated_at sur matches (cas script manuel récent).
+  // DerniÃ¨re utilisation de chaque source data â€” pour le comparatif.
+  // API-Football est la source unique. On prend le max entre le dernier run
+  // sync-matches OK et le dernier updated_at sur matches (cas script manuel
+  // récent).
   const lastSyncRun = crons["sync-matches"]?.last_run?.started_at ?? null;
   const { data: lastMatchTouched } = await supabase
     .from("matches")
@@ -310,28 +309,23 @@ export async function GET(req: Request) {
   const dataSources = {
     "api-football": {
       enabled: !!process.env.API_FOOTBALL_KEY,
-      features: ["Live scores", "Compos", "Stats", "Events détaillés", "Notes joueur"],
+      features: ["Live scores", "Compos", "Stats", "Events dÃ©taillÃ©s", "Notes joueur"],
       cost: "100 req/jour (Free)",
-      latency: "≤ 30 sec",
+      latency: "â‰¤ 30 sec",
       last_used: lastApifUsage,
     },
-    thesportsdb: {
-      enabled: true,
-      features: ["Fixtures", "Scores finaux", "Timeline basique"],
-      cost: "Illimité gratuit",
-      latency: "5-15 min",
-      last_used: lastSyncRun, // co-appelée par sync-matches
-    },
+
+
     scraping_python: {
       enabled: true,
       features: ["Enrichissement joueurs WC2026 (multi-sources)"],
-      cost: "Manuel — node docs/script/enrich_players.py",
+      cost: "Manuel â€” node docs/script/enrich_players.py",
       latency: "Ponctuel",
       last_used: scraping?.mtime ?? null,
     },
   };
 
-  // Total agrégé tous crons confondus
+  // Total agrÃ©gÃ© tous crons confondus
   const grandTotal = Object.values(crons).reduce(
     (acc, c) => ({
       gemini_cost_eur: acc.gemini_cost_eur + c.consumption.total.gemini_cost_eur,
@@ -365,3 +359,9 @@ export async function GET(req: Request) {
     },
   });
 }
+
+
+
+
+
+

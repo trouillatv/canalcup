@@ -1,4 +1,4 @@
-// Cron Vercel — sync TheSportsDB / API-Football fixtures + live scores.
+// Cron Vercel — sync API-Football fixtures + live scores.
 // Schedule: 0 8 * * * (daily 8h UTC) on Hobby plan.
 // Authorization: Bearer CRON_SECRET (auto-injected by Vercel).
 // Logged dans public.cron_runs via runCron() (page /admin/monitoring).
