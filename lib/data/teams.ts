@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { Team, LeaderboardRow } from "@/lib/supabase/types";
 import { SCORE_EVENT_CATEGORIES_IN_TOTAL, weightedContribution } from "@/lib/scoring/config";
 import { getAdminEmails } from "@/lib/data/roles";
+import { selectAll } from "@/lib/data/select-all";
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  SOURCE UNIQUE DE VÉRITÉ DU SCORE ÉQUIPE
@@ -65,21 +66,23 @@ export async function computeTeamScores(
   supabase: DbClient,
   teamIds: string[]
 ): Promise<Map<string, TeamBreakdown>> {
+  // Lecture paginée (selectAll) : sinon PostgREST tronque à 1000 lignes et les
+  // scores agrégés sont sous-évalués dès qu'une table dépasse ce seuil.
   const [
-    { data: predPoints },
-    { data: bonusPoints },
-    { data: quizPoints },
-    { data: babyPoints },
-    { data: votePoints },
-    { data: scoreEvents },
+    predPoints,
+    bonusPoints,
+    quizPoints,
+    babyPoints,
+    votePoints,
+    scoreEvents,
   ] = await Promise.all([
-    supabase.from("predictions").select("team_id, points_awarded"),
-    supabase.from("bonus_predictions").select("team_id, points_awarded"),
-    supabase.from("quiz_answers").select("team_id, points_awarded"),
-    supabase.from("babyfoot_matches").select("team_a_id, team_b_id, score_a, score_b, status"),
-    supabase.from("votes").select("target_team_id, value"),
+    selectAll<{ team_id: string | null; points_awarded: number | null }>(supabase, "predictions", "team_id, points_awarded"),
+    selectAll<{ team_id: string | null; points_awarded: number | null }>(supabase, "bonus_predictions", "team_id, points_awarded"),
+    selectAll<{ team_id: string | null; points_awarded: number | null }>(supabase, "quiz_answers", "team_id, points_awarded"),
+    selectAll<{ team_a_id: string | null; team_b_id: string | null; score_a: number | null; score_b: number | null; status: string | null }>(supabase, "babyfoot_matches", "team_a_id, team_b_id, score_a, score_b, status"),
+    selectAll<{ target_team_id: string | null; value: number | null }>(supabase, "votes", "target_team_id, value"),
     // Animations : UNIQUEMENT score_events (allowlist de catégories).
-    supabase.from("score_events").select("team_id, category, raw_points"),
+    selectAll<{ team_id: string | null; category: string | null; raw_points: number | null }>(supabase, "score_events", "team_id, category, raw_points"),
   ]);
 
   type PointRow = { team_id: string | null; points_awarded: number | null };
@@ -318,19 +321,21 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
     // pouvait afficher 45 pts au classement alors qu'il en avait 55 en pronos).
     // On n'expose ici que des totaux agrégés, jamais les pronos individuels.
     const supabase = createAdminClient();
+    // selectAll : lecture paginée — sinon PostgREST tronque à 1000 lignes et
+    // les totaux des joueurs dont les pronos tombent au-delà sont sous-évalués.
     const [
-      { data: users },
-      { data: teams },
-      { data: preds },
-      { data: bonuses },
-      { data: quizzes },
+      users,
+      teams,
+      preds,
+      bonuses,
+      quizzes,
       adminEmails,
     ] = await Promise.all([
-      supabase.from("users").select("id, display_name, name, team_id, email"),
-      supabase.from("teams").select("id, name"),
-      supabase.from("predictions").select("user_id, points_awarded, match:matches(is_settled)"),
-      supabase.from("bonus_predictions").select("user_id, points_awarded"),
-      supabase.from("quiz_answers").select("user_id, points_awarded"),
+      selectAll<{ id: string; display_name: string | null; name: string | null; team_id: string | null; email: string | null }>(supabase, "users", "id, display_name, name, team_id, email"),
+      selectAll<{ id: string; name: string }>(supabase, "teams", "id, name"),
+      selectAll<{ user_id: string | null; points_awarded: number | null; match: { is_settled: boolean | null } | null }>(supabase, "predictions", "user_id, points_awarded, match:matches(is_settled)"),
+      selectAll<{ user_id: string | null; points_awarded: number | null }>(supabase, "bonus_predictions", "user_id, points_awarded"),
+      selectAll<{ user_id: string | null; points_awarded: number | null }>(supabase, "quiz_answers", "user_id, points_awarded"),
       getAdminEmails(),
     ]);
     if (!users?.length) return [];

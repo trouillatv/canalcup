@@ -5,6 +5,7 @@ import { SCORE_EVENT_CATEGORIES_IN_TOTAL } from "@/lib/scoring/config";
 import { getAdminEmails } from "@/lib/data/roles";
 import { normalizeEmail } from "@/lib/auth/email-domain";
 import { computeTeamScores } from "@/lib/data/teams";
+import { selectAll } from "@/lib/data/select-all";
 
 // Classement par SERVICE — moyenne de points par personne (les services
 // n'ont pas le même effectif → on compare des moyennes, pas des totaux).
@@ -106,21 +107,22 @@ export async function getServiceLeaderboard(): Promise<ServiceLeaderboardRow[]> 
     // Client ADMIN : agrégat cross-joueurs. Avec RLS, les pronos/quiz des
     // autres joueurs sont tronqués → totaux de service sous-évalués.
     const supabase = createAdminClient();
+    // selectAll : lecture paginée (PostgREST tronque à 1000 lignes sinon).
+    const { data: services } = await supabase
+      .from("services").select("id, name, is_active").eq("is_active", true).order("sort_order");
     const [
-      { data: services },
-      { data: users },
-      { data: preds },
-      { data: bonuses },
-      { data: quizzes },
-      { data: events },
+      users,
+      preds,
+      bonuses,
+      quizzes,
+      events,
       adminEmails,
     ] = await Promise.all([
-      supabase.from("services").select("id, name, is_active").eq("is_active", true).order("sort_order"),
-      supabase.from("users").select("id, service_id, email"),
-      supabase.from("predictions").select("user_id, points_awarded"),
-      supabase.from("bonus_predictions").select("user_id, points_awarded"),
-      supabase.from("quiz_answers").select("user_id, points_awarded"),
-      supabase.from("score_events").select("user_id, category, source_type, raw_points"),
+      selectAll<{ id: string; service_id: string | null; email: string | null }>(supabase, "users", "id, service_id, email"),
+      selectAll<{ user_id: string | null; points_awarded: number | null }>(supabase, "predictions", "user_id, points_awarded"),
+      selectAll<{ user_id: string | null; points_awarded: number | null }>(supabase, "bonus_predictions", "user_id, points_awarded"),
+      selectAll<{ user_id: string | null; points_awarded: number | null }>(supabase, "quiz_answers", "user_id, points_awarded"),
+      selectAll<{ user_id: string | null; category: string | null; source_type: string | null; raw_points: number | null }>(supabase, "score_events", "user_id, category, source_type, raw_points"),
       getAdminEmails(),
     ]);
 
@@ -254,19 +256,20 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
     // Client ADMIN : agrégat cross-joueurs (cf. getServiceLeaderboard) — sinon
     // RLS tronque la lecture des pronos/quiz des autres joueurs.
     const supabase = createAdminClient();
+    // selectAll : lecture paginée (PostgREST tronque à 1000 lignes sinon).
     const [
-      { data: users },
-      { data: teams },
-      { data: preds },
-      { data: bonuses },
-      { data: quizzes },
+      users,
+      teams,
+      preds,
+      bonuses,
+      quizzes,
       adminEmails,
     ] = await Promise.all([
-      supabase.from("users").select("id, display_name, name, team_id, email"),
-      supabase.from("teams").select("id, name"),
-      supabase.from("predictions").select("user_id, points_awarded"),
-      supabase.from("bonus_predictions").select("user_id, points_awarded"),
-      supabase.from("quiz_answers").select("user_id, points_awarded"),
+      selectAll<{ id: string; display_name: string | null; name: string | null; team_id: string | null; email: string | null }>(supabase, "users", "id, display_name, name, team_id, email"),
+      selectAll<{ id: string; name: string }>(supabase, "teams", "id, name"),
+      selectAll<{ user_id: string | null; points_awarded: number | null }>(supabase, "predictions", "user_id, points_awarded"),
+      selectAll<{ user_id: string | null; points_awarded: number | null }>(supabase, "bonus_predictions", "user_id, points_awarded"),
+      selectAll<{ user_id: string | null; points_awarded: number | null }>(supabase, "quiz_answers", "user_id, points_awarded"),
       getAdminEmails(),
     ]);
     if (!users?.length) return [];
