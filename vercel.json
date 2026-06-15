@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/cron/match-reminder-push",
-      "schedule": "* * * * *"
+      "schedule": "0 6 * * *"
     },
     {
       "path": "/api/cron/morning-brief",
