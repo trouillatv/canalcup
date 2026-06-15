@@ -291,6 +291,18 @@ export function MatchCard({ match, trend, savedPrediction, compact }: MatchCardP
         />
       )}
 
+      {/* Prediction display — live (verrouillé, points pas encore attribués) */}
+      {isLive && savedPrediction && !compact && (
+        <div className="mt-3 flex items-center justify-between px-3 py-2 bg-canal-gray-mid rounded-xl">
+          <span className="text-xs text-canal-gray-muted">
+            Prono : {savedPrediction.score_a}–{savedPrediction.score_b}
+          </span>
+          <span className="text-[10px] text-red-400 font-bold flex items-center gap-1">
+            <span className="live-dot" /> verrouillé
+          </span>
+        </div>
+      )}
+
       {/* Prediction result display — finished */}
       {isFinished && savedPrediction && !compact && (
         <div className="mt-3 flex items-center justify-between px-3 py-2 bg-canal-gray-mid rounded-xl">

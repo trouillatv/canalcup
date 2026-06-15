@@ -119,6 +119,7 @@ export default function PredictionsPage() {
   };
 
   const finishedPreds = history.filter((p) => p.match?.status === "finished");
+  const livePreds = history.filter((p) => p.match?.status === "live");
   const pendingPreds = history.filter((p) => p.match?.status === "upcoming");
 
   return (
@@ -176,13 +177,26 @@ export default function PredictionsPage() {
       {/* ── HISTORIQUE ── */}
       {tab === "historique" && (
         <div className="space-y-3">
-          {finishedPreds.length === 0 && pendingPreds.length === 0 && (
+          {finishedPreds.length === 0 && livePreds.length === 0 && pendingPreds.length === 0 && (
             <div className="canal-card text-center py-8">
               <p className="text-canal-gray-muted">Aucun pronostic encore.</p>
               <Link href="/matches" className="text-canal-yellow text-sm font-bold mt-2 block">
                 Pronostiquer les matchs →
               </Link>
             </div>
+          )}
+
+          {livePreds.length > 0 && (
+            <section>
+              <p className="text-xs font-bold text-red-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                <span className="live-dot" /> En direct ({livePreds.length})
+              </p>
+              <div className="space-y-2">
+                {livePreds.map((p) => (
+                  <PredHistoryRow key={p.id} pred={p} />
+                ))}
+              </div>
+            </section>
           )}
 
           {pendingPreds.length > 0 && (
@@ -463,6 +477,7 @@ function PredHistoryRow({ pred }: { pred: PredRow }) {
   if (!m) return null;
 
   const isFinished = m.status === "finished";
+  const isLive = m.status === "live";
   const isPending = m.status === "upcoming";
   const isExact = isFinished && m.score_a === pred.predicted_score_a && m.score_b === pred.predicted_score_b;
   const pts = pred.points_awarded ?? 0;
@@ -487,16 +502,20 @@ function PredHistoryRow({ pred }: { pred: PredRow }) {
         </div>
 
         {/* Result */}
-        {isFinished && (
+        {(isFinished || isLive) && (
           <div className="text-center shrink-0">
-            <p className="text-xs text-canal-gray-muted">Résultat</p>
-            <p className="font-black text-sm text-white">{m.score_a}–{m.score_b}</p>
+            <p className="text-xs text-canal-gray-muted">{isLive ? "En cours" : "Résultat"}</p>
+            <p className="font-black text-sm text-white">{m.score_a ?? 0}–{m.score_b ?? 0}</p>
           </div>
         )}
 
         {/* Points */}
         <div className="text-right shrink-0 w-16">
-          {isPending ? (
+          {isLive ? (
+            <span className="text-xs text-red-400 font-bold flex items-center gap-1 justify-end">
+              <span className="live-dot" /> Live
+            </span>
+          ) : isPending ? (
             <span className="text-xs text-canal-gray-muted flex items-center gap-1 justify-end">
               <Clock size={10} /> En attente
             </span>
