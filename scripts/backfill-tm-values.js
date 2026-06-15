@@ -77,6 +77,13 @@ function initialOf(norm) {
   return first.charAt(0);
 }
 
+// Clé d'ensemble de tokens (ordre-insensible) : "son heung min" → "heung min son".
+// Permet d'apparier les noms à l'ordre inversé (sélections asiatiques :
+// "Son Heung-Min" côté effectif ↔ "Heung-min Son" côté Transfermarkt).
+function tokenSetKey(norm) {
+  return norm.split(" ").filter(Boolean).sort().join(" ");
+}
+
 function hasTm(player) {
   return TM_FIELDS.some((f) => player[f] != null);
 }
@@ -123,12 +130,16 @@ function main() {
     // Index backup : surname -> [{ player, initial, norm }]
     const bySurname = new Map();
     const byNorm = new Map();
+    const byTokenSet = new Map();
     for (const bp of bplayers) {
       const n = normalizeName(bp.name);
       byNorm.set(n, bp);
       const sn = surnameOf(n);
       if (!bySurname.has(sn)) bySurname.set(sn, []);
       bySurname.get(sn).push({ player: bp, initial: initialOf(n), norm: n });
+      const ts = tokenSetKey(n);
+      if (!byTokenSet.has(ts)) byTokenSet.set(ts, []);
+      byTokenSet.get(ts).push(bp);
     }
     const usedBackup = new Set();
 
@@ -166,6 +177,15 @@ function main() {
             continue;
           }
         }
+      }
+
+      // 3) même ensemble de tokens, ordre inversé (noms asiatiques/arabes).
+      //    Égalité exacte d'ensemble → haute précision (pas pour noms abrégés).
+      if (!match) {
+        const cands3 = (byTokenSet.get(tokenSetKey(n)) || []).filter(
+          (bp) => !usedBackup.has(bp)
+        );
+        if (cands3.length === 1) match = cands3[0];
       }
 
       if (!match) {
