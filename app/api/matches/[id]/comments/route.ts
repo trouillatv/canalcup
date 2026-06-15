@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentSocialUser } from "@/lib/social/profile";
+import { sendPushToAll } from "@/lib/push";
 
 type MatchCommentRow = {
   id: string;
@@ -146,6 +147,27 @@ export async function POST(
       { match_id: id, user_id: me.userId, last_read_at: new Date().toISOString() },
       { onConflict: "match_id,user_id" }
     );
+
+  // Notifier les autres abonnés push (best-effort — ne bloque jamais la réponse)
+  try {
+    const { data: m } = await admin
+      .from("matches")
+      .select("team_a, team_b")
+      .eq("id", id)
+      .maybeSingle();
+    const who = me.displayName?.trim() || "Quelqu'un";
+    const snippet = text.length > 80 ? `${text.slice(0, 77)}…` : text;
+    await sendPushToAll(
+      {
+        title: "💬 Nouveau commentaire",
+        body: m ? `${who} sur ${m.team_a} – ${m.team_b} : ${snippet}` : `${who} : ${snippet}`,
+        url: `/matches/${id}?tab=chat`,
+      },
+      { excludeAuthIds: [me.authId] }
+    );
+  } catch {
+    /* push best-effort */
+  }
 
   return NextResponse.json(data, { status: 201 });
 }

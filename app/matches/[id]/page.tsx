@@ -564,6 +564,14 @@ export default function MatchCenterPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("timeline");
   const [chatUnread, setChatUnread] = useState(0);
+
+  // Onglet initial depuis l'URL (?tab=chat) — utilisé par les notifications push.
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    const valid: Tab[] = ["timeline", "lineups", "stats", "notes", "pronos", "chat", "standings"];
+    if (t && (valid as string[]).includes(t)) setTab(t as Tab);
+  }, []);
+
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const isLive = detail?.match.status === "live" || detail?.match.status === "halftime";
 

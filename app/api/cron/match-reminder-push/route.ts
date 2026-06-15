@@ -110,7 +110,7 @@ export async function GET(request: Request) {
     });
 
     const results = await Promise.allSettled(
-      subsToNotify.map(({ subscription }: { subscription: object }) =>
+      subsToNotify.map(({ subscription }: { subscription: webpush.PushSubscription }) =>
         webpush.sendNotification(subscription, payload)
       )
     );
