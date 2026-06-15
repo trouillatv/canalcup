@@ -43,11 +43,12 @@ export interface LineupPlayer {
   match_id: string;
   team_side: TeamSide;
   player_name: string;
+  player_id?: string; // id API-Football → photo + jointure note
   shirt_number: number;
   position: string;
-  formation_position?: string;
+  formation_position?: string; // grille « ligne:colonne » (ex. "4:1") pour le terrain
   is_starting: boolean;
-  role?: string;
+  role?: string; // repurposé : formation d'équipe (ex. "4-3-3"), identique sur tous les joueurs
 }
 
 export interface MatchStat {

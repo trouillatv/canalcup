@@ -107,22 +107,21 @@ export function apifEvents(raw: any[], matchId: string, homeTeamId: number): Mat
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function apifLineup(raw: any, side: TeamSide, matchId: string): LineupPlayer[] {
-  const starters = (raw.startXI ?? []).map((p: any) => ({
+  const formation: string | undefined = raw.formation ?? undefined; // ex. "4-3-3"
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const map = (p: any, is_starting: boolean): LineupPlayer => ({
     match_id: matchId,
     team_side: side,
     player_name: p.player?.name ?? "",
+    player_id: p.player?.id != null ? String(p.player.id) : undefined,
     shirt_number: p.player?.number ?? 0,
     position: p.player?.pos ?? "",
-    is_starting: true,
-  }));
-  const subs = (raw.substitutes ?? []).map((p: any) => ({
-    match_id: matchId,
-    team_side: side,
-    player_name: p.player?.name ?? "",
-    shirt_number: p.player?.number ?? 0,
-    position: p.player?.pos ?? "",
-    is_starting: false,
-  }));
+    formation_position: p.player?.grid ?? undefined, // "ligne:colonne" (titulaires uniquement)
+    role: formation, // formation d'équipe, dupliquée sur chaque joueur
+    is_starting,
+  });
+  const starters = (raw.startXI ?? []).map((p: any) => map(p, true));
+  const subs = (raw.substitutes ?? []).map((p: any) => map(p, false));
   return [...starters, ...subs];
 }
 

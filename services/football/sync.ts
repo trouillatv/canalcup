@@ -696,10 +696,17 @@ export async function getMatchDetail(matchId: string): Promise<FullMatchDetail |
     .from("match_lineups").select("*").eq("match_id", matchId);
 
   let lineups: FullMatchDetail["lineups"] = null;
-  const buildLineups = (rows: LineupPlayer[]) => ({
-    home: rows.filter((p) => p.team_side === "home"),
-    away: rows.filter((p) => p.team_side === "away"),
-  });
+  const buildLineups = (rows: LineupPlayer[]) => {
+    const home = rows.filter((p) => p.team_side === "home");
+    const away = rows.filter((p) => p.team_side === "away");
+    return {
+      home,
+      away,
+      // Formation d'équipe stockée (repurpose) dans role sur chaque joueur.
+      home_formation: home.find((p) => p.role)?.role ?? undefined,
+      away_formation: away.find((p) => p.role)?.role ?? undefined,
+    };
+  };
   if (dbLineups?.length) lineups = buildLineups(dbLineups as LineupPlayer[]);
 
   // Compos : on ne les re-tire que si MANQUANTES, ou une fois à la fin du match

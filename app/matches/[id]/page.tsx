@@ -6,13 +6,14 @@ import { cn, toNCDate, toNCTime } from "@/lib/utils";
 import { useTimezone } from "@/components/timezone/TimezoneProvider";
 import { statLabelFr, eventDetailFr } from "@/lib/football/labels";
 import type { FullMatchDetail, MatchEvent, LineupPlayer, PlayerMatchStat, StandingRow, TeamSide } from "@/services/football/types";
+import { PitchLineup } from "@/components/matches/PitchLineup";
 import { MapPin, User, RefreshCw, Clock, Sparkles, Star } from "lucide-react";
 import { MatchReactions } from "@/components/matches/MatchReactions";
 import { MatchComments } from "@/components/matches/MatchComments";
 import { Countdown } from "@/components/matches/Countdown";
 import { TeamLink } from "@/components/teams/TeamLink";
 
-type Tab = "timeline" | "lineups" | "stats" | "notes" | "pronos" | "chat" | "standings";
+type Tab = "timeline" | "lineups" | "terrain" | "stats" | "notes" | "pronos" | "chat" | "standings";
 
 const EVENT_ICONS: Record<string, string> = {
   goal: "⚽", yellow_card: "🟨", red_card: "🟥",
@@ -568,7 +569,7 @@ export default function MatchCenterPage() {
   // Onglet initial depuis l'URL (?tab=chat) — utilisé par les notifications push.
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    const valid: Tab[] = ["timeline", "lineups", "stats", "notes", "pronos", "chat", "standings"];
+    const valid: Tab[] = ["timeline", "lineups", "terrain", "stats", "notes", "pronos", "chat", "standings"];
     if (t && (valid as string[]).includes(t)) setTab(t as Tab);
   }, []);
 
@@ -626,6 +627,7 @@ export default function MatchCenterPage() {
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: "timeline", label: "Timeline", count: events.length || undefined },
     { key: "lineups", label: "Compos" },
+    { key: "terrain", label: "Terrain" },
     { key: "stats", label: "Stats", count: stats.length || undefined },
     { key: "notes", label: "Notes", count: playerStats.length || undefined },
     { key: "pronos", label: "Pronos" },
@@ -694,6 +696,13 @@ export default function MatchCenterPage() {
                 {match.status === "upcoming"
                   ? "Compositions disponibles avant le coup d'envoi."
                   : "Compositions non disponibles pour ce match."}
+              </p>
+        )}
+        {tab === "terrain" && (
+          lineups
+            ? <PitchLineup lineups={lineups} playerStats={playerStats} events={events} teamA={match.team_a} teamB={match.team_b} />
+            : <p className="text-center text-canal-gray-muted text-sm py-12">
+                Terrain disponible dès que les compositions officielles sont publiées (~40 min avant le coup d&apos;envoi).
               </p>
         )}
         {tab === "stats" && <Stats stats={stats} teamA={match.team_a} teamB={match.team_b} />}
