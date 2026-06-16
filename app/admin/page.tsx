@@ -10,7 +10,7 @@ import Link from "next/link";
 import {
   QrCode, Trophy, PartyPopper, Gamepad2, Users,
   Shield, RefreshCw, ArrowRight, Activity, SearchCheck, Image as ImageIcon, MessageSquare,
-  ClipboardList,
+  ClipboardList, Bell,
 } from "lucide-react";
 
 interface QrCounter {
@@ -29,6 +29,7 @@ const TOOLS: Array<{
 }> = [
   { href: "/admin/monitoring",      label: "Monitoring IA",   desc: "Santé API, quotas, crons, scraping. À vérifier la veille de l'événement.", icon: Activity, accent: true },
   { href: "/admin/predictions-monitor", label: "Suivi pronos", desc: "Voir qui a pronostiqué, qui manque, et la synthèse match par match.", icon: ClipboardList },
+  { href: "/admin/notifications",   label: "Notifications push", desc: "État VAPID, abonnés par plateforme, test d'envoi et purge des abonnements morts.", icon: Bell },
   { href: "/admin/quiz",            label: "Quiz",            desc: "Gérer les questions, lancer le Live Show, voir les résultats.", icon: Trophy },
   { href: "/admin/challenges",      label: "Animations",      desc: "Créer/modérer les challenges, attribuer les points.",           icon: PartyPopper },
   { href: "/admin/babyfoot",        label: "Babyfoot — matchs", desc: "Saisir les matchs et résultats babyfoot.",                    icon: Gamepad2 },
