@@ -1,4 +1,4 @@
-const CACHE = 'canalcup-v2'
+const CACHE = 'canalcup-v3'
 
 self.addEventListener('install', () => self.skipWaiting())
 
@@ -14,12 +14,15 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return
   const url = e.request.url
-  // Ne jamais cacher les appels API, Supabase ou auth
+  // Ne jamais intercepter : API, Supabase, auth, ni les médias cross-origin
+  // (photos joueurs api-sports → laisser le navigateur les charger directement,
+  //  sinon le cache d'une réponse opaque peut empêcher leur affichage).
   if (
     url.includes('/api/') ||
     url.includes('supabase.co') ||
     url.includes('googleapis.com') ||
     url.includes('qrserver.com') ||
+    url.includes('api-sports.io') ||
     url.includes('/auth/')
   ) return
 
