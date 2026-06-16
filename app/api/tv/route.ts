@@ -8,6 +8,7 @@ import { getTvPredictionHeatmap } from "@/lib/data/player";
 import { getAdminEmails } from "@/lib/data/roles";
 import { getHallOfShame, getVisionnaire, getDrama, getFantomes } from "@/lib/data/tv-stories";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getWCTeamByName, type WCPlayer } from "@/lib/football/wc-teams";
 import { AMBIANCE_STATES } from "@/lib/tv/hype";
 import { NextResponse } from "next/server";
 import type { Match } from "@/lib/supabase/types";
@@ -59,6 +60,80 @@ async function getLequipeNews(): Promise<{ title: string; link: string }[]> {
   }
 }
 
+
+// Joueur à surveiller d'une sélection : le plus gros buteur en sélection ;
+// à défaut de stats de buts, le joueur à la plus grosse valeur marchande.
+// `value` Transfermarkt est de la forme "€80.00m" / "€800k".
+function parseValueEur(v: string | null | undefined): number | null {
+  if (!v) return null;
+  const m = v.replace(/\s/g, "").match(/([\d.,]+)\s*(bn|md|m|k)?/i);
+  if (!m) return null;
+  const n = parseFloat(m[1].replace(",", "."));
+  if (!Number.isFinite(n)) return null;
+  const unit = (m[2] ?? "").toLowerCase();
+  const mult = unit === "bn" || unit === "md" ? 1e9 : unit === "m" ? 1e6 : unit === "k" ? 1e3 : 1;
+  return n * mult;
+}
+
+function formatValueEur(eur: number): string {
+  if (eur >= 1e9) return `${(eur / 1e9).toFixed(2).replace(".", ",")} Md€`;
+  if (eur >= 1e6) return `${Math.round(eur / 1e6)} M€`;
+  return `${Math.round(eur / 1e3)} k€`;
+}
+
+type WatchPlayer = {
+  name: string;
+  team: string;
+  photo: string | null;
+  reason: "goals" | "value";
+  goals: number | null;
+  value_label: string | null;
+};
+
+function pickWatchPlayer(teamName: string): WatchPlayer | null {
+  const team = getWCTeamByName(teamName);
+  if (!team || !team.players?.length) return null;
+
+  const photoOf = (p: WCPlayer): string | null =>
+    (p as WCPlayer & { photo?: string | null }).photo ?? null;
+
+  // 1) Plus gros buteur en sélection (au moins 1 but).
+  const scorers = team.players.filter((p) => (p.selection_goals ?? 0) > 0);
+  if (scorers.length) {
+    const best = scorers.reduce((a, b) => {
+      const ga = a.selection_goals ?? 0;
+      const gb = b.selection_goals ?? 0;
+      if (gb !== ga) return gb > ga ? b : a;
+      return (parseValueEur(b.value) ?? 0) > (parseValueEur(a.value) ?? 0) ? b : a;
+    });
+    return {
+      name: best.name,
+      team: team.name,
+      photo: photoOf(best),
+      reason: "goals",
+      goals: best.selection_goals ?? 0,
+      value_label: null,
+    };
+  }
+
+  // 2) À défaut : plus grosse valeur marchande.
+  const valued = team.players
+    .map((p) => ({ p, eur: parseValueEur(p.value) }))
+    .filter((x): x is { p: WCPlayer; eur: number } => x.eur != null);
+  if (valued.length) {
+    const best = valued.reduce((a, b) => (b.eur > a.eur ? b : a));
+    return {
+      name: best.p.name,
+      team: team.name,
+      photo: photoOf(best.p),
+      reason: "value",
+      goals: null,
+      value_label: formatValueEur(best.eur),
+    };
+  }
+
+  return null;
+}
 
 async function getPreMatchStats(supabase: ReturnType<typeof createAdminClient>, match: Match, totalTeams: number) {
   const [{ data: preds }, { data: bonusPreds }] = await Promise.all([
@@ -133,6 +208,8 @@ async function getPreMatchStats(supabase: ReturnType<typeof createAdminClient>, 
     top_score_pct: topScorePct,
     top_scorer: topScorer,
     top_scorer_pct: topScorerPct,
+    watch_a: pickWatchPlayer(match.team_a),
+    watch_b: pickWatchPlayer(match.team_b),
   };
 }
 

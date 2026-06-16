@@ -219,6 +219,17 @@ interface PreMatchStats {
   top_score_pct: number;
   top_scorer: string | null;
   top_scorer_pct: number;
+  watch_a?: WatchPlayer | null;
+  watch_b?: WatchPlayer | null;
+}
+
+interface WatchPlayer {
+  name: string;
+  team: string;
+  photo: string | null;
+  reason: "goals" | "value";
+  goals: number | null;
+  value_label: string | null;
 }
 
 interface TVData {
@@ -1655,9 +1666,38 @@ function SlidePreMatch({ stats }: { stats: PreMatchStats }) {
           </div>
         </div>
 
-        {/* Joueur à surveiller / confidence */}
+        {/* Joueurs à surveiller (un par équipe) / confidence */}
         <div className="hidden sm:flex bg-canal-gray-mid/40 border border-canal-gray-light/30 rounded-2xl p-3 sm:p-5 flex-col justify-between">
-          {stats.top_scorer ? (
+          {stats.watch_a || stats.watch_b ? (
+            <>
+              <p className="text-canal-gray-muted text-sm sm:text-lg font-bold mb-2 sm:mb-3 uppercase tracking-wide">👀 Joueurs à surveiller</p>
+              <div className="flex flex-col gap-2 sm:gap-3">
+                {([
+                  [stats.watch_a, match.flag_a, match.team_a] as const,
+                  [stats.watch_b, match.flag_b, match.team_b] as const,
+                ]).map(([w, flag, teamName], i) =>
+                  w ? (
+                    <div key={i} className="flex items-center gap-2 sm:gap-3 min-w-0">
+                      {w.photo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={w.photo} alt="" className="h-9 w-9 sm:h-12 sm:w-12 rounded-full object-cover bg-canal-gray-light/20 shrink-0" />
+                      ) : (
+                        <Flag flag={flag} name={teamName} className="h-6 w-auto rounded-sm shrink-0" emojiClassName="text-2xl shrink-0" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-black text-base sm:text-xl lg:text-2xl text-white truncate">{w.name}</p>
+                        <p className="text-canal-gray-muted text-xs sm:text-base">
+                          {w.reason === "goals"
+                            ? <><span className="text-canal-yellow font-bold">{w.goals}</span> but{(w.goals ?? 0) > 1 ? "s" : ""} en sélection</>
+                            : <><span className="text-canal-yellow font-bold">{w.value_label}</span> de valeur</>}
+                        </p>
+                      </div>
+                    </div>
+                  ) : null
+                )}
+              </div>
+            </>
+          ) : stats.top_scorer ? (
             <>
               <p className="text-canal-gray-muted text-sm sm:text-lg font-bold mb-2 uppercase tracking-wide">👀 Joueur à surveiller</p>
               <p className="font-black text-lg sm:text-2xl lg:text-3xl text-white">{stats.top_scorer}</p>
