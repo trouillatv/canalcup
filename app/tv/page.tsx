@@ -122,6 +122,31 @@ function getQRContext(slide: Slide, data: TVData | null, origin: string): QRCont
 }
 
 const SLIDE_DURATION = 12000;
+
+// Slides « thématiquement match » — à ne pas enchaîner (sinon ça donne
+// l'impression de « 3 écrans prochains matchs de suite »).
+const MATCH_THEME = new Set<Slide>(["prematch", "squads", "match", "results", "livematch", "upcoming", "officebet"]);
+function slideTheme(s: Slide): string {
+  return MATCH_THEME.has(s) ? "match" : s;
+}
+// Mélange (Fisher-Yates) + réagencement glouton : aucune slide de même thème ne
+// se suit. Évite « 3 Goat / 3 notifs / 3 matchs d'affilée ».
+function arrangeSlides(list: Slide[]): Slide[] {
+  const arr = [...list];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  const out: Slide[] = [];
+  const rest = [...arr];
+  while (rest.length) {
+    const lastTheme = out.length ? slideTheme(out[out.length - 1]) : null;
+    let idx = rest.findIndex((s) => slideTheme(s) !== lastTheme);
+    if (idx === -1) idx = 0;
+    out.push(rest.splice(idx, 1)[0]);
+  }
+  return out;
+}
 const REFRESH_INTERVAL = 30000;
 const FLASH_POLL_INTERVAL = 10000;
 // Rotation salon : on alterne sport / classements / fun pour varier le rythme.
@@ -2244,22 +2269,35 @@ function SlideDrama({ data }: { data: DramaData }) {
 // ─── Slide: Fantômes ──────────────────────────────────────────────────────────
 
 function SlideFantomes({ players }: { players: string[] }) {
+  // Tous les fantômes : grille multi-colonnes + texte réduit quand il y en a
+  // beaucoup, pour que tout tienne à l'écran.
+  const many = players.length > 8;
+  const dense = players.length > 18;
   return (
-    <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-20 py-6 sm:py-12 text-center">
-      <p className="text-canal-yellow font-black text-xl sm:text-2xl uppercase tracking-widest mb-3 sm:mb-6">
+    <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-16 py-6 sm:py-10 text-center overflow-hidden">
+      <p className="text-canal-yellow font-black text-xl sm:text-2xl uppercase tracking-widest mb-2 sm:mb-4">
         👻 Fantômes de la Canal Cup
       </p>
-      <p className="text-white/50 text-base sm:text-xl mb-6 sm:mb-10 italic">
-        N&apos;ont pas rejoint l&apos;app depuis 7 jours
+      <p className="text-white/50 text-base sm:text-xl mb-4 sm:mb-8 italic">
+        N&apos;ont pas rejoint l&apos;app depuis 7 jours · {players.length}
       </p>
-      <div className="space-y-2 sm:space-y-4">
+      <div
+        className={
+          many
+            ? `grid ${dense ? "grid-cols-3 md:grid-cols-4" : "grid-cols-2 md:grid-cols-3"} gap-x-6 gap-y-1.5 sm:gap-y-2 overflow-y-auto`
+            : "space-y-2 sm:space-y-4"
+        }
+      >
         {players.map((name) => (
-          <p key={name} className="font-black text-white/60 text-2xl sm:text-4xl lg:text-5xl">
+          <p
+            key={name}
+            className={`font-black text-white/60 ${many ? (dense ? "text-base sm:text-xl" : "text-lg sm:text-3xl") : "text-2xl sm:text-4xl lg:text-5xl"}`}
+          >
             👻 {name}
           </p>
         ))}
       </div>
-      <p className="text-canal-yellow/60 text-sm sm:text-lg mt-6 sm:mt-10 flex items-center justify-center gap-2 italic">
+      <p className="text-canal-yellow/60 text-sm sm:text-lg mt-4 sm:mt-8 flex items-center justify-center gap-2 italic shrink-0">
         <img src="/goat.png" alt="🐐" className="h-[1em] object-contain" /> a lancé un avis de recherche.
       </p>
     </div>
@@ -2402,44 +2440,21 @@ interface TightRace {
   unit: string;
 }
 
+// « Ça se joue à rien » : on n'affiche QUE la bataille des services quand les
+// deux premiers se tiennent en ≤ 1 point (moyenne/pers). Sinon → null → la
+// slide n'est pas affichée du tout.
 function computeTightRace(data: TVData): TightRace | null {
-  const candidates: TightRace[] = [];
-
-  const lb = [...(data.leaderboard ?? [])].sort((a, b) => b.total - a.total);
-  if (lb.length >= 2 && lb[0].total > 0) {
-    candidates.push({
-      label: "Classement Binômes",
-      first: lb[0].team.name,
-      second: lb[1].team.name,
-      gap: lb[0].total - lb[1].total,
-      unit: "pts",
-    });
-  }
-
-  const ind = [...(data.individual ?? [])].sort((a, b) => b.total - a.total);
-  if (ind.length >= 2 && ind[0].total > 0) {
-    candidates.push({
-      label: "Classement Général",
-      first: ind[0].display_name ?? "Anonyme",
-      second: ind[1].display_name ?? "Anonyme",
-      gap: ind[0].total - ind[1].total,
-      unit: "pts",
-    });
-  }
-
   const svc = [...(data.services ?? [])].sort((a, b) => b.average - a.average);
-  if (svc.length >= 2 && svc[0].average > 0) {
-    candidates.push({
-      label: "Bataille des Services",
-      first: svc[0].service.name,
-      second: svc[1].service.name,
-      gap: Math.round((svc[0].average - svc[1].average) * 10) / 10,
-      unit: "pts/pers",
-    });
-  }
-
-  if (!candidates.length) return null;
-  return candidates.sort((a, b) => a.gap - b.gap)[0];
+  if (svc.length < 2 || svc[0].average <= 0) return null;
+  const gap = Math.round((svc[0].average - svc[1].average) * 10) / 10;
+  if (gap > 1) return null;
+  return {
+    label: "Bataille des Services",
+    first: svc[0].service.name,
+    second: svc[1].service.name,
+    gap,
+    unit: "pts/pers",
+  };
 }
 
 function SlideTightRace({ race }: { race: TightRace }) {
@@ -2792,8 +2807,6 @@ export default function TVPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [cursorVisible, setCursorVisible] = useState(true);
   const cursorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Position aléatoire du slide notifcta — recalculée quand les conditions changent
-  const notifctaPosRef = useRef<number>(-1);
 
   useEffect(() => {
     const handler = () => setIsFullscreen(
@@ -2894,14 +2907,18 @@ export default function TVPage() {
       return t >= s.getTime() && t <= e.getTime();
     });
   })();
-  // Médailles : seulement à partir de la phase éliminatoire
+  // Phase éliminatoire COMMENCÉE = un match hors poule déjà live/terminé.
+  // (un simple match "Finale" planifié — ex. match test — ne doit PAS l'activer)
   const hasEliminationPhase = !!data?.matches?.some(
-    (m) => m.phase && !["Groupe", "groupe", "Group Stage", "group"].includes(m.phase)
+    (m) =>
+      m.phase &&
+      !["Groupe", "groupe", "Group Stage", "group"].includes(m.phase) &&
+      ["live", "halftime", "finished"].includes(m.status)
   );
   // Quiz : seulement si des points quiz ont été attribués
   const hasQuizData = !!data?.individual?.some((r) => r.quiz > 0);
 
-  const slides = BASE_SLIDES.filter((s) => {
+  const filtered = BASE_SLIDES.filter((s) => {
     if (s === "match") return hasAnyMatch;
     if (s === "livematch") return hasLiveMatch;
     if (s === "animations") return hasChallenges;
@@ -2928,17 +2945,11 @@ export default function TVPage() {
     return true;
   });
 
-  // Insérer notifcta à une position aléatoire stable (réinitialisée si la condition change)
-  const showNotifcta = !!data && !hasLiveMatch;
-  if (showNotifcta) {
-    if (notifctaPosRef.current < 0) {
-      notifctaPosRef.current = Math.floor(Math.random() * (slides.length + 1));
-    }
-    const pos = Math.min(notifctaPosRef.current, slides.length);
-    slides.splice(pos, 0, "notifcta");
-  } else {
-    notifctaPosRef.current = -1;
-  }
+  // notifcta = slide normale (placée par le shuffle), sauf pendant un match live.
+  if (!!data && !hasLiveMatch) filtered.push("notifcta");
+
+  // Mélange anti-répétition (aucune slide de même thème à la suite).
+  const slides = useMemo(() => arrangeSlides(filtered), [filtered.join("|")]);
 
   useEffect(() => {
     const t = setInterval(

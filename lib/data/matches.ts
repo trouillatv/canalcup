@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Match, PredictionTrend } from "@/lib/supabase/types";
+import { groupLetterForTeam } from "@/lib/football/groups-2026";
 
 export async function getMatches(): Promise<Match[]> {
   try {
@@ -43,19 +44,36 @@ export async function getGroupStandings(): Promise<GroupStandingRow[]> {
       .eq("phase", "Groupe");
     if (!matches?.length) return [];
 
+    type Row = { team_a: string; team_b: string; flag_a: string | null; flag_b: string | null; stage: string | null; status: string; score_a: number | null; score_b: number | null };
+    // ⚠️ matches.stage = la JOURNÉE ("Group Stage - 1/2/3"), pas la lettre de
+    // poule. On reconstruit les vraies poules (A–L) depuis les confrontations :
+    // en round-robin à 4, chaque équipe affronte exactement ses 3 adversaires →
+    // { équipe } ∪ { adversaires } = la poule (indépendant des noms FR/EN).
+    const real = (matches as Row[]).filter((m) => typeof m.stage === "string" && m.stage.startsWith("Group Stage"));
+    if (!real.length) return [];
+
+    const opponents = new Map<string, Set<string>>();
+    const add = (a: string, b: string) => {
+      if (!opponents.has(a)) opponents.set(a, new Set());
+      opponents.get(a)!.add(b);
+    };
+    for (const m of real) { add(m.team_a, m.team_b); add(m.team_b, m.team_a); }
+    // Clé canonique de poule : équipe + ses adversaires, triées.
+    const groupKeyOf = (team: string) => [team, ...[...(opponents.get(team) ?? [])]].sort().join("|");
+
     type T = { name: string; flag: string; played: number; won: number; draw: number; lost: number; gf: number; ga: number };
     const groups = new Map<string, Map<string, T>>();
-    const ensure = (stage: string, name: string, flag: string | null): T => {
-      if (!groups.has(stage)) groups.set(stage, new Map());
-      const g = groups.get(stage)!;
+    const ensure = (team: string, name: string, flag: string | null): T => {
+      const key = groupKeyOf(team);
+      if (!groups.has(key)) groups.set(key, new Map());
+      const g = groups.get(key)!;
       if (!g.has(name)) g.set(name, { name, flag: flag ?? "", played: 0, won: 0, draw: 0, lost: 0, gf: 0, ga: 0 });
       return g.get(name)!;
     };
 
-    for (const m of matches as { team_a: string; team_b: string; flag_a: string | null; flag_b: string | null; stage: string | null; status: string; score_a: number | null; score_b: number | null }[]) {
-      if (!m.stage) continue;
-      const a = ensure(m.stage, m.team_a, m.flag_a);
-      const b = ensure(m.stage, m.team_b, m.flag_b);
+    for (const m of real) {
+      const a = ensure(m.team_a, m.team_a, m.flag_a);
+      const b = ensure(m.team_b, m.team_b, m.flag_b);
       if (m.status === "finished" && m.score_a != null && m.score_b != null) {
         a.played++; b.played++;
         a.gf += m.score_a; a.ga += m.score_b; b.gf += m.score_b; b.ga += m.score_a;
@@ -65,9 +83,17 @@ export async function getGroupStandings(): Promise<GroupStandingRow[]> {
       }
     }
 
+    // Étiquette de poule = lettre officielle (A–L) ; on tente sur chaque équipe
+    // (certains noms en base ne se résolvent pas — variantes API).
+    const labelled = [...groups.values()].map((teams) => {
+      let letter: string | null = null;
+      for (const t of teams.keys()) { letter = groupLetterForTeam(t); if (letter) break; }
+      return { letter: letter ?? "?", teams };
+    });
+
     const rows: GroupStandingRow[] = [];
-    for (const stage of [...groups.keys()].sort()) {
-      const arr = [...groups.get(stage)!.values()]
+    for (const { letter, teams } of labelled.sort((x, y) => x.letter.localeCompare(y.letter))) {
+      const arr = [...teams.values()]
         .map((t) => ({ ...t, points: t.won * 3 + t.draw, diff: t.gf - t.ga }))
         .sort((x, y) => y.points - x.points || y.diff - x.diff || y.gf - x.gf || x.name.localeCompare(y.name));
       arr.forEach((t, i) =>
@@ -75,7 +101,7 @@ export async function getGroupStandings(): Promise<GroupStandingRow[]> {
           team_name_fr: t.name, team_flag: t.flag, rank: i + 1,
           played: t.played, won: t.won, draw: t.draw, lost: t.lost,
           goals_for: t.gf, goals_against: t.ga, goal_diff: t.diff, points: t.points,
-          group_name: stage,
+          group_name: letter,
         })
       );
     }

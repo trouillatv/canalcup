@@ -74,11 +74,11 @@ export async function getHallOfShame(supabase: SupabaseClient): Promise<HallOfSh
     const teamIds = [...new Set(withError.map((p) => p.team_id).filter(Boolean))] as string[];
 
     const [usersResult, teamsResult] = await Promise.all([
-      supabase.from("users").select("auth_id, display_name, name").in("auth_id", withError.map((p) => p.user_id)),
+      supabase.from("users").select("id, display_name, name").in("id", withError.map((p) => p.user_id)),
       teamIds.length ? supabase.from("teams").select("id, name").in("id", teamIds) : Promise.resolve({ data: [] as { id: string; name: string }[] }),
     ]);
 
-    const nameMap = new Map((usersResult.data ?? []).map((u) => [u.auth_id, userName(u)]));
+    const nameMap = new Map((usersResult.data ?? []).map((u) => [u.id, userName(u)]));
     const teamMap = new Map((teamsResult.data ?? []).map((t) => [t.id, t.name as string]));
 
     return {
@@ -111,13 +111,13 @@ export async function getVisionnaire(supabase: SupabaseClient): Promise<Visionna
 
     const teamIds = [...new Set(preds.map((p) => p.team_id).filter(Boolean))] as string[];
     const [usersResult, teamsResult] = await Promise.all([
-      supabase.from("users").select("auth_id, display_name, name").in("auth_id", preds.map((p) => p.user_id as string)),
+      supabase.from("users").select("id, display_name, name").in("id", preds.map((p) => p.user_id as string)),
       teamIds.length ? supabase.from("teams").select("id, name").in("id", teamIds) : Promise.resolve({ data: [] as { id: string; name: string }[] }),
     ]);
     const teamMap = new Map((teamsResult.data ?? []).map((t) => [t.id, t.name as string]));
 
     const seers = preds.map((p) => {
-      const u = (usersResult.data ?? []).find((u) => u.auth_id === p.user_id);
+      const u = (usersResult.data ?? []).find((u) => u.id === p.user_id);
       return userName(u ?? null) !== "Anonyme"
         ? userName(u ?? null)
         : (p.team_id ? teamMap.get(p.team_id as string) : null) ?? "Anonyme";
@@ -159,7 +159,7 @@ export async function getDrama(supabase: SupabaseClient): Promise<DramaData | nu
     const { data: user } = await supabase
       .from("users")
       .select("display_name, name, team_id")
-      .eq("auth_id", topId)
+      .eq("id", topId)
       .single();
 
     if (!user) return null;
@@ -191,8 +191,8 @@ export async function getFantomes(supabase: SupabaseClient): Promise<string[]> {
       .eq("profile_completed", true)
       .not("team_id", "is", null)
       .or(`last_login_at.is.null,last_login_at.lt.${sevenDaysAgo}`)
-      .order("last_login_at", { ascending: true })
-      .limit(5);
+      .order("last_login_at", { ascending: true });
+    // Tous les fantômes (plus de limite à 5).
 
     return (data ?? []).map(userName).filter(Boolean);
   } catch {
