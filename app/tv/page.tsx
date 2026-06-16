@@ -61,6 +61,7 @@ type Slide =
   | "fantomes"
   | "squads"
   | "notifcta"
+  | "scoregap"
   | "results";
 
 // ─── Goat helper: remplace "Le Goat" par l'image de chèvre ────────────────────
@@ -125,7 +126,7 @@ const SLIDE_DURATION = 12000;
 
 // Slides « thématiquement match » — à ne pas enchaîner (sinon ça donne
 // l'impression de « 3 écrans prochains matchs de suite »).
-const MATCH_THEME = new Set<Slide>(["prematch", "squads", "match", "results", "livematch", "upcoming", "officebet"]);
+const MATCH_THEME = new Set<Slide>(["prematch", "squads", "match", "results", "scoregap", "livematch", "upcoming", "officebet"]);
 function slideTheme(s: Slide): string {
   return MATCH_THEME.has(s) ? "match" : s;
 }
@@ -158,6 +159,7 @@ const BASE_SLIDES: Slide[] = [
   "officebet",     // distribution pronos V/N/D
   "match",         // matchs du jour
   "results",       // résultats + buteurs du jour
+  "scoregap",      // clash : plus gros écart du jour (on chambre le perdant)
   "hallofshame",   // pires pronos du dernier match
   "playerofday",   // meilleur joueur individuel
   "visionnaire",   // score exact trouvé
@@ -2490,6 +2492,102 @@ function SlideTightRace({ race }: { race: TightRace }) {
   );
 }
 
+// ─── Slide: Clash (plus gros écart du jour) ───────────────────────────────────
+
+interface ScoreGap {
+  winner: string;
+  loser: string;
+  winnerFlag?: string;
+  loserFlag?: string;
+  winnerScore: number;
+  loserScore: number;
+  gap: number;
+  stage?: string;
+  jab: string;
+}
+
+function computeScoreGap(matches: Match[]): ScoreGap | null {
+  const start = new Date(); start.setHours(0, 0, 0, 0);
+  const end = new Date(); end.setHours(23, 59, 59, 999);
+  const best = matches
+    .filter((m) => {
+      if (m.status !== "finished") return false;
+      if (m.score_a == null || m.score_b == null) return false;
+      const t = new Date(m.starts_at).getTime();
+      return t >= start.getTime() && t <= end.getTime();
+    })
+    .map((m) => ({
+      m,
+      gap: Math.abs((m.score_a ?? 0) - (m.score_b ?? 0)),
+      goals: (m.score_a ?? 0) + (m.score_b ?? 0),
+    }))
+    // On ne chambre que les vraies corrections (≥ 2 buts d'écart).
+    .filter((x) => x.gap >= 2)
+    .sort((a, b) => b.gap - a.gap || b.goals - a.goals)[0];
+  if (!best) return null;
+  const { m, gap } = best;
+  const aWon = (m.score_a ?? 0) > (m.score_b ?? 0);
+  const jabs = [
+    "On range les crampons, on rentre à la maison.",
+    "Score de tennis. Bravo l'organisation.",
+    "Quelqu'un a pensé à prévenir la défense ?",
+    "Une correction en bonne et due forme.",
+    "Ça, ça va laisser des traces au classement.",
+  ];
+  return {
+    winner: aWon ? m.team_a : m.team_b,
+    loser: aWon ? m.team_b : m.team_a,
+    winnerFlag: aWon ? m.flag_a : m.flag_b,
+    loserFlag: aWon ? m.flag_b : m.flag_a,
+    winnerScore: aWon ? (m.score_a ?? 0) : (m.score_b ?? 0),
+    loserScore: aWon ? (m.score_b ?? 0) : (m.score_a ?? 0),
+    gap,
+    stage: m.stage,
+    jab: jabs[gap % jabs.length],
+  };
+}
+
+function SlideScoreGap({ gap }: { gap: ScoreGap }) {
+  return (
+    <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-20 py-6 sm:py-12 text-center">
+      <p className="text-canal-yellow font-black text-xl sm:text-2xl uppercase tracking-widest mb-2 sm:mb-4">
+        💥 Le Clash du Jour
+      </p>
+      <p className="text-canal-gray-muted text-base sm:text-2xl mb-6 sm:mb-10">
+        Plus gros écart du jour{gap.stage ? ` · ${gap.stage}` : ""}
+      </p>
+
+      <div className="flex items-center justify-center gap-3 sm:gap-10 w-full mb-6 sm:mb-10">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-center gap-2 mb-1 sm:mb-2">
+            <Flag flag={gap.winnerFlag} name={gap.winner} className="h-4 sm:h-7 w-auto rounded-sm shrink-0" emojiClassName="text-lg sm:text-3xl shrink-0" />
+            <span className="text-canal-gray-muted text-xs sm:text-xl uppercase">🏆 Vainqueur</span>
+          </div>
+          <p className="font-black text-xl sm:text-4xl lg:text-5xl text-canal-yellow break-words leading-tight">{gap.winner}</p>
+        </div>
+        <div className="flex flex-col items-center shrink-0">
+          <span className="font-black text-4xl sm:text-7xl lg:text-8xl text-white leading-none tabular-nums">
+            {gap.winnerScore}–{gap.loserScore}
+          </span>
+          <span className="text-red-400 font-black text-base sm:text-2xl mt-1">+{gap.gap}</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-center gap-2 mb-1 sm:mb-2">
+            <Flag flag={gap.loserFlag} name={gap.loser} className="h-4 sm:h-7 w-auto rounded-sm shrink-0 opacity-60" emojiClassName="text-lg sm:text-3xl shrink-0 opacity-60" />
+            <span className="text-canal-gray-muted text-xs sm:text-xl uppercase">😴 Battu</span>
+          </div>
+          <p className="font-black text-xl sm:text-4xl lg:text-5xl text-white/50 break-words leading-tight">{gap.loser}</p>
+        </div>
+      </div>
+
+      <p className="text-white/80 text-base sm:text-2xl italic">{gap.jab}</p>
+      <p className="text-canal-yellow/60 text-sm sm:text-lg mt-6 sm:mt-10 flex items-center justify-center gap-2 italic">
+        <img src="/goat.png" alt="🐐" className="h-[1em] object-contain" /> a tout vu. Et a déjà choisi son camp.
+      </p>
+    </div>
+  );
+}
+
 // ─── Slide: Aujourd'hui (compteurs du jour) ───────────────────────────────────
 
 function SlideStats({ stats }: { stats: { pronos: number; quiz: number; animations: number } }) {
@@ -2883,6 +2981,8 @@ export default function TVPage() {
   const hasFantomes = !!data?.fantomes?.length;
   const tightRace = data ? computeTightRace(data) : null;
   const hasTightRace = !!tightRace;
+  const scoreGap = data ? computeScoreGap(data.matches) : null;
+  const hasScoreGap = !!scoreGap;
   const ts = data?.todayStats;
   const hasTodayStats = !!ts && (ts.pronos > 0 || ts.quiz > 0 || ts.animations > 0);
   const hasNewPlayers = !!data?.newPlayers?.length;
@@ -2942,6 +3042,7 @@ export default function TVPage() {
     if (s === "fantomes") return hasFantomes;
     if (s === "squads") return hasTodayUpcoming;
     if (s === "results") return hasTodayMatches;
+    if (s === "scoregap") return hasScoreGap;
     return true;
   });
 
@@ -3037,6 +3138,7 @@ export default function TVPage() {
             )}
             {slide === "match" && <SlideMatch matches={data.matches} />}
             {slide === "results" && <SlideResults matches={data.matches} matchEvents={data.matchEvents ?? []} />}
+            {slide === "scoregap" && scoreGap && <SlideScoreGap gap={scoreGap} />}
             {slide === "livematch" && <SlideLiveMatch matches={data.matches} />}
             {slide === "standings" && <SlideStandings standings={data.standings ?? []} />}
             {slide === "bracket" && <SlideBracket />}
