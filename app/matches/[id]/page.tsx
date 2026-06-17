@@ -7,7 +7,7 @@ import { useTimezone } from "@/components/timezone/TimezoneProvider";
 import { statLabelFr, eventDetailFr } from "@/lib/football/labels";
 import type { FullMatchDetail, MatchEvent, LineupPlayer, PlayerMatchStat, StandingRow, TeamSide } from "@/services/football/types";
 import { PitchLineup } from "@/components/matches/PitchLineup";
-import { MapPin, User, RefreshCw, Clock, Sparkles, Star } from "lucide-react";
+import { MapPin, User, RefreshCw, Clock, Sparkles, Star, Target } from "lucide-react";
 import { MatchReactions } from "@/components/matches/MatchReactions";
 import { MatchComments } from "@/components/matches/MatchComments";
 import { Countdown } from "@/components/matches/Countdown";
@@ -566,6 +566,7 @@ export default function MatchCenterPage() {
   const [tab, setTab] = useState<Tab>("timeline");
   const [chatUnread, setChatUnread] = useState(0);
   const [notesView, setNotesView] = useState<"pitch" | "list">("pitch");
+  const [myPred, setMyPred] = useState<{ predicted_score_a: number; predicted_score_b: number } | null>(null);
 
   // Onglet initial depuis l'URL (?tab=chat) — utilisé par les notifications push.
   useEffect(() => {
@@ -576,6 +577,18 @@ export default function MatchCenterPage() {
 
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const isLive = detail?.match.status === "live" || detail?.match.status === "halftime";
+
+  // Mon prono sur ce match (affiché sous le score)
+  useEffect(() => {
+    if (!id) return;
+    fetch(`/api/predictions`, { credentials: "same-origin" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const p = (d?.predictions ?? []).find((x: { match_id: string }) => x.match_id === id);
+        setMyPred(p ? { predicted_score_a: p.predicted_score_a, predicted_score_b: p.predicted_score_b } : null);
+      })
+      .catch(() => {});
+  }, [id]);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/matches/${id}`);
@@ -626,10 +639,10 @@ export default function MatchCenterPage() {
   const isGroupMatch = (match.phase === "Groupe" || match.phase === "Group Stage") && !!match.stage;
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
-    { key: "timeline", label: "Timeline", count: events.length || undefined },
+    { key: "timeline", label: "Timeline" },
     { key: "lineups", label: "Compos" },
-    { key: "stats", label: "Stats", count: stats.length || undefined },
-    { key: "notes", label: "Notes", count: playerStats.length || undefined },
+    { key: "stats", label: "Stats" },
+    { key: "notes", label: "Notes" },
     { key: "pronos", label: "Pronos" },
     { key: "chat", label: "Chat", count: chatUnread || undefined },
     ...(isGroupMatch ? [{ key: "standings" as Tab, label: "Groupe" }] : []),
@@ -638,6 +651,16 @@ export default function MatchCenterPage() {
   return (
     <div className="min-h-screen bg-canal-black">
       <ScoreBoard detail={detail} />
+
+      {myPred && (
+        <div className="flex items-center justify-center gap-2 py-2 bg-canal-yellow/5 border-b border-canal-yellow/15">
+          <Target size={12} className="text-canal-yellow" />
+          <span className="text-xs text-canal-gray-muted">Mon prono</span>
+          <span className="text-sm font-black text-white tabular-nums">
+            {myPred.predicted_score_a}–{myPred.predicted_score_b}
+          </span>
+        </div>
+      )}
 
       {isLive && lastUpdate && (
         <div className="flex items-center justify-center gap-1.5 py-1.5 bg-red-950/20 border-b border-red-900/20">
@@ -674,14 +697,10 @@ export default function MatchCenterPage() {
             )}
           >
             {t.label}
-            {t.count ? (
-              t.key === "chat" ? (
-                <span className="ml-1.5 inline-flex min-w-5 h-5 px-1.5 items-center justify-center rounded-full bg-canal-yellow text-canal-black text-[10px] font-black tabular-nums">
-                  {t.count > 99 ? "99+" : t.count}
-                </span>
-              ) : (
-                <span className="ml-1 text-canal-gray-muted">({t.count})</span>
-              )
+            {t.key === "chat" && t.count ? (
+              <span className="ml-1.5 inline-flex min-w-5 h-5 px-1.5 items-center justify-center rounded-full bg-canal-yellow text-canal-black text-[10px] font-black tabular-nums">
+                {t.count > 99 ? "99+" : t.count}
+              </span>
             ) : null}
           </button>
         ))}
