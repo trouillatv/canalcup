@@ -115,6 +115,23 @@ export default async function ProfilePage() {
           approuver/rejeter demandes), et permet de créer/rejoindre. */}
       <MyTeamsPanel />
 
+      {/* Trouver un binôme — annuaire d'inscription (phase de lancement) */}
+      <Link
+        href="/binomes"
+        className="flex items-center justify-between canal-card hover:border-canal-yellow/40 transition-colors group"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-canal-yellow/10 border border-canal-yellow/30 flex items-center justify-center shrink-0">
+            <Users2 size={16} className="text-canal-yellow" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-white">Trouver un binôme</p>
+            <p className="text-xs text-canal-gray-muted">Qui cherche encore un coéquipier ?</p>
+          </div>
+        </div>
+        <span className="text-canal-gray-muted text-sm group-hover:text-canal-yellow transition-colors">→</span>
+      </Link>
+
       {/* Rappel pédagogique */}
       <section className="canal-card border border-canal-yellow/30 bg-canal-yellow/5" aria-labelledby="pronos-heading">
         <h2

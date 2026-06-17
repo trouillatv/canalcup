@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Users2 } from "lucide-react";
 import { getTeams } from "@/lib/data/teams";
 import { TeamCard } from "@/components/teams/TeamCard";
 import { createClient } from "@/lib/supabase/server";
@@ -32,6 +33,12 @@ export default async function TeamsPage() {
             ? `${sorted.length} équipe${sorted.length > 1 ? "s" : ""}. 1 seul gagnant. Beaucoup de drama.`
             : "Les équipes se forment avant le coup d'envoi."}
         </p>
+        <Link
+          href="/binomes"
+          className="inline-flex items-center gap-1.5 mt-2 text-sm font-bold text-canal-yellow hover:underline"
+        >
+          <Users2 size={14} /> Trouver un binôme
+        </Link>
       </div>
 
       {sorted.length === 0 ? (
