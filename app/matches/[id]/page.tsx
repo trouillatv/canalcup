@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { cn, toNCDate, toNCTime } from "@/lib/utils";
 import { useTimezone } from "@/components/timezone/TimezoneProvider";
 import { statLabelFr, eventDetailFr } from "@/lib/football/labels";
+import { toFrench } from "@/lib/football/team-names";
 import type { FullMatchDetail, MatchEvent, LineupPlayer, PlayerMatchStat, StandingRow, TeamSide } from "@/services/football/types";
 import { PitchLineup } from "@/components/matches/PitchLineup";
 import { MapPin, User, RefreshCw, Clock, Sparkles, Star, Target } from "lucide-react";
@@ -79,6 +80,10 @@ function ScoreBoard({ detail }: { detail: FullMatchDetail }) {
   const timeStr = toNCTime(match.starts_at, tz);
   const dateStr = toNCDate(match.starts_at, tz);
   const hasScore = match.score_a !== null && match.score_b !== null;
+  // Normalise le nom (ex. "Czechia" → "République Tchèque") pour l'affichage,
+  // le drapeau (fallback sur le nom) et surtout le lien vers la fiche effectif.
+  const teamAFr = toFrench(match.team_a);
+  const teamBFr = toFrench(match.team_b);
 
   return (
     <div className="bg-gradient-to-b from-canal-gray to-canal-black px-4 pt-6 pb-4">
@@ -91,7 +96,7 @@ function ScoreBoard({ detail }: { detail: FullMatchDetail }) {
       <div className="flex items-center justify-between gap-4 my-4">
         <div className="flex-1 flex flex-col items-center">
           <TeamLink
-            name={match.team_a}
+            name={teamAFr}
             flag={match.flag_a}
             stacked
             flagClassName="text-6xl"
@@ -118,7 +123,7 @@ function ScoreBoard({ detail }: { detail: FullMatchDetail }) {
 
         <div className="flex-1 flex flex-col items-center">
           <TeamLink
-            name={match.team_b}
+            name={teamBFr}
             flag={match.flag_b}
             stacked
             flagClassName="text-6xl"
@@ -632,6 +637,12 @@ export default function MatchCenterPage() {
 
   const { match, events, lineups, stats, playerStats, standings } = detail;
 
+  // Noms normalisés (ex. "Czechia" → "République Tchèque") : affichage, drapeaux
+  // et lien vers la fiche effectif. La base peut contenir un libellé fournisseur
+  // non traduit ; on le corrige ici plutôt que de propager l'erreur.
+  const teamA = toFrench(match.team_a);
+  const teamB = toFrench(match.team_b);
+
   // Match test (amical/démo) = phase "Groupe" SANS stage. Les vrais matchs de
   // poule portent un stage ("Groupe A/B…") ; les matchs à élimination directe
   // ont une autre phase. On masque l'onglet "Groupe" (classement) pour ces
@@ -707,7 +718,7 @@ export default function MatchCenterPage() {
       </div>
 
       <div className="px-4 pb-8 max-w-2xl mx-auto">
-        {tab === "timeline" && <Timeline events={events} teamA={match.team_a} teamB={match.team_b} />}
+        {tab === "timeline" && <Timeline events={events} teamA={teamA} teamB={teamB} />}
         {tab === "lineups" && (
           lineups
             ? <Lineups lineups={lineups} />
@@ -717,7 +728,7 @@ export default function MatchCenterPage() {
                   : "Compositions non disponibles pour ce match."}
               </p>
         )}
-        {tab === "stats" && <Stats stats={stats} teamA={match.team_a} teamB={match.team_b} />}
+        {tab === "stats" && <Stats stats={stats} teamA={teamA} teamB={teamB} />}
         {tab === "notes" && (
           <div className="py-2">
             <div className="flex gap-1 bg-canal-gray rounded-xl p-1 mb-3 w-fit mx-auto">
@@ -736,14 +747,14 @@ export default function MatchCenterPage() {
             </div>
             {notesView === "pitch" ? (
               lineups ? (
-                <PitchLineup lineups={lineups} playerStats={playerStats} events={events} teamA={match.team_a} teamB={match.team_b} />
+                <PitchLineup lineups={lineups} playerStats={playerStats} events={events} teamA={teamA} teamB={teamB} />
               ) : (
                 <p className="text-center text-canal-gray-muted text-sm py-12">
                   Terrain disponible dès la publication des compositions (~40 min avant le coup d&apos;envoi).
                 </p>
               )
             ) : (
-              <TopPlayers players={playerStats} teamA={match.team_a} teamB={match.team_b} />
+              <TopPlayers players={playerStats} teamA={teamA} teamB={teamB} />
             )}
           </div>
         )}
