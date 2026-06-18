@@ -759,7 +759,10 @@ export async function getMatchDetail(matchId: string): Promise<FullMatchDetail |
   const detail: FullMatchDetail = {
     match: {
       id: match.id, external_id: match.external_id, competition: match.competition,
-      phase: match.phase, stage: match.stage, team_a: match.team_a, team_b: match.team_b,
+      phase: match.phase, stage: match.stage,
+      // Normalise un libellé fournisseur non traduit ("Czechia" → "République
+      // Tchèque") pour l'affichage, le drapeau et le lien vers la fiche effectif.
+      team_a: toFrench(match.team_a), team_b: toFrench(match.team_b),
       flag_a: match.flag_a, flag_b: match.flag_b, score_a: match.score_a, score_b: match.score_b,
       status: match.status, minute: match.minute, starts_at: match.starts_at,
       venue: match.venue, referee: match.referee, channel: match.channel,

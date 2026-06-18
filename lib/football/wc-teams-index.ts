@@ -8,6 +8,7 @@
 import index from "@/data/wc-teams-index.json";
 import { WC2026_GROUPS } from "@/lib/football/groups-2026";
 import { getFIFARank } from "@/lib/football/fifa-ranks";
+import { toFrench } from "@/lib/football/team-names";
 
 // Noms utilisés ailleurs (poules officielles, pronostics) ≠ noms docs.
 const NAME_ALIASES: Record<string, string> = {
@@ -30,17 +31,25 @@ function slugify(name: string): string {
 
 const SLUG_SET = new Set((index as { name: string; slug: string }[]).map((t) => t.slug));
 
+// Normalise un nom quelconque (libellé fournisseur, anglais, français) vers le
+// slug canonique : toFrench gère les variantes non traduites ("Czechia" →
+// "République Tchèque"), puis NAME_ALIASES aligne sur le nom des docs.
+function canonicalSlug(name: string): string {
+  const fr = toFrench(name);
+  return slugify(NAME_ALIASES[fr] ?? NAME_ALIASES[name] ?? fr);
+}
+
 /** Lien vers la vue condensée tournoi (/football/teams/[slug]) — matchs, stats, groupe. */
 export function wcTeamHref(name: string): string | null {
   if (!name) return null;
-  const slug = slugify(NAME_ALIASES[name] ?? name);
+  const slug = canonicalSlug(name);
   return SLUG_SET.has(slug) ? `/football/teams/${slug}` : null;
 }
 
 /** Lien vers la fiche effectif (/wc-team/[slug]) — effectif, forme, calendrier. */
 export function wcTeamFicheHref(name: string): string | null {
   if (!name) return null;
-  const slug = slugify(NAME_ALIASES[name] ?? name);
+  const slug = canonicalSlug(name);
   return SLUG_SET.has(slug) ? `/wc-team/${slug}` : null;
 }
 
