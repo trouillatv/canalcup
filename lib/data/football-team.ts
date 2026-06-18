@@ -23,8 +23,8 @@ const NAME_ALIASES: Record<string, string> = {
   "colombia": "colombie",
   "usa": "etats unis",
   "united states": "etats unis",
-  "republique tcheque": "tchecuie",
-  "tcheque": "tchecuie",
+  "republique tcheque": "tchequie",
+  "tcheque": "tchequie",
 };
 
 function resolveAlias(n: string): string {

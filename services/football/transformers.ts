@@ -15,8 +15,9 @@ const FLAGS: Record<string, string> = {
   "République Tchèque": "🇨🇿", "Turquie": "🇹🇷", "Bosnie-Herzégovine": "🇧🇦",
   "Maroc": "🇲🇦", "Sénégal": "🇸🇳", "Nigéria": "🇳🇬", "Côte d'Ivoire": "🇨🇮",
   "Cameroun": "🇨🇲", "Algérie": "🇩🇿", "Tunisie": "🇹🇳", "Égypte": "🇪🇬",
-  "Afrique du Sud": "🇿🇦", "Cap-Vert": "🇨🇻", "Japon": "🇯🇵",
+  "Afrique du Sud": "🇿🇦", "Cap-Vert": "🇨🇻", "RD Congo": "🇨🇩", "Japon": "🇯🇵",
   "Corée du Sud": "🇰🇷", "Arabie Saoudite": "🇸🇦", "Iran": "🇮🇷",
+  "Irak": "🇮🇶", "Jordanie": "🇯🇴",
   "Qatar": "🇶🇦", "Australie": "🇦🇺", "Nouvelle-Zélande": "🇳🇿",
   "Curaçao": "🇨🇼", "Corée du Nord": "🇰🇵",
 };
