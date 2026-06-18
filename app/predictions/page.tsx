@@ -7,6 +7,7 @@ import { Trophy, Star, Zap, ArrowLeft, Target, Clock, Lock, Pencil } from "lucid
 import { scoreLabel } from "@/lib/scoring";
 import { teamFlag } from "@/lib/utils";
 import { toFrench } from "@/lib/football/team-names";
+import { TeamLink } from "@/components/teams/TeamLink";
 import { LocalTime } from "@/components/timezone/LocalTime";
 import { WC_ATTACKERS_2026 as TOP_SCORERS } from "@/lib/football/wc-attackers-2026";
 import { WC_START_MS } from "@/lib/tournament";
@@ -246,7 +247,15 @@ export default function PredictionsPage() {
             {saved.winner && !editing.winner ? (
               <div className="flex items-center gap-3 bg-canal-gray-mid rounded-xl px-4 py-3">
                 <span className="text-xl">🏆</span>
-                <span className="font-black text-white flex-1">{saved.winner}</span>
+                {/* Drapeau + lien cliquable vers la fiche de l'équipe (classement
+                    du groupe + accès à l'effectif), comme partout dans l'app. */}
+                <TeamLink
+                  name={saved.winner}
+                  flag={teamFlag(null, saved.winner)}
+                  flagClassName="text-xl"
+                  className="font-black text-white"
+                  wrapperClassName="flex-1 gap-2"
+                />
                 {!wcStarted && (
                   <button
                     onClick={() => { setWinner(saved.winner!); setEditing((e) => ({ ...e, winner: true })); }}
