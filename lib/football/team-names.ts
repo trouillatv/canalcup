@@ -50,12 +50,10 @@ export const EN_TO_FR: Record<string, string> = {
   "Austria": "Autriche",
   "Bosnia-Herzegovina": "Bosnie-Herzégovine",
   "Bosnia & Herzegovina": "Bosnie-Herzégovine",
-  "Bosnia and Herzegovina": "Bosnie-Herzégovine",
   "Slovenia": "Slovénie",
   "Albania": "Albanie",
   "Greece": "Grèce",
   "Turkey": "Turquie",
-  "Türkiye": "Turquie",
   "Georgia": "Géorgie",
   "Iceland": "Islande",
   // Africa
@@ -74,7 +72,6 @@ export const EN_TO_FR: Record<string, string> = {
   "Cape Verde": "Cap-Vert",
   "Cape Verde Islands": "Cap-Vert",
   "DR Congo": "RD Congo",
-  "Congo DR": "RD Congo",
   "Benin": "Bénin",
   // Asia / Middle-East / Pacific
   "Japan": "Japon",
@@ -88,8 +85,6 @@ export const EN_TO_FR: Record<string, string> = {
   "New Zealand": "Nouvelle-Zélande",
   "Indonesia": "Indonésie",
   "Uzbekistan": "Ouzbékistan",
-  "Iraq": "Irak",
-  "Jordan": "Jordanie",
   // Caribbean / other
   "Curaçao": "Curaçao",
   // Variantes selon le fournisseur (FIFA / API-Football) — mêmes équipes,
