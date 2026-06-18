@@ -15,6 +15,7 @@ import type { FootballLevel } from "@/lib/supabase/types";
 export interface BinomeEntry {
   user_id: string;
   display_name: string;
+  full_name: string | null; // "Prénom Nom" déduit du login prenom.nom (aide à se reconnaître)
   email: string; // jamais affiché — sert au bouton "copier l'email"
   service_id: string | null;
   service_name: string | null;
@@ -34,6 +35,25 @@ export interface BinomeServiceGroup {
 export interface BinomeDirectory {
   entries: BinomeEntry[];
   services: BinomeServiceGroup[];
+}
+
+// Déduit "Prénom Nom" depuis le login (partie locale de l'email : prenom.nom).
+// On n'affiche jamais l'email lui-même — seulement le nom reconstitué, qui aide
+// les gens à se reconnaître entre collègues. Retourne null si le format ne s'y
+// prête pas (pas de point dans la partie locale).
+function nameFromEmail(email: string | null): string | null {
+  if (!email) return null;
+  const local = email.split("@")[0] ?? "";
+  if (!local.includes(".")) return null;
+  const cap = (s: string) =>
+    s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : s;
+  const name = local
+    .split(".")
+    .filter(Boolean)
+    .map((part) => part.split("-").map(cap).join("-")) // gère "anne-marie"
+    .join(" ")
+    .trim();
+  return name || null;
 }
 
 /**
@@ -96,6 +116,7 @@ export async function getBinomeDirectory(): Promise<BinomeDirectory> {
         return {
           user_id: u.id,
           display_name: (u.display_name ?? u.name ?? "—") as string,
+          full_name: nameFromEmail(u.email),
           email: u.email ?? "",
           service_id: u.service_id,
           service_name: null, // rempli plus bas via la map services
@@ -117,7 +138,7 @@ export async function getBinomeDirectory(): Promise<BinomeDirectory> {
       const aLooking = a.team_id ? 1 : 0;
       const bLooking = b.team_id ? 1 : 0;
       if (aLooking !== bLooking) return aLooking - bLooking;
-      return a.display_name.localeCompare(b.display_name, "fr");
+      return (a.full_name ?? a.display_name).localeCompare(b.full_name ?? b.display_name, "fr");
     });
 
     const serviceGroups: BinomeServiceGroup[] = (services ?? [])

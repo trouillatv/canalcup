@@ -130,7 +130,12 @@ export function BinomeDirectory({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return entries.filter((e) => {
-      if (q && !e.display_name.toLowerCase().includes(q)) return false;
+      if (
+        q &&
+        !e.display_name.toLowerCase().includes(q) &&
+        !(e.full_name ?? "").toLowerCase().includes(q)
+      )
+        return false;
       if (serviceId !== "all" && e.service_id !== serviceId) return false;
       if (level !== "all" && e.football_level !== level) return false;
       if (availability === "looking" && e.team_id) return false;
@@ -510,9 +515,14 @@ function PersonCard({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 flex-wrap">
           <p className="text-sm font-bold text-white truncate">
-            {person.display_name}
+            {person.full_name ?? person.display_name}
             {isMe && <span className="text-canal-gray-muted font-normal"> (toi)</span>}
           </p>
+          {person.full_name && person.display_name !== person.full_name && (
+            <span className="text-[11px] text-canal-gray-muted truncate">
+              « {person.display_name} »
+            </span>
+          )}
           {person.is_captain && (
             <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-canal-yellow text-canal-black flex items-center gap-1 shrink-0">
               <Crown size={9} /> Capitaine

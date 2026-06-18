@@ -35,7 +35,6 @@ import {
 
 type Slide =
   | "upcoming"
-  | "match"
   | "livematch"
   | "standings"
   | "bracket"
@@ -62,6 +61,7 @@ type Slide =
   | "squads"
   | "notifcta"
   | "scoregap"
+  | "binomes"
   | "results";
 
 // ─── Goat helper: remplace "Le Goat" par l'image de chèvre ────────────────────
@@ -119,6 +119,9 @@ function getQRContext(slide: Slide, data: TVData | null, origin: string): QRCont
   if (slide === "matinale") {
     return { url: `${origin}/matinale`, message: "☀️ Brief du jour", subtext: "Tout Canal Cup" };
   }
+  if (slide === "binomes") {
+    return { url: `${origin}/binomes`, message: "🤝 Trouver un binôme", subtext: "Qui cherche encore ?" };
+  }
   return { url: `${origin}/`, message: "📱 Canal Cup 2026", subtext: "Scannez & jouez" };
 }
 
@@ -126,7 +129,7 @@ const SLIDE_DURATION = 12000;
 
 // Slides « thématiquement match » — à ne pas enchaîner (sinon ça donne
 // l'impression de « 3 écrans prochains matchs de suite »).
-const MATCH_THEME = new Set<Slide>(["prematch", "squads", "match", "results", "scoregap", "livematch", "upcoming", "officebet"]);
+const MATCH_THEME = new Set<Slide>(["prematch", "squads", "results", "scoregap", "livematch", "upcoming", "officebet"]);
 function slideTheme(s: Slide): string {
   return MATCH_THEME.has(s) ? "match" : s;
 }
@@ -157,7 +160,6 @@ const BASE_SLIDES: Slide[] = [
   "squads",        // effectifs des équipes du jour
   "general",       // classement individuel global
   "officebet",     // distribution pronos V/N/D
-  "match",         // matchs du jour
   "results",       // résultats + buteurs du jour
   "scoregap",      // clash : plus gros écart du jour (on chambre le perdant)
   "hallofshame",   // pires pronos du dernier match
@@ -171,6 +173,7 @@ const BASE_SLIDES: Slide[] = [
   "animations",    // défis RSE
   "quiz",          // champions du quiz
   "topscorerrace", // paris meilleur buteur
+  "binomes",       // annonce : page "Trouver un binôme"
   "services",      // classement services
   "welcome",       // nouveaux joueurs
   "fantomes",      // joueurs inactifs
@@ -249,6 +252,7 @@ interface TVData {
   todayStats?: { pronos: number; quiz: number; animations: number };
   newPlayers?: string[];
   topScorerBets?: { name: string; count: number }[];
+  topScorers?: { name: string; count: number }[];
   heatmap?: TvHeatmapRow[];
   hallofshame?: HallOfShameData | null;
   visionnaire?: VisionnaireData | null;
@@ -712,46 +716,6 @@ function SlideClassement({ leaderboard }: { leaderboard: LeaderboardRow[] }) {
 
 // ─── Slide: Match ────────────────────────────────────────────────────────────
 
-function SlideMatch({ matches }: { matches: Match[] }) {
-  const match = matches.find((m) => m.status === "live") ?? matches.find((m) => m.status === "upcoming");
-  if (!match) return null;
-
-  return (
-    <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-20 py-6 sm:py-12">
-      <p className="text-canal-yellow font-black text-lg sm:text-2xl uppercase tracking-widest mb-4 sm:mb-12 text-center">
-        {match.status === "live" ? "🔴 En Direct" : "⚽ Prochain Match"}
-      </p>
-      <div className="flex items-center gap-2 sm:gap-16 w-full justify-center">
-        <div className="flex flex-col items-center gap-1 sm:gap-4 flex-1 min-w-0">
-          <Flag flag={match.flag_a} name={match.team_a} className="h-9 sm:h-14 lg:h-20 w-auto rounded-sm" emojiClassName="text-4xl sm:text-6xl lg:text-8xl" />
-          <p className="font-black text-sm sm:text-3xl lg:text-4xl text-white text-center break-words leading-tight">{match.team_a}</p>
-        </div>
-        <div className="flex flex-col items-center gap-1 sm:gap-2 shrink-0">
-          {match.status !== "upcoming" ? (
-            <div className="flex gap-1 sm:gap-4 items-center">
-              <span className="font-black text-3xl sm:text-6xl lg:text-8xl text-canal-yellow">{match.score_a ?? 0}</span>
-              <span className="font-black text-2xl sm:text-4xl lg:text-5xl text-canal-gray-muted">–</span>
-              <span className="font-black text-3xl sm:text-6xl lg:text-8xl text-canal-yellow">{match.score_b ?? 0}</span>
-            </div>
-          ) : (
-            <span className="font-black text-2xl sm:text-5xl lg:text-6xl text-canal-gray-muted">VS</span>
-          )}
-          <p className="text-canal-gray-muted text-xs sm:text-xl text-center">
-            {toNCDate(match.starts_at)} — {toNCTime(match.starts_at)} NC
-          </p>
-        </div>
-        <div className="flex flex-col items-center gap-1 sm:gap-4 flex-1 min-w-0">
-          <Flag flag={match.flag_b} name={match.team_b} className="h-9 sm:h-14 lg:h-20 w-auto rounded-sm" emojiClassName="text-4xl sm:text-6xl lg:text-8xl" />
-          <p className="font-black text-sm sm:text-3xl lg:text-4xl text-white text-center break-words leading-tight">{match.team_b}</p>
-        </div>
-      </div>
-      {match.is_match_of_week && (
-        <div className="mt-6 sm:mt-12 canal-badge text-base sm:text-xl px-4 sm:px-6 py-2">⭐ Match de la semaine</div>
-      )}
-    </div>
-  );
-}
-
 // ─── Slide: Résultats du jour ─────────────────────────────────────────────────
 
 function SlideResults({ matches, matchEvents }: { matches: Match[]; matchEvents: MatchEventEntry[] }) {
@@ -1129,9 +1093,20 @@ function SlideAnimations({ challenges }: { challenges: Challenge[] }) {
   const headerLabel = hasLive ? "🔴 Animations en cours" : "🎉 Prochaines animations";
   return (
     <div className="flex flex-col h-full px-4 sm:px-8 lg:px-20 py-6 sm:py-10">
-      <p className="text-canal-yellow font-black text-lg sm:text-2xl lg:text-3xl uppercase tracking-widest mb-4 sm:mb-8 text-center">
+      <p className="text-canal-yellow font-black text-lg sm:text-2xl lg:text-3xl uppercase tracking-widest mb-3 sm:mb-5 text-center">
         {headerLabel}
       </p>
+      {!hasLive && challenges.length > 0 && (
+        <p className="text-center text-white text-base sm:text-2xl lg:text-3xl mb-4 sm:mb-7 max-w-4xl mx-auto leading-snug">
+          {challenges.map((c) => c.title).join(" ? ")} ?{" "}
+          <span className="text-canal-yellow font-black">
+            Sauras-tu relever le défi avec ton binôme&nbsp;?
+          </span>{" "}
+          <span className="text-canal-gray-muted italic">
+            Ou tu comptes juste regarder les autres marquer&nbsp;? 😏
+          </span>
+        </p>
+      )}
       <div className="flex-1 flex flex-col justify-center gap-3 sm:gap-5 max-w-5xl mx-auto w-full">
         {challenges.map((c) => {
           const isLive = c.status === "live";
@@ -2687,19 +2662,76 @@ function SlideWelcome({ players }: { players: string[] }) {
 
 // ─── Slide: Course au meilleur buteur (bureau) ────────────────────────────────
 
-function SlideTopScorerRace({ bets }: { bets: { name: string; count: number }[] }) {
-  if (!bets.length) return null;
+function ScorerColumn({
+  title, subtitle, items, unit, accent,
+}: {
+  title: string;
+  subtitle: string;
+  items: { name: string; count: number }[];
+  unit: (n: number) => string;
+  accent: "yellow" | "white";
+}) {
+  const empty = items.length === 0;
+  const valColor = accent === "yellow" ? "text-canal-yellow" : "text-white";
   return (
-    <RankedList
-      title="🥅 Course au meilleur buteur"
-      subtitle="Qui le bureau voit finir buteur n°1"
-      items={bets.map((b, i) => ({
-        id: `${b.name}-${i}`,
-        name: b.name,
-        value: b.count,
-        valueUnit: b.count > 1 ? "mises" : "mise",
-      }))}
-    />
+    <div className="flex-1 min-w-0 flex flex-col">
+      <p className="text-canal-yellow font-black text-base sm:text-xl lg:text-2xl uppercase tracking-widest">{title}</p>
+      <p className="text-canal-gray-muted text-xs sm:text-base mb-2 sm:mb-3">{subtitle}</p>
+      <div className="h-1 w-24 bg-canal-yellow mb-3 sm:mb-5" />
+      {empty ? (
+        <p className="text-canal-gray-muted text-sm sm:text-xl italic mt-4">Aucun but pour l&apos;instant. Patience…</p>
+      ) : (
+        <div className="space-y-2 sm:space-y-3">
+          {items.map((item, i) => (
+            <div key={`${item.name}-${i}`} className="flex items-center gap-2 sm:gap-4">
+              <span className={`text-lg sm:text-3xl w-7 sm:w-12 shrink-0 text-center font-black ${i > 2 ? "text-canal-gray-muted" : ""}`}>
+                {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}
+              </span>
+              <p className="flex-1 min-w-0 font-black text-base sm:text-2xl lg:text-3xl text-white truncate">{item.name}</p>
+              <div className="text-right shrink-0">
+                <span className={`font-black text-xl sm:text-3xl lg:text-4xl ${valColor}`}>{item.count}</span>
+                <span className="text-canal-gray-muted text-[10px] sm:text-base ml-1">{unit(item.count)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Course au meilleur buteur : ce que le bureau a PARIÉ (bonus_predictions) face
+// aux buteurs RÉELS du tournoi (match_events). Affichées côte à côte.
+function SlideTopScorerRace({
+  bets, scorers,
+}: {
+  bets: { name: string; count: number }[];
+  scorers: { name: string; count: number }[];
+}) {
+  if (!bets.length && !scorers.length) return null;
+  return (
+    <div className="flex flex-col h-full justify-center px-4 sm:px-8 lg:px-16 py-6 sm:py-10">
+      <p className="text-canal-yellow font-black text-xl sm:text-2xl lg:text-3xl uppercase tracking-widest text-center mb-4 sm:mb-8">
+        🥅 Course au meilleur buteur
+      </p>
+      <div className="flex flex-col sm:flex-row gap-6 sm:gap-12 lg:gap-20 max-w-6xl mx-auto w-full">
+        <ScorerColumn
+          title="📊 Le bureau parie"
+          subtitle="Qui finira buteur n°1, selon les pronos"
+          items={bets}
+          unit={(n) => (n > 1 ? "mises" : "mise")}
+          accent="white"
+        />
+        <div className="hidden sm:block w-px bg-canal-gray-light/40 self-stretch" />
+        <ScorerColumn
+          title="⚽ Sur le terrain"
+          subtitle="Les vrais buteurs du tournoi"
+          items={scorers}
+          unit={(n) => (n > 1 ? "buts" : "but")}
+          accent="yellow"
+        />
+      </div>
+    </div>
   );
 }
 
@@ -2936,6 +2968,54 @@ function SlideNotifCTA() {
   );
 }
 
+// ─── Slide: Trouver un binôme (annonce de la page) ───────────────────────────
+// Pousse l'annuaire "Trouver un binôme" pendant la phase de lancement : ceux qui
+// n'ont pas encore d'équipe scannent et trouvent un coéquipier.
+function SlideBinomes({ origin }: { origin: string }) {
+  const url = origin ? `${origin}/binomes` : "";
+  return (
+    <div className="flex flex-col h-full justify-center items-center px-4 sm:px-8 lg:px-24 py-6 sm:py-10 text-center gap-4 sm:gap-8">
+      <span className="text-5xl sm:text-7xl lg:text-8xl">🤝</span>
+
+      <div>
+        <p className="text-canal-yellow font-black text-xs sm:text-sm uppercase tracking-widest mb-2 sm:mb-3">
+          Pas encore d&apos;équipe ?
+        </p>
+        <p className="font-black text-3xl sm:text-5xl lg:text-6xl text-white leading-tight max-w-4xl">
+          Trouvez votre binôme
+        </p>
+      </div>
+
+      <p className="text-canal-gray-muted text-base sm:text-2xl lg:text-3xl italic max-w-3xl leading-snug">
+        Un annuaire pour voir qui cherche encore un coéquipier — et lui proposer une équipe en un clic.
+      </p>
+
+      <div className="flex flex-col items-center gap-2 sm:gap-3 mt-2 sm:mt-4">
+        <p className="text-white/40 text-xs sm:text-base uppercase tracking-widest font-bold">
+          Scannez pour ouvrir
+        </p>
+        <div className="flex items-center gap-3 sm:gap-5 bg-canal-gray-mid/50 border border-canal-yellow/30 rounded-2xl px-5 sm:px-8 py-3 sm:py-4">
+          {url ? (
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=4&data=${encodeURIComponent(url)}`}
+              alt="QR code Trouver un binôme"
+              width={96}
+              height={96}
+              className="rounded-md bg-white p-1 w-16 h-16 sm:w-24 sm:h-24"
+            />
+          ) : (
+            <QrCode size={64} className="text-canal-gray-muted" />
+          )}
+          <div className="text-left">
+            <p className="text-white font-black text-sm sm:text-xl">Trouver un binôme</p>
+            <p className="text-canal-yellow text-xs sm:text-base">/binomes</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function TVPage() {
@@ -3027,7 +3107,7 @@ export default function TVPage() {
   const hasTodayStats = !!ts && (ts.pronos > 0 || ts.quiz > 0 || ts.animations > 0);
   const hasNewPlayers = !!data?.newPlayers?.length;
   const hasTopScorerBets = !!data?.topScorerBets?.length;
-  const hasAnyMatch = !!data?.matches?.some((m) => ["live", "halftime", "upcoming", "finished"].includes(m.status));
+  const hasTopScorers = !!data?.topScorers?.length;
   const hasLiveMatch = !!data?.matches?.some((m) => m.status === "live" || m.status === "halftime");
   const hasTodayUpcoming = (() => {
     if (!data?.matches) return false;
@@ -3059,7 +3139,6 @@ export default function TVPage() {
   const hasQuizData = !!data?.individual?.some((r) => r.quiz > 0);
 
   const filtered = BASE_SLIDES.filter((s) => {
-    if (s === "match") return hasAnyMatch;
     if (s === "livematch") return hasLiveMatch;
     if (s === "animations") return hasChallenges;
     if (s === "general" || s === "playerofday") return hasIndividual;
@@ -3073,7 +3152,7 @@ export default function TVPage() {
     if (s === "fail") return hasFail;
     if (s === "tightrace") return hasTightRace;
     if (s === "welcome") return hasNewPlayers;
-    if (s === "topscorerrace") return hasTopScorerBets;
+    if (s === "topscorerrace") return hasTopScorerBets || hasTopScorers;
     if (s === "revivez") return !!data?.revivezPosts?.length;
     if (s === "matinale") return hasMatinale;
     if (s === "hallofshame") return hasHallOfShame;
@@ -3176,7 +3255,6 @@ export default function TVPage() {
             {slide === "upcoming" && (
               <SlideUpcoming events={data.events ?? []} matches={data.matches} />
             )}
-            {slide === "match" && <SlideMatch matches={data.matches} />}
             {slide === "results" && <SlideResults matches={data.matches} matchEvents={data.matchEvents ?? []} />}
             {slide === "scoregap" && scoreGap && <SlideScoreGap gap={scoreGap} />}
             {slide === "livematch" && <SlideLiveMatch matches={data.matches} />}
@@ -3200,8 +3278,9 @@ export default function TVPage() {
             {slide === "drama" && data.drama && <SlideDrama data={data.drama} />}
             {slide === "fantomes" && data.fantomes && <SlideFantomes players={data.fantomes} />}
             {slide === "welcome" && <SlideWelcome players={data.newPlayers ?? []} />}
-            {slide === "topscorerrace" && <SlideTopScorerRace bets={data.topScorerBets ?? []} />}
+            {slide === "topscorerrace" && <SlideTopScorerRace bets={data.topScorerBets ?? []} scorers={data.topScorers ?? []} />}
             {slide === "notifcta" && <SlideNotifCTA />}
+            {slide === "binomes" && <SlideBinomes origin={origin} />}
           </>
         )}
       </div>

@@ -285,6 +285,32 @@ async function getTopScorerBets(
   }
 }
 
+// Meilleurs buteurs RÉELS du tournoi (match_events, hors csc), top 6, tri desc.
+// Compte les buts marqués (goal + penalty) ; les buts contre son camp (detail
+// "own") ne créditent PAS le joueur, on les ignore.
+async function getTopScorers(
+  supabase: ReturnType<typeof createAdminClient>
+): Promise<{ name: string; count: number }[]> {
+  try {
+    const { data } = await supabase
+      .from("match_events")
+      .select("player_name, type, detail")
+      .in("type", ["goal", "penalty"]);
+    const counts: Record<string, number> = {};
+    for (const e of data ?? []) {
+      if ((e.detail ?? "").toLowerCase().includes("own")) continue; // csc → pas au buteur
+      const v = (e.player_name ?? "").trim();
+      if (v) counts[v] = (counts[v] ?? 0) + 1;
+    }
+    return Object.entries(counts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+  } catch {
+    return [];
+  }
+}
+
 export async function GET() {
   const supabase = createAdminClient();
 
@@ -375,6 +401,9 @@ export async function GET() {
     }
   } catch {}
 
+  // Meilleurs buteurs réels (tournoi entier) — affichés face aux buteurs pariés.
+  const topScorers = await getTopScorers(supabase);
+
   return NextResponse.json({
     matches,
     leaderboard,
@@ -392,6 +421,7 @@ export async function GET() {
     todayStats,
     newPlayers,
     topScorerBets,
+    topScorers,
     heatmap,
     hallofshame,
     visionnaire,

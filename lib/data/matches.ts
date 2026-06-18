@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getAdminEmails } from "@/lib/data/roles";
 import type { Match, PredictionTrend } from "@/lib/supabase/types";
 import { groupLetterForTeam } from "@/lib/football/groups-2026";
 
@@ -116,11 +118,34 @@ export async function getPredictionTrends(): Promise<Record<string, PredictionTr
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("predictions")
-      .select("match_id, prediction_result");
+      .select("match_id, prediction_result, user_id, predicted_score_a, predicted_score_b");
     if (error || !data?.length) return {};
 
+    // Mêmes règles que l'API /api/matches/[id]/predictions-trend pour que les
+    // compteurs concordent : on ignore les pronos incomplets (score null) et on
+    // exclut les organisateurs (admins) — ce ne sont pas des compétiteurs.
+    const rows = data.filter(
+      (row) => row.predicted_score_a != null && row.predicted_score_b != null
+    );
+
+    const userIds = [...new Set(rows.map((r) => r.user_id))];
+    let adminUserIds = new Set<string>();
+    if (userIds.length) {
+      const adminClient = createAdminClient();
+      const [{ data: users }, adminEmails] = await Promise.all([
+        adminClient.from("users").select("id, email").in("id", userIds),
+        getAdminEmails(),
+      ]);
+      adminUserIds = new Set(
+        (users ?? [])
+          .filter((u: { email: string | null }) => u.email && adminEmails.has(u.email.toLowerCase()))
+          .map((u: { id: string }) => u.id)
+      );
+    }
+
     const map: Record<string, { total: number; a: number; draw: number; b: number }> = {};
-    for (const row of data) {
+    for (const row of rows) {
+      if (adminUserIds.has(row.user_id)) continue; // admin → exclu
       if (!map[row.match_id]) map[row.match_id] = { total: 0, a: 0, draw: 0, b: 0 };
       map[row.match_id].total++;
       if (row.prediction_result === "A") map[row.match_id].a++;
