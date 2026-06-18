@@ -81,6 +81,8 @@ export const EN_TO_FR: Record<string, string> = {
   "New Zealand": "Nouvelle-Zélande",
   "Indonesia": "Indonésie",
   "Uzbekistan": "Ouzbékistan",
+  "Iraq": "Irak",
+  "Jordan": "Jordanie",
   // Caribbean / other
   "Curaçao": "Curaçao",
   // Variantes selon le fournisseur (FIFA / API-Football) — mêmes équipes,
@@ -94,14 +96,46 @@ export const EN_TO_FR: Record<string, string> = {
   "Türkiye": "Turquie",
   "Turkiye": "Turquie",
   "Congo DR": "RD Congo",
+  "Congo": "RD Congo",
   "Côte d'Ivoire": "Côte d'Ivoire",
   "Cote d'Ivoire": "Côte d'Ivoire",
+  "Bosnia and Herzegovina": "Bosnie-Herzégovine",
+  "Bosnia": "Bosnie-Herzégovine",
+  "Czech": "République Tchèque",
+  "USA ": "États-Unis",
 };
+
+// Index normalisé (sans casse, accents ni ponctuation) construit depuis TOUTES
+// les clés anglaises ET les valeurs françaises ci-dessus. Permet de reconnaître
+// un nom même mal orthographié par le fournisseur ("czechia", "CZECHIA",
+// "Czech Republic ", "Republique tcheque"…) → renvoie toujours le nom français
+// canonique. C'est le filet de sécurité pour « tous ceux qui ne sont pas
+// reconnus » à l'exact.
+function normTeamKey(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "") // accents
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ""); // espaces, tirets, apostrophes, points…
+}
+
+const NORM_TO_FR = new Map<string, string>();
+for (const [en, fr] of Object.entries(EN_TO_FR)) {
+  // Une valeur française ne doit jamais être écrasée par une variante : on ne
+  // pose la clé normalisée que si elle n'existe pas déjà.
+  if (!NORM_TO_FR.has(normTeamKey(en))) NORM_TO_FR.set(normTeamKey(en), fr);
+  if (!NORM_TO_FR.has(normTeamKey(fr))) NORM_TO_FR.set(normTeamKey(fr), fr);
+}
 
 export function toFrench(englishName: string): string {
   if (!englishName) return englishName;
   const trimmed = englishName.trim();
-  return EN_TO_FR[trimmed] ?? EN_TO_FR[englishName] ?? trimmed;
+  return (
+    EN_TO_FR[trimmed] ??
+    EN_TO_FR[englishName] ??
+    NORM_TO_FR.get(normTeamKey(trimmed)) ??
+    trimmed
+  );
 }
 
 // Reverse: French → English (for matching with TheSportsDB)
