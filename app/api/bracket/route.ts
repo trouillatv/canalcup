@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { toFrench } from "@/lib/football/team-names";
 
 const PHASE_ORDER = ["Groupe", "Huitièmes", "Quarts", "Demis", "3ème place", "Finale"];
 
@@ -19,8 +20,15 @@ export async function GET() {
       .order("points", { ascending: false }),
   ]);
 
+  // Normalise un libellé fournisseur non traduit ("Czechia" → "République
+  // Tchèque") : noms + drapeaux corrects sur le bracket, et rattachement au bon
+  // groupe (les standings utilisent déjà le nom français).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const matches: any[] = matchesRaw ?? [];
+  const matches: any[] = (matchesRaw ?? []).map((m: any) => ({
+    ...m,
+    team_a: toFrench(m.team_a),
+    team_b: toFrench(m.team_b),
+  }));
 
   // Build a team → group-letter map from the standings (the only reliable
   // source for which pool a team is in — match.stage is often a matchday number).

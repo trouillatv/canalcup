@@ -43,6 +43,7 @@ export const EN_TO_FR: Record<string, string> = {
   "Scotland": "Écosse",
   "Wales": "Pays de Galles",
   "Czech Republic": "République Tchèque",
+  "Czechia": "République Tchèque",
   "Slovakia": "Slovaquie",
   "Hungary": "Hongrie",
   "Romania": "Roumanie",
@@ -82,10 +83,25 @@ export const EN_TO_FR: Record<string, string> = {
   "Uzbekistan": "Ouzbékistan",
   // Caribbean / other
   "Curaçao": "Curaçao",
+  // Variantes selon le fournisseur (FIFA / API-Football) — mêmes équipes,
+  // libellés différents. À compléter dès qu'un nom non traduit apparaît.
+  "Korea Republic": "Corée du Sud",
+  "Republic of Korea": "Corée du Sud",
+  "Korea DPR": "Corée du Nord",
+  "North Korea": "Corée du Nord",
+  "IR Iran": "Iran",
+  "Cabo Verde": "Cap-Vert",
+  "Türkiye": "Turquie",
+  "Turkiye": "Turquie",
+  "Congo DR": "RD Congo",
+  "Côte d'Ivoire": "Côte d'Ivoire",
+  "Cote d'Ivoire": "Côte d'Ivoire",
 };
 
 export function toFrench(englishName: string): string {
-  return EN_TO_FR[englishName] ?? englishName;
+  if (!englishName) return englishName;
+  const trimmed = englishName.trim();
+  return EN_TO_FR[trimmed] ?? EN_TO_FR[englishName] ?? trimmed;
 }
 
 // Reverse: French → English (for matching with TheSportsDB)

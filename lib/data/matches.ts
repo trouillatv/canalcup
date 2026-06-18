@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getAdminEmails } from "@/lib/data/roles";
 import type { Match, PredictionTrend } from "@/lib/supabase/types";
 import { groupLetterForTeam } from "@/lib/football/groups-2026";
+import { toFrench } from "@/lib/football/team-names";
 
 export async function getMatches(): Promise<Match[]> {
   try {
@@ -12,7 +13,15 @@ export async function getMatches(): Promise<Match[]> {
       .select("*")
       .order("starts_at", { ascending: true });
     if (error || !data?.length) return [];
-    return data as Match[];
+    // Normalise un éventuel libellé fournisseur non traduit ("Czechia" →
+    // "République Tchèque") une bonne fois côté lecture : tous les consommateurs
+    // (accueil, liste, TV, matinale) affichent alors le bon nom + drapeau et le
+    // lien vers la fiche effectif fonctionne. toFrench est idempotent.
+    return (data as Match[]).map((m) => ({
+      ...m,
+      team_a: toFrench(m.team_a),
+      team_b: toFrench(m.team_b),
+    }));
   } catch {
     return [];
   }

@@ -11,6 +11,7 @@
 
 import Link from "next/link";
 import { wcTeamHref } from "@/lib/football/wc-teams-index";
+import { toFrench } from "@/lib/football/team-names";
 import { cn } from "@/lib/utils";
 import { Flag } from "@/components/shared/Flag";
 
@@ -64,6 +65,10 @@ export function TeamLink({
   /** classes du conteneur (lien ou span) */
   wrapperClassName?: string;
 }) {
+  // Normalise un éventuel libellé fournisseur non traduit ("Czechia" →
+  // "République Tchèque") pour l'affichage, le drapeau (fallback sur le nom)
+  // et le lien vers la fiche. Idempotent pour les noms déjà en français.
+  name = toFrench(name);
   const href = wcTeamHref(name);
 
   // Sans drapeau : comportement historique strict (zéro régression).

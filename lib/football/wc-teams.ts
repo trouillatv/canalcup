@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import rawData from "@/data/wc-teams.json";
+import { toFrench } from "@/lib/football/team-names";
 
 export interface WCPlayer {
   name: string;
@@ -77,7 +78,10 @@ export function getWCTeamBySlug(slug: string): WCTeam | null {
 /** Fiche d'une équipe à partir d'un nom (app ou docs). null si absente. */
 export function getWCTeamByName(name: string): WCTeam | null {
   if (!name) return null;
-  const canonical = NAME_ALIASES[name] ?? name;
+  // Normalise d'abord un éventuel libellé fournisseur non traduit
+  // (ex. "Czechia" → "République Tchèque") avant d'appliquer les alias docs.
+  const fr = toFrench(name);
+  const canonical = NAME_ALIASES[fr] ?? NAME_ALIASES[name] ?? fr;
   return BY_NAME_SLUG.get(slugify(canonical)) ?? null;
 }
 

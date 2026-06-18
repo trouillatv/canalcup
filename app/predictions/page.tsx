@@ -6,6 +6,7 @@ import { Trophy, Star, Zap, ArrowLeft, Target, Clock, Lock, Pencil } from "lucid
 
 import { scoreLabel } from "@/lib/scoring";
 import { teamFlag } from "@/lib/utils";
+import { toFrench } from "@/lib/football/team-names";
 import { LocalTime } from "@/components/timezone/LocalTime";
 import { WC_ATTACKERS_2026 as TOP_SCORERS } from "@/lib/football/wc-attackers-2026";
 import { WC_START_MS } from "@/lib/tournament";
@@ -479,6 +480,10 @@ function PredHistoryRow({ pred }: { pred: PredRow }) {
   const isFinished = m.status === "finished";
   const isLive = m.status === "live";
   const isPending = m.status === "upcoming";
+  // Normalise un éventuel libellé fournisseur non traduit ("Czechia" →
+  // "République Tchèque") pour l'affichage et le drapeau (fallback sur le nom).
+  const teamA = toFrench(m.team_a);
+  const teamB = toFrench(m.team_b);
   const isExact = isFinished && m.score_a === pred.predicted_score_a && m.score_b === pred.predicted_score_b;
   const pts = pred.points_awarded ?? 0;
 
@@ -491,7 +496,7 @@ function PredHistoryRow({ pred }: { pred: PredRow }) {
         <div className="flex-1 min-w-0">
           <p className="text-xs text-canal-gray-muted mb-0.5"><LocalTime date={m.starts_at} variant="date" />{m.phase ? ` · ${m.phase}` : ""}</p>
           <p className="font-bold text-sm text-white truncate">
-            {teamFlag(m.flag_a, m.team_a)} {m.team_a} <span className="text-canal-gray-muted font-normal">vs</span> {m.team_b} {teamFlag(m.flag_b, m.team_b)}
+            {teamFlag(m.flag_a, teamA)} {teamA} <span className="text-canal-gray-muted font-normal">vs</span> {teamB} {teamFlag(m.flag_b, teamB)}
           </p>
         </div>
 
