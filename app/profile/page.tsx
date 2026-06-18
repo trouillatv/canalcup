@@ -17,6 +17,7 @@ import { ProfileEditForm } from "@/components/profile/ProfileEditForm";
 import { NotificationToggle } from "@/components/profile/NotificationToggle";
 import { TimezoneSelector } from "@/components/profile/TimezoneSelector";
 import { MyTeamsPanel } from "@/components/teams/MyTeamsPanel";
+import { ReceivedRequestsCard } from "@/components/binomes/ReceivedRequestsCard";
 import { DEFAULT_TZ } from "@/lib/utils";
 import Link from "next/link";
 import { UserCircle2, Users2, Sparkles, PartyPopper } from "lucide-react";
@@ -107,6 +108,10 @@ export default async function ProfilePage() {
       <NotificationToggle />
 
       <TimezoneSelector currentTz={profile.timezone ?? DEFAULT_TZ} />
+
+      {/* Demandes de binôme reçues — quelqu'un te propose de former une
+          équipe (parcours /binomes). Ne s'affiche que s'il y en a. */}
+      <ReceivedRequestsCard />
 
       {/* Mes équipes Canal Cup (Phase C multi-team) — remplace l'ancienne
           section "Mon équipe" + le TeamCaptainPanel séparé. Un seul panneau

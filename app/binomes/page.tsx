@@ -11,6 +11,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getBinomeDirectory } from "@/lib/data/binomes";
+import { getMyPartnerRequests } from "@/lib/data/binome-requests";
 import { BinomeDirectory } from "@/components/binomes/BinomeDirectory";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +28,9 @@ export default async function BinomesPage() {
     .maybeSingle();
 
   const directory = await getBinomeDirectory();
+  const requests = me
+    ? await getMyPartnerRequests(me.id)
+    : { sent: [], received: [] };
 
   // Statut du viewer pour le bandeau d'actions (sans équipe / déjà en équipe).
   const myEntry = me ? directory.entries.find((e) => e.user_id === me.id) ?? null : null;
@@ -38,6 +42,8 @@ export default async function BinomesPage() {
       myUserId={me?.id ?? null}
       myTeamName={myEntry?.team_name ?? null}
       myInTeam={!!myEntry?.team_id}
+      initialSent={requests.sent}
+      initialReceived={requests.received}
     />
   );
 }
