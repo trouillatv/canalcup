@@ -60,8 +60,10 @@ export function allWCTeamsFiche(): Array<{ name: string; slug: string; group: st
       g.teams.map((t) => {
         const canonical = NAME_ALIASES[t] ?? t;
         const slug = slugify(canonical);
-        const entry = getFIFARank(canonical) ?? getFIFARank(t);
-        return { name: canonical, slug, group: g.letter, fifaRank: entry?.rank ?? null };
+        const entry = getFIFARank(t) ?? getFIFARank(canonical);
+        // Affiche le nom officiel de poule (ex. "République Tchèque"), pas le
+        // libellé docs (ex. "Tchéquie") ; le slug reste dérivé du canonique.
+        return { name: t, slug, group: g.letter, fifaRank: entry?.rank ?? null };
       })
     )
     .filter((t) => SLUG_SET.has(t.slug))

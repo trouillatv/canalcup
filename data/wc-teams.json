@@ -21,7 +21,7 @@
     ],
     "calendar": [
       "11 juin vs Mexique (Stade Azteca)",
-      "18 juin vs Tchéquie (Atlanta)",
+      "18 juin vs République Tchèque (Atlanta)",
       "25 juin vs Corée du Sud (Monterrey)"
     ],
     "players": [
@@ -7330,7 +7330,7 @@
       "Victoire",
       "Victoire"
     ],
-    "nextMatch": "12 juin vs Tchéquie (Guadalajara)",
+    "nextMatch": "12 juin vs République Tchèque (Guadalajara)",
     "recentScores": [
       "Défaite vs Autriche (0-1)",
       "Défaite vs Côte d'Ivoire (0-4)",
@@ -7339,7 +7339,7 @@
       "Victoire vs Paraguay (2-0)"
     ],
     "calendar": [
-      "12 juin vs Tchéquie (Guadalajara)",
+      "12 juin vs République Tchèque (Guadalajara)",
       "18 juin vs Mexique (Guadalajara)",
       "25 juin vs Afrique du Sud (Monterrey)"
     ],
@@ -9615,7 +9615,7 @@
     ],
     "nextMatch": "13 juin vs Oman (Houston)",
     "recentScores": [
-      "Défaite aux TAB vs Tchéquie (2-2)",
+      "Défaite aux TAB vs République Tchèque (2-2)",
       "Victoire vs Serbie (2-0)",
       "Nul vs Suisse (2-2)",
       "Victoire vs Espagne (1-0)",
@@ -16764,7 +16764,7 @@
     "calendar": [
       "11 juin vs Afrique du Sud (Stade Azteca)",
       "18 juin vs Corée du Sud (Guadalajara)",
-      "25 juin vs Tchéquie (Stade Azteca)"
+      "25 juin vs République Tchèque (Stade Azteca)"
     ],
     "players": [
       {
@@ -24098,7 +24098,7 @@
     "api_football_synced_at": "2026-06-11T06:03:02.892Z"
   },
   {
-    "name": "Tchéquie",
+    "name": "République Tchèque",
     "slug": "tchequie",
     "group": "A",
     "squadValue": "~150 M€",

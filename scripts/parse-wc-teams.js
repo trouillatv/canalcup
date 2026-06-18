@@ -116,7 +116,27 @@ for (const team of teams.values()) {
   });
 }
 
-// ── 4. Sortie ──────────────────────────────────────────────────────────────────
+// ── 4. Noms d'affichage canoniques ──────────────────────────────────────────────
+// Le docs source utilise des libellés (ex. "Tchéquie") qui diffèrent du nom
+// officiel employé partout ailleurs dans l'app (poules, matchs, classement FIFA).
+// On aligne le NOM AFFICHÉ — le slug reste dérivé du libellé docs (URLs stables).
+const CANONICAL_NAME = {
+  "Tchéquie": "République Tchèque",
+};
+const canon = (s) =>
+  typeof s === "string"
+    ? Object.entries(CANONICAL_NAME).reduce((acc, [from, to]) => acc.split(from).join(to), s)
+    : s;
+
+for (const team of teams.values()) {
+  team.name = CANONICAL_NAME[team.name] ?? team.name;
+  team.nextMatch = canon(team.nextMatch);
+  team.form = team.form.map(canon);
+  team.recentScores = team.recentScores.map(canon);
+  team.calendar = team.calendar.map(canon);
+}
+
+// ── 5. Sortie ──────────────────────────────────────────────────────────────────
 const data = [...teams.values()].sort((a, b) => a.name.localeCompare(b.name, "fr"));
 
 fs.mkdirSync(path.dirname(OUT), { recursive: true });

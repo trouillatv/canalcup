@@ -66,9 +66,12 @@ function slugify(name: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
-// Index par slug du nom canonique (après application des alias).
+// Index par slug de route. On indexe sur t.slug (et non slugify(t.name)) afin
+// que la résolution reste correcte même quand le nom affiché diffère du slug
+// (ex. nom "République Tchèque" → slug "tchequie"). Les alias renvoient un nom
+// dont le slugify retombe sur ce slug.
 const BY_NAME_SLUG = new Map<string, WCTeam>();
-for (const t of TEAMS) BY_NAME_SLUG.set(slugify(t.name), t);
+for (const t of TEAMS) BY_NAME_SLUG.set(t.slug, t);
 
 /** Fiche d'une équipe à partir de son slug de route. */
 export function getWCTeamBySlug(slug: string): WCTeam | null {
