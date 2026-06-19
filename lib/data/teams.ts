@@ -313,6 +313,32 @@ export interface IndividualRow {
   rank: number;
 }
 
+// Points Casino (joker) par joueur — repliés dans le pilier pronos du
+// classement individuel. Le delta (+15…−10) vit dans joker_plays.metadata,
+// pas dans une table de points → à agréger à part. Résilient : si la table
+// joker_plays n'existe pas encore, renvoie une map vide.
+async function casinoPointsByUser(
+  supabase: ReturnType<typeof createAdminClient>
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  try {
+    const rows = await selectAll<{
+      played_by_user_id: string | null;
+      joker_type: string | null;
+      metadata: Record<string, unknown> | null;
+    }>(supabase, "joker_plays", "played_by_user_id, joker_type, metadata");
+    for (const r of rows ?? []) {
+      if (r.joker_type !== "casino" || !r.played_by_user_id) continue;
+      const delta = Number((r.metadata as { points_delta?: unknown } | null)?.points_delta ?? 0);
+      if (!Number.isFinite(delta) || delta === 0) continue;
+      out.set(r.played_by_user_id, (out.get(r.played_by_user_id) ?? 0) + delta);
+    }
+  } catch {
+    /* table absente → pas de points casino */
+  }
+  return out;
+}
+
 export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
   try {
     // Client ADMIN : le classement agrège les pronos/quiz de TOUS les joueurs.
@@ -329,6 +355,7 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
       preds,
       bonuses,
       quizzes,
+      casinoByUser,
       adminEmails,
     ] = await Promise.all([
       selectAll<{ id: string; display_name: string | null; name: string | null; team_id: string | null; email: string | null }>(supabase, "users", "id, display_name, name, team_id, email"),
@@ -336,6 +363,7 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
       selectAll<{ user_id: string | null; points_awarded: number | null; match: { is_settled: boolean | null } | null }>(supabase, "predictions", "user_id, points_awarded, match:matches(is_settled)"),
       selectAll<{ user_id: string | null; points_awarded: number | null }>(supabase, "bonus_predictions", "user_id, points_awarded"),
       selectAll<{ user_id: string | null; points_awarded: number | null }>(supabase, "quiz_answers", "user_id, points_awarded"),
+      casinoPointsByUser(supabase),
       getAdminEmails(),
     ]);
     if (!users?.length) return [];
@@ -370,6 +398,8 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
       add(quizRaw, r.user_id, r.points_awarded);
       inc(quizCount, r.user_id);
     }
+    // 🎰 Casino : points perso pliés dans le pilier pronostics (jeu de pronos).
+    for (const [uid, pts] of casinoByUser) add(pronosRaw, uid, pts);
 
     type URow = { id: string; display_name: string | null; name: string | null; team_id: string | null; email: string | null };
     const rows: IndividualRow[] = (users as URow[])
