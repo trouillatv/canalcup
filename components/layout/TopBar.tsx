@@ -6,6 +6,7 @@ import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, UserPlus, 
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { isSupportersBetaEmail } from "@/lib/supporters/access";
 import type { User } from "@supabase/supabase-js";
 
 const MENU_ITEMS = [
@@ -22,7 +23,8 @@ const MENU_ITEMS = [
   { href: "/services",   icon: Building2, label: "Services" },
   { href: "/babyfoot",   icon: Gamepad2,  label: "Babyfoot" },
   { href: "/animations", icon: PartyPopper, label: "Animations" },
-  { href: "/supporters", icon: Camera,    label: "Journée Supporters" },
+  // BETA : visible seulement pour les comptes de test + admins (cf. access.ts).
+  { href: "/supporters", icon: Camera,    label: "Journée Supporters", betaSupporters: true },
   { href: "/inbox",      icon: Inbox,     label: "Inbox" },
   { href: "/revivez",    icon: Newspaper, label: "Revivez" },
   { href: "/tv",         icon: Tv,        label: "Mode TV" },
@@ -211,7 +213,7 @@ export function TopBar() {
             <p className="text-xs text-canal-gray-muted font-bold uppercase tracking-wider">Navigation</p>
           </div>
 
-          {MENU_ITEMS.map(({ href, icon: Icon, label }) => {
+          {MENU_ITEMS.filter((item) => !("betaSupporters" in item && item.betaSupporters) || isAdmin || isSupportersBetaEmail(user?.email)).map(({ href, icon: Icon, label }) => {
             const showBadge = href === "/inbox" && unread > 0;
             return (
               <Link
