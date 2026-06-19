@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, UserPlus, Tv, Inbox, Newspaper, Gamepad2, PartyPopper, MessageCircle, Download, Building2, Globe2, CalendarDays, Target, Medal, Bell, BellRing, Sparkles } from "lucide-react";
+import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, UserPlus, Tv, Inbox, Newspaper, Gamepad2, PartyPopper, MessageCircle, Download, Building2, Globe2, CalendarDays, Target, Medal, Bell, BellRing, Sparkles, Camera } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,7 @@ const MENU_ITEMS = [
   { href: "/services",   icon: Building2, label: "Services" },
   { href: "/babyfoot",   icon: Gamepad2,  label: "Babyfoot" },
   { href: "/animations", icon: PartyPopper, label: "Animations" },
+  { href: "/supporters", icon: Camera,    label: "Journée Supporters" },
   { href: "/inbox",      icon: Inbox,     label: "Inbox" },
   { href: "/revivez",    icon: Newspaper, label: "Revivez" },
   { href: "/tv",         icon: Tv,        label: "Mode TV" },
@@ -268,6 +269,7 @@ export function TopBar() {
                 { href: "/admin/users", label: "Utilisateurs" },
                 { href: "/admin/qr", label: "QR Code WC2026" },
                 { href: "/admin/jokers", label: "🃏 Jokers" },
+                { href: "/admin/supporters", label: "📣 Journée Supporters" },
                 // Pas de page admin dédiée Matchs/Équipes — les pages user
                 // sont déjà admin-friendly (édition score via /admin/scoring).
                 { href: "/matches", label: "Matchs (vue user)" },
