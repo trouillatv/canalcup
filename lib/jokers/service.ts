@@ -245,11 +245,27 @@ async function checkTargetGuards(
     }
   }
 
-  if (params.type === "brouillard" && target) {
-    if (await hasActiveEffect(target, "fog")) return "Ce joueur est déjà dans le Brouillard.";
-  }
-  if (params.type === "retard_avion" && target) {
-    if (await hasActiveEffect(target, "flight_delay")) return "Ce joueur a déjà un Retard d'Avion actif.";
+  // 🌫 Brouillard / ✈️ Retard d'Avion : un seul malus de verrouillage à la fois
+  // sur une même cible. Les deux verrouillent la modification des pronos → pas
+  // de cumul (même type OU type croisé). Il faut attendre la fin de l'effet en
+  // cours avant d'en reposer un.
+  if ((params.type === "brouillard" || params.type === "retard_avion") && target) {
+    const fog = await hasActiveEffect(target, "fog");
+    const delay = await hasActiveEffect(target, "flight_delay");
+    const until = (e: JokerEffect) =>
+      e.ends_at
+        ? ` (fin le ${new Date(e.ends_at).toLocaleString("fr-FR", { weekday: "long", hour: "2-digit", minute: "2-digit" })})`
+        : "";
+    if (fog) {
+      return params.type === "brouillard"
+        ? `Ce joueur est déjà dans le Brouillard${until(fog)}. Attends la fin de l'effet.`
+        : `Ce joueur a déjà un malus actif (Brouillard)${until(fog)}. Attends qu'il se termine avant un Retard d'Avion.`;
+    }
+    if (delay) {
+      return params.type === "retard_avion"
+        ? `Ce joueur a déjà un Retard d'Avion actif${until(delay)}. Attends la fin de l'effet.`
+        : `Ce joueur a déjà un malus actif (Retard d'Avion)${until(delay)}. Attends qu'il se termine avant un Brouillard.`;
+    }
   }
   if (params.type === "var" && params.matchId) {
     if (await hasActiveEffect(params.playedByUserId, "var_window", params.matchId)) {
