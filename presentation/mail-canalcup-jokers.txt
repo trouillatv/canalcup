@@ -1,0 +1,60 @@
+Objet : 🎰 Canal Cup 2026 : les Jokers débarquent (préparez vos coups bas... élégants)
+
+Salut la team,
+
+On a regardé le classement. Et soyons francs :
+- il y a celles et ceux qui prennent un peu TROP d'avance (on vous voit, les premier·e·s de la classe 👀),
+- celles et ceux qui sont complètement à la ramasse,
+- et la moitié qui n'a toujours pas posé un orteil dans le game.
+
+Bref, il fallait remettre un peu de désordre. On a donc décidé de pimenter
+tout ça. Voici les JOKERS : de quoi tenter le diable... ou tirer (élégamment)
+dans les pattes de votre voisin de bureau.
+
+────────────────────────────────────────
+🎲 POUR LES TÉMÉRAIRES — à jouer sur toi
+(Risque assumé, pas de retour en arrière)
+────────────────────────────────────────
+
+🎰 CASINO
+Tente ta chance : tirage aléatoire de +15 à −10 points sur ton score perso.
+Effet immédiat, aucun remboursement.
+
+💥 QUITTE OU DOUBLE
+Sur un match : score exact = +20 pts, sinon −5 pts.
+À poser sur un match pas encore commencé. Courage.
+
+🕵️ ESPION
+Pendant 24 h, mate les pronos futurs des autres — 5 matchs max.
+Discret, mais terriblement efficace.
+
+🎥 VAR
+Sur un match : tu peux modifier ton prono jusqu'à la mi-temps.
+Le luxe du droit à l'erreur. Pour toi, et toi seul·e.
+
+────────────────────────────────────────
+😈 POUR LES FOURBES — à jouer sur les autres
+(Publics : on saura qui a fait le coup. Cooldown 10 jours, pas d'acharnement)
+────────────────────────────────────────
+
+🚫 CARTON ROUGE
+Suspends un·e adversaire sur un match futur : 0 point pour la victime.
+Match pas commencé, pas sur soi-même, max 1 carton subi par joueur en phase de groupes.
+
+🌫 BROUILLARD
+Pendant 24 h, la cible ne voit plus les pronos ni les tendances des autres,
+et ne peut plus modifier ceux qu'elle a déjà saisis. Une seule brume active par joueur.
+
+✈️ RETARD D'AVION
+Pendant 24 h, la cible ne peut plus modifier ses pronos déjà posés
+(elle peut encore en créer un manquant). Un seul retard actif par joueur.
+
+────────────────────────────────────────
+
+👉 Découvrir mes Jokers : https://canal-cup.vercel.app/jokers
+
+Pas encore lancé dans le game ? C'est le moment idéal pour rattraper tout le monde.
+
+CANAL CUP 2026
+Un souci ? Réponds directement à ce mail.
+Que le meilleur (ou le plus fourbe) gagne. 😏
