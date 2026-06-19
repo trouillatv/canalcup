@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { background:#000; }
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    width: 640px;
+  }
+  .wrap { width:640px; background:#0d0d0d; }
+  .pad { padding: 0 34px; }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #1a1a00 0%, #000 60%);
+    border-bottom: 4px solid #FFE500;
+    padding: 34px 34px 30px 34px;
+  }
+  .kicker { color:#FFE500; font-size:14px; letter-spacing:3px; font-weight:800; }
+  .h1 { color:#fff; font-size:40px; font-weight:800; line-height:1.1; margin-top:12px; }
+  .sub { color:#bdbdbd; font-size:18px; margin-top:10px; }
+
+  /* Intro */
+  .intro { color:#e6e6e6; font-size:16px; line-height:1.65; padding:28px 34px 8px 34px; }
+  .intro p { margin-bottom:15px; }
+  .intro b { color:#fff; }
+  .y { color:#FFE500; font-weight:800; }
+
+  /* Section titles */
+  .sect { padding: 22px 34px 2px 34px; }
+  .sect-self  .st { color:#FFE500; }
+  .sect-evil  .st { color:#ff5b5b; }
+  .st { font-size:21px; font-weight:800; }
+  .sd { color:#9a9a9a; font-size:14px; margin-top:5px; }
+
+  /* Cards */
+  .card {
+    margin: 14px 34px 0 34px;
+    background:#1c1c1c;
+    border-left:4px solid #FFE500;
+    border-radius:6px;
+    padding:15px 18px;
+  }
+  .card.evil { background:#1d1212; border-left-color:#ff5b5b; }
+  .ct { color:#fff; font-size:18px; font-weight:800; }
+  .cb { color:#dcdcdc; font-size:15px; line-height:1.5; margin-top:5px; }
+  .cb b { color:#FFE500; }
+  .card.evil .cb b { color:#ff9a9a; }
+
+  /* Rules box */
+  .rules {
+    margin: 28px 34px 0 34px;
+    background:#12110a;
+    border:2px solid #FFE500;
+    border-radius:10px;
+    padding:18px 20px;
+  }
+  .rules .rt { color:#FFE500; font-size:19px; font-weight:800; }
+  .rules ul { margin:12px 0 0 0; padding:0; list-style:none; }
+  .rules li { color:#e6e6e6; font-size:15px; line-height:1.5; margin-bottom:10px; padding-left:26px; position:relative; }
+  .rules li:before { content:"•"; color:#FFE500; position:absolute; left:6px; top:-1px; font-size:18px; }
+  .rules li b { color:#fff; }
+  .rules .hl { color:#FFE500; font-weight:800; }
+
+  /* Footer band */
+  .foot {
+    margin-top:30px;
+    background:#000;
+    border-top:4px solid #FFE500;
+    padding:22px 34px;
+  }
+  .foot .ft { color:#fff; font-size:15px; font-weight:800; }
+  .foot .fb { color:#9a9a9a; font-size:14px; margin-top:6px; }
+  .spacer { height:30px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="kicker">CANAL CUP 2026 &nbsp;•&nbsp; SECONDE PARTIE</div>
+    <div class="h1">🎰 Les Jokers débarquent</div>
+    <div class="sub">La Coupe du Monde est lancée… et là, ça va piquer un peu.</div>
+  </div>
+
+  <div class="intro">
+    <p>Salut la team,</p>
+    <p><b>La seconde partie est lancée !</b> Les deuxièmes matchs sont sifflés, la Coupe du Monde est bel et bien partie, et on est <span class="y">ravis</span> de voir l'excitation et l'engouement que tout ça génère. 🔥</p>
+    <p>Mais soyons francs sur le classement : il y a celles et ceux qui prennent déjà un peu <b>trop d'avance</b> (on vous voit, les premier·e·s de la classe 👀), celles et ceux qui sont <b>un peu à la ramasse</b>… et la moitié qui n'a <b>toujours pas vraiment posé un orteil dans le game</b>.</p>
+    <p>Alors pour ne laisser <b>personne à la traîne</b> et donner à tout le monde une <span class="y">chance de revenir dans la course</span>, on a décidé de pimenter tout ça. Voici les <span class="y">Jokers</span> — de quoi tenter le diable… ou tirer (élégamment) dans les pattes de votre voisin de bureau.</p>
+  </div>
+
+  <div class="sect sect-self">
+    <div class="st">🎲 Pour les téméraires — à jouer sur toi</div>
+    <div class="sd">Risque assumé. Pas de retour en arrière, hein.</div>
+  </div>
+
+  <div class="card">
+    <div class="ct">🎰 Casino</div>
+    <div class="cb">Tente ta chance : tirage aléatoire de <b>+15 à −10 points</b> sur ton score perso. Effet immédiat, aucun remboursement.</div>
+  </div>
+  <div class="card">
+    <div class="ct">💥 Quitte ou Double</div>
+    <div class="cb">Sur un match : score exact = <b>+20 pts</b>, sinon <b>−5 pts</b>. À poser sur un match pas encore commencé. Courage.</div>
+  </div>
+  <div class="card">
+    <div class="ct">🕵️ Espion</div>
+    <div class="cb">Pendant <b>24 h</b>, mate les pronos futurs des autres — <b>5 matchs max</b>. Discret, mais terriblement efficace.</div>
+  </div>
+  <div class="card">
+    <div class="ct">🎥 VAR</div>
+    <div class="cb">Sur un match : tu peux <b>modifier ton prono jusqu'à la mi-temps</b>. Le luxe du droit à l'erreur. Pour toi, et toi seul·e.</div>
+  </div>
+
+  <div class="sect sect-evil">
+    <div class="st">😈 Pour les fourbes — à jouer sur les autres</div>
+    <div class="sd">Publics (on saura qui a fait le coup) et limités : cooldown 10 jours. Pas d'acharnement.</div>
+  </div>
+
+  <div class="card evil">
+    <div class="ct">🚫 Carton Rouge</div>
+    <div class="cb">Suspends un·e adversaire sur un match futur : <b>0 point pour la victime</b>. Match pas commencé, pas sur soi-même, max 1 carton subi par joueur en phase de groupes.</div>
+  </div>
+  <div class="card evil">
+    <div class="ct">🌫 Brouillard</div>
+    <div class="cb">Pendant <b>24 h</b>, la cible <b>ne voit plus les pronos ni les tendances des autres</b> et ne peut plus modifier ceux déjà saisis. Une seule brume active par joueur.</div>
+  </div>
+  <div class="card evil">
+    <div class="ct">✈️ Retard d'Avion</div>
+    <div class="cb">Pendant <b>24 h</b>, la cible <b>ne peut plus modifier ses pronos déjà posés</b> (elle peut encore en créer un manquant). Un seul retard actif par joueur.</div>
+  </div>
+
+  <div class="rules">
+    <div class="rt">📜 Les règles du jeu (lis bien, ça compte)</div>
+    <ul>
+      <li><span class="hl">Un seul joker de chaque type pour TOUT le tournoi.</span> Pas de recharge, pas de seconde chance : une fois joué, il est cramé.</li>
+      <li>Donc <b>utilisez-les intelligemment</b> : segmentez, choisissez vos moments… et surtout <b>ne vous précipitez pas</b>. Le bon joker au bon moment vaut de l'or.</li>
+      <li>Les jokers <b>offensifs</b> (Carton Rouge, Brouillard, Retard d'Avion) sont <span class="hl">publics</span> — tout le monde verra qui a fait le coup — et soumis à un <b>cooldown de 10 jours</b> entre deux.</li>
+      <li>Carton Rouge : <b>maximum 1 subi par joueur</b> sur la phase de groupes. On pimente, on n'achève pas.</li>
+      <li>Les jokers personnels touchent <b>ton classement individuel</b>, jamais le score de ton équipe.</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    <div class="ft">👉 Tes Jokers t'attendent (lien juste sous l'image)</div>
+    <div class="fb">Pas encore lancé dans le game ? C'est le moment idéal pour rattraper tout le monde.</div>
+    <div class="fb" style="margin-top:10px;color:#fff;font-weight:800;">CANAL CUP 2026</div>
+    <div class="fb">Un souci ? Réponds directement à ce mail. Que le meilleur (ou le plus fourbe) gagne. 😏</div>
+  </div>
+
+  <div class="spacer"></div>
+</div>
+</body>
+</html>
