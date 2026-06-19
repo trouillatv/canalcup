@@ -1,18 +1,10 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { getCurrentUserRole } from "@/lib/auth/session";
 import { JokersClient } from "@/components/jokers/JokersClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function JokersPage() {
-  // Module Jokers pas encore ouvert au public : réservé aux organisateurs
-  // (event_admin+) le temps du rodage. Les non-admins sont renvoyés à l'accueil.
-  const role = await getCurrentUserRole();
-  const isAdmin = role === "event_admin" || role === "admin" || role === "super_admin";
-  if (!isAdmin) redirect("/");
-
+export default function JokersPage() {
   return (
     <div className="px-4 py-4 space-y-5 max-w-md mx-auto pb-24">
       <div className="flex items-center gap-3">
