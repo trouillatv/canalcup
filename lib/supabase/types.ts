@@ -20,7 +20,7 @@ export type ScoreCategory = "predictions" | "quiz" | "challenges" | "babyfoot" |
 export type ScoreSourceType =
   | "challenge_entry" | "manual_admin" | "quiz_answer"
   | "babyfoot_match" | "prediction" | "vote" | "award";
-export type FeedPostType = "ambiance" | "photo" | "chambrage" | "match" | "babyfoot" | "quiz" | "animation" | "robert";
+export type FeedPostType = "ambiance" | "photo" | "chambrage" | "match" | "babyfoot" | "quiz" | "animation" | "robert" | "joker";
 export type SocialStatus = "visible" | "hidden";
 export type VestiaireChannelType = "general" | "match" | "team" | "animation";
 export type ModerationRiskLevel = "low" | "medium" | "high";
@@ -433,5 +433,43 @@ export interface CanalCupEvent {
   robert_phrase?: string;
   location?: string;
   is_active: boolean;
+  created_at: string;
+}
+
+// ─── Jokers (module chaos) ───────────────────────────────────────────────────
+// Types métier (JokerType, JokerStatus, JokerEffectType) : lib/jokers/catalog.ts
+
+export interface JokerWallet {
+  id: string;
+  user_id: string;
+  joker_type: string;
+  quantity: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JokerPlay {
+  id: string;
+  joker_type: string;
+  played_by_user_id: string;
+  target_user_id?: string | null;
+  match_id?: string | null;
+  status: string;
+  effect_starts_at?: string | null;
+  effect_ends_at?: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface JokerEffect {
+  id: string;
+  joker_play_id: string;
+  affected_user_id: string;
+  match_id?: string | null;
+  effect_type: string;
+  starts_at: string;
+  ends_at?: string | null;
+  status: string;
+  metadata: Record<string, unknown>;
   created_at: string;
 }

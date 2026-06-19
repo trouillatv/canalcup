@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { calculatePoints } from "@/lib/scoring";
+import { isRedCardBlocked, hasVarWindow, modificationLock } from "@/lib/jokers/gating";
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -28,13 +29,43 @@ export async function POST(req: Request) {
   const { data: match } = await supabase.from("matches").select("*").eq("id", match_id).single();
   if (!match) return NextResponse.json({ error: "Match introuvable" }, { status: 404 });
 
-  if (match.status === "live" || match.status === "finished" || match.is_settled) {
-    return NextResponse.json({ error: "Pronostic verrouille : le match a deja commence." }, { status: 400 });
+  // ── Jokers : gating ────────────────────────────────────────────────────────
+  // 🚫 Carton Rouge : suspension totale sur ce match.
+  if (await isRedCardBlocked(profile.id, match_id)) {
+    return NextResponse.json(
+      { error: "🚫 Carton Rouge : vous êtes suspendu pour ce match." },
+      { status: 403 }
+    );
   }
 
-  // Block prediction if match already started
-  if (new Date(match.starts_at) <= new Date()) {
-    return NextResponse.json({ error: "Match déjà commencé" }, { status: 400 });
+  // Prono déjà existant ? (création vs modification — pour Brouillard / Retard)
+  const { data: existingPred } = await supabase
+    .from("predictions")
+    .select("id")
+    .eq("user_id", profile.id)
+    .eq("match_id", match_id)
+    .maybeSingle();
+  const isModification = !!existingPred;
+
+  // 🌫 Brouillard / ✈️ Retard : la MODIFICATION d'un prono existant est bloquée
+  // (la création d'un prono manquant reste autorisée).
+  if (isModification) {
+    const lock = await modificationLock(profile.id);
+    if (lock) return NextResponse.json({ error: lock }, { status: 403 });
+  }
+
+  // 🎥 VAR : fenêtre de modif étendue jusqu'à la mi-temps sur ce match.
+  const varActive = await hasVarWindow(profile.id, match_id);
+  const varModifiable = varActive && (match.status === "upcoming" || match.status === "live") && !match.is_settled;
+
+  if (!varModifiable) {
+    if (match.status === "live" || match.status === "halftime" || match.status === "finished" || match.is_settled) {
+      return NextResponse.json({ error: "Pronostic verrouille : le match a deja commence." }, { status: 400 });
+    }
+    // Block prediction if match already started
+    if (new Date(match.starts_at) <= new Date()) {
+      return NextResponse.json({ error: "Match déjà commencé" }, { status: 400 });
+    }
   }
 
   const scoreA = parseInt(predicted_score_a, 10);

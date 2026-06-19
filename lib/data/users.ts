@@ -41,6 +41,32 @@ export interface ServiceDetailRow {
   footballLevels: { expert: number; amateur: number; ambiance: number };
 }
 
+// Points Casino (joker) par joueur — source perso additionnelle pour les
+// classements. Résilient : si la table joker_plays n'existe pas encore
+// (migration non appliquée), renvoie une map vide sans casser le classement.
+async function getCasinoPointsByUser(
+  supabase: ReturnType<typeof createAdminClient>
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  try {
+    const rows = await selectAll<{
+      played_by_user_id: string | null;
+      joker_type: string | null;
+      status: string | null;
+      metadata: Record<string, unknown> | null;
+    }>(supabase, "joker_plays", "played_by_user_id, joker_type, status, metadata");
+    for (const r of rows ?? []) {
+      if (r.joker_type !== "casino" || !r.played_by_user_id) continue;
+      const delta = Number((r.metadata as { points_delta?: unknown } | null)?.points_delta ?? 0);
+      if (!Number.isFinite(delta) || delta === 0) continue;
+      out.set(r.played_by_user_id, (out.get(r.played_by_user_id) ?? 0) + delta);
+    }
+  } catch {
+    /* table absente → pas de points casino */
+  }
+  return out;
+}
+
 export async function getAllUsersForAdmin(): Promise<AdminUserView[]> {
   const adminClient = createAdminClient();
 
@@ -116,6 +142,7 @@ export async function getServiceLeaderboard(): Promise<ServiceLeaderboardRow[]> 
       bonuses,
       quizzes,
       events,
+      casinoByUser,
       adminEmails,
     ] = await Promise.all([
       selectAll<{ id: string; service_id: string | null; email: string | null }>(supabase, "users", "id, service_id, email"),
@@ -123,6 +150,7 @@ export async function getServiceLeaderboard(): Promise<ServiceLeaderboardRow[]> 
       selectAll<{ user_id: string | null; points_awarded: number | null }>(supabase, "bonus_predictions", "user_id, points_awarded"),
       selectAll<{ user_id: string | null; points_awarded: number | null }>(supabase, "quiz_answers", "user_id, points_awarded"),
       selectAll<{ user_id: string | null; category: string | null; source_type: string | null; raw_points: number | null }>(supabase, "score_events", "user_id, category, source_type, raw_points"),
+      getCasinoPointsByUser(supabase),
       getAdminEmails(),
     ]);
 
@@ -159,6 +187,8 @@ export async function getServiceLeaderboard(): Promise<ServiceLeaderboardRow[]> 
       if (e.source_type === "vote") continue;
       if (e.category && allowed.has(e.category)) add(e.user_id, e.raw_points);
     }
+    // 🎰 Casino : points perso comptés dans le total du service.
+    for (const [uid, pts] of casinoByUser) add(uid, pts);
 
     const rows: ServiceLeaderboardRow[] = (services as SvcRow[])
       .map((s) => {
@@ -263,6 +293,7 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
       preds,
       bonuses,
       quizzes,
+      casinoByUser,
       adminEmails,
     ] = await Promise.all([
       selectAll<{ id: string; display_name: string | null; name: string | null; team_id: string | null; email: string | null }>(supabase, "users", "id, display_name, name, team_id, email"),
@@ -270,6 +301,7 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
       selectAll<{ user_id: string | null; points_awarded: number | null }>(supabase, "predictions", "user_id, points_awarded"),
       selectAll<{ user_id: string | null; points_awarded: number | null }>(supabase, "bonus_predictions", "user_id, points_awarded"),
       selectAll<{ user_id: string | null; points_awarded: number | null }>(supabase, "quiz_answers", "user_id, points_awarded"),
+      getCasinoPointsByUser(supabase),
       getAdminEmails(),
     ]);
     if (!users?.length) return [];
@@ -288,6 +320,8 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
     for (const r of (preds ?? []) as PtRow[]) add(pronosRaw, r.user_id, r.points_awarded);
     for (const r of (bonuses ?? []) as PtRow[]) add(pronosRaw, r.user_id, r.points_awarded);
     for (const r of (quizzes ?? []) as PtRow[]) add(quizRaw, r.user_id, r.points_awarded);
+    // 🎰 Casino : points perso pliés dans le pilier pronostics (jeu de pronos).
+    for (const [uid, pts] of casinoByUser) add(pronosRaw, uid, pts);
 
     type URow = { id: string; display_name: string | null; name: string | null; team_id: string | null; email: string | null };
     const rows: IndividualRow[] = (users as URow[])

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, UserPlus, Tv, Inbox, Newspaper, Gamepad2, PartyPopper, MessageCircle, Download, Building2, Globe2, CalendarDays, Target, Medal, Bell, BellRing } from "lucide-react";
+import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, UserPlus, Tv, Inbox, Newspaper, Gamepad2, PartyPopper, MessageCircle, Download, Building2, Globe2, CalendarDays, Target, Medal, Bell, BellRing, Sparkles } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ const MENU_ITEMS = [
   { href: "/live",       icon: MessageCircle, label: "Canal Cup Live" },
   { href: "/matches",    icon: Calendar,  label: "Matchs & Pronostics" },
   { href: "/predictions", icon: Target,   label: "Mes pronos" },
+  { href: "/jokers",     icon: Sparkles,  label: "Mes Jokers" },
   { href: "/leaderboard", icon: Trophy,   label: "Classement" },
   { href: "/meilleur-11", icon: Medal,    label: "Stats Tournoi" },
   { href: "/teams",      icon: Users,     label: "Équipes" },
@@ -266,6 +267,7 @@ export function TopBar() {
                 { href: "/admin/babyfoot/teams", label: "Babyfoot — équipes" },
                 { href: "/admin/users", label: "Utilisateurs" },
                 { href: "/admin/qr", label: "QR Code WC2026" },
+                { href: "/admin/jokers", label: "🃏 Jokers" },
                 // Pas de page admin dédiée Matchs/Équipes — les pages user
                 // sont déjà admin-friendly (édition score via /admin/scoring).
                 { href: "/matches", label: "Matchs (vue user)" },

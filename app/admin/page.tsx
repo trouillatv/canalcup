@@ -10,7 +10,7 @@ import Link from "next/link";
 import {
   QrCode, Trophy, PartyPopper, Gamepad2, Users,
   Shield, RefreshCw, ArrowRight, Activity, SearchCheck, Image as ImageIcon, MessageSquare,
-  ClipboardList, Bell,
+  ClipboardList, Bell, Sparkles,
 } from "lucide-react";
 
 interface QrCounter {
@@ -38,6 +38,7 @@ const TOOLS: Array<{
   { href: "/admin/user-audit",      label: "Monitoring Users", desc: "Qui est actif, bloqué, qui participe. Sécurité + support + animation.", icon: SearchCheck },
   { href: "/admin/feedback",         label: "Feedback",         desc: "Les retours envoyés par les testeurs via la bulle « Un souci ? ».", icon: MessageSquare },
   { href: "/admin/qr",              label: "QR Code WC2026",  desc: "Imprimer / partager le QR + voir les scans.",                   icon: QrCode },
+  { href: "/admin/jokers",          label: "Jokers",          desc: "Attribuer/retirer des jokers, voir effets actifs, cibles et cartons.", icon: Sparkles },
 ];
 
 function formatTime(iso: string | null): string {

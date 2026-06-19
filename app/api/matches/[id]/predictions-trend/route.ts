@@ -6,8 +6,10 @@
 
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { getAdminEmails } from "@/lib/data/roles";
 import { calculatePoints } from "@/lib/scoring";
+import { isFogged } from "@/lib/jokers/gating";
 import type { Match } from "@/lib/supabase/types";
 
 // Résultat d'un prono contre un score donné — fonctionne EN LIVE (pas de gate
@@ -25,6 +27,24 @@ function liveOutcome(pa: number, pb: number, aa: number | null, ab: number | nul
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = createAdminClient();
+
+  // 🌫 Brouillard : le joueur sous l'effet ne voit plus les pronos/tendances
+  // des autres. On renvoie une charge masquée (mais on n'expose pas l'erreur).
+  try {
+    const authClient = await createClient();
+    const { data: { user } } = await authClient.auth.getUser();
+    if (user) {
+      const { data: me } = await supabase.from("users").select("id").eq("auth_id", user.id).maybeSingle();
+      if (me && (await isFogged(me.id))) {
+        return NextResponse.json(
+          { total: 0, started: false, a: 0, draw: 0, b: 0, exact: null, finished: false, live: false, details: [], fogged: true },
+          { headers: { "Cache-Control": "no-store" } }
+        );
+      }
+    }
+  } catch {
+    /* pas de blocage si la résolution échoue */
+  }
 
   const { data: match } = await supabase
     .from("matches")

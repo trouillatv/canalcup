@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { calculatePoints } from "@/lib/scoring";
 import { generateMatchStory } from "@/services/ai/generators/match-story";
 import { createFlash } from "@/lib/tv/flash";
+import { resolveQuitteOuDoubleForMatch } from "@/lib/jokers/service";
 
 // ─── Settle a single match ────────────────────────────────────────────────────
 
@@ -50,6 +51,18 @@ export async function settleMatch(matchId: string): Promise<{ settled: number; s
   for (const u of updates) {
     await supabase.from("predictions").update({ points_awarded: u.points_awarded }).eq("id", u.id);
   }
+
+  // 💥 Quitte ou Double : écrase les points des joueurs ayant joué ce joker sur
+  // ce match (score exact = +20, sinon −5). Doit passer APRÈS le calcul de base.
+  const exactByUser = new Map<string, boolean>(
+    predictions.map((p) => [
+      p.user_id,
+      p.predicted_score_a === match.score_a && p.predicted_score_b === match.score_b,
+    ])
+  );
+  await resolveQuitteOuDoubleForMatch(supabase, matchId, exactByUser).catch((e) =>
+    console.error(`[settle] quitte_ou_double failed for match=${matchId}`, e)
+  );
 
   // Check perfect streak for each user who had a prediction on this match
   const userIds = [...new Set(predictions.map((p) => p.user_id))];
