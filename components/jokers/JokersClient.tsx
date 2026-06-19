@@ -43,6 +43,7 @@ export function JokersClient() {
   const [targetId, setTargetId] = useState("");
   const [matchId, setMatchId] = useState("");
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [flash, setFlash] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
 
   const load = useCallback(() => {
@@ -60,6 +61,7 @@ export function JokersClient() {
     setOpenType((prev) => (prev === t ? null : t));
     setTargetId("");
     setMatchId("");
+    setConfirming(false);
     setFlash(null);
   };
 
@@ -82,6 +84,7 @@ export function JokersClient() {
       } else {
         setFlash({ kind: "ok", msg: d.publicMessage ?? "Joker joué !" });
         setOpenType(null);
+        setConfirming(false);
         load();
       }
     } finally {
@@ -187,13 +190,39 @@ export function JokersClient() {
                         ))}
                     </select>
                   )}
-                  <button
-                    disabled={busy || (needsTarget && !targetId) || (needsMatch && !matchId)}
-                    onClick={() => play(def)}
-                    className="w-full text-sm font-bold px-3 py-2 rounded-lg bg-purple-600 text-white disabled:opacity-40"
-                  >
-                    {busy ? "…" : `Confirmer ${def.emoji}`}
-                  </button>
+                  {!confirming ? (
+                    <button
+                      disabled={busy || (needsTarget && !targetId) || (needsMatch && !matchId)}
+                      onClick={() => setConfirming(true)}
+                      className="w-full text-sm font-bold px-3 py-2 rounded-lg bg-purple-600 text-white disabled:opacity-40"
+                    >
+                      Jouer {def.emoji}
+                    </button>
+                  ) : (
+                    <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-950/20 p-3">
+                      <p className="text-xs text-amber-200">
+                        ⚠️ Une fois joué, <span className="font-bold">{def.name}</span> est définitivement
+                        consommé : tu n'auras pas d'autre joker de ce type pour le reste du tournoi.
+                        Jouer maintenant&nbsp;?
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          disabled={busy}
+                          onClick={() => play(def)}
+                          className="flex-1 text-sm font-bold px-3 py-2 rounded-lg bg-purple-600 text-white disabled:opacity-40"
+                        >
+                          {busy ? "…" : `Oui, jouer ${def.emoji}`}
+                        </button>
+                        <button
+                          disabled={busy}
+                          onClick={() => setConfirming(false)}
+                          className="flex-1 text-sm font-bold px-3 py-2 rounded-lg bg-canal-gray-light text-white disabled:opacity-40"
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
