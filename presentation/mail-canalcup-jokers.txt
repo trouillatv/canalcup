@@ -71,6 +71,14 @@ Pendant 24 h, la cible ne peut plus modifier ses pronos déjà posés
   score de ton équipe.
 
 ────────────────────────────────────────
+📍 OÙ LES TROUVER ?
+────────────────────────────────────────
+
+- Ouvre le menu (icône ☰ en haut à gauche), puis clique sur
+  ✨ Mes Jokers dans la liste de gauche.
+- Ou passe par ton Profil → carte 🃏 Mes Jokers.
+
+────────────────────────────────────────
 
 👉 Découvrir mes Jokers : https://canal-cup.vercel.app/jokers
 
