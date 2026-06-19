@@ -11,6 +11,7 @@ import {
   type JokerEffectType,
   OFFENSIVE_JOKER_COOLDOWN_DAYS,
   CASINO_OUTCOMES,
+  casinoWeights,
   SPY_MAX_MATCHES,
 } from "@/lib/jokers/catalog";
 import type { JokerEffect, JokerPlay, JokerWallet } from "@/lib/supabase/types";
@@ -212,6 +213,17 @@ function offensiveTypes(): JokerType[] {
   return (Object.values(JOKER_CATALOG).filter((d) => d.offensive).map((d) => d.type));
 }
 
+/** Tirage pondéré : renvoie un item selon ses poids (somme quelconque). */
+function weightedPick<T>(items: T[], weights: number[]): T {
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < items.length; i++) {
+    r -= weights[i];
+    if (r < 0) return items[i];
+  }
+  return items[items.length - 1];
+}
+
 async function checkTargetGuards(
   admin: Admin,
   params: PlayParams,
@@ -297,8 +309,22 @@ async function applyJoker(admin: Admin, params: PlayParams): Promise<PlayResult>
 
   switch (params.type) {
     case "casino": {
-      const delta = CASINO_OUTCOMES[Math.floor(Math.random() * CASINO_OUTCOMES.length)];
+      // Coup de pouce aux derniers : on pondère le tirage selon la position au
+      // classement individuel (lowness 0 = en tête, 1 = dernier). Import lazy
+      // pour éviter tout cycle (teams n'importe pas ce module).
+      let lowness = 0.5;
+      try {
+        const { getIndividualLeaderboard } = await import("@/lib/data/teams");
+        const board = await getIndividualLeaderboard();
+        const meRow = board.find((r) => r.user_id === params.playedByUserId);
+        if (!meRow) lowness = 1; // pas encore classé → traité comme dernier
+        else if (board.length > 1) lowness = (meRow.rank - 1) / (board.length - 1);
+      } catch {
+        /* fallback : pondération neutre (lowness 0.5) */
+      }
+      const delta = weightedPick(CASINO_OUTCOMES, casinoWeights(lowness));
       metadata.points_delta = delta;
+      metadata.casino_lowness = Math.round(lowness * 100) / 100;
       data.points_delta = delta;
       publicMessage =
         delta > 0

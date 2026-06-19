@@ -45,7 +45,7 @@ export const JOKER_CATALOG: Record<JokerType, JokerDef> = {
     type: "casino",
     emoji: "🎰",
     name: "Casino",
-    description: "Tente ta chance : tirage aléatoire de +15 à -10 points.",
+    description: "Tente ta chance : tirage de +15 à −10 points. Plus tu es bas au classement, plus le gros lot est probable.",
     conditions: "Effet immédiat sur ton score perso. Pas de retour en arrière.",
     targeting: "self",
     offensive: false,
@@ -125,8 +125,21 @@ export function isJokerType(v: unknown): v is JokerType {
 // ── Garde-fous anti-acharnement ──────────────────────────────────────────────
 /** Cooldown global sur les jokers OFFENSIFS joués (toutes cibles confondues). */
 export const OFFENSIVE_JOKER_COOLDOWN_DAYS = 10;
-/** Tirage Casino — pondéré sur ces valeurs (équiprobables pour le MVP). */
+/** Tirage Casino — issues possibles (du meilleur au pire). */
 export const CASINO_OUTCOMES = [15, 10, 5, 0, -5, -10];
+// Pondérations selon la position au classement individuel : coup de pouce aux
+// derniers. Index alignés sur CASINO_OUTCOMES. lowness ∈ [0,1] : 0 = en tête de
+// classement, 1 = dernier. Les leaders (lowness→0) risquent plus le malus ; les
+// derniers (lowness→1) ont une bien meilleure chance de gros gain. Au milieu, la
+// moyenne des deux profils → quasi neutre.
+export const CASINO_WEIGHTS_TOP = [3, 7, 15, 20, 25, 30]; // leaders : malus probable
+export const CASINO_WEIGHTS_BOTTOM = [15, 25, 25, 15, 12, 8]; // derniers : gains probables
+
+/** Poids interpolés pour une position donnée (lowness 0 = top, 1 = dernier). */
+export function casinoWeights(lowness: number): number[] {
+  const t = Math.max(0, Math.min(1, lowness));
+  return CASINO_OUTCOMES.map((_, i) => CASINO_WEIGHTS_TOP[i] * (1 - t) + CASINO_WEIGHTS_BOTTOM[i] * t);
+}
 /** Quitte ou Double — barème. */
 export const QUITTE_OU_DOUBLE_WIN = 20;
 export const QUITTE_OU_DOUBLE_LOSS = -5;
