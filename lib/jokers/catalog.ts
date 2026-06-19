@@ -7,6 +7,7 @@
 export type JokerType =
   | "casino"
   | "quitte_ou_double"
+  | "kamikaze"
   | "carton_rouge"
   | "brouillard"
   | "espion"
@@ -45,7 +46,7 @@ export const JOKER_CATALOG: Record<JokerType, JokerDef> = {
     type: "casino",
     emoji: "🎰",
     name: "Casino",
-    description: "Tente ta chance : tirage de +15 à −10 points. Plus tu es bas au classement, plus le gros lot est probable.",
+    description: "Tente ta chance : tirage de +40 à −25 points. Plus tu es bas au classement, plus le gros lot est probable.",
     conditions: "Effet immédiat sur ton score perso. Pas de retour en arrière.",
     targeting: "self",
     offensive: false,
@@ -56,6 +57,15 @@ export const JOKER_CATALOG: Record<JokerType, JokerDef> = {
     name: "Quitte ou Double",
     description: "Sur un match : score exact = +20 pts, sinon −5 pts.",
     conditions: "À jouer sur un match non commencé. Résolu à la fin du match.",
+    targeting: "self_match",
+    offensive: false,
+  },
+  kamikaze: {
+    type: "kamikaze",
+    emoji: "💣",
+    name: "Kamikaze",
+    description: "Sur un match : score exact = +30 pts, bon résultat = 0 pt, raté = −15 pts. Tu mets ta vie dessus.",
+    conditions: "À jouer sur un match non commencé où tu as déjà pronostiqué. Résolu à la fin du match. 1 seul par joueur.",
     targeting: "self_match",
     offensive: false,
   },
@@ -125,15 +135,16 @@ export function isJokerType(v: unknown): v is JokerType {
 // ── Garde-fous anti-acharnement ──────────────────────────────────────────────
 /** Cooldown global sur les jokers OFFENSIFS joués (toutes cibles confondues). */
 export const OFFENSIVE_JOKER_COOLDOWN_DAYS = 10;
-/** Tirage Casino — issues possibles (du meilleur au pire). */
-export const CASINO_OUTCOMES = [15, 10, 5, 0, -5, -10];
+// Casino v2 — issues possibles (du meilleur au pire), plus gros écarts pour
+// peser sur un classement serré (gros lot +40, grosse perte −25).
+export const CASINO_OUTCOMES = [40, 25, 10, 0, -10, -25];
 // Pondérations selon la position au classement individuel : coup de pouce aux
 // derniers. Index alignés sur CASINO_OUTCOMES. lowness ∈ [0,1] : 0 = en tête de
-// classement, 1 = dernier. Les leaders (lowness→0) risquent plus le malus ; les
-// derniers (lowness→1) ont une bien meilleure chance de gros gain. Au milieu, la
-// moyenne des deux profils → quasi neutre.
-export const CASINO_WEIGHTS_TOP = [3, 7, 15, 20, 25, 30]; // leaders : malus probable
-export const CASINO_WEIGHTS_BOTTOM = [15, 25, 25, 15, 12, 8]; // derniers : gains probables
+// classement, 1 = dernier. La MOYENNE des deux profils = la grille de référence
+// [5,15,25,20,25,10] (EV ≈ +3,25). Les leaders (lowness→0) risquent surtout le
+// malus ; les derniers (lowness→1) ont une bien meilleure chance du gros lot.
+export const CASINO_WEIGHTS_TOP = [2, 8, 25, 20, 30, 15]; // leaders : malus probable (EV ≈ −1,45)
+export const CASINO_WEIGHTS_BOTTOM = [8, 22, 25, 20, 20, 5]; // derniers : gains probables (EV ≈ +7,95)
 
 /** Poids interpolés pour une position donnée (lowness 0 = top, 1 = dernier). */
 export function casinoWeights(lowness: number): number[] {
@@ -143,5 +154,9 @@ export function casinoWeights(lowness: number): number[] {
 /** Quitte ou Double — barème. */
 export const QUITTE_OU_DOUBLE_WIN = 20;
 export const QUITTE_OU_DOUBLE_LOSS = -5;
+/** Kamikaze — barème (score exact / bon résultat / raté). */
+export const KAMIKAZE_EXACT = 30;
+export const KAMIKAZE_RESULT = 0;
+export const KAMIKAZE_WRONG = -15;
 /** Espion — nombre max de matchs consultables pendant l'effet. */
 export const SPY_MAX_MATCHES = 5;

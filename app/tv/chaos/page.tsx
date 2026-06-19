@@ -24,6 +24,14 @@ function playLine(p: PlayRow): string {
     }
     case "quitte_ou_double":
       return `${emoji} ${p.playerName} joue Quitte ou Double${p.matchLabel ? ` sur ${p.matchLabel}` : ""}`;
+    case "kamikaze": {
+      const tier = (p.metadata as { tier?: string })?.tier;
+      const pts = (p.metadata as { points?: number })?.points;
+      if (tier === "exact") return `${emoji}🎯 ${p.playerName} a fait EXPLOSER le Kamikaze : +${pts} pts !`;
+      if (tier === "wrong") return `${emoji}💀 ${p.playerName} s'est crashé au Kamikaze : ${pts} pts`;
+      if (tier === "result") return `${emoji} ${p.playerName} a survécu au Kamikaze : 0 pt`;
+      return `${emoji} ${p.playerName} a activé le Kamikaze${p.matchLabel ? ` sur ${p.matchLabel}` : ""} — score exact ou rien`;
+    }
     case "carton_rouge":
       return `${emoji} ${p.playerName} a sorti le Carton Rouge sur ${p.targetName}${p.matchLabel ? ` (${p.matchLabel})` : ""}`;
     case "brouillard":

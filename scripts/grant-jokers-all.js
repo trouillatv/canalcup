@@ -40,6 +40,7 @@ if (!URL || !SERVICE) {
 const JOKER_TYPES = [
   "casino",
   "quitte_ou_double",
+  "kamikaze",
   "carton_rouge",
   "brouillard",
   "espion",

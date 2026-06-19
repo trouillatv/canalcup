@@ -187,11 +187,24 @@ export async function playJoker(params: PlayParams): Promise<PlayResult> {
     match = m;
     const started = m.status !== "upcoming" || new Date(m.starts_at) <= new Date();
 
-    if (params.type === "carton_rouge" || params.type === "quitte_ou_double") {
+    if (params.type === "carton_rouge" || params.type === "quitte_ou_double" || params.type === "kamikaze") {
       if (started) return { ok: false, error: "Match déjà commencé : trop tard." };
     }
     if (params.type === "var") {
       if (m.status === "finished") return { ok: false, error: "Match terminé : la VAR ne peut plus rien." };
+    }
+    // 💣 Kamikaze : il faut un pronostic existant sur ce match (sinon rien à
+    // résoudre — on évite le piège du −15 sans prono).
+    if (params.type === "kamikaze") {
+      const { data: pred } = await admin
+        .from("predictions")
+        .select("id")
+        .eq("user_id", params.playedByUserId)
+        .eq("match_id", params.matchId)
+        .maybeSingle();
+      if (!pred) {
+        return { ok: false, error: "Fais d'abord ton pronostic sur ce match avant de jouer le Kamikaze." };
+      }
     }
   }
 
@@ -327,11 +340,15 @@ async function applyJoker(admin: Admin, params: PlayParams): Promise<PlayResult>
       metadata.casino_lowness = Math.round(lowness * 100) / 100;
       data.points_delta = delta;
       publicMessage =
-        delta > 0
-          ? `🎰 ${playerName} a tenté Casino : +${delta} pts. La maison perd parfois.`
-          : delta === 0
-            ? `🎰 ${playerName} a tenté Casino : 0 pt. Plus de peur que de mal.`
-            : `🎰 ${playerName} a tenté Casino : ${delta} pts. Robert recommande d'éviter les machines à sous.`;
+        delta >= 40
+          ? `🎰💰 JACKPOT ! ${playerName} rafle +${delta} pts au Casino. Une légende est née.`
+          : delta > 0
+            ? `🎰 ${playerName} a tenté Casino : +${delta} pts. La maison perd parfois.`
+            : delta === 0
+              ? `🎰 ${playerName} a tenté Casino : 0 pt. Plus de peur que de mal.`
+              : delta <= -25
+                ? `🎰💀 RUINÉ ! ${playerName} explose au Casino : ${delta} pts. Détruit publiquement.`
+                : `🎰 ${playerName} a tenté Casino : ${delta} pts. Robert recommande d'éviter les machines à sous.`;
       break;
     }
     case "quitte_ou_double": {
@@ -339,6 +356,13 @@ async function applyJoker(admin: Admin, params: PlayParams): Promise<PlayResult>
       playStatus = "active";
       metadata.match_id = params.matchId;
       publicMessage = `💥 ${playerName} joue Quitte ou Double sur un match. Score exact ou rien.`;
+      break;
+    }
+    case "kamikaze": {
+      // Résolu au settlement (services/scoring/settle.ts). Play actif jusque-là.
+      playStatus = "active";
+      metadata.match_id = params.matchId;
+      publicMessage = `💣 ${playerName} active le Kamikaze sur un match — score exact obligatoire pour exploser le classement.`;
       break;
     }
     case "carton_rouge": {
@@ -499,5 +523,64 @@ export async function resolveQuitteOuDoubleForMatch(
       .from("joker_plays")
       .update({ status: "consumed", metadata: { resolved: true, points: override, exact: isExact } })
       .eq("id", play.id);
+  }
+}
+
+// ── Kamikaze : résolution au settlement d'un match ───────────────────────────
+// Score exact = +30, bon résultat seulement = 0, raté = −15. Écrase les points
+// du prono concerné (comme Quitte ou Double) et poste le résultat dans le feed.
+export async function resolveKamikazeForMatch(
+  admin: Admin,
+  matchId: string,
+  scoreA: number,
+  scoreB: number
+): Promise<void> {
+  const { data: plays } = await admin
+    .from("joker_plays")
+    .select("id, played_by_user_id")
+    .eq("joker_type", "kamikaze")
+    .eq("match_id", matchId)
+    .eq("status", "active");
+  if (!plays?.length) return;
+
+  const { KAMIKAZE_EXACT, KAMIKAZE_RESULT, KAMIKAZE_WRONG } = await import("@/lib/jokers/catalog");
+  const sign = (a: number, b: number) => (a > b ? 1 : a < b ? -1 : 0);
+  const actualSign = sign(scoreA, scoreB);
+
+  for (const play of plays) {
+    const { data: pred } = await admin
+      .from("predictions")
+      .select("id, predicted_score_a, predicted_score_b")
+      .eq("user_id", play.played_by_user_id)
+      .eq("match_id", matchId)
+      .maybeSingle();
+
+    let tier: "exact" | "result" | "wrong" | "no_pred";
+    let override: number | null = null;
+    if (!pred || pred.predicted_score_a == null || pred.predicted_score_b == null) {
+      tier = "no_pred"; // pas de prono valide → consommé sans note ni pénalité
+    } else {
+      const exact = pred.predicted_score_a === scoreA && pred.predicted_score_b === scoreB;
+      const goodResult = sign(pred.predicted_score_a, pred.predicted_score_b) === actualSign;
+      override = exact ? KAMIKAZE_EXACT : goodResult ? KAMIKAZE_RESULT : KAMIKAZE_WRONG;
+      tier = exact ? "exact" : goodResult ? "result" : "wrong";
+      await admin.from("predictions").update({ points_awarded: override }).eq("id", pred.id);
+    }
+
+    await admin
+      .from("joker_plays")
+      .update({ status: "consumed", metadata: { resolved: true, points: override, tier } })
+      .eq("id", play.id);
+
+    const name = await displayName(admin, play.played_by_user_id);
+    const msg =
+      tier === "exact"
+        ? `💣🎯 ${name} a fait EXPLOSER le Kamikaze : score exact, +${KAMIKAZE_EXACT} pts !`
+        : tier === "result"
+          ? `💣 ${name} a survécu au Kamikaze (bon résultat, score non exact) : 0 pt.`
+          : tier === "wrong"
+            ? `💣💀 ${name} s'est crashé au Kamikaze : ${KAMIKAZE_WRONG} pts.`
+            : `💣 ${name} avait un Kamikaze sans pronostic valide : sans effet.`;
+    await postJokerFeed(admin, msg, play.id, play.played_by_user_id, name);
   }
 }

@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { calculatePoints } from "@/lib/scoring";
 import { generateMatchStory } from "@/services/ai/generators/match-story";
 import { createFlash } from "@/lib/tv/flash";
-import { resolveQuitteOuDoubleForMatch } from "@/lib/jokers/service";
+import { resolveQuitteOuDoubleForMatch, resolveKamikazeForMatch } from "@/lib/jokers/service";
 
 // ─── Settle a single match ────────────────────────────────────────────────────
 
@@ -62,6 +62,12 @@ export async function settleMatch(matchId: string): Promise<{ settled: number; s
   );
   await resolveQuitteOuDoubleForMatch(supabase, matchId, exactByUser).catch((e) =>
     console.error(`[settle] quitte_ou_double failed for match=${matchId}`, e)
+  );
+
+  // 💣 Kamikaze : score exact = +30, bon résultat = 0, raté = −15. Comme QouD,
+  // écrase les points du prono concerné — donc APRÈS le calcul de base.
+  await resolveKamikazeForMatch(supabase, matchId, match.score_a!, match.score_b!).catch((e) =>
+    console.error(`[settle] kamikaze failed for match=${matchId}`, e)
   );
 
   // Check perfect streak for each user who had a prediction on this match
