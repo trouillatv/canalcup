@@ -14,6 +14,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendPushToUser } from "@/lib/push";
 
 // Même format que /api/teams/create : 3 lettres + 3 chiffres, sans ambiguïté.
 const LETTERS = "ABCDEFGHJKMNPQRSTUVWXYZ";
@@ -209,6 +210,23 @@ export async function POST(req: Request) {
         `target_user_id.eq.${targetId}`,
       ].join(",")
     );
+
+  // Notif push au demandeur : sa demande est acceptée, l'équipe est créée.
+  try {
+    const { data: reqAuth } = await admin
+      .from("users")
+      .select("auth_id")
+      .eq("id", requesterId)
+      .maybeSingle();
+    const accepterName = firstName(tgtP?.display_name ?? null, tgtP?.name ?? null);
+    if (reqAuth?.auth_id) {
+      await sendPushToUser(reqAuth.auth_id, {
+        title: "✅ Binôme accepté !",
+        body: `${accepterName} a accepté : votre équipe « ${team.name} » est créée.`,
+        url: "/profile",
+      });
+    }
+  } catch { /* best-effort */ }
 
   return NextResponse.json({
     ok: true,

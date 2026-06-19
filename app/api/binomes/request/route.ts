@@ -11,6 +11,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendPushToUser } from "@/lib/push";
 
 async function isInTeam(
   admin: ReturnType<typeof createAdminClient>,
@@ -110,6 +111,23 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  // Notif push à la cible pour qu'elle puisse accepter (best-effort, ne bloque
+  // jamais la réponse).
+  try {
+    const [{ data: tgtAuth }, { data: meProfile }] = await Promise.all([
+      admin.from("users").select("auth_id").eq("id", targetUserId).maybeSingle(),
+      admin.from("users").select("display_name, name").eq("id", me.id).maybeSingle(),
+    ]);
+    const requesterName = meProfile?.display_name?.trim() || meProfile?.name?.trim() || "Un collègue";
+    if (tgtAuth?.auth_id) {
+      await sendPushToUser(tgtAuth.auth_id, {
+        title: "🤝 Demande de binôme",
+        body: `${requesterName} te propose de former une équipe Canal Cup. Accepte pour créer votre équipe !`,
+        url: "/binomes",
+      });
+    }
+  } catch { /* best-effort */ }
 
   return NextResponse.json({
     request,

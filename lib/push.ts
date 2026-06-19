@@ -24,6 +24,43 @@ export interface PushPayload {
 
 type SubRow = { user_id: string; subscription: webpush.PushSubscription; endpoint: string };
 
+// Envoie une notif à UN utilisateur (toutes ses souscriptions). `authId` =
+// auth.users.id (= push_subscriptions.user_id). Nettoie les souscriptions
+// expirées (410). No-op si VAPID non configuré ou aucun abonnement.
+export async function sendPushToUser(
+  authId: string,
+  payload: PushPayload
+): Promise<{ sent: number; failed: number }> {
+  if (!authId || !configureWebPush()) return { sent: 0, failed: 0 };
+
+  const supabase = createAdminClient();
+  const { data: subs } = await supabase
+    .from("push_subscriptions")
+    .select("user_id, subscription, endpoint")
+    .eq("user_id", authId);
+  if (!subs?.length) return { sent: 0, failed: 0 };
+
+  const json = JSON.stringify(payload);
+  const results = await Promise.allSettled(
+    (subs as SubRow[]).map((s) => webpush.sendNotification(s.subscription, json))
+  );
+  const sent = results.filter((r) => r.status === "fulfilled").length;
+
+  const expired = results
+    .map((r, i) => ({ r, sub: (subs as SubRow[])[i] }))
+    .filter(
+      ({ r }) =>
+        r.status === "rejected" &&
+        (r as PromiseRejectedResult).reason?.statusCode === 410
+    )
+    .map(({ sub }) => sub.endpoint);
+  if (expired.length) {
+    await supabase.from("push_subscriptions").delete().in("endpoint", expired);
+  }
+
+  return { sent, failed: results.length - sent };
+}
+
 // Envoie une notif à tous les abonnés push, en excluant éventuellement
 // certains auth_id (ex. l'auteur d'un commentaire). Nettoie au passage les
 // souscriptions expirées (410 Gone). No-op si VAPID non configuré.
