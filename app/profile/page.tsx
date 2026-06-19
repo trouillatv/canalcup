@@ -13,6 +13,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserRole } from "@/lib/auth/session";
 import { ProfileEditForm } from "@/components/profile/ProfileEditForm";
 import { NotificationToggle } from "@/components/profile/NotificationToggle";
 import { TimezoneSelector } from "@/components/profile/TimezoneSelector";
@@ -46,6 +47,11 @@ export default async function ProfilePage() {
     throw new Error(`Lecture profil KO : ${profErr.message}`);
   }
   if (!profile) redirect("/onboarding");
+
+  // Jokers pas encore ouverts au public : la carte n'apparaît que pour les
+  // organisateurs (event_admin+), comme l'entrée de menu et la page /jokers.
+  const role = await getCurrentUserRole();
+  const isAdmin = role === "event_admin" || role === "admin" || role === "super_admin";
 
   const { data: services } = await supabase
     .from("services")
@@ -137,22 +143,24 @@ export default async function ProfilePage() {
         <span className="text-canal-gray-muted text-sm group-hover:text-canal-yellow transition-colors">→</span>
       </Link>
 
-      {/* Mes Jokers — module chaos */}
-      <Link
-        href="/jokers"
-        className="flex items-center justify-between canal-card hover:border-purple-500/50 transition-colors group"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center shrink-0">
-            <span className="text-base">🃏</span>
+      {/* Mes Jokers — module chaos (pas encore public : admins seulement) */}
+      {isAdmin && (
+        <Link
+          href="/jokers"
+          className="flex items-center justify-between canal-card hover:border-purple-500/50 transition-colors group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center shrink-0">
+              <span className="text-base">🃏</span>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white">Mes Jokers</p>
+              <p className="text-xs text-canal-gray-muted">Casino, Carton Rouge, Brouillard… à jouer avec malice</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-bold text-white">Mes Jokers</p>
-            <p className="text-xs text-canal-gray-muted">Casino, Carton Rouge, Brouillard… à jouer avec malice</p>
-          </div>
-        </div>
-        <span className="text-canal-gray-muted text-sm group-hover:text-purple-400 transition-colors">→</span>
-      </Link>
+          <span className="text-canal-gray-muted text-sm group-hover:text-purple-400 transition-colors">→</span>
+        </Link>
+      )}
 
       {/* Rappel pédagogique */}
       <section className="canal-card border border-canal-yellow/30 bg-canal-yellow/5" aria-labelledby="pronos-heading">

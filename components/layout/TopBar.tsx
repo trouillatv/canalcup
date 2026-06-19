@@ -12,7 +12,8 @@ const MENU_ITEMS = [
   { href: "/live",       icon: MessageCircle, label: "Canal Cup Live" },
   { href: "/matches",    icon: Calendar,  label: "Matchs & Pronostics" },
   { href: "/predictions", icon: Target,   label: "Mes pronos" },
-  { href: "/jokers",     icon: Sparkles,  label: "Mes Jokers" },
+  // Jokers pas encore ouvert au public : visible seulement pour les admins.
+  { href: "/jokers",     icon: Sparkles,  label: "Mes Jokers", adminOnly: true },
   { href: "/leaderboard", icon: Trophy,   label: "Classement" },
   { href: "/meilleur-11", icon: Medal,    label: "Stats Tournoi" },
   { href: "/teams",      icon: Users,     label: "Équipes" },
@@ -210,7 +211,7 @@ export function TopBar() {
             <p className="text-xs text-canal-gray-muted font-bold uppercase tracking-wider">Navigation</p>
           </div>
 
-          {MENU_ITEMS.map(({ href, icon: Icon, label }) => {
+          {MENU_ITEMS.filter((item) => !("adminOnly" in item && item.adminOnly) || isAdmin).map(({ href, icon: Icon, label }) => {
             const showBadge = href === "/inbox" && unread > 0;
             return (
               <Link
