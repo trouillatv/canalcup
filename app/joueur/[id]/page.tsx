@@ -6,6 +6,8 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getPlayerDashboard, type PredStatus } from "@/lib/data/player";
+import { getReputation } from "@/lib/data/reputation";
+import { ReputationSection } from "@/components/reputation/ReputationSection";
 import { PredictionHeatmap } from "@/components/shared/PredictionHeatmap";
 import { ArrowLeft, Trophy, Users, Building2, Target, Brain, Gamepad2, PartyPopper, Flame, Grid3x3 } from "lucide-react";
 
@@ -59,7 +61,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   if (!user) redirect("/");
 
   const { id } = await params;
-  const d = await getPlayerDashboard(id);
+  const [d, reputation] = await Promise.all([getPlayerDashboard(id), getReputation(id)]);
   if (!d) notFound();
 
   const ps = d.predictionStats;
@@ -117,6 +119,9 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           sub={d.ranks.service ? `/ ${d.ranks.service.outOf}` : "à venir"}
         />
       </div>
+
+      {/* ─── Réputation : titre + badges ─── */}
+      <ReputationSection reputation={reputation} />
 
       {/* ─── Score individuel détaillé ─── */}
       <div className="canal-card space-y-3">
