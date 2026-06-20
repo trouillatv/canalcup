@@ -6,7 +6,7 @@ import { cn, toNCDate, toNCTime } from "@/lib/utils";
 import { useTimezone } from "@/components/timezone/TimezoneProvider";
 import { statLabelFr, eventDetailFr } from "@/lib/football/labels";
 import { toFrench } from "@/lib/football/team-names";
-import type { FullMatchDetail, MatchEvent, LineupPlayer, PlayerMatchStat, StandingRow, TeamSide } from "@/services/football/types";
+import type { FullMatchDetail, MatchEvent, PlayerMatchStat, StandingRow, TeamSide } from "@/services/football/types";
 import { PitchLineup } from "@/components/matches/PitchLineup";
 import { MapPin, User, RefreshCw, Clock, Sparkles, Star, Target } from "lucide-react";
 import { MatchReactions } from "@/components/matches/MatchReactions";
@@ -15,9 +15,10 @@ import { Countdown } from "@/components/matches/Countdown";
 import { TeamLink } from "@/components/teams/TeamLink";
 import { PlayerSheet } from "@/components/football/PlayerSheet";
 import { HotColdPlayers } from "@/components/football/HotColdPlayers";
+import { MatchFacts } from "@/components/football/MatchFacts";
 import type { MatchPerf } from "@/components/football/PlayerCardView";
 
-type Tab = "timeline" | "lineups" | "stats" | "notes" | "pronos" | "chat" | "standings";
+type Tab = "timeline" | "stats" | "notes" | "pronos" | "chat" | "standings";
 
 // Contexte « clic joueur » threadé dans les sous-composants : résout un nom en
 // api_football_id (depuis les notes/compos en mémoire) et ouvre le bottom sheet.
@@ -224,58 +225,6 @@ function Timeline({ events, teamA, teamB, players }: { events: MatchEvent[]; tea
       {[...events].sort((a, b) => b.minute - a.minute).map((e, i) => (
         <EventRow key={i} event={e} teamA={teamA} teamB={teamB} players={players} />
       ))}
-    </div>
-  );
-}
-
-function PlayerRow({ player, players }: { player: LineupPlayer; players?: PlayersCtx }) {
-  return (
-    <div className={cn(
-      "flex items-center gap-2 px-2 py-1.5 rounded-lg",
-      player.is_starting ? "bg-canal-gray-mid" : "opacity-50"
-    )}>
-      <span className="text-xs text-canal-gray-muted w-5 text-center font-bold">{player.shirt_number}</span>
-      <PlayerName name={player.player_name} id={player.player_id} players={players} className="text-xs text-white font-bold truncate flex-1 text-left" />
-      <span className="text-xs text-canal-gray-muted">{player.position}</span>
-    </div>
-  );
-}
-
-function Lineups({ lineups, players }: { lineups: NonNullable<FullMatchDetail["lineups"]>; players?: PlayersCtx }) {
-  const homeStarters = lineups.home.filter((p) => p.is_starting);
-  const homeBench = lineups.home.filter((p) => !p.is_starting);
-  const awayStarters = lineups.away.filter((p) => p.is_starting);
-  const awayBench = lineups.away.filter((p) => !p.is_starting);
-
-  return (
-    <div className="py-2 space-y-4">
-      {lineups.home_formation && lineups.away_formation && (
-        <div className="flex justify-between text-xs text-canal-gray-muted px-1">
-          <span className="font-bold">{lineups.home_formation}</span>
-          <span className="font-bold">{lineups.away_formation}</span>
-        </div>
-      )}
-      <div className="grid grid-cols-2 gap-3">
-        {(["home", "away"] as const).map((side) => {
-          const starters = side === "home" ? homeStarters : awayStarters;
-          const bench = side === "home" ? homeBench : awayBench;
-          const coach = side === "home" ? lineups.home_coach : lineups.away_coach;
-          return (
-            <div key={side}>
-              {coach && <p className="text-xs text-canal-gray-muted mb-2 px-1">Coach : {coach}</p>}
-              <div className="space-y-1">
-                {starters.map((p, i) => <PlayerRow key={i} player={p} players={players} />)}
-              </div>
-              {bench.length > 0 && (
-                <>
-                  <p className="text-xs text-canal-gray-muted mt-2 mb-1 px-1">Banc</p>
-                  <div className="space-y-1">{bench.map((p, i) => <PlayerRow key={i} player={p} players={players} />)}</div>
-                </>
-              )}
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }
@@ -616,7 +565,7 @@ export default function MatchCenterPage() {
   // Onglet initial depuis l'URL (?tab=chat) — utilisé par les notifications push.
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    const valid: Tab[] = ["timeline", "lineups", "stats", "notes", "pronos", "chat", "standings"];
+    const valid: Tab[] = ["timeline", "stats", "notes", "pronos", "chat", "standings"];
     if (t && (valid as string[]).includes(t)) setTab(t as Tab);
   }, []);
 
@@ -730,7 +679,6 @@ export default function MatchCenterPage() {
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: "timeline", label: "Timeline" },
-    { key: "lineups", label: "Compos" },
     { key: "stats", label: "Stats" },
     { key: "notes", label: "Notes" },
     { key: "pronos", label: "Pronos" },
@@ -772,6 +720,9 @@ export default function MatchCenterPage() {
         <HotColdPlayers matchId={match.id} onPlayer={(pid, name) => players.open(pid, name)} />
       )}
 
+      {/* 💡 Le Saviez-vous ? — 3 cartes (données stockées/dérivées, 0 IA) */}
+      <MatchFacts matchId={match.id} />
+
       {/* Le Goat — commentaire IA post-match */}
       {match.status === "finished" && (
         <GoatStory matchId={match.id} isFinished={true} />
@@ -806,15 +757,6 @@ export default function MatchCenterPage() {
 
       <div className="px-4 pb-8 max-w-2xl mx-auto">
         {tab === "timeline" && <Timeline events={events} teamA={teamA} teamB={teamB} players={players} />}
-        {tab === "lineups" && (
-          lineups
-            ? <Lineups lineups={lineups} players={players} />
-            : <p className="text-center text-canal-gray-muted text-sm py-12">
-                {match.status === "upcoming"
-                  ? "Compositions disponibles avant le coup d'envoi."
-                  : "Compositions non disponibles pour ce match."}
-              </p>
-        )}
         {tab === "stats" && <Stats stats={stats} teamA={teamA} teamB={teamB} />}
         {tab === "notes" && (
           <div className="py-2">
