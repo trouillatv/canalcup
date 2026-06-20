@@ -90,6 +90,27 @@ export interface RankedPlayer {
   danger?: number;       // Indice Dangerosité 0-100 (chauds/froids)
 }
 
+// Stats saison par compétition (API /players?id=&season=) — récupérées à la
+// demande + cachées, jamais stockées. Donnée (pas IA) → coût quasi nul.
+export interface SeasonCompetition {
+  league: string;
+  country: string | null;
+  team: string | null;
+  appearances: number;
+  lineups: number;
+  minutes: number;
+  goals: number;
+  assists: number;
+  yellowCards: number;
+  redCards: number;
+  rating: number | null;
+}
+export interface SeasonStats {
+  label: string;                  // ex. "2025-26"
+  competitions: SeasonCompetition[];
+  totals: { appearances: number; goals: number; assists: number; minutes: number; rating: number | null };
+}
+
 export interface PlayerCard {
   id: string;
   bio: PlayerBio | null;
@@ -97,6 +118,7 @@ export interface PlayerCard {
   form: PlayerFormMatch[];
   formAvg: number | null;
   wc: WCAggregate;
+  season: SeasonStats | null;  // 📊 saison club par compétition (API cachée)
   danger: DangerIndex | null;
   related: RelatedPlayer[];   // mêmes sélection (curiosité / navigation)
   facts: string[];            // 💡 « Le saviez-vous » dérivés de nos données

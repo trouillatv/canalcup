@@ -18,11 +18,14 @@ import { toFrench } from "@/lib/football/team-names";
 import { getWCTeamByName } from "@/lib/football/wc-teams";
 import type {
   PlayerMeta, PlayerBio, PlayerFormMatch, WCAggregate, DangerIndex, PlayerCard, RelatedPlayer,
+  SeasonStats, SeasonCompetition,
 } from "@/lib/football/player-card-types";
 
-export type { PlayerMeta, PlayerBio, PlayerFormMatch, WCAggregate, DangerIndex, PlayerCard, RelatedPlayer };
+export type { PlayerMeta, PlayerBio, PlayerFormMatch, WCAggregate, DangerIndex, PlayerCard, RelatedPlayer, SeasonStats };
 
 const APIF = "https://v3.football.api-sports.io";
+// Saison club courante (numérotation API-Football : 2025 = saison 2025-26).
+const CLUB_SEASON = 2025;
 const hasApiFootball = () => !!process.env.API_FOOTBALL_KEY;
 
 // ─── Index wc-teams.json par api_football_id (club + valeur Transfermarkt) ─────
@@ -162,6 +165,58 @@ async function fetchBio(playerId: string): Promise<PlayerBio | null> {
   }
 }
 
+// ─── API : stats saison par compétition (/players?id=&season=) ───────────────────
+async function fetchSeason(playerId: string): Promise<SeasonStats | null> {
+  if (!hasApiFootball()) return null;
+  try {
+    const res = await fetch(`${APIF}/players?id=${playerId}&season=${CLUB_SEASON}`, {
+      headers: { "x-apisports-key": process.env.API_FOOTBALL_KEY! },
+      // Stats saison quasi stables : cache 12 h.
+      next: { revalidate: 43200 },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const stats: any[] = json?.response?.[0]?.statistics ?? [];
+    if (!stats.length) return null;
+    const competitions: SeasonCompetition[] = stats.map((s) => {
+      const r = s.games?.rating;
+      return {
+        league: s.league?.name ?? "—",
+        country: s.league?.country ?? null,
+        team: s.team?.name ?? null,
+        appearances: s.games?.appearences ?? 0,
+        lineups: s.games?.lineups ?? 0,
+        minutes: s.games?.minutes ?? 0,
+        goals: s.goals?.total ?? 0,
+        assists: s.goals?.assists ?? 0,
+        yellowCards: s.cards?.yellow ?? 0,
+        redCards: s.cards?.red ?? 0,
+        rating: r != null && r !== "" ? Math.round(parseFloat(r) * 100) / 100 : null,
+      };
+    });
+    // Totaux : note moyenne pondérée par les matchs joués.
+    const totalApps = competitions.reduce((a, c) => a + c.appearances, 0);
+    const ratedApps = competitions.filter((c) => c.rating != null).reduce((a, c) => a + c.appearances, 0);
+    const weightedRating = ratedApps
+      ? competitions.filter((c) => c.rating != null).reduce((a, c) => a + c.rating! * c.appearances, 0) / ratedApps
+      : null;
+    return {
+      label: `${CLUB_SEASON}-${String(CLUB_SEASON + 1).slice(2)}`,
+      competitions: competitions.sort((a, b) => b.appearances - a.appearances),
+      totals: {
+        appearances: totalApps,
+        goals: competitions.reduce((a, c) => a + c.goals, 0),
+        assists: competitions.reduce((a, c) => a + c.assists, 0),
+        minutes: competitions.reduce((a, c) => a + c.minutes, 0),
+        rating: weightedRating != null ? Math.round(weightedRating * 100) / 100 : null,
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
 // ─── Indice Dangerosité (0-100) ─────────────────────────────────────────────────
 //
 // Sur les matchs RÉELLEMENT joués parmi les 5 derniers :
@@ -272,8 +327,9 @@ export async function getPlayerCard(playerId: string): Promise<PlayerCard> {
     } | null;
   };
 
-  const [bio, statsRes] = await Promise.all([
+  const [bio, season, statsRes] = await Promise.all([
     fetchBio(playerId),
+    fetchSeason(playerId),
     supabase
       .from("player_match_stats")
       .select(
@@ -344,5 +400,5 @@ export async function getPlayerCard(playerId: string): Promise<PlayerCard> {
 
   const notFound = !bio && !meta && allMatches.length === 0;
 
-  return { id: playerId, bio, meta, form, formAvg, wc, danger, related, facts, notFound };
+  return { id: playerId, bio, meta, form, formAvg, wc, season, danger, related, facts, notFound };
 }

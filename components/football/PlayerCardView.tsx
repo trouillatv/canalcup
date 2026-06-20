@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import type { PlayerCard, PlayerFormMatch, RelatedPlayer } from "@/lib/football/player-card-types";
+import type { PlayerCard, PlayerFormMatch, RelatedPlayer, SeasonStats } from "@/lib/football/player-card-types";
 import { ratingPillClass, formDotClass } from "@/lib/football/player-card-types";
 import { ComparePicker } from "./ComparePicker";
 import { TopFormList } from "./TopFormList";
@@ -321,8 +321,56 @@ function MatchTab({ perf }: { perf: MatchPerf }) {
   );
 }
 
+// ─── Onglet Saison (stats club par compétition, API cachée) ───────────────────
+function SeasonTab({ season, meta }: { season: SeasonStats | null; meta: PlayerCard["meta"] }) {
+  return (
+    <div className="space-y-3 py-2">
+      {/* 🌍 Sélection — depuis nos données stockées (Transfermarkt), 0 appel */}
+      {meta && (meta.caps != null || meta.selectionGoals != null) && (
+        <div className="rounded-2xl bg-canal-gray-mid px-4 py-3">
+          <p className="text-xs font-black text-canal-yellow uppercase tracking-wider mb-1">🌍 En sélection{meta.teamName ? ` · ${meta.teamName}` : ""}</p>
+          <p className="text-sm text-white">
+            {meta.caps != null && <span className="font-black">{meta.caps}</span>}{meta.caps != null ? " sélections" : ""}
+            {meta.selectionGoals != null && <> · <span className="font-black">{meta.selectionGoals}</span> but{meta.selectionGoals > 1 ? "s" : ""}</>}
+          </p>
+        </div>
+      )}
+
+      {!season ? (
+        <p className="text-center text-canal-gray-muted text-sm py-8">Stats de saison à venir.</p>
+      ) : (
+        <>
+          <p className="text-xs font-black text-canal-yellow uppercase tracking-wider">📊 Saison {season.label}</p>
+          <div className="grid grid-cols-3 gap-2">
+            <StatBox label="Matchs" value={season.totals.appearances} />
+            <StatBox label="⚽ Buts" value={season.totals.goals} />
+            <StatBox label="🎯 Passes" value={season.totals.assists} />
+            <StatBox label="Minutes" value={season.totals.minutes} />
+            <StatBox label="Note moy" value={season.totals.rating != null ? season.totals.rating.toFixed(2) : "—"} />
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-bold text-canal-gray-muted uppercase tracking-wider">🏆 Par compétition</p>
+            {season.competitions.map((c, i) => (
+              <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-canal-gray-mid">
+                <span className="flex-1 min-w-0">
+                  <span className="block text-xs font-bold text-white truncate">{c.league}</span>
+                  <span className="block text-[10px] text-canal-gray-muted truncate">{c.team ?? c.country ?? ""} · {c.appearances} m · {c.minutes}′</span>
+                </span>
+                <span className="text-[11px] text-white shrink-0">⚽ {c.goals} · 🎯 {c.assists}</span>
+                <span className={cn("text-xs font-black tabular-nums px-1.5 py-0.5 rounded shrink-0", ratingPillClass(c.rating))}>
+                  {c.rating != null ? c.rating.toFixed(2) : "—"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─── Vue principale ─────────────────────────────────────────────────────────
-type Tab = "forme" | "mondial" | "match";
+type Tab = "forme" | "saison" | "mondial" | "match";
 
 export function PlayerCardView({
   card,
@@ -339,6 +387,7 @@ export function PlayerCardView({
   const tabs: { key: Tab; label: string }[] = [
     ...(matchPerf ? [{ key: "match" as Tab, label: "Match" }] : []),
     { key: "forme", label: "Forme" },
+    { key: "saison", label: "Saison" },
     { key: "mondial", label: "Mondial" },
   ];
 
@@ -366,6 +415,7 @@ export function PlayerCardView({
 
       {tab === "match" && matchPerf && <MatchTab perf={matchPerf} />}
       {tab === "forme" && <FormTab card={card} />}
+      {tab === "saison" && <SeasonTab season={card.season} meta={card.meta} />}
       {tab === "mondial" && <WorldCupTab card={card} />}
 
       <RelatedBlock related={card.related} />
