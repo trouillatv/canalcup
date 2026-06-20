@@ -68,6 +68,28 @@ export interface DangerIndex {
   confident: boolean;
 }
 
+export interface RelatedPlayer {
+  id: string;
+  name: string;
+  photo: string;
+  positionFr: string | null;
+}
+
+// Joueur classé (Top forme Mondial, chauds/froids d'un match).
+export interface RankedPlayer {
+  id: string;
+  name: string;
+  photo: string;
+  teamName: string | null;
+  teamSlug: string | null;
+  positionFr: string | null;
+  avgRating: number | null;
+  matches: number;
+  goals: number;
+  assists: number;
+  danger?: number;       // Indice Dangerosité 0-100 (chauds/froids)
+}
+
 export interface PlayerCard {
   id: string;
   bio: PlayerBio | null;
@@ -76,6 +98,8 @@ export interface PlayerCard {
   formAvg: number | null;
   wc: WCAggregate;
   danger: DangerIndex | null;
+  related: RelatedPlayer[];   // mêmes sélection (curiosité / navigation)
+  facts: string[];            // 💡 « Le saviez-vous » dérivés de nos données
   notFound: boolean;
 }
 

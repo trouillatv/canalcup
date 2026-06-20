@@ -15,11 +15,12 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import rawData from "@/data/wc-teams.json";
 import { toFrench } from "@/lib/football/team-names";
+import { getWCTeamByName } from "@/lib/football/wc-teams";
 import type {
-  PlayerMeta, PlayerBio, PlayerFormMatch, WCAggregate, DangerIndex, PlayerCard,
+  PlayerMeta, PlayerBio, PlayerFormMatch, WCAggregate, DangerIndex, PlayerCard, RelatedPlayer,
 } from "@/lib/football/player-card-types";
 
-export type { PlayerMeta, PlayerBio, PlayerFormMatch, WCAggregate, DangerIndex, PlayerCard };
+export type { PlayerMeta, PlayerBio, PlayerFormMatch, WCAggregate, DangerIndex, PlayerCard, RelatedPlayer };
 
 const APIF = "https://v3.football.api-sports.io";
 const hasApiFootball = () => !!process.env.API_FOOTBALL_KEY;
@@ -45,10 +46,15 @@ interface RawWCTeam {
 }
 
 const META_BY_ID = new Map<string, PlayerMeta>();
+const RAW_BY_ID = new Map<string, { team: RawWCTeam; player: RawWCPlayer }>();
+const TEAM_BY_SLUG = new Map<string, RawWCTeam>();
 for (const t of rawData as RawWCTeam[]) {
+  TEAM_BY_SLUG.set(t.slug, t);
   for (const p of t.players ?? []) {
     if (p.api_football_id == null) continue;
-    META_BY_ID.set(String(p.api_football_id), {
+    const id = String(p.api_football_id);
+    RAW_BY_ID.set(id, { team: t, player: p });
+    META_BY_ID.set(id, {
       club: p.club ?? null,
       value: p.value ?? null,
       positionFr: p.position ?? null,
@@ -59,6 +65,68 @@ for (const t of rawData as RawWCTeam[]) {
       teamSlug: t.slug,
     });
   }
+}
+
+const photoFor = (id: string, photo?: string | null) =>
+  photo ?? `https://media.api-sports.io/football/players/${id}.png`;
+
+export function getPlayerMeta(id: string): PlayerMeta | null {
+  return META_BY_ID.get(id) ?? null;
+}
+
+// Coéquipiers de sélection (curiosité / navigation). Variété de postes d'abord.
+function getTeammates(id: string, limit = 6): RelatedPlayer[] {
+  const entry = RAW_BY_ID.get(id);
+  if (!entry) return [];
+  const mates = entry.team.players.filter((p) => p.api_football_id != null && String(p.api_football_id) !== id);
+  // Tri : on disperse les postes (G/D/M/A) pour montrer un échantillon varié.
+  const order: Record<string, number> = { Gardien: 0, Défenseur: 1, Milieu: 2, Attaquant: 3 };
+  mates.sort((a, b) => (order[a.position ?? ""] ?? 9) - (order[b.position ?? ""] ?? 9));
+  return mates.slice(0, limit).map((p) => ({
+    id: String(p.api_football_id),
+    name: p.name,
+    photo: photoFor(String(p.api_football_id), p.photo),
+    positionFr: p.position ?? null,
+  }));
+}
+
+// Liste des api_football_id d'une sélection (résolution par nom, alias inclus).
+export function getSquadPlayerIds(teamName: string): string[] {
+  const t = getWCTeamByName(teamName);
+  const raw = t ? TEAM_BY_SLUG.get(t.slug) : null;
+  if (!raw) return [];
+  return raw.players.filter((p) => p.api_football_id != null).map((p) => String(p.api_football_id));
+}
+
+// Recherche de joueurs (comparateur) — sur wc-teams.json, sans DB ni API.
+export function searchPlayers(q: string, limit = 12): { id: string; name: string; photo: string; teamName: string }[] {
+  const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const needle = norm(q.trim());
+  if (needle.length < 2) return [];
+  const out: { id: string; name: string; photo: string; teamName: string }[] = [];
+  for (const { team, player } of RAW_BY_ID.values()) {
+    if (norm(player.name).includes(needle)) {
+      out.push({ id: String(player.api_football_id), name: player.name, photo: photoFor(String(player.api_football_id), player.photo), teamName: team.name });
+      if (out.length >= limit * 3) break;
+    }
+  }
+  // Priorité aux noms qui COMMENCENT par la recherche.
+  out.sort((a, b) => Number(norm(b.name).startsWith(needle)) - Number(norm(a.name).startsWith(needle)));
+  return out.slice(0, limit);
+}
+
+// "€120m" / "€700k" / "€1.2m" → nombre (pour comparer les valeurs marchandes).
+function parseValue(v: string | null): number {
+  if (!v) return 0;
+  const m = v.replace(/[, ]/g, "").match(/([\d.]+)\s*([mk])?/i);
+  if (!m) return 0;
+  const n = parseFloat(m[1]);
+  const unit = (m[2] ?? "").toLowerCase();
+  return unit === "m" ? n * 1e6 : unit === "k" ? n * 1e3 : n;
+}
+
+export function isWorldCup(competition: string | null | undefined): boolean {
+  return /world cup|coupe du monde|fifa/i.test(competition ?? "");
 }
 
 // ─── API : bio ─────────────────────────────────────────────────────────────────
@@ -105,7 +173,7 @@ async function fetchBio(playerId: string): Promise<PlayerBio | null> {
 
 function clamp01(n: number): number { return Math.max(0, Math.min(1, n)); }
 
-function computeDanger(played: PlayerFormMatch[]): DangerIndex | null {
+export function computeDanger(played: PlayerFormMatch[]): DangerIndex | null {
   if (!played.length) return null;
   const n = played.length;
   const ratings = played.map((m) => m.rating).filter((r): r is number => r != null);
@@ -142,6 +210,43 @@ function computeDanger(played: PlayerFormMatch[]): DangerIndex | null {
   else if (score >= 40) { emoji = "🙂"; label = "Contribution correcte"; }
 
   return { score, emoji, label, confident };
+}
+
+// ─── « Le saviez-vous » — faits dérivés de NOS données (zéro source externe) ──
+function buildFacts(playerId: string, meta: PlayerMeta | null, age: number | null, formAvg: number | null): string[] {
+  const facts: string[] = [];
+  const entry = RAW_BY_ID.get(playerId);
+  const team = meta?.teamName ?? "sa sélection";
+
+  if (meta?.selectionGoals != null && meta.caps != null && meta.caps > 0) {
+    facts.push(`⚽ ${meta.selectionGoals} but${meta.selectionGoals > 1 ? "s" : ""} en ${meta.caps} sélection${meta.caps > 1 ? "s" : ""} avec ${team}.`);
+  } else if (meta?.caps != null && meta.caps > 0) {
+    facts.push(`🎽 ${meta.caps} sélection${meta.caps > 1 ? "s" : ""} avec ${team}.`);
+  }
+
+  // Contexte effectif : joueur le plus cher / benjamin / doyen de la sélection.
+  if (entry) {
+    const squad = entry.team.players;
+    const myVal = parseValue(meta?.value ?? null);
+    if (myVal > 0) {
+      const maxVal = Math.max(...squad.map((p) => parseValue(p.value ?? null)));
+      if (myVal >= maxVal && maxVal > 0) facts.push(`💰 Joueur le plus cher de ${team} (${meta?.value}).`);
+      else if (meta?.value) facts.push(`💰 Valeur estimée : ${meta.value}.`);
+    }
+    if (age != null) {
+      const ages = squad.map((p) => p.age).filter((a): a is number => a != null);
+      if (ages.length >= 5) {
+        if (age <= Math.min(...ages)) facts.push(`🐣 Benjamin de ${team} (${age} ans).`);
+        else if (age >= Math.max(...ages)) facts.push(`🧓 Doyen de ${team} (${age} ans).`);
+      }
+    }
+  }
+
+  if (formAvg != null && formAvg >= 7.5) {
+    facts.push(`🔥 En feu : ${formAvg.toFixed(1)} de moyenne sur ses derniers matchs.`);
+  }
+
+  return facts.slice(0, 3);
 }
 
 // ─── Entrée principale ──────────────────────────────────────────────────────────
@@ -218,7 +323,7 @@ export async function getPlayerCard(playerId: string): Promise<PlayerCard> {
     : null;
 
   // Mondial = tous les matchs de la compétition Coupe du Monde joués.
-  const wcMatches = played.filter((m) => /world cup|coupe du monde|fifa/i.test(rows.find((r) => r.match_id === m.matchId)?.match?.competition ?? ""));
+  const wcMatches = played.filter((m) => isWorldCup(rows.find((r) => r.match_id === m.matchId)?.match?.competition));
   const wcSource = wcMatches.length ? wcMatches : played; // fallback : tous les matchs trackés
   const wcRatings = wcSource.map((m) => m.rating).filter((r): r is number => r != null);
   const wc: WCAggregate = {
@@ -234,8 +339,10 @@ export async function getPlayerCard(playerId: string): Promise<PlayerCard> {
   };
 
   const danger = computeDanger(form);
+  const related = getTeammates(playerId);
+  const facts = buildFacts(playerId, meta, bio?.age ?? RAW_BY_ID.get(playerId)?.player.age ?? null, formAvg);
 
   const notFound = !bio && !meta && allMatches.length === 0;
 
-  return { id: playerId, bio, meta, form, formAvg, wc, danger, notFound };
+  return { id: playerId, bio, meta, form, formAvg, wc, danger, related, facts, notFound };
 }

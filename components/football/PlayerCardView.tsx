@@ -3,8 +3,58 @@
 import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import type { PlayerCard, PlayerFormMatch } from "@/lib/football/player-card-types";
+import type { PlayerCard, PlayerFormMatch, RelatedPlayer } from "@/lib/football/player-card-types";
 import { ratingPillClass, formDotClass } from "@/lib/football/player-card-types";
+import { ComparePicker } from "./ComparePicker";
+import { TopFormList } from "./TopFormList";
+
+function lastName(name: string): string {
+  return name.split(" ").slice(-1).join(" ");
+}
+
+// ─── 💡 Le saviez-vous ───────────────────────────────────────────────────────
+function FactsBlock({ facts }: { facts: string[] }) {
+  if (!facts.length) return null;
+  return (
+    <div className="rounded-2xl bg-canal-gray-mid/60 border border-canal-gray-light px-4 py-3 space-y-1.5">
+      <p className="text-[11px] font-black text-canal-yellow uppercase tracking-wider">💡 Le saviez-vous</p>
+      {facts.map((f, i) => (
+        <p key={i} className="text-sm text-white leading-snug">{f}</p>
+      ))}
+    </div>
+  );
+}
+
+// ─── 🔗 Joueurs liés (même sélection) ──────────────────────────────────────────
+function RelatedChip({ player }: { player: RelatedPlayer }) {
+  const [imgOk, setImgOk] = useState(true);
+  return (
+    <Link
+      href={`/football/players/${player.id}`}
+      className="flex items-center gap-1.5 pl-1 pr-3 py-1 rounded-full bg-canal-gray-mid hover:bg-canal-gray-light transition-colors"
+    >
+      <span className="w-6 h-6 rounded-full bg-canal-gray-light overflow-hidden flex items-center justify-center shrink-0">
+        {imgOk ? (
+          <img src={player.photo} alt={player.name} className="w-full h-full object-cover" onError={() => setImgOk(false)} />
+        ) : (
+          <span className="text-[9px] text-canal-gray-muted">👤</span>
+        )}
+      </span>
+      <span className="text-xs font-bold text-white">{lastName(player.name)}</span>
+    </Link>
+  );
+}
+function RelatedBlock({ related }: { related: RelatedPlayer[] }) {
+  if (!related.length) return null;
+  return (
+    <div>
+      <p className="text-xs font-bold text-canal-gray-muted uppercase tracking-wider mb-2">🔗 Joueurs liés</p>
+      <div className="flex flex-wrap gap-2">
+        {related.map((r) => <RelatedChip key={r.id} player={r} />)}
+      </div>
+    </div>
+  );
+}
 
 // ─── Perf d'un match (onglet "Match", ouvert depuis le centre du match) ────────
 export interface MatchPerf {
@@ -50,7 +100,6 @@ function Header({ card, compact }: { card: PlayerCard; compact?: boolean }) {
     <div className="flex items-center gap-3">
       <div className={cn("rounded-full bg-canal-gray-mid border-2 border-white/80 overflow-hidden flex items-center justify-center shrink-0", compact ? "w-14 h-14" : "w-20 h-20")}>
         {imgOk ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img src={url} alt={name} className="w-full h-full object-cover" onError={() => setImgOk(false)} />
         ) : (
           <span className="text-white font-black text-lg">{number ?? "?"}</span>
@@ -279,10 +328,12 @@ export function PlayerCardView({
   card,
   matchPerf,
   compact,
+  showExtras = false,
 }: {
   card: PlayerCard;
   matchPerf?: MatchPerf;
   compact?: boolean;
+  showExtras?: boolean;     // fiche pleine page : comparateur + Top forme
 }) {
   const [tab, setTab] = useState<Tab>(matchPerf ? "match" : "forme");
   const tabs: { key: Tab; label: string }[] = [
@@ -295,6 +346,8 @@ export function PlayerCardView({
     <div className="space-y-4">
       <Header card={card} compact={compact} />
       <DangerCard card={card} />
+      <FactsBlock facts={card.facts} />
+      {showExtras && <ComparePicker currentId={card.id} currentName={card.bio?.name ?? card.meta?.teamName ?? "Joueur"} />}
 
       <div className="flex border-b border-canal-gray-light">
         {tabs.map((t) => (
@@ -314,6 +367,9 @@ export function PlayerCardView({
       {tab === "match" && matchPerf && <MatchTab perf={matchPerf} />}
       {tab === "forme" && <FormTab card={card} />}
       {tab === "mondial" && <WorldCupTab card={card} />}
+
+      <RelatedBlock related={card.related} />
+      {showExtras && <TopFormList currentId={card.id} />}
     </div>
   );
 }
