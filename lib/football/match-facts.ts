@@ -129,6 +129,22 @@ async function canalCupFact(
   };
 }
 
+// ── 📖 Histoire de la rencontre (football_facts scope='matchup') ──────────────
+async function matchupFact(supabase: Supa, slugA: string | null, slugB: string | null, seed: number): Promise<MatchFactCard | null> {
+  if (!slugA || !slugB) return null;
+  const { data } = await supabase
+    .from("football_facts")
+    .select("content, priority")
+    .eq("status", "approved")
+    .eq("scope", "matchup")
+    .or(`and(team_slug.eq.${slugA},team_slug_b.eq.${slugB}),and(team_slug.eq.${slugB},team_slug_b.eq.${slugA})`)
+    .order("priority", { ascending: false });
+  const rows = (data ?? []) as { content: string }[];
+  if (!rows.length) return null;
+  const f = rows[seed % rows.length]; // rotation déterministe si plusieurs
+  return { type: "histoire", emoji: EMOJI.histoire, title: "Histoire de la rencontre", content: f.content };
+}
+
 // ── Bibliothèque statique (football_facts approuvés) ──────────────────────────
 async function staticFacts(supabase: Supa, slugs: string[]): Promise<MatchFactCard[]> {
   const { data } = await supabase
@@ -159,18 +175,22 @@ export async function getMatchFacts(matchId: string): Promise<MatchFactCard[]> {
   const seed = seedOf(matchId);
   const primary = seed % 2 === 0 ? teamA : teamB;
   const secondary = primary === teamA ? teamB : teamA;
-  const slugs = [getWCTeamByName(teamA)?.slug, getWCTeamByName(teamB)?.slug].filter((s): s is string => !!s);
+  const slugA = getWCTeamByName(teamA)?.slug ?? null;
+  const slugB = getWCTeamByName(teamB)?.slug ?? null;
+  const slugs = [slugA, slugB].filter((s): s is string => !!s);
 
-  const [canal, statics] = await Promise.all([
+  const [matchup, canal, statics] = await Promise.all([
+    matchupFact(supabase, slugA, slugB, seed),
     canalCupFact(supabase, matchId, match),
     staticFacts(supabase, slugs),
   ]);
 
   const cards: MatchFactCard[] = [];
-  if (canal) cards.push(canal);                                   // 🎯 la pépite d'abord
+  if (matchup) cards.push(matchup);                               // 📖 histoire de la rencontre (le plus spécifique)
+  if (canal) cards.push(canal);                                   // 🎯 la pépite
 
   const team = teamFact(primary) ?? teamFact(secondary);          // ⚽ équipe
-  if (team) cards.push(team);
+  if (team && cards.length < 3) cards.push(team);
 
   // 1 fait statique (rotation déterministe pour varier d'un match à l'autre).
   if (statics.length && cards.length < 3) {

@@ -84,15 +84,21 @@ const norm = (s) => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCa
     const content = (f.content || "").trim();
     const theme = (f.theme || "histoire").trim();
     const priority = Number.isFinite(f.priority) ? f.priority : 0;
-    if (!["general", "worldcup", "team"].includes(scope) || !content) { skipped++; continue; }
-    let teamSlug = null;
+    if (!["general", "worldcup", "team", "matchup"].includes(scope) || !content) { skipped++; continue; }
+    let teamSlug = null, teamSlugB = null;
     if (scope === "team") {
       teamSlug = slugByName.get(norm(f.team)) || null;
       if (!teamSlug) { console.warn(`  ⚠️ équipe inconnue, ignorée : "${f.team}" — "${content.slice(0, 50)}…"`); skipped++; continue; }
     }
+    if (scope === "matchup") {
+      const pair = Array.isArray(f.teams) ? f.teams : [];
+      teamSlug = slugByName.get(norm(pair[0])) || null;
+      teamSlugB = slugByName.get(norm(pair[1])) || null;
+      if (!teamSlug || !teamSlugB) { console.warn(`  ⚠️ confrontation inconnue, ignorée : "${(pair || []).join(" vs ")}" — "${content.slice(0, 50)}…"`); skipped++; continue; }
+    }
     if (existing.has(content) || seen.has(content)) { skipped++; continue; }
     seen.add(content);
-    rows.push({ scope, teamSlug, theme, content, priority });
+    rows.push({ scope, teamSlug, teamSlugB, theme, content, priority });
   }
 
   console.log(`[import] fichier : ${path.basename(FILE)}`);
@@ -104,9 +110,10 @@ const norm = (s) => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCa
   if (!rows.length) { console.log("[import] rien à écrire."); return; }
 
   const esc = (s) => s.replace(/'/g, "''");
+  const q = (v) => (v ? `'${esc(v)}'` : "NULL");
   const vals = rows.map((r) =>
-    `('${r.scope}', ${r.teamSlug ? `'${esc(r.teamSlug)}'` : "NULL"}, '${esc(r.theme)}', '${esc(r.content)}', ${r.priority}, 'claude', '${statusArg}')`
+    `('${r.scope}', ${q(r.teamSlug)}, ${q(r.teamSlugB)}, '${esc(r.theme)}', '${esc(r.content)}', ${r.priority}, 'claude', '${statusArg}')`
   ).join(",\n");
-  await runSQL(`insert into public.football_facts (scope, team_slug, theme, content, priority, source, status) values\n${vals};`);
+  await runSQL(`insert into public.football_facts (scope, team_slug, team_slug_b, theme, content, priority, source, status) values\n${vals};`);
   console.log(`[import] ✅ ${rows.length} faits insérés.`);
 })().catch((e) => { console.error("[import] ❌", e.message); process.exit(1); });
