@@ -18,7 +18,7 @@ import { HotColdPlayers } from "@/components/football/HotColdPlayers";
 import { MatchFacts } from "@/components/football/MatchFacts";
 import type { MatchPerf } from "@/components/football/PlayerCardView";
 
-type Tab = "timeline" | "stats" | "notes" | "pronos" | "chat" | "standings";
+type Tab = "timeline" | "stats" | "notes" | "pronos" | "chat" | "standings" | "facts";
 
 // Contexte « clic joueur » threadé dans les sous-composants : résout un nom en
 // api_football_id (depuis les notes/compos en mémoire) et ouvre le bottom sheet.
@@ -565,7 +565,7 @@ export default function MatchCenterPage() {
   // Onglet initial depuis l'URL (?tab=chat) — utilisé par les notifications push.
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    const valid: Tab[] = ["timeline", "stats", "notes", "pronos", "chat", "standings"];
+    const valid: Tab[] = ["timeline", "stats", "notes", "pronos", "chat", "standings", "facts"];
     if (t && (valid as string[]).includes(t)) setTab(t as Tab);
   }, []);
 
@@ -684,6 +684,7 @@ export default function MatchCenterPage() {
     { key: "pronos", label: "Pronos" },
     { key: "chat", label: "Chat", count: chatUnread || undefined },
     ...(isGroupMatch ? [{ key: "standings" as Tab, label: "Groupe" }] : []),
+    { key: "facts", label: "Le saviez-vous" },
   ];
 
   return (
@@ -719,9 +720,6 @@ export default function MatchCenterPage() {
       {match.status !== "finished" && match.status !== "postponed" && (
         <HotColdPlayers matchId={match.id} onPlayer={(pid, name) => players.open(pid, name)} />
       )}
-
-      {/* 💡 Le Saviez-vous ? — 3 cartes (données stockées/dérivées, 0 IA) */}
-      <MatchFacts matchId={match.id} />
 
       {/* Le Goat — commentaire IA post-match */}
       {match.status === "finished" && (
@@ -790,6 +788,7 @@ export default function MatchCenterPage() {
         {tab === "pronos" && <PredictionTrend matchId={match.id} />}
         {tab === "chat" && <MatchComments matchId={match.id} isLive={isLive} onUnreadChange={setChatUnread} />}
         {tab === "standings" && <Standings rows={(standings ?? []) as StandingRow[]} />}
+        {tab === "facts" && <MatchFacts matchId={match.id} />}
       </div>
 
       {match.status === "upcoming" && (

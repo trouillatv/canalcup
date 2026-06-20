@@ -18,10 +18,15 @@ export function MatchFacts({ matchId }: { matchId: string }) {
     return () => { alive = false; };
   }, [matchId]);
 
-  if (!cards || !cards.length) return null;
+  if (cards === null) {
+    return <p className="text-center text-canal-gray-muted text-sm py-12">Chargement…</p>;
+  }
+  if (!cards.length) {
+    return <p className="text-center text-canal-gray-muted text-sm py-12">Pas encore d&apos;anecdote pour ce match.</p>;
+  }
 
   return (
-    <div className="mx-4 my-3">
+    <div className="py-2">
       <p className="text-[11px] font-black text-canal-yellow uppercase tracking-wider mb-2 px-1">💡 Le saviez-vous ?</p>
       <div className="space-y-2">
         {cards.map((c, i) => (
