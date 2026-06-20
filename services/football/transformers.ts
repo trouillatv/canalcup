@@ -147,6 +147,8 @@ function apifPlayerSide(block: any, side: TeamSide, matchId: string): PlayerMatc
     const ratingRaw = st.games?.rating;
     const rating =
       ratingRaw != null && ratingRaw !== "" ? Math.round(parseFloat(ratingRaw) * 10) / 10 : null;
+    // games.substitute = true → remplaçant ; on stocke l'inverse (started).
+    const substitute = st.games?.substitute;
     return {
       match_id: matchId,
       team_side: side,
@@ -161,6 +163,10 @@ function apifPlayerSide(block: any, side: TeamSide, matchId: string): PlayerMatc
       passes: st.passes?.total ?? 0,
       tackles: st.tackles?.total ?? 0,
       dribbles: st.dribbles?.success ?? 0,
+      minutes: st.games?.minutes ?? null,
+      started: substitute == null ? null : !substitute,
+      duels_won: st.duels?.won ?? null,
+      key_passes: st.passes?.key ?? null,
       is_motm: false,
       source: "api-football" as const,
     };

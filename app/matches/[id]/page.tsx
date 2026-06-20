@@ -13,12 +13,50 @@ import { MatchReactions } from "@/components/matches/MatchReactions";
 import { MatchComments } from "@/components/matches/MatchComments";
 import { Countdown } from "@/components/matches/Countdown";
 import { TeamLink } from "@/components/teams/TeamLink";
+import { PlayerSheet } from "@/components/football/PlayerSheet";
+import type { MatchPerf } from "@/components/football/PlayerCardView";
 
 type Tab = "timeline" | "lineups" | "stats" | "notes" | "pronos" | "chat" | "standings";
+
+// Contexte « clic joueur » threadé dans les sous-composants : résout un nom en
+// api_football_id (depuis les notes/compos en mémoire) et ouvre le bottom sheet.
+interface PlayersCtx {
+  resolveId: (name: string) => string | undefined;
+  open: (playerId: string, name: string) => void;
+}
+
+// Nom de joueur cliquable → fiche football (si l'id est résolvable, sinon texte).
+function PlayerName({
+  name,
+  id,
+  players,
+  className,
+}: {
+  name: string;
+  id?: string;
+  players?: PlayersCtx;
+  className?: string;
+}) {
+  const pid = id ?? (name ? players?.resolveId(name) : undefined);
+  if (!players || !pid || !name) return <span className={className}>{name}</span>;
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); players.open(pid, name); }}
+      className={cn(className, "hover:text-canal-yellow transition-colors cursor-pointer")}
+    >
+      {name}
+    </button>
+  );
+}
 
 const EVENT_ICONS: Record<string, string> = {
   goal: "⚽", yellow_card: "🟨", red_card: "🟥",
   substitution: "🔄", var: "📺", penalty: "🎯", penalty_missed: "❌",
+};
+const EVENT_LABELS: Record<string, string> = {
+  goal: "But", yellow_card: "Carton jaune", red_card: "Carton rouge",
+  substitution: "Remplacement", var: "VAR", penalty: "Penalty", penalty_missed: "Penalty manqué",
 };
 const EVENT_COLORS: Record<string, string> = {
   goal: "bg-canal-yellow/10 border border-canal-yellow/20",
@@ -46,14 +84,14 @@ function buildScorers(events: MatchEvent[]) {
   return { home: fmt(map.home), away: fmt(map.away) };
 }
 
-function ScorerList({ list }: { list: { name: string; mins: string }[] }) {
+function ScorerList({ list, players }: { list: { name: string; mins: string }[]; players?: PlayersCtx }) {
   if (!list.length) return null;
   return (
     <ul className="mt-2 space-y-0.5 text-xs text-center leading-tight">
       {list.map((s, i) => (
         <li key={i}>
           <span className="mr-1">⚽</span>
-          <span className="text-white font-semibold">{s.name}</span>{" "}
+          <PlayerName name={s.name} players={players} className="text-white font-semibold" />{" "}
           <span className="text-canal-gray-muted">{s.mins}</span>
         </li>
       ))}
@@ -73,7 +111,7 @@ function StatusBadge({ status, minute }: { status: string; minute: number | null
   return <span className="bg-canal-gray-mid text-canal-gray-muted text-xs font-bold px-2.5 py-1 rounded-full">À VENIR</span>;
 }
 
-function ScoreBoard({ detail }: { detail: FullMatchDetail }) {
+function ScoreBoard({ detail, players }: { detail: FullMatchDetail; players?: PlayersCtx }) {
   const { match } = detail;
   const { tz } = useTimezone();
   const scorers = buildScorers(detail.events);
@@ -103,7 +141,7 @@ function ScoreBoard({ detail }: { detail: FullMatchDetail }) {
             className="text-sm font-black text-white text-center leading-tight max-w-full"
             wrapperClassName="gap-2 max-w-full"
           />
-          <ScorerList list={scorers.home} />
+          <ScorerList list={scorers.home} players={players} />
         </div>
 
         <div className="flex items-center gap-3">
@@ -130,7 +168,7 @@ function ScoreBoard({ detail }: { detail: FullMatchDetail }) {
             className="text-sm font-black text-white text-center leading-tight max-w-full"
             wrapperClassName="gap-2 max-w-full"
           />
-          <ScorerList list={scorers.away} />
+          <ScorerList list={scorers.away} players={players} />
         </div>
       </div>
 
@@ -142,7 +180,7 @@ function ScoreBoard({ detail }: { detail: FullMatchDetail }) {
   );
 }
 
-function EventRow({ event, teamA, teamB }: { event: MatchEvent; teamA: string; teamB: string }) {
+function EventRow({ event, teamA, teamB, players }: { event: MatchEvent; teamA: string; teamB: string; players?: PlayersCtx }) {
   const isHome = event.team_side === "home";
   const icon = EVENT_ICONS[event.type] ?? "•";
   const colorClass = EVENT_COLORS[event.type] ?? "";
@@ -153,8 +191,8 @@ function EventRow({ event, teamA, teamB }: { event: MatchEvent; teamA: string; t
         <>
           <span className="text-lg w-7">{icon}</span>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-white truncate">{event.player_name}</p>
-            {event.assist_player_name && <p className="text-xs text-canal-gray-muted">Passe : {event.assist_player_name}</p>}
+            <PlayerName name={event.player_name} players={players} className="text-sm font-bold text-white truncate block" />
+            {event.assist_player_name && <p className="text-xs text-canal-gray-muted">Passe : <PlayerName name={event.assist_player_name} players={players} className="text-canal-gray-muted" /></p>}
             {event.detail && <p className="text-xs text-canal-gray-muted">{eventDetailFr(event.detail)}</p>}
           </div>
           <span className="text-canal-yellow font-black text-sm shrink-0">{event.minute}'</span>
@@ -165,8 +203,8 @@ function EventRow({ event, teamA, teamB }: { event: MatchEvent; teamA: string; t
           <span className="text-xs text-canal-gray-muted w-16 truncate shrink-0">{teamB}</span>
           <span className="text-canal-yellow font-black text-sm shrink-0">{event.minute}'</span>
           <div className="flex-1 min-w-0 text-right">
-            <p className="text-sm font-bold text-white truncate">{event.player_name}</p>
-            {event.assist_player_name && <p className="text-xs text-canal-gray-muted">Passe : {event.assist_player_name}</p>}
+            <PlayerName name={event.player_name} players={players} className="text-sm font-bold text-white truncate block ml-auto" />
+            {event.assist_player_name && <p className="text-xs text-canal-gray-muted">Passe : <PlayerName name={event.assist_player_name} players={players} className="text-canal-gray-muted" /></p>}
             {event.detail && <p className="text-xs text-canal-gray-muted">{eventDetailFr(event.detail)}</p>}
           </div>
           <span className="text-lg w-7 text-right">{icon}</span>
@@ -176,33 +214,33 @@ function EventRow({ event, teamA, teamB }: { event: MatchEvent; teamA: string; t
   );
 }
 
-function Timeline({ events, teamA, teamB }: { events: MatchEvent[]; teamA: string; teamB: string }) {
+function Timeline({ events, teamA, teamB, players }: { events: MatchEvent[]; teamA: string; teamB: string; players?: PlayersCtx }) {
   if (!events.length) return (
     <p className="text-center text-canal-gray-muted text-sm py-12">Aucun événement pour l'instant.</p>
   );
   return (
     <div className="space-y-1 py-2">
       {[...events].sort((a, b) => b.minute - a.minute).map((e, i) => (
-        <EventRow key={i} event={e} teamA={teamA} teamB={teamB} />
+        <EventRow key={i} event={e} teamA={teamA} teamB={teamB} players={players} />
       ))}
     </div>
   );
 }
 
-function PlayerRow({ player }: { player: LineupPlayer }) {
+function PlayerRow({ player, players }: { player: LineupPlayer; players?: PlayersCtx }) {
   return (
     <div className={cn(
       "flex items-center gap-2 px-2 py-1.5 rounded-lg",
       player.is_starting ? "bg-canal-gray-mid" : "opacity-50"
     )}>
       <span className="text-xs text-canal-gray-muted w-5 text-center font-bold">{player.shirt_number}</span>
-      <span className="text-xs text-white font-bold truncate flex-1">{player.player_name}</span>
+      <PlayerName name={player.player_name} id={player.player_id} players={players} className="text-xs text-white font-bold truncate flex-1 text-left" />
       <span className="text-xs text-canal-gray-muted">{player.position}</span>
     </div>
   );
 }
 
-function Lineups({ lineups }: { lineups: NonNullable<FullMatchDetail["lineups"]> }) {
+function Lineups({ lineups, players }: { lineups: NonNullable<FullMatchDetail["lineups"]>; players?: PlayersCtx }) {
   const homeStarters = lineups.home.filter((p) => p.is_starting);
   const homeBench = lineups.home.filter((p) => !p.is_starting);
   const awayStarters = lineups.away.filter((p) => p.is_starting);
@@ -225,12 +263,12 @@ function Lineups({ lineups }: { lineups: NonNullable<FullMatchDetail["lineups"]>
             <div key={side}>
               {coach && <p className="text-xs text-canal-gray-muted mb-2 px-1">Coach : {coach}</p>}
               <div className="space-y-1">
-                {starters.map((p, i) => <PlayerRow key={i} player={p} />)}
+                {starters.map((p, i) => <PlayerRow key={i} player={p} players={players} />)}
               </div>
               {bench.length > 0 && (
                 <>
                   <p className="text-xs text-canal-gray-muted mt-2 mb-1 px-1">Banc</p>
-                  <div className="space-y-1">{bench.map((p, i) => <PlayerRow key={i} player={p} />)}</div>
+                  <div className="space-y-1">{bench.map((p, i) => <PlayerRow key={i} player={p} players={players} />)}</div>
                 </>
               )}
             </div>
@@ -328,7 +366,7 @@ function ratingClass(r: number | null): string {
   return "bg-red-500/15 text-red-400 border border-red-500/30";
 }
 
-function PlayerStatRow({ p }: { p: PlayerMatchStat }) {
+function PlayerStatRow({ p, players }: { p: PlayerMatchStat; players?: PlayersCtx }) {
   const badges = [
     ...Array(p.goals).fill("⚽"),
     ...Array(p.assists).fill("🅰️"),
@@ -337,7 +375,7 @@ function PlayerStatRow({ p }: { p: PlayerMatchStat }) {
   ].join(" ");
   return (
     <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-canal-gray-mid">
-      <span className="text-xs text-white font-bold truncate flex-1">{p.player_name}</span>
+      <PlayerName name={p.player_name} id={p.player_id} players={players} className="text-xs text-white font-bold truncate flex-1 text-left" />
       {badges && <span className="text-[11px] shrink-0">{badges}</span>}
       <span className={cn("text-xs font-black tabular-nums px-1.5 py-0.5 rounded shrink-0", ratingClass(p.rating))}>
         {p.rating != null ? p.rating.toFixed(1) : "—"}
@@ -346,7 +384,7 @@ function PlayerStatRow({ p }: { p: PlayerMatchStat }) {
   );
 }
 
-function TopPlayers({ players, teamA, teamB }: { players: PlayerMatchStat[]; teamA: string; teamB: string }) {
+function TopPlayers({ players, teamA, teamB, playersCtx }: { players: PlayerMatchStat[]; teamA: string; teamB: string; playersCtx?: PlayersCtx }) {
   if (!players.length) return (
     <p className="text-center text-canal-gray-muted text-sm py-12">
       Notes joueurs disponibles après le match.
@@ -384,7 +422,7 @@ function TopPlayers({ players, teamA, teamB }: { players: PlayerMatchStat[]; tea
           <div key={label}>
             <p className="text-xs font-black text-canal-yellow uppercase tracking-wider mb-2 truncate">{label}</p>
             <div className="space-y-1">
-              {list.map((p, i) => <PlayerStatRow key={`${p.player_name}-${i}`} p={p} />)}
+              {list.map((p, i) => <PlayerStatRow key={`${p.player_name}-${i}`} p={p} players={playersCtx} />)}
             </div>
           </div>
         ))}
@@ -572,6 +610,7 @@ export default function MatchCenterPage() {
   const [chatUnread, setChatUnread] = useState(0);
   const [notesView, setNotesView] = useState<"pitch" | "list">("pitch");
   const [myPred, setMyPred] = useState<{ predicted_score_a: number; predicted_score_b: number } | null>(null);
+  const [sheet, setSheet] = useState<{ id: string; perf?: MatchPerf } | null>(null);
 
   // Onglet initial depuis l'URL (?tab=chat) — utilisé par les notifications push.
   useEffect(() => {
@@ -643,6 +682,45 @@ export default function MatchCenterPage() {
   const teamA = toFrench(match.team_a);
   const teamB = toFrench(match.team_b);
 
+  // ── Clic joueur → fiche football ─────────────────────────────────────────
+  // Résolution nom → api_football_id depuis les données déjà en mémoire
+  // (notes + compos). Les events/buteurs n'ont qu'un nom → on retombe dessus.
+  const idByName = new Map<string, string>();
+  for (const p of playerStats) if (p.player_id && p.player_name) idByName.set(p.player_name.toLowerCase(), p.player_id);
+  if (lineups) for (const p of [...lineups.home, ...lineups.away]) if (p.player_id && p.player_name) idByName.set(p.player_name.toLowerCase(), p.player_id);
+
+  const buildPerf = (playerId: string, name: string): MatchPerf | undefined => {
+    const stat = playerStats.find((p) => p.player_id === playerId) ?? playerStats.find((p) => p.player_name.toLowerCase() === name.toLowerCase());
+    if (!stat) return undefined;
+    const lname = stat.player_name.toLowerCase();
+    const timeline = events
+      .filter((e) =>
+        (e.player_name ?? "").toLowerCase().includes(lname) ||
+        (e.assist_player_name ?? "").toLowerCase() === lname
+      )
+      .sort((a, b) => a.minute - b.minute)
+      .map((e) => {
+        const isAssist = (e.assist_player_name ?? "").toLowerCase() === lname && (e.player_name ?? "").toLowerCase() !== lname;
+        return {
+          minute: e.minute,
+          icon: isAssist ? "🎯" : (EVENT_ICONS[e.type] ?? "•"),
+          label: isAssist ? "Passe décisive" : (eventDetailFr(e.detail ?? "") || EVENT_LABELS[e.type] || "Événement"),
+        };
+      });
+    return {
+      matchId: match.id, teamA, teamB, scoreA: match.score_a, scoreB: match.score_b,
+      rating: stat.rating, minutes: stat.minutes ?? null, started: stat.started ?? null,
+      goals: stat.goals, assists: stat.assists, yellowCards: stat.yellow_cards, redCards: stat.red_cards,
+      shots: stat.shots, passes: stat.passes, keyPasses: stat.key_passes ?? null,
+      dribbles: stat.dribbles, duelsWon: stat.duels_won ?? null, timeline,
+    };
+  };
+
+  const players: PlayersCtx = {
+    resolveId: (name: string) => idByName.get(name.toLowerCase()),
+    open: (playerId: string, name: string) => setSheet({ id: playerId, perf: buildPerf(playerId, name) }),
+  };
+
   // Match test (amical/démo) = phase "Groupe" SANS stage. Les vrais matchs de
   // poule portent un stage ("Groupe A/B…") ; les matchs à élimination directe
   // ont une autre phase. On masque l'onglet "Groupe" (classement) pour ces
@@ -661,7 +739,10 @@ export default function MatchCenterPage() {
 
   return (
     <div className="min-h-screen bg-canal-black">
-      <ScoreBoard detail={detail} />
+      {sheet && (
+        <PlayerSheet playerId={sheet.id} matchPerf={sheet.perf} onClose={() => setSheet(null)} />
+      )}
+      <ScoreBoard detail={detail} players={players} />
 
       {myPred && (
         <div className="flex items-center justify-center gap-2 py-2 bg-canal-yellow/5 border-b border-canal-yellow/15">
@@ -718,10 +799,10 @@ export default function MatchCenterPage() {
       </div>
 
       <div className="px-4 pb-8 max-w-2xl mx-auto">
-        {tab === "timeline" && <Timeline events={events} teamA={teamA} teamB={teamB} />}
+        {tab === "timeline" && <Timeline events={events} teamA={teamA} teamB={teamB} players={players} />}
         {tab === "lineups" && (
           lineups
-            ? <Lineups lineups={lineups} />
+            ? <Lineups lineups={lineups} players={players} />
             : <p className="text-center text-canal-gray-muted text-sm py-12">
                 {match.status === "upcoming"
                   ? "Compositions disponibles avant le coup d'envoi."
@@ -747,14 +828,14 @@ export default function MatchCenterPage() {
             </div>
             {notesView === "pitch" ? (
               lineups ? (
-                <PitchLineup lineups={lineups} playerStats={playerStats} events={events} teamA={teamA} teamB={teamB} />
+                <PitchLineup lineups={lineups} playerStats={playerStats} events={events} teamA={teamA} teamB={teamB} onPlayerClick={(id, name) => players.open(id, name)} />
               ) : (
                 <p className="text-center text-canal-gray-muted text-sm py-12">
                   Terrain disponible dès la publication des compositions (~40 min avant le coup d&apos;envoi).
                 </p>
               )
             ) : (
-              <TopPlayers players={playerStats} teamA={teamA} teamB={teamB} />
+              <TopPlayers players={playerStats} teamA={teamA} teamB={teamB} playersCtx={players} />
             )}
           </div>
         )}

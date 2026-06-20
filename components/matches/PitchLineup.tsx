@@ -20,6 +20,7 @@ interface Props {
   events: MatchEvent[];
   teamA: string;
   teamB: string;
+  onPlayerClick?: (playerId: string, name: string) => void;
 }
 
 function ratingColor(r: number | null): string {
@@ -87,23 +88,31 @@ function PlayerDot({
   stat,
   subbedOff,
   mirror,
+  onPlayerClick,
 }: {
   player: LineupPlayer;
   stat?: PlayerMatchStat;
   subbedOff: boolean;
   mirror: boolean;
+  onPlayerClick?: (playerId: string, name: string) => void;
 }) {
   const [imgOk, setImgOk] = useState(true);
-  const url = photoUrl(player.player_id ?? stat?.player_id);
+  const pid = player.player_id ?? stat?.player_id;
+  const url = photoUrl(pid);
   const rating = stat?.rating ?? null;
   const yellow = (stat?.yellow_cards ?? 0) > 0;
   const red = (stat?.red_cards ?? 0) > 0;
   const motm = stat?.is_motm ?? false;
   const last = player.player_name.split(" ").slice(-1).join(" ");
+  const clickable = !!(onPlayerClick && pid);
 
   return (
     <div className="flex flex-col items-center gap-1 w-[58px]" style={mirror ? { transform: "scaleY(-1)" } : undefined}>
-      <div style={mirror ? { transform: "scaleY(-1)" } : undefined} className="flex flex-col items-center gap-1">
+      <div
+        style={mirror ? { transform: "scaleY(-1)" } : undefined}
+        className={`flex flex-col items-center gap-1 ${clickable ? "cursor-pointer" : ""}`}
+        onClick={clickable ? () => onPlayerClick!(pid!, player.player_name) : undefined}
+      >
         <div className="relative">
           <div className="w-11 h-11 rounded-full bg-canal-gray-mid border-2 border-white/80 overflow-hidden flex items-center justify-center shadow-md">
             {url && imgOk ? (
@@ -153,11 +162,13 @@ function HalfPitch({
   stats,
   subbedOffIds,
   mirror,
+  onPlayerClick,
 }: {
   players: LineupPlayer[];
   stats: Map<string, PlayerMatchStat>;
   subbedOffIds: Set<string>;
   mirror: boolean;
+  onPlayerClick?: (playerId: string, name: string) => void;
 }) {
   const rows = toRows(players);
   // mirror = équipe du bas : on inverse l'ordre des lignes (gardien en bas).
@@ -179,6 +190,7 @@ function HalfPitch({
                 stat={statFor(p)}
                 subbedOff={!!p.player_id && subbedOffIds.has(p.player_id)}
                 mirror={mirror}
+                onPlayerClick={onPlayerClick}
               />
             ) : null
           )}
@@ -188,7 +200,7 @@ function HalfPitch({
   );
 }
 
-export function PitchLineup({ lineups, playerStats, events, teamA, teamB }: Props) {
+export function PitchLineup({ lineups, playerStats, events, teamA, teamB, onPlayerClick }: Props) {
   if (!lineups?.home?.some((p) => p.is_starting)) {
     return (
       <p className="text-center text-canal-gray-muted text-sm py-12">
@@ -241,8 +253,8 @@ export function PitchLineup({ lineups, playerStats, events, teamA, teamB }: Prop
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-40 h-16 border border-white/30 border-b-0" />
         </div>
 
-        <HalfPitch players={lineups.home} stats={statBySide("home")} subbedOffIds={subbedOff("home")} mirror={false} />
-        <HalfPitch players={lineups.away} stats={statBySide("away")} subbedOffIds={subbedOff("away")} mirror={true} />
+        <HalfPitch players={lineups.home} stats={statBySide("home")} subbedOffIds={subbedOff("home")} mirror={false} onPlayerClick={onPlayerClick} />
+        <HalfPitch players={lineups.away} stats={statBySide("away")} subbedOffIds={subbedOff("away")} mirror={true} onPlayerClick={onPlayerClick} />
       </div>
 
       <p className="text-[10px] text-canal-gray-muted text-center mt-2">

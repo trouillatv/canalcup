@@ -76,6 +76,13 @@ export interface PlayerMatchStat {
   passes: number;
   tackles: number;
   dribbles: number;
+  // Fiche joueur (Forme / Mondial / Indice) : temps de jeu + titularisation,
+  // passes clés et duels gagnés. Tous optionnels — l'API ne les remplit pas
+  // toujours, l'UI dégrade alors proprement.
+  minutes?: number | null;
+  started?: boolean | null;
+  duels_won?: number | null;
+  key_passes?: number | null;
   is_motm: boolean;
   source: StatSource;
 }
