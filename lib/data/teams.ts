@@ -311,6 +311,8 @@ export interface IndividualRow {
   quizCount: number;
   total: number;
   rank: number;
+  // Titre de réputation (rempli côté page via getReputationMap) — affichage social.
+  title?: { emoji: string; label: string; exclusive: boolean } | null;
 }
 
 // Points Casino (joker) par joueur — repliés dans le pilier pronos du

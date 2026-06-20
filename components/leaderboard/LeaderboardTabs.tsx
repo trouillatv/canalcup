@@ -47,6 +47,11 @@ function PlayerList({ rows, metric }: { rows: IndividualRow[]; metric: PlayerMet
             <div className="w-8 text-center font-black text-lg flex-shrink-0">{medal(rank)}</div>
             <div className="flex-1 min-w-0 ml-1">
               <p className="font-bold text-white truncate text-sm">{r.display_name}</p>
+              {r.title && (
+                <p className={`text-[11px] font-bold truncate flex items-center gap-1 ${r.title.exclusive ? "text-canal-yellow" : "text-canal-gray-muted"}`}>
+                  <span>{r.title.emoji}</span>{r.title.label}
+                </p>
+              )}
               <p className="text-[11px] text-canal-gray-muted truncate">
                 {r.team_name ?? "Sans binôme"}
                 {metric === "general" && (

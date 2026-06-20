@@ -154,9 +154,20 @@ function badgesFor(a: UserAgg): Badge[] {
   ];
 }
 
-export async function getReputation(userId: string): Promise<Reputation> {
-  if (!CACHE || Date.now() - CACHE.at > TTL_MS) {
-    CACHE = { at: Date.now(), map: await computeAll() };
+// Map complète (cachée) — évite N calculs concurrents quand on enrichit une
+// liste (classement). computeAll() n'est lancé qu'une fois par fenêtre de cache.
+let INFLIGHT: Promise<Map<string, Reputation>> | null = null;
+export async function getReputationMap(): Promise<Map<string, Reputation>> {
+  if (CACHE && Date.now() - CACHE.at <= TTL_MS) return CACHE.map;
+  if (!INFLIGHT) {
+    INFLIGHT = computeAll().then((map) => { CACHE = { at: Date.now(), map }; INFLIGHT = null; return map; });
   }
-  return CACHE.map.get(userId) ?? { title: personalityTitle({ userId, total: 0, exact: 0, correctResult: 0, zeroPoints: 0, draws: 0, sumPoints: 0, predGoals: 0, oneNil: 0, quizCount: 0, quizPoints: 0 }), badges: badgesFor({ userId, total: 0, exact: 0, correctResult: 0, zeroPoints: 0, draws: 0, sumPoints: 0, predGoals: 0, oneNil: 0, quizCount: 0, quizPoints: 0 }) };
+  return INFLIGHT;
+}
+
+const emptyAgg = (userId: string): UserAgg => ({ userId, total: 0, exact: 0, correctResult: 0, zeroPoints: 0, draws: 0, sumPoints: 0, predGoals: 0, oneNil: 0, quizCount: 0, quizPoints: 0 });
+
+export async function getReputation(userId: string): Promise<Reputation> {
+  const map = await getReputationMap();
+  return map.get(userId) ?? { title: personalityTitle(emptyAgg(userId)), badges: badgesFor(emptyAgg(userId)) };
 }

@@ -1,6 +1,7 @@
 import { getLeaderboard, getIndividualLeaderboard } from "@/lib/data/teams";
 import { getServiceLeaderboard } from "@/lib/data/users";
 import { computeMedals } from "@/lib/data/medals";
+import { getReputationMap } from "@/lib/data/reputation";
 import { LeaderboardTabs } from "@/components/leaderboard/LeaderboardTabs";
 import { weightPct } from "@/lib/scoring/config";
 import { Trophy } from "lucide-react";
@@ -8,12 +9,21 @@ import { Trophy } from "lucide-react";
 export const revalidate = 60;
 
 export default async function LeaderboardPage() {
-  const [rows, medals, serviceRows, individualRows] = await Promise.all([
+  const [rows, medals, serviceRows, individualRows, repMap] = await Promise.all([
     getLeaderboard(),
     computeMedals(),
     getServiceLeaderboard(),
     getIndividualLeaderboard(),
+    getReputationMap(),
   ]);
+
+  // Attache le titre de réputation à chaque joueur du classement (social).
+  const individualRowsWithTitles = individualRows.map((r) => ({
+    ...r,
+    title: repMap.get(r.user_id)?.title
+      ? { emoji: repMap.get(r.user_id)!.title!.emoji, label: repMap.get(r.user_id)!.title!.label, exclusive: repMap.get(r.user_id)!.title!.exclusive }
+      : null,
+  }));
 
   return (
     <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto">
@@ -23,7 +33,7 @@ export default async function LeaderboardPage() {
       </div>
 
       {/* Classements en onglets (binômes / individuel / pronos / quiz / services) */}
-      <LeaderboardTabs teamRows={rows} individualRows={individualRows} serviceRows={serviceRows} />
+      <LeaderboardTabs teamRows={rows} individualRows={individualRowsWithTitles} serviceRows={serviceRows} />
 
       {/* Système de points + pondérations (référence, sous les onglets) */}
       <div className="canal-card">
