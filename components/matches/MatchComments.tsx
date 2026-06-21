@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { MessageCircle, Send } from "lucide-react";
+import { MessageCircle, Send, Reply, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MatchComment {
@@ -12,6 +12,7 @@ interface MatchComment {
   display_name: string | null;
   body: string;
   created_at: string;
+  parent_comment_id?: string | null;
 }
 
 interface MatchCommentsResponse {
@@ -40,7 +41,9 @@ export function MatchComments({ matchId, isLive, onUnreadChange }: Props) {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -83,17 +86,24 @@ export function MatchComments({ matchId, isLive, onUnreadChange }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-        body: JSON.stringify({ body }),
+        body: JSON.stringify({ body, parent_comment_id: replyTo?.id ?? null }),
       });
       const payload = await res.json();
       if (!res.ok) throw new Error(payload?.error ?? "Impossible d'envoyer le message.");
       setText("");
+      setReplyTo(null);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossible d'envoyer le message.");
     } finally {
       setSending(false);
     }
+  };
+
+  const authorById = new Map(messages.map((m) => [m.id, authorLabel(m)]));
+  const startReply = (m: MatchComment) => {
+    setReplyTo({ id: m.id, name: authorLabel(m) });
+    inputRef.current?.focus();
   };
 
   return (
@@ -124,6 +134,12 @@ export function MatchComments({ matchId, isLive, onUnreadChange }: Props) {
 
           {messages.map((message) => (
             <div key={message.id} className="rounded-xl bg-canal-gray-mid px-3 py-2">
+              {message.parent_comment_id && (
+                <p className="text-[11px] text-canal-gray-muted mb-1 flex items-center gap-1 truncate">
+                  <Reply size={11} className="shrink-0 -scale-x-100" />
+                  En réponse à <span className="text-canal-yellow/80 font-bold">{authorById.get(message.parent_comment_id) ?? "…"}</span>
+                </p>
+              )}
               <div className="flex items-center gap-2 mb-1">
                 {message.user_id ? (
                   <Link href={`/joueur/${message.user_id}`} className="min-w-0 truncate text-xs font-black text-white hover:text-canal-yellow transition-colors">
@@ -139,18 +155,37 @@ export function MatchComments({ matchId, isLive, onUnreadChange }: Props) {
               <p className="text-sm text-white leading-snug whitespace-pre-wrap break-words">
                 {message.body}
               </p>
+              <button
+                onClick={() => startReply(message)}
+                className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold text-canal-gray-muted hover:text-canal-yellow transition-colors"
+              >
+                <Reply size={11} className="-scale-x-100" /> Répondre
+              </button>
             </div>
           ))}
           <div ref={endRef} />
         </div>
 
+        {replyTo && (
+          <div className="flex items-center gap-2 px-3 py-1.5 border-t border-canal-gray-light bg-canal-yellow/5">
+            <Reply size={12} className="text-canal-yellow shrink-0 -scale-x-100" />
+            <span className="text-[11px] text-canal-gray-muted truncate">
+              En réponse à <span className="text-white font-bold">{replyTo.name}</span>
+            </span>
+            <button onClick={() => setReplyTo(null)} aria-label="Annuler la réponse" className="ml-auto text-canal-gray-muted hover:text-white shrink-0">
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
         <form onSubmit={send} className="flex items-end gap-2 p-2 border-t border-canal-gray-light bg-canal-black/40">
           <textarea
+            ref={inputRef}
             value={text}
             onChange={(event) => setText(event.target.value)}
             maxLength={500}
             rows={1}
-            placeholder="Réagir au match..."
+            placeholder={replyTo ? `Répondre à ${replyTo.name}…` : "Réagir au match..."}
             className="min-h-10 max-h-24 flex-1 resize-none rounded-lg bg-canal-black border border-canal-gray-light px-3 py-2 text-sm text-white placeholder:text-canal-gray-muted focus:outline-none focus:border-canal-yellow"
           />
           <button

@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentSocialUser } from "@/lib/social/profile";
-import { sendPushToAll } from "@/lib/push";
+import { sendPushToUser } from "@/lib/push";
+
+// Organisateurs notifiés de CHAQUE commentaire (monitoring du live).
+const ORGANIZER_EMAILS = ["vincent.trouillat@canal-plus.com", "trouillatv@gmail.com"];
 
 type MatchCommentRow = {
   id: string;
@@ -12,6 +15,7 @@ type MatchCommentRow = {
   body: string;
   status: string;
   created_at: string;
+  parent_comment_id: string | null;
 };
 
 function isMissingTableError(error: { code?: string; message?: string } | null): boolean {
@@ -115,6 +119,7 @@ export async function POST(
 
   const body = await req.json().catch(() => ({}));
   const text = typeof body.body === "string" ? body.body.trim() : "";
+  const parentId = typeof body.parent_comment_id === "string" ? body.parent_comment_id : null;
 
   if (text.length < 2) return NextResponse.json({ error: "Message trop court" }, { status: 400 });
   if (text.length > 500) return NextResponse.json({ error: "Message trop long (500 max)" }, { status: 400 });
@@ -128,9 +133,10 @@ export async function POST(
       email: me.email,
       display_name: me.displayName,
       body: text,
+      parent_comment_id: parentId,
       status: "visible",
     })
-    .select("id, match_id, user_id, email, display_name, body, status, created_at")
+    .select("id, match_id, user_id, email, display_name, body, status, created_at, parent_comment_id")
     .single();
 
   if (isMissingTableError(error)) {
@@ -148,23 +154,43 @@ export async function POST(
       { onConflict: "match_id,user_id" }
     );
 
-  // Notifier les autres abonnés push (best-effort — ne bloque jamais la réponse)
+  // Push CIBLÉ (best-effort, ne bloque jamais) — JAMAIS un broadcast à tous :
+  //   1) réponse → uniquement l'auteur du commentaire d'origine.
+  //   2) tout commentaire sur un match LIVE → les organisateurs (monitoring).
   try {
     const { data: m } = await admin
       .from("matches")
-      .select("team_a, team_b")
+      .select("team_a, team_b, status")
       .eq("id", id)
       .maybeSingle();
     const who = me.displayName?.trim() || "Quelqu'un";
     const snippet = text.length > 80 ? `${text.slice(0, 77)}…` : text;
-    await sendPushToAll(
-      {
-        title: "💬 Nouveau commentaire",
-        body: m ? `${who} sur ${m.team_a} – ${m.team_b} : ${snippet}` : `${who} : ${snippet}`,
-        url: `/matches/${id}?tab=chat`,
-      },
-      { excludeAuthIds: [me.authId] }
-    );
+    const url = `/matches/${id}?tab=chat`;
+    const matchLabel = m ? `${m.team_a} – ${m.team_b}` : "le match";
+    const pushed = new Set<string>([me.authId]); // jamais se notifier soi-même
+
+    // 1) Réponse → l'auteur du commentaire parent.
+    if (parentId) {
+      const { data: parent } = await admin
+        .from("match_comments").select("user_id").eq("id", parentId).maybeSingle();
+      if (parent?.user_id && parent.user_id !== me.userId) {
+        const { data: pu } = await admin.from("users").select("auth_id").eq("id", parent.user_id).maybeSingle();
+        if (pu?.auth_id && !pushed.has(pu.auth_id)) {
+          await sendPushToUser(pu.auth_id, { title: "💬 On a répondu à ton commentaire", body: `${who} : ${snippet}`, url });
+          pushed.add(pu.auth_id);
+        }
+      }
+    }
+
+    // 2) Monitoring organisateurs — seulement sur un match en cours.
+    if (m?.status === "live" || m?.status === "halftime") {
+      const { data: orgs } = await admin.from("users").select("auth_id, email").in("email", ORGANIZER_EMAILS);
+      for (const o of (orgs ?? []) as { auth_id: string | null; email: string | null }[]) {
+        if (!o.auth_id || pushed.has(o.auth_id)) continue;
+        await sendPushToUser(o.auth_id, { title: "💬 Commentaire live", body: `${who} sur ${matchLabel} : ${snippet}`, url });
+        pushed.add(o.auth_id);
+      }
+    }
   } catch {
     /* push best-effort */
   }
