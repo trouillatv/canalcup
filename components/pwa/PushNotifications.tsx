@@ -29,20 +29,35 @@ export function PushNotifications() {
     setDismissed(wasDismissed);
 
     navigator.serviceWorker.ready.then(async (reg) => {
-      const sub = await reg.pushManager.getSubscription();
+      let sub = await reg.pushManager.getSubscription();
       setIsSubscribed(!!sub);
       setReady(true);
-      // Self-heal : le navigateur peut avoir un abonnement créé sous un AUTRE
-      // compte (même navigateur, multi-comptes) ou jamais persisté. On le
-      // ré-enregistre sous le COMPTE COURANT pour que la base reflète le bon
-      // utilisateur (sinon « cloche jaune » mais 0 ligne → aucun push reçu).
-      if (sub && Notification.permission === "granted") {
-        fetch("/api/push/subscribe", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(sub),
-          credentials: "same-origin",
-        }).catch(() => {});
+      // Self-heal GLOBAL : tout utilisateur dont la permission est accordée DOIT
+      // avoir une ligne en base sous le compte COURANT. Cas couverts :
+      //  • abonnement créé sous un AUTRE compte (même navigateur, multi-comptes)
+      //  • abonnement navigateur perdu/jamais persisté
+      // Sinon « cloche jaune » mais 0 ligne → aucun push reçu.
+      if (Notification.permission === "granted") {
+        if (!sub) {
+          const pk = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+          if (pk) {
+            try {
+              sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(pk),
+              });
+              setIsSubscribed(true);
+            } catch { /* iOS non-PWA, etc. */ }
+          }
+        }
+        if (sub) {
+          fetch("/api/push/subscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(sub),
+            credentials: "same-origin",
+          }).catch(() => {});
+        }
       }
     });
   }, []);
