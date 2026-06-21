@@ -19,6 +19,7 @@ import { HotColdPlayers } from "@/components/football/HotColdPlayers";
 import { MatchFacts } from "@/components/football/MatchFacts";
 import type { MatchPerf } from "@/components/football/PlayerCardView";
 import { track } from "@/lib/analytics/track";
+import { buildPlayerResolver } from "@/lib/football/resolve-player";
 
 type Tab = "timeline" | "stats" | "notes" | "pronos" | "chat" | "standings" | "facts";
 
@@ -642,9 +643,12 @@ export default function MatchCenterPage() {
   // ── Clic joueur → fiche football ─────────────────────────────────────────
   // Résolution nom → api_football_id depuis les données déjà en mémoire
   // (notes + compos). Les events/buteurs n'ont qu'un nom → on retombe dessus.
-  const idByName = new Map<string, string>();
-  for (const p of playerStats) if (p.player_id && p.player_name) idByName.set(p.player_name.toLowerCase(), p.player_id);
-  if (lineups) for (const p of [...lineups.home, ...lineups.away]) if (p.player_id && p.player_name) idByName.set(p.player_name.toLowerCase(), p.player_id);
+  // Résolveur nom → id TOLÉRANT aux abréviations ("M. Oyarzabal" ↔ "Mikel
+  // Oyarzabal") : les events de but donnent souvent le nom abrégé.
+  const resolveId = buildPlayerResolver([
+    ...playerStats.map((p) => ({ name: p.player_name, id: p.player_id })),
+    ...(lineups ? [...lineups.home, ...lineups.away].map((p) => ({ name: p.player_name, id: p.player_id })) : []),
+  ]);
 
   const buildPerf = (playerId: string, name: string): MatchPerf | undefined => {
     const stat = playerStats.find((p) => p.player_id === playerId) ?? playerStats.find((p) => p.player_name.toLowerCase() === name.toLowerCase());
@@ -674,7 +678,7 @@ export default function MatchCenterPage() {
   };
 
   const players: PlayersCtx = {
-    resolveId: (name: string) => idByName.get(name.toLowerCase()),
+    resolveId,
     open: (playerId: string, name: string) => setSheet({ id: playerId, perf: buildPerf(playerId, name) }),
   };
 

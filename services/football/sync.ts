@@ -737,7 +737,12 @@ export async function getMatchDetail(matchId: string): Promise<FullMatchDetail |
   // Notes joueurs : lourd → on ne les tire que si MANQUANTES, ou une fois à la
   // fin du match. Pas à chaque resync live → économie de quota.
   let playerStats = await loadPlayerStatsFromDB(matchId);
-  if ((!playerStats.length || (force && status === "finished")) && apifId && hasApiFootball()) {
+  // API-Football publie souvent les notes en 2e période, pas au coup d'envoi.
+  // On re-tire les notes tant qu'AUCUNE n'est encore là — y compris EN LIVE
+  // (pas seulement à la fin) — pour les afficher dès qu'elles sortent. Une fois
+  // au moins une note présente, on arrête de marteler (sauf pull final à la fin).
+  const hasAnyRating0 = playerStats.some((p) => p.rating != null);
+  if ((!playerStats.length || (force && (status === "finished" || !hasAnyRating0))) && apifId && hasApiFootball()) {
     const fresh = await syncPlayerStatsApiF(matchId, apifId);
     if (fresh.length) playerStats = fresh;
   }
