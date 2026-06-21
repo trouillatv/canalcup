@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { toFrench } from "@/lib/football/team-names";
+import { groupLetterForTeam, officialTeamFr } from "@/lib/football/groups-2026";
 
 const PHASE_ORDER = ["Groupe", "Huitièmes", "Quarts", "Demis", "3ème place", "Finale"];
 
@@ -30,23 +31,13 @@ export async function GET() {
     team_b: toFrench(m.team_b),
   }));
 
-  // Build a team → group-letter map from the standings (the only reliable
-  // source for which pool a team is in — match.stage is often a matchday number).
-  const groupLetterOf = (s?: string | null) =>
-    s?.match(/group(?:e)?\s*([a-l])\b/i)?.[1]?.toUpperCase() ??
-    s?.trim().match(/^([a-l])$/i)?.[1]?.toUpperCase() ??
-    null;
-
-  const teamToGroup: Record<string, string> = {};
-  for (const row of standings ?? []) {
-    const letter = groupLetterOf(row.group_name);
-    if (letter && row.team_name_fr) teamToGroup[row.team_name_fr] = letter;
-  }
-
-  // Resolve a real group letter for a group-stage match, or null if unknown.
+  // Pool d'un match : on s'appuie sur le TIRAGE OFFICIEL (WC2026_GROUPS) via le
+  // nom des équipes — source unique de vérité, immunisée contre les libellés
+  // `group_name` pollués/dupliqués des fournisseurs (cf. fallback "Group A").
+  // match.stage est souvent un numéro de journée → ignoré pour le rattachement.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const resolveGroup = (m: any): string | null =>
-    groupLetterOf(m.stage) ?? teamToGroup[m.team_a] ?? teamToGroup[m.team_b] ?? null;
+    groupLetterForTeam(m.team_a) ?? groupLetterForTeam(m.team_b) ?? null;
 
   // Group matches by phase then by real group (for the group phase)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -84,10 +75,26 @@ export async function GET() {
     );
   }
 
-  // Group standings by group_name
-  const standingsByGroup: Record<string, typeof standings> = {};
+  // Classement par poule — RECONSTRUIT depuis le tirage officiel, pas depuis le
+  // `group_name` du fournisseur (pollué : doublons, fallback "Group A" à 9
+  // équipes, conventions mêlées "Group A" / "Group Stage - Group A"). On rattache
+  // chaque ligne à sa vraie poule via le nom d'équipe, on déduplique en gardant
+  // la plus à jour (plus de matchs joués), et on normalise le nom FR.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const bestByTeam: Record<string, any> = {};
   for (const row of standings ?? []) {
-    const g = row.group_name ?? "Group A";
+    const letter = groupLetterForTeam(row.team_name_fr);
+    if (!letter) continue; // ligne hors 48 (3es de groupe, garbage) → ignorée
+    const canonFr = officialTeamFr(row.team_name_fr) ?? row.team_name_fr;
+    const key = `${letter}|${canonFr}`;
+    const prev = bestByTeam[key];
+    if (!prev || (row.played ?? 0) > (prev.played ?? 0)) {
+      bestByTeam[key] = { ...row, team_name_fr: canonFr, _letter: letter };
+    }
+  }
+  const standingsByGroup: Record<string, typeof standings> = {};
+  for (const row of Object.values(bestByTeam)) {
+    const g = `Groupe ${row._letter}`;
     if (!standingsByGroup[g]) standingsByGroup[g] = [];
     standingsByGroup[g].push(row);
   }

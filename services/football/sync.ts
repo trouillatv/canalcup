@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { cache, matchTTL, TTL } from "./cache";
 import { tsdbTimeline, tsdbStatus, apifEvents, apifLineup, apifStats, apifPlayerStats, apifStatus } from "./transformers";
 import { toFrench, toFlag } from "@/lib/football/team-names";
-import { groupLetterForTeam } from "@/lib/football/groups-2026";
+import { groupLetterForTeam, officialTeamFr } from "@/lib/football/groups-2026";
 import { generatePlayerRatings } from "@/services/ai/generators/player-ratings";
 import type { FullMatchDetail, MatchEvent, LineupPlayer, MatchStat, PlayerMatchStat, StandingRow } from "./types";
 
@@ -805,6 +805,16 @@ export async function getMatchDetail(matchId: string): Promise<FullMatchDetail |
 
 // ─── Standings sync ───────────────────────────────────────────────────────────
 
+// group_name canonique pour la table standings. Si l'équipe est dans le tirage
+// officiel → "Groupe X" (déterministe, dédupliquant). Sinon on garde le libellé
+// fournisseur (ex. classement des 3es) — mais JAMAIS le fallback "Group A" qui
+// agrégeait toutes les lignes sans groupe dans une fausse poule A surchargée.
+function normalizedGroupName(teamName: string, providerGroup?: string | null): string {
+  const letter = groupLetterForTeam(teamName);
+  if (letter) return `Groupe ${letter}`;
+  return providerGroup?.trim() || "Hors poule";
+}
+
 export async function syncStandings(): Promise<number> {
   if (!hasApiFootball()) throw new Error("API_FOOTBALL_KEY is required for football sync");
   return syncStandingsApiF();
@@ -819,9 +829,12 @@ async function syncStandingsApiF(): Promise<number> {
   // API-Football returns standings nested under league.standings
   const upsertRows = (raw[0]?.league?.standings ?? []).flat().map((row: any) => ({
     competition: "FIFA World Cup 2026",
-    group_name: row.group ?? "Group A",
+    // group_name DÉTERMINISTE depuis le tirage officiel (jamais "Group A" par
+    // défaut : c'est ce fallback qui empilait toutes les lignes sans groupe dans
+    // une poule A à 9 équipes). Rattachement par le nom d'équipe.
+    group_name: normalizedGroupName(row.team?.name ?? "", row.group),
     team_name: row.team?.name ?? "",
-    team_name_fr: toFrench(row.team?.name ?? ""),
+    team_name_fr: officialTeamFr(row.team?.name ?? "") ?? toFrench(row.team?.name ?? ""),
     team_flag: toFlag(row.team?.name ?? ""),
     rank: row.rank ?? 0,
     played: row.all?.played ?? 0,
@@ -848,9 +861,9 @@ async function syncStandingsTsdb(): Promise<number> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const upsertRows = rows.map((r: any) => ({
     competition: "FIFA World Cup 2026",
-    group_name: r.strGroupName ?? "Group A",
+    group_name: normalizedGroupName(r.strTeam ?? "", r.strGroupName),
     team_name: r.strTeam ?? "",
-    team_name_fr: toFrench(r.strTeam ?? ""),
+    team_name_fr: officialTeamFr(r.strTeam ?? "") ?? toFrench(r.strTeam ?? ""),
     team_flag: toFlag(r.strTeam ?? ""),
     rank: parseInt(r.intRank ?? "0", 10),
     played: parseInt(r.intPlayed ?? "0", 10),
