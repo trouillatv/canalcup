@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendPushToUser } from "@/lib/push";
 import {
   JOKER_CATALOG,
   type JokerType,
@@ -434,6 +435,23 @@ async function applyJoker(admin: Admin, params: PlayParams): Promise<PlayResult>
 
   // Live feed (Canal Cup Live + TV chaos)
   await postJokerFeed(admin, publicMessage, playRow.id, params.playedByUserId, playerName);
+
+  // 🚨 Notif NARRATIVE « un joker joué CONTRE toi » — uniquement si l'effet vise
+  // QUELQU'UN D'AUTRE (jokers offensifs). Fire-and-forget, jamais bloquant.
+  if (effect && effect.affected && effect.affected !== params.playedByUserId) {
+    void (async () => {
+      const { data: tu } = await admin.from("users").select("auth_id").eq("id", effect.affected).maybeSingle();
+      if (!tu?.auth_id) return;
+      const M: Record<string, { title: string; body: string }> = {
+        red_card_block: { title: "🚨 Carton Rouge contre toi !", body: `${playerName} t'a suspendu sur un match. Aïe.` },
+        fog: { title: "🌫 Brouillard sur toi", body: `${playerName} te masque les pronos des autres.` },
+        flight_delay: { title: "✈️ Retard d'Avion", body: `${playerName} t'a bloqué la modif de tes pronos.` },
+        var_window: { title: "🎥 VAR contre toi ?", body: `${playerName} a joué un joker qui te concerne.` },
+      };
+      const msg = M[effect.type] ?? { title: "🚨 Un joker joué contre toi", body: `${playerName} a utilisé un joker qui te vise.` };
+      await sendPushToUser(tu.auth_id as string, { ...msg, url: "/jokers" });
+    })().catch(() => {});
+  }
 
   return { ok: true, play: playRow as JokerPlay, publicMessage, data };
 }

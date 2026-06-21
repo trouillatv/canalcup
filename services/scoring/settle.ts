@@ -6,6 +6,7 @@ import { calculatePoints } from "@/lib/scoring";
 import { generateMatchStory } from "@/services/ai/generators/match-story";
 import { createFlash } from "@/lib/tv/flash";
 import { resolveQuitteOuDoubleForMatch, resolveKamikazeForMatch } from "@/lib/jokers/service";
+import { sendPushToUser } from "@/lib/push";
 
 // ─── Settle a single match ────────────────────────────────────────────────────
 
@@ -87,6 +88,30 @@ export async function settleMatch(matchId: string): Promise<{ settled: number; s
       8
     ).catch(() => {});
   }
+
+  // 🔥 Notif NARRATIVE « tu es le seul à avoir trouvé le score » (fire-and-forget).
+  // Personnelle > technique : on ne notifie QUE si le score exact est rare (≤ 3
+  // personnes), pour que ça reste un moment « héros ».
+  void (async () => {
+    const exactPreds = predictions.filter(
+      (p) => p.predicted_score_a === match.score_a && p.predicted_score_b === match.score_b
+    );
+    if (!exactPreds.length || exactPreds.length > 3) return;
+    const n = exactPreds.length;
+    const score = `${match.score_a}-${match.score_b}`;
+    const url = `/matches/${matchId}?tab=pronos`;
+    const { data: users } = await supabase.from("users").select("id, auth_id").in("id", exactPreds.map((p) => p.user_id));
+    const authById = new Map((users ?? []).map((u: { id: string; auth_id: string | null }) => [u.id, u.auth_id]));
+    for (const p of exactPreds) {
+      const authId = authById.get(p.user_id);
+      if (!authId) continue;
+      const title = n === 1 ? "🔥 Tu es le SEUL à avoir trouvé le score !" : "🎯 Score exact rare !";
+      const body = n === 1
+        ? `Personne d'autre n'a vu le ${score} de ${match.team_a}-${match.team_b}. Chapeau l'oracle.`
+        : `Vous n'êtes que ${n} à avoir trouvé le ${score} exact. Bien vu.`;
+      await sendPushToUser(authId, { title, body, url });
+    }
+  })().catch((e) => console.error(`[settle] narrative push failed for match=${matchId}`, e));
 
   // Generate AI story post-match (fire-and-forget, never blocks settlement)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
