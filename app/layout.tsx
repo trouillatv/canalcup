@@ -8,6 +8,7 @@ import { PwaSetup } from "@/components/pwa/PwaSetup";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { PushNotifications } from "@/components/pwa/PushNotifications";
 import { TimezoneProvider } from "@/components/timezone/TimezoneProvider";
+import { PageTracker } from "@/components/analytics/PageTracker";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_TZ, normalizeTimezone } from "@/lib/utils";
 
@@ -98,6 +99,7 @@ export default async function RootLayout({
           <PwaSetup />
           <InstallPrompt />
           {isAuthenticated && <PushNotifications />}
+          {isAuthenticated && <PageTracker />}
         </TimezoneProvider>
       </body>
     </html>
