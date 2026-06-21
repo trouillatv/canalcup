@@ -12,24 +12,30 @@ function dangerColor(d: number): string {
   return "bg-canal-gray-light text-canal-gray-muted";
 }
 
+const POS_ABBR: Record<string, string> = { Gardien: "GB", Défenseur: "DEF", Milieu: "MIL", Attaquant: "ATT" };
+
 function PlayerPill({ p, onPlayer }: { p: RankedPlayer; onPlayer: (id: string, name: string) => void }) {
   const [imgOk, setImgOk] = useState(true);
   const last = p.name.split(" ").slice(-1).join(" ");
+  const meta = [p.positionFr ? (POS_ABBR[p.positionFr] ?? p.positionFr) : null, p.teamName].filter(Boolean).join(" · ");
   return (
     <button
       onClick={() => onPlayer(p.id, p.name)}
-      className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full bg-canal-gray-mid hover:bg-canal-gray-light transition-colors"
+      className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full bg-canal-gray-mid hover:bg-canal-gray-light transition-colors max-w-full"
     >
-      <span className="w-6 h-6 rounded-full bg-canal-gray-light overflow-hidden flex items-center justify-center shrink-0">
+      <span className="w-7 h-7 rounded-full bg-canal-gray-light overflow-hidden flex items-center justify-center shrink-0">
         {imgOk ? (
           <img src={p.photo} alt={p.name} className="w-full h-full object-cover" onError={() => setImgOk(false)} />
         ) : (
           <span className="text-[9px]">👤</span>
         )}
       </span>
-      <span className="text-xs font-bold text-white">{last}</span>
+      <span className="min-w-0 text-left leading-tight">
+        <span className="block text-xs font-bold text-white truncate">{last}</span>
+        {meta && <span className="block text-[9px] text-canal-gray-muted truncate">{meta}</span>}
+      </span>
       {p.danger != null && (
-        <span className={cn("text-[10px] font-black tabular-nums px-1.5 py-0.5 rounded", dangerColor(p.danger))}>{p.danger}</span>
+        <span className={cn("text-[10px] font-black tabular-nums px-1.5 py-0.5 rounded shrink-0", dangerColor(p.danger))}>{p.danger}</span>
       )}
     </button>
   );
