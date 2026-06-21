@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { cn, toNCDate, toNCTime } from "@/lib/utils";
 import { useTimezone } from "@/components/timezone/TimezoneProvider";
@@ -383,6 +384,7 @@ function TopPlayers({ players, teamA, teamB, playersCtx }: { players: PlayerMatc
 
 type PredOutcome = "exact" | "correct_result" | "correct_diff" | "wrong" | "pending";
 interface PredDetail {
+  user_id?: string | null;
   name: string;
   predicted_score_a: number;
   predicted_score_b: number;
@@ -496,7 +498,11 @@ function PredictionTrend({ matchId }: { matchId: string }) {
                   <span className="w-6 text-center text-xs font-black text-canal-gray-muted tabular-nums">
                     {medal ?? (scored ? `${i + 1}` : "")}
                   </span>
-                  <span className="flex-1 min-w-0 truncate text-sm font-bold text-white">{d.name}</span>
+                  {d.user_id ? (
+                    <Link href={`/joueur/${d.user_id}`} className="flex-1 min-w-0 truncate text-sm font-bold text-white hover:text-canal-yellow transition-colors">{d.name}</Link>
+                  ) : (
+                    <span className="flex-1 min-w-0 truncate text-sm font-bold text-white">{d.name}</span>
+                  )}
                   <span className="shrink-0 text-sm font-black text-white tabular-nums">
                     {d.predicted_score_a}–{d.predicted_score_b}
                   </span>

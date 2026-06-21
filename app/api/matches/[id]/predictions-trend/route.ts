@@ -96,6 +96,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
           )
         : null;
       return {
+        user_id: p.user_id,
         name: u?.display_name?.trim() || "Joueur",
         predicted_score_a: p.predicted_score_a,
         predicted_score_b: p.predicted_score_b,
