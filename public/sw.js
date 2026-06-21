@@ -1,4 +1,4 @@
-const CACHE = 'canalcup-v3'
+const CACHE = 'canalcup-v4'
 
 self.addEventListener('install', () => self.skipWaiting())
 
