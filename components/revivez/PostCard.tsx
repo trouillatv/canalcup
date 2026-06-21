@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { RevivezPost } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
 import { LocalTime } from "@/components/timezone/LocalTime";
@@ -43,7 +44,11 @@ export function PostCard({ post, onVote }: PostCardProps) {
           </span>
         </div>
         {post.team && (
-          <span className="text-xs text-canal-gray-muted">{post.team.name}</span>
+          post.team_id ? (
+            <Link href={`/teams/${post.team_id}`} className="text-xs text-canal-gray-muted hover:text-canal-yellow transition-colors">{post.team.name}</Link>
+          ) : (
+            <span className="text-xs text-canal-gray-muted">{post.team.name}</span>
+          )
         )}
       </div>
 

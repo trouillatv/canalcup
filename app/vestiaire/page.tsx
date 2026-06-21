@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Calendar, Lock, MessageCircle, Send, Shirt, Sparkles, Trophy, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { VestiaireChannel, VestiaireMessage } from "@/lib/supabase/types";
@@ -238,7 +239,11 @@ export default function VestiairePage() {
                     <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-canal-yellow text-xs font-black text-canal-black">
                       {author[0]?.toUpperCase() ?? "?"}
                     </span>
-                    <span className="font-black text-white text-sm">{author}</span>
+                    {message.user_id ? (
+                      <Link href={`/joueur/${message.user_id}`} className="font-black text-white text-sm hover:text-canal-yellow transition-colors">{author}</Link>
+                    ) : (
+                      <span className="font-black text-white text-sm">{author}</span>
+                    )}
                     <span className="text-xs text-canal-gray-muted">{formatTime(message.created_at)}</span>
                     {(message.reaction_count ?? 0) > 0 && (
                       <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-canal-yellow/25 bg-canal-yellow/10 px-2 py-0.5 text-[11px] font-black text-canal-yellow">

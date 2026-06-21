@@ -5,6 +5,7 @@ import { getReputationMap } from "@/lib/data/reputation";
 import { LeaderboardTabs } from "@/components/leaderboard/LeaderboardTabs";
 import { weightPct } from "@/lib/scoring/config";
 import { Trophy } from "lucide-react";
+import Link from "next/link";
 
 export const revalidate = 60;
 
@@ -104,7 +105,11 @@ export default async function LeaderboardPage() {
                     <span className="text-canal-yellow font-bold text-xs">{medal.value}</span>
                   </div>
                   <p className="text-canal-gray-muted text-xs leading-snug">{medal.description}</p>
-                  <p className="text-canal-yellow/70 font-bold text-xs mt-1">{medal.team_name}</p>
+                  {medal.team_id ? (
+                    <Link href={`/teams/${medal.team_id}`} className="inline-block text-canal-yellow/70 hover:text-canal-yellow font-bold text-xs mt-1 transition-colors">{medal.team_name}</Link>
+                  ) : (
+                    <p className="text-canal-yellow/70 font-bold text-xs mt-1">{medal.team_name}</p>
+                  )}
                 </div>
               </div>
             ))}

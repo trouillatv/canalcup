@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Megaphone, MessageSquareText, Send, ShieldAlert, Trophy, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { FeedPost, FeedPostType } from "@/lib/supabase/types";
@@ -35,7 +36,11 @@ function FeedCard({ post }: { post: FeedPost }) {
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-black text-white text-sm">{author}</p>
+            {post.user_id ? (
+              <Link href={`/joueur/${post.user_id}`} className="font-black text-white text-sm hover:text-canal-yellow transition-colors">{author}</Link>
+            ) : (
+              <p className="font-black text-white text-sm">{author}</p>
+            )}
             <span className={cn("text-xs font-bold", config?.tone ?? "text-canal-gray-muted")}>
               {config?.label ?? post.type}
             </span>

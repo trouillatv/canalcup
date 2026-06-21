@@ -49,7 +49,11 @@ function BabyFootMatchCard({ match }: { match: BabyFootMatch }) {
           <div className="w-12 h-12 rounded-xl bg-canal-gray-mid flex items-center justify-center mb-1">
             <span className="font-black text-canal-yellow text-xl">{match.team_a?.name[0]}</span>
           </div>
-          <span className="text-sm font-bold text-center leading-tight">{match.team_a?.name}</span>
+          {match.team_a_id ? (
+            <Link href={`/teams/${match.team_a_id}`} className="text-sm font-bold text-center leading-tight hover:text-canal-yellow transition-colors">{match.team_a?.name}</Link>
+          ) : (
+            <span className="text-sm font-bold text-center leading-tight">{match.team_a?.name}</span>
+          )}
         </div>
         <div className="flex flex-col items-center gap-1">
           {isFinished ? (
@@ -67,7 +71,11 @@ function BabyFootMatchCard({ match }: { match: BabyFootMatch }) {
           <div className="w-12 h-12 rounded-xl bg-canal-gray-mid flex items-center justify-center mb-1">
             <span className="font-black text-canal-yellow text-xl">{match.team_b?.name[0]}</span>
           </div>
-          <span className="text-sm font-bold text-center leading-tight">{match.team_b?.name}</span>
+          {match.team_b_id ? (
+            <Link href={`/teams/${match.team_b_id}`} className="text-sm font-bold text-center leading-tight hover:text-canal-yellow transition-colors">{match.team_b?.name}</Link>
+          ) : (
+            <span className="text-sm font-bold text-center leading-tight">{match.team_b?.name}</span>
+          )}
         </div>
       </div>
       {match.highlight && (

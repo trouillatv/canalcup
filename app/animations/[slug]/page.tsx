@@ -107,7 +107,11 @@ export default async function ChallengeDetailPage({ params }: { params: Promise<
                   {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-white text-sm truncate">{e.team?.name ?? "Équipe"}</p>
+                  {e.team?.id ? (
+                    <Link href={`/teams/${e.team.id}`} className="block font-bold text-white text-sm truncate hover:text-canal-yellow transition-colors">{e.team.name}</Link>
+                  ) : (
+                    <p className="font-bold text-white text-sm truncate">{e.team?.name ?? "Équipe"}</p>
+                  )}
                   {e.title && <p className="text-xs text-canal-gray-muted truncate">{e.title}</p>}
                 </div>
                 <span className="font-black text-canal-yellow text-sm shrink-0">{e.points_awarded} pts</span>
@@ -117,7 +121,11 @@ export default async function ChallengeDetailPage({ params }: { params: Promise<
               <div key={e.id} className="canal-card flex items-center gap-3 py-3 opacity-70">
                 <span className="w-7 text-center text-sm">⏳</span>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-white text-sm truncate">{e.team?.name ?? "Équipe"}</p>
+                  {e.team?.id ? (
+                    <Link href={`/teams/${e.team.id}`} className="block font-bold text-white text-sm truncate hover:text-canal-yellow transition-colors">{e.team.name}</Link>
+                  ) : (
+                    <p className="font-bold text-white text-sm truncate">{e.team?.name ?? "Équipe"}</p>
+                  )}
                   {e.title && <p className="text-xs text-canal-gray-muted truncate">{e.title}</p>}
                 </div>
                 <span className="text-xs text-canal-gray-muted shrink-0">En attente</span>
