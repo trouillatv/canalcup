@@ -137,7 +137,7 @@ function ScorePredictInput({
     <div className="mt-3 space-y-2">
       {varEditable ? (
         <p className="text-xs text-canal-yellow font-bold text-center flex items-center justify-center gap-1.5">
-          <Video size={12} /> VAR : modifiable jusqu&apos;à la mi-temps
+          <Video size={12} /> VAR : modifiable jusqu&apos;au coup d&apos;envoi de la 2e période
         </p>
       ) : (
         <p className="text-xs text-canal-gray-muted text-center">Votre pronostic</p>

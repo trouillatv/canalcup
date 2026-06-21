@@ -645,7 +645,16 @@ export async function getMatchDetail(matchId: string): Promise<FullMatchDetail |
       cached.match.status === "finished" &&
       cached.playerStats.length > 0 &&
       !cached.playerStats.some((p) => p.rating != null);
-    if (!finishedNoNotes) return cached;
+    if (!finishedNoNotes) {
+      // Classement de groupe : il CHANGE quand d'AUTRES matchs du groupe se
+      // jouent. On le recalcule donc à chaud même quand le reste du détail
+      // (events, notes…) vient du cache 24 h — sinon il reste figé.
+      if ((cached.match.phase === "Groupe" || cached.match.phase === "Group Stage") && cached.match.stage) {
+        const fresh = await loadLiveGroupStandings(createAdminClient(), cached.match.team_a);
+        if (fresh) return { ...cached, standings: fresh };
+      }
+      return cached;
+    }
   }
 
   const supabase = createAdminClient();

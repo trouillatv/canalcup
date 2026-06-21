@@ -748,7 +748,7 @@ export default function MatchCenterPage() {
 
       {varEditable ? (
         <div className="flex flex-col items-center gap-1.5 py-2.5 bg-canal-yellow/10 border-b border-canal-yellow/25">
-          <span className="text-xs text-canal-yellow font-black flex items-center gap-1.5">🎥 VAR — modifie ton prono (jusqu&apos;à la mi-temps)</span>
+          <span className="text-xs text-canal-yellow font-black flex items-center gap-1.5">🎥 VAR — modifie ton prono (jusqu&apos;au coup d&apos;envoi de la 2e période)</span>
           <div className="flex items-center gap-2">
             <input type="number" inputMode="numeric" min={0} max={20} value={editPA}
               onChange={(e) => setEditPA(e.target.value)} onFocus={(e) => e.currentTarget.select()}
