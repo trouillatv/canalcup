@@ -21,6 +21,7 @@ import { MatchFacts } from "@/components/football/MatchFacts";
 import type { MatchPerf } from "@/components/football/PlayerCardView";
 import { track } from "@/lib/analytics/track";
 import { buildPlayerResolver } from "@/lib/football/resolve-player";
+import { getVarWindowMatchIds } from "@/lib/jokers/var-windows-client";
 
 type Tab = "timeline" | "stats" | "notes" | "pronos" | "chat" | "standings" | "facts";
 
@@ -570,6 +571,23 @@ export default function MatchCenterPage() {
   const [notesView, setNotesView] = useState<"pitch" | "list">("pitch");
   const [myPred, setMyPred] = useState<{ predicted_score_a: number; predicted_score_b: number } | null>(null);
   const [sheet, setSheet] = useState<{ id: string; perf?: MatchPerf } | null>(null);
+  const [varActive, setVarActive] = useState(false);
+  const [editPA, setEditPA] = useState<string>("");
+  const [editPB, setEditPB] = useState<string>("");
+  const [savingPred, setSavingPred] = useState(false);
+  const [predMsg, setPredMsg] = useState<string | null>(null);
+
+  // 🎥 Fenêtre VAR active sur ce match ? (refetch frais pour refléter un joker
+  // tout juste joué). Permet d'éditer le prono ICI pendant la 1re période/mi-temps.
+  useEffect(() => {
+    if (!id) return;
+    getVarWindowMatchIds(true).then((set) => setVarActive(set.has(id)));
+  }, [id]);
+
+  // Pré-remplit les champs d'édition VAR avec le prono actuel.
+  useEffect(() => {
+    if (myPred) { setEditPA(String(myPred.predicted_score_a)); setEditPB(String(myPred.predicted_score_b)); }
+  }, [myPred]);
 
   // Onglet initial depuis l'URL (?tab=chat) — utilisé par les notifications push.
   useEffect(() => {
@@ -641,6 +659,28 @@ export default function MatchCenterPage() {
   const teamA = toFrench(match.team_a);
   const teamB = toFrench(match.team_b);
 
+  // 🎥 Édition du prono via joker VAR : 1re période + mi-temps (pas la 2e ni fini).
+  const inVarWindow =
+    match.status === "halftime" || (match.status === "live" && (match.minute == null || match.minute <= 45));
+  const varEditable = varActive && inVarWindow;
+
+  const saveVarPred = async () => {
+    const a = parseInt(editPA, 10), b = parseInt(editPB, 10);
+    if (!Number.isInteger(a) || !Number.isInteger(b) || a < 0 || b < 0) return;
+    setSavingPred(true); setPredMsg(null);
+    try {
+      const res = await fetch("/api/predictions", {
+        method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin",
+        body: JSON.stringify({ match_id: match.id, predicted_score_a: a, predicted_score_b: b }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) { setPredMsg(d?.error ?? "Échec de l'enregistrement."); return; }
+      setMyPred({ predicted_score_a: a, predicted_score_b: b });
+      setPredMsg("Prono mis à jour ✓");
+    } catch { setPredMsg("Réseau indisponible."); }
+    finally { setSavingPred(false); }
+  };
+
   // ── Clic joueur → fiche football ─────────────────────────────────────────
   // Résolution nom → api_football_id depuis les données déjà en mémoire
   // (notes + compos). Les events/buteurs n'ont qu'un nom → on retombe dessus.
@@ -706,7 +746,25 @@ export default function MatchCenterPage() {
       )}
       <ScoreBoard detail={detail} players={players} />
 
-      {myPred && (
+      {varEditable ? (
+        <div className="flex flex-col items-center gap-1.5 py-2.5 bg-canal-yellow/10 border-b border-canal-yellow/25">
+          <span className="text-xs text-canal-yellow font-black flex items-center gap-1.5">🎥 VAR — modifie ton prono (jusqu&apos;à la mi-temps)</span>
+          <div className="flex items-center gap-2">
+            <input type="number" inputMode="numeric" min={0} max={20} value={editPA}
+              onChange={(e) => setEditPA(e.target.value)} onFocus={(e) => e.currentTarget.select()}
+              className="w-12 h-9 text-center text-lg font-black text-white bg-canal-gray-mid border border-canal-gray-light rounded-lg focus:border-canal-yellow outline-none" />
+            <span className="text-canal-gray-muted font-bold">–</span>
+            <input type="number" inputMode="numeric" min={0} max={20} value={editPB}
+              onChange={(e) => setEditPB(e.target.value)} onFocus={(e) => e.currentTarget.select()}
+              className="w-12 h-9 text-center text-lg font-black text-white bg-canal-gray-mid border border-canal-gray-light rounded-lg focus:border-canal-yellow outline-none" />
+            <button onClick={saveVarPred} disabled={savingPred || editPA === "" || editPB === ""}
+              className="px-3 h-9 rounded-lg bg-canal-yellow text-canal-black text-xs font-black disabled:opacity-40">
+              {savingPred ? "…" : "Enregistrer"}
+            </button>
+          </div>
+          {predMsg && <span className="text-[11px] text-canal-gray-muted">{predMsg}</span>}
+        </div>
+      ) : myPred ? (
         <div className="flex items-center justify-center gap-2 py-2 bg-canal-yellow/5 border-b border-canal-yellow/15">
           <Target size={12} className="text-canal-yellow" />
           <span className="text-xs text-canal-gray-muted">Mon prono</span>
@@ -714,7 +772,7 @@ export default function MatchCenterPage() {
             {myPred.predicted_score_a}–{myPred.predicted_score_b}
           </span>
         </div>
-      )}
+      ) : null}
 
       {isLive && lastUpdate && (
         <div className="flex items-center justify-center gap-1.5 py-1.5 bg-red-950/20 border-b border-red-900/20">
