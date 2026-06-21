@@ -16,6 +16,7 @@ import { Countdown } from "@/components/matches/Countdown";
 import { TeamLink } from "@/components/teams/TeamLink";
 import { PlayerSheet } from "@/components/football/PlayerSheet";
 import { HotColdPlayers } from "@/components/football/HotColdPlayers";
+import { MatchRatingsRecap } from "@/components/football/MatchRatingsRecap";
 import { MatchFacts } from "@/components/football/MatchFacts";
 import type { MatchPerf } from "@/components/football/PlayerCardView";
 import { track } from "@/lib/analytics/track";
@@ -730,6 +731,11 @@ export default function MatchCenterPage() {
       {/* 👀 Joueurs à surveiller (chauds/froids) — avant et pendant le match */}
       {match.status !== "finished" && match.status !== "postponed" && (
         <HotColdPlayers matchId={match.id} onPlayer={(pid, name) => players.open(pid, name)} />
+      )}
+
+      {/* ⭐ Récap notes — match terminé : joueurs importants + les moins en vue */}
+      {match.status === "finished" && (
+        <MatchRatingsRecap playerStats={playerStats} onPlayer={(pid, name) => players.open(pid, name)} />
       )}
 
       {/* Le Goat — commentaire IA post-match */}
