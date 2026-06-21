@@ -9,8 +9,12 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { selectAll } from "@/lib/data/select-all";
 import { toFrench } from "@/lib/football/team-names";
-import { computeDanger, getPlayerMeta, getSquadPlayerIds, isWorldCup } from "@/lib/football/player-card";
-import type { PlayerFormMatch, RankedPlayer } from "@/lib/football/player-card-types";
+import { getPlayerMeta, getSquadPlayers, parseMarketValue, isWorldCup, type SquadPlayer } from "@/lib/football/player-card";
+import type { RankedPlayer } from "@/lib/football/player-card-types";
+
+const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
+// Poids du poste pour la « dangerosité » (un attaquant menace plus qu'un GB).
+const POS_WEIGHT: Record<string, number> = { Attaquant: 10, Milieu: 6, Défenseur: 3, Gardien: 1 };
 
 const PHOTO = (id: string) => `https://media.api-sports.io/football/players/${id}.png`;
 
@@ -33,21 +37,6 @@ type StatRow = {
 const COLS =
   "player_id, player_name, team_side, rating, goals, assists, yellow_cards, red_cards, shots, dribbles, minutes, started, key_passes, duels_won, " +
   "match:matches(team_a, team_b, flag_a, flag_b, score_a, score_b, starts_at, status, competition)";
-
-function toForm(r: StatRow): PlayerFormMatch {
-  const m = r.match!;
-  return {
-    matchId: "", date: m.starts_at,
-    teamA: toFrench(m.team_a), teamB: toFrench(m.team_b),
-    flagA: m.flag_a, flagB: m.flag_b, scoreA: m.score_a, scoreB: m.score_b, status: m.status,
-    isHome: r.team_side === "home",
-    rating: r.rating, goals: r.goals ?? 0, assists: r.assists ?? 0,
-    yellowCards: r.yellow_cards ?? 0, redCards: r.red_cards ?? 0,
-    minutes: r.minutes ?? null, started: r.started ?? null,
-    shots: r.shots ?? 0, keyPasses: r.key_passes ?? null, duelsWon: r.duels_won ?? null,
-    dribbles: r.dribbles ?? 0,
-  };
-}
 
 function rankedBase(id: string, name: string): RankedPlayer {
   const meta = getPlayerMeta(id);
@@ -93,46 +82,68 @@ export async function getTopForm(opts?: { limit?: number; minMatches?: number; w
   return ranked.slice(0, limit);
 }
 
-// ─── Chauds / froids d'un match ───────────────────────────────────────────────
+// ─── Joueurs à surveiller d'un match ──────────────────────────────────────────
+// Indice « à surveiller » PONDÉRÉ (0 appel API, données stockées) :
+//   note de forme (WC) · buts tournoi + buts en SÉLECTION (pedigree) · passes
+//   décisives · valeur marchande (proxy qualité/saison) · poids du poste.
+// On affiche le TOP N de CHAQUE équipe → les deux sélections sont représentées
+// (fini le « aucun joueur pour la Belgique »).
+const PER_TEAM = 3;
+
+type FormAgg = { ratings: number[]; goals: number; assists: number; starts: number; played: number };
+
+function watchIndex(p: SquadPlayer, f: FormAgg | undefined): RankedPlayer {
+  const ratings = f?.ratings ?? [];
+  const avgR = ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null;
+  const wcGoals = f?.goals ?? 0, wcAssists = f?.assists ?? 0;
+  const startsRatio = f && f.played ? f.starts / f.played : 0;
+
+  const ratingComp = avgR != null ? clamp01((avgR - 5) / 4) * 25 : 8;                 // note WC (ou base)
+  const goalsComp = clamp01((wcGoals + (p.selectionGoals ?? 0) * 0.12) / 4) * 22;     // buts tournoi + sélection
+  const assistsComp = clamp01(wcAssists / 3) * 12;                                    // passes décisives
+  const valueComp = clamp01(parseMarketValue(p.value) / 120_000_000) * 23;            // valeur (proxy saison)
+  const posComp = POS_WEIGHT[p.positionFr ?? ""] ?? 4;                                // poste
+  const playComp = clamp01(startsRatio) * 8;                                          // temps de jeu
+  const watch = Math.round(ratingComp + goalsComp + assistsComp + valueComp + posComp + playComp);
+
+  const meta = getPlayerMeta(p.id);
+  return {
+    id: p.id, name: p.name, photo: p.photo,
+    teamName: meta?.teamName ?? null, teamSlug: meta?.teamSlug ?? null, positionFr: p.positionFr,
+    avgRating: avgR != null ? Math.round(avgR * 100) / 100 : null,
+    matches: f?.played ?? 0, goals: wcGoals, assists: wcAssists, danger: watch,
+  };
+}
+
 export async function getMatchHotPlayers(matchId: string): Promise<{ hot: RankedPlayer[]; cold: RankedPlayer[] }> {
   const supabase = createAdminClient();
   const { data: match } = await supabase.from("matches").select("team_a, team_b").eq("id", matchId).single();
   if (!match) return { hot: [], cold: [] };
 
-  const ids = [...getSquadPlayerIds(match.team_a), ...getSquadPlayerIds(match.team_b)];
-  if (!ids.length) return { hot: [], cold: [] };
+  const squadA = getSquadPlayers(toFrench(match.team_a));
+  const squadB = getSquadPlayers(toFrench(match.team_b));
+  const all = [...squadA, ...squadB];
+  if (!all.length) return { hot: [], cold: [] };
 
-  const { data } = await supabase.from("player_match_stats").select(COLS).in("player_id", ids);
-  const rows = ((data ?? []) as unknown as StatRow[]).filter((r) => r.player_id && r.match);
-
-  const byId = new Map<string, StatRow[]>();
-  for (const r of rows) {
-    const id = r.player_id!;
-    (byId.get(id) ?? byId.set(id, []).get(id)!).push(r);
+  // Forme WC trackée (notes/buts/passes/titularisations) pour ces joueurs.
+  const { data } = await supabase
+    .from("player_match_stats")
+    .select("player_id, rating, goals, assists, started, minutes")
+    .in("player_id", all.map((p) => p.id));
+  const form = new Map<string, FormAgg>();
+  for (const r of (data ?? []) as { player_id: string | null; rating: number | null; goals: number | null; assists: number | null; started: boolean | null; minutes: number | null }[]) {
+    if (!r.player_id) continue;
+    const f = form.get(r.player_id) ?? { ratings: [], goals: 0, assists: 0, starts: 0, played: 0 };
+    if (r.rating != null) f.ratings.push(r.rating);
+    f.goals += r.goals ?? 0; f.assists += r.assists ?? 0;
+    if (r.started) f.starts++;
+    if ((r.minutes ?? 0) > 0 || r.rating != null) f.played++;
+    form.set(r.player_id, f);
   }
 
-  const scored: (RankedPlayer & { danger: number; lastPlayed: boolean })[] = [];
-  for (const [id, list] of byId) {
-    list.sort((a, b) => new Date(b.match!.starts_at).getTime() - new Date(a.match!.starts_at).getTime());
-    const forms = list.map(toForm).filter((f) => f.rating != null || (f.minutes ?? 0) > 0).slice(0, 5);
-    if (!forms.length) continue;
-    const d = computeDanger(forms);
-    if (!d) continue;
-    const ratings = forms.map((f) => f.rating).filter((r): r is number => r != null);
-    scored.push({
-      ...rankedBase(id, list[0].player_name),
-      avgRating: ratings.length ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 100) / 100 : null,
-      matches: forms.length,
-      goals: forms.reduce((a, f) => a + f.goals, 0),
-      assists: forms.reduce((a, f) => a + f.assists, 0),
-      danger: d.score,
-      lastPlayed: (forms[0].minutes ?? 0) > 0 || forms[0].rating != null,
-    });
-  }
+  const topOf = (squad: SquadPlayer[]) =>
+    squad.map((p) => watchIndex(p, form.get(p.id))).sort((a, b) => (b.danger ?? 0) - (a.danger ?? 0)).slice(0, PER_TEAM);
 
-  const hot = scored.filter((p) => p.danger >= 55).sort((a, b) => b.danger - a.danger).slice(0, 5);
-  // Froids = joueurs qui ont récemment joué mais avec un Indice faible (contraste).
-  const cold = scored.filter((p) => p.lastPlayed && p.danger < 45).sort((a, b) => a.danger - b.danger).slice(0, 3);
-
-  return { hot, cold };
+  const hot = [...topOf(squadA), ...topOf(squadB)].sort((a, b) => (b.danger ?? 0) - (a.danger ?? 0));
+  return { hot, cold: [] };
 }

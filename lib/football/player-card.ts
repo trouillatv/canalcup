@@ -101,6 +101,39 @@ export function getSquadPlayerIds(teamName: string): string[] {
   return raw.players.filter((p) => p.api_football_id != null).map((p) => String(p.api_football_id));
 }
 
+export interface SquadPlayer {
+  id: string; name: string; photo: string;
+  positionFr: string | null; value: string | null;
+  selectionGoals: number | null; caps: number | null;
+}
+// Effectif complet d'une sélection (depuis wc-teams.json) — méta pour l'Indice.
+export function getSquadPlayers(teamName: string): SquadPlayer[] {
+  const t = getWCTeamByName(teamName);
+  const raw = t ? TEAM_BY_SLUG.get(t.slug) : null;
+  if (!raw) return [];
+  return raw.players
+    .filter((p) => p.api_football_id != null)
+    .map((p) => ({
+      id: String(p.api_football_id),
+      name: p.name,
+      photo: photoFor(String(p.api_football_id), p.photo),
+      positionFr: p.position ?? null,
+      value: p.value ?? null,
+      selectionGoals: p.selection_goals ?? null,
+      caps: p.caps ?? null,
+    }));
+}
+
+// "€120m" / "€700k" → nombre (valeur marchande, proxy qualité/saison).
+export function parseMarketValue(v: string | null | undefined): number {
+  if (!v) return 0;
+  const m = v.replace(/[, ]/g, "").match(/([\d.]+)\s*([mk])?/i);
+  if (!m) return 0;
+  const n = parseFloat(m[1]);
+  const unit = (m[2] ?? "").toLowerCase();
+  return unit === "m" ? n * 1e6 : unit === "k" ? n * 1e3 : n;
+}
+
 // Recherche de joueurs (comparateur) — sur wc-teams.json, sans DB ni API.
 export function searchPlayers(q: string, limit = 12): { id: string; name: string; photo: string; teamName: string }[] {
   const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
