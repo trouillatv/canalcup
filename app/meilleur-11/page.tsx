@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import Link from "next/link";
 import { Trophy, Star, Users, Medal, ChevronUp, ChevronDown, Minus } from "lucide-react";
 
 type Player = {
   player_name: string;
+  player_id?: string | null;
   team: string;
   matches: number;
   avg_rating: number | null;
@@ -47,6 +49,17 @@ const POSITION_COLOR: Record<string, string> = {
   MID: "bg-green-500/20 text-green-400",
   FWD: "bg-red-500/20 text-red-400",
 };
+
+// Nom de joueur FIFA cliquable → fiche /football/players/[id] si l'id est connu.
+function PlayerNameLink({ player, className, short }: { player: Player; className?: string; short?: boolean }) {
+  const label = short ? player.player_name.split(" ").pop() : player.player_name;
+  if (!player.player_id) return <span className={className}>{label}</span>;
+  return (
+    <Link href={`/football/players/${player.player_id}`} className={`${className ?? ""} hover:text-canal-yellow transition-colors`}>
+      {label}
+    </Link>
+  );
+}
 
 function RatingBadge({ rating }: { rating: number | null }) {
   if (rating === null) return <span className="text-canal-gray-muted text-xs">—</span>;
@@ -103,9 +116,7 @@ function PlayerCard({ player }: { player: Player }) {
       }`}>
         {POSITION_LABEL[pos]}
       </div>
-      <span className="text-white text-[10px] font-bold text-center leading-tight truncate w-full text-center">
-        {player.player_name.split(" ").pop()}
-      </span>
+      <PlayerNameLink player={player} short className="text-white text-[10px] font-bold text-center leading-tight truncate w-full" />
       <RatingBadge rating={player.avg_rating} />
     </div>
   );
@@ -284,7 +295,7 @@ export default function Meilleur11Page() {
                           </span>
                         )}
                         <div>
-                          <p className="text-white font-bold text-xs leading-tight">{p.player_name}</p>
+                          <PlayerNameLink player={p} className="block text-white font-bold text-xs leading-tight" />
                           <p className="text-canal-gray-muted text-[10px]">{p.team}</p>
                         </div>
                       </div>
@@ -345,7 +356,7 @@ export default function Meilleur11Page() {
                           {POSITION_LABEL[p.position ?? "FWD"]}
                         </span>
                         <div className="min-w-0">
-                          <p className="text-white font-bold text-sm leading-tight truncate">{p.player_name}</p>
+                          <PlayerNameLink player={p} className="block text-white font-bold text-sm leading-tight truncate" />
                           <p className="text-canal-gray-muted text-xs">{p.team}</p>
                         </div>
                       </div>

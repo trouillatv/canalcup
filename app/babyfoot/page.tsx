@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { Trophy, Clock, Swords } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { LocalTime } from "@/components/timezone/LocalTime";
 import { ViewSwitcher } from "@/components/views/ViewSwitcher";
 import { BracketBabyFoot } from "@/components/bracket/BracketBabyFoot";
@@ -99,7 +99,7 @@ function BabyFootLeaderboard({ matches, teams }: { matches: BabyFootMatch[]; tea
   return (
     <div className="space-y-2">
       {stats.map((s, i) => (
-        <div key={s.team.id} className="canal-card flex items-center gap-3">
+        <Link key={s.team.id} href={`/teams/${s.team.id}`} className="canal-card flex items-center gap-3 hover:bg-canal-gray-mid transition-colors">
           <span className="font-black text-canal-yellow w-6 text-center">
             {i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉"}
           </span>
@@ -110,7 +110,7 @@ function BabyFootLeaderboard({ matches, teams }: { matches: BabyFootMatch[]; tea
             </p>
           </div>
           <span className="font-black text-canal-yellow">{s.points} pts</span>
-        </div>
+        </Link>
       ))}
     </div>
   );

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Reputation, Badge, BadgeCategory } from "@/lib/data/reputation";
 import { cn } from "@/lib/utils";
 
@@ -12,17 +13,14 @@ const CATEGORIES: { key: BadgeCategory; label: string }[] = [
 
 function BadgeCard({ b }: { b: Badge }) {
   const hidden = b.secret && !b.earned;
-  return (
-    <div
-      className={cn(
-        "flex items-center gap-2.5 rounded-xl px-3 py-2 border",
-        b.earned
-          ? "bg-canal-gray-mid border-canal-yellow/30"
-          : hidden
-            ? "bg-canal-gray-mid/30 border-dashed border-canal-gray-light/40"
-            : "bg-canal-gray-mid/40 border-canal-gray-light/30"
-      )}
-    >
+  const base = cn(
+    "flex items-center gap-2.5 rounded-xl px-3 py-2 border",
+    b.earned ? "bg-canal-gray-mid border-canal-yellow/30"
+      : hidden ? "bg-canal-gray-mid/30 border-dashed border-canal-gray-light/40"
+        : "bg-canal-gray-mid/40 border-canal-gray-light/30"
+  );
+  const inner = (
+    <>
       <span className={cn("text-xl shrink-0", !b.earned && !hidden && "grayscale opacity-40")}>
         {hidden ? "❓" : b.emoji}
       </span>
@@ -47,8 +45,11 @@ function BadgeCard({ b }: { b: Badge }) {
           </>
         )}
       </div>
-    </div>
+    </>
   );
+  // Cliquable vers le détail — sauf badge secret non débloqué (on garde le mystère).
+  if (hidden) return <div className={base}>{inner}</div>;
+  return <Link href={`/badge/${b.key}`} className={cn(base, "hover:border-canal-yellow/50 transition-colors")}>{inner}</Link>;
 }
 
 export function ReputationSection({ reputation }: { reputation: Reputation }) {
@@ -63,7 +64,7 @@ export function ReputationSection({ reputation }: { reputation: Reputation }) {
       </div>
 
       {title && (
-        <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-br from-canal-yellow/15 to-transparent border border-canal-yellow/30 px-4 py-3">
+        <Link href={`/badge/${title.key}`} className="flex items-center gap-3 rounded-2xl bg-gradient-to-br from-canal-yellow/15 to-transparent border border-canal-yellow/30 px-4 py-3 hover:border-canal-yellow/50 transition-colors">
           <span className="text-3xl shrink-0">{title.emoji}</span>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -74,7 +75,7 @@ export function ReputationSection({ reputation }: { reputation: Reputation }) {
             </div>
             <p className="text-xs text-canal-gray-muted leading-snug">{title.description}</p>
           </div>
-        </div>
+        </Link>
       )}
 
       {CATEGORIES.map(({ key, label }) => {

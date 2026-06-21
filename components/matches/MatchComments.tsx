@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { MessageCircle, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -124,9 +125,13 @@ export function MatchComments({ matchId, isLive, onUnreadChange }: Props) {
           {messages.map((message) => (
             <div key={message.id} className="rounded-xl bg-canal-gray-mid px-3 py-2">
               <div className="flex items-center gap-2 mb-1">
-                <span className="min-w-0 truncate text-xs font-black text-white">
-                  {authorLabel(message)}
-                </span>
+                {message.user_id ? (
+                  <Link href={`/joueur/${message.user_id}`} className="min-w-0 truncate text-xs font-black text-white hover:text-canal-yellow transition-colors">
+                    {authorLabel(message)}
+                  </Link>
+                ) : (
+                  <span className="min-w-0 truncate text-xs font-black text-white">{authorLabel(message)}</span>
+                )}
                 <span className="ml-auto shrink-0 text-[11px] text-canal-gray-muted">
                   {timeLabel(message.created_at)}
                 </span>

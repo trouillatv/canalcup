@@ -62,7 +62,7 @@ export async function GET() {
   const [statsRes, lineupsRes, eventsRes] = await Promise.all([
     supabase
       .from("player_match_stats")
-      .select("match_id, team_side, player_name, rating, goals, assists, yellow_cards, red_cards, is_motm")
+      .select("match_id, team_side, player_name, player_id, rating, goals, assists, yellow_cards, red_cards, is_motm")
       .in("match_id", matchIds),
     supabase
       .from("match_lineups")
@@ -123,7 +123,7 @@ export async function GET() {
 
   // Agrégation par joueur
   type Agg = {
-    player_name: string; team: string;
+    player_name: string; team: string; player_id: string | null;
     matches: number; goals: number; assists: number;
     yellow_cards: number; red_cards: number; motm: number;
     ratingSum: number; ratingCount: number;
@@ -143,7 +143,7 @@ export async function GET() {
     const key = `${r.player_name}|||${teamName}`;
     if (!byPlayer.has(key)) {
       byPlayer.set(key, {
-        player_name: r.player_name, team: teamName,
+        player_name: r.player_name, team: teamName, player_id: null,
         matches: 0, goals: 0, assists: 0,
         yellow_cards: 0, red_cards: 0, motm: 0,
         ratingSum: 0, ratingCount: 0,
@@ -152,6 +152,7 @@ export async function GET() {
       playerKeyIndex.set(`${teamName}|||${shortNameKey(r.player_name)}`, key);
     }
     const a = byPlayer.get(key)!;
+    if (!a.player_id && r.player_id) a.player_id = String(r.player_id);
     a.matches += 1;
     a.goals += r.goals ?? 0;
     a.assists += r.assists ?? 0;
@@ -182,7 +183,7 @@ export async function GET() {
         `${playerName}|||${teamName}`;
       if (!byPlayer.has(key)) {
         byPlayer.set(key, {
-          player_name: playerName, team: teamName,
+          player_name: playerName, team: teamName, player_id: null,
           matches: 0, goals: 0, assists: 0,
           yellow_cards: 0, red_cards: 0, motm: 0,
           ratingSum: 0, ratingCount: 0,
@@ -205,6 +206,7 @@ export async function GET() {
   const players = [...byPlayer.values()]
     .map((a) => ({
       player_name: a.player_name,
+      player_id: a.player_id,
       team: a.team,
       matches: a.matches,
       avg_rating: a.ratingCount ? Math.round((a.ratingSum / a.ratingCount) * 10) / 10 : null,

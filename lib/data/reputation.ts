@@ -265,6 +265,47 @@ function badgesFor(a: UserAgg): Badge[] {
   ];
 }
 
+function zeroAgg(userId = ""): UserAgg {
+  return { userId, total: 0, exact: 0, correctResult: 0, zeroPoints: 0, draws: 0, sumPoints: 0, persoPoints: 0, predGoals: 0, changed: 0, barPronos: 0, invertedCount: 0, decisiveResolved: 0, maxExactStreak: 0, maxZeroStreak: 0, knockoutExact: 0, franceMatches: 0, franceWinPred: 0, firstDayProno: false, continentsWon: new Set(), teamHits: new Map(), quizCorrect: 0, casinoWins: 0, casinoMaxDelta: 0, jokerTypes: new Set(), babyWins: 0, votesCount: 0 };
+}
+
+// Catalogue complet des badges (métadonnées + critères) — pour la page détail.
+export function getBadgeCatalog(): Badge[] { return badgesFor(zeroAgg()); }
+
+// Catalogue des titres possibles (exclusifs + personnalité).
+export function getTitleCatalog(): Title[] {
+  const t = (key: string, emoji: string, label: string, description: string, exclusive: boolean): Title => ({ key, emoji, label, description, exclusive });
+  return [
+    t("oracle", "🔮", "L'Oracle", "Plus gros total de points aux pronostics.", true),
+    t("visionnaire", "🎯", "Le Visionnaire", "Recordman de scores exacts.", true),
+    t("patron", "👑", "Le Patron", "N°1 du classement perso (pronos + quiz).", true),
+    t("stratege", "🦅", "Le Stratège", "Un vrai flair pour le score exact.", false),
+    t("attaquant", "⚔️", "L'Attaquant", "Des pronos pleins de buts.", false),
+    t("defenseur", "🛡️", "Le Défenseur", "Des scores serrés, béton.", false),
+    t("flambeur", "🎲", "Le Flambeur", "Vit pour les jokers et le Casino.", false),
+    t("diplomate", "🤝", "Le Diplomate", "Voit des matchs nuls partout.", false),
+    t("foutix", "🤡", "Le Foutix", "Change ses pronos sans arrêt.", false),
+    t("regulier", "📊", "Le Régulier", "Toujours présent, sans extravagance.", false),
+    t("recrue", "🌱", "La Recrue", "Tout juste arrivé dans l'arène.", false),
+  ];
+}
+
+// Détenteurs d'un badge ou d'un titre (clé) → ids users, pour la page détail.
+export async function getHolders(key: string): Promise<{ kind: "badge" | "title"; meta: Badge | Title; userIds: string[] } | null> {
+  const badgeMeta = getBadgeCatalog().find((b) => b.key === key);
+  const titleMeta = getTitleCatalog().find((t) => t.key === key);
+  if (!badgeMeta && !titleMeta) return null;
+  const map = await getReputationMap();
+  const userIds: string[] = [];
+  for (const [uid, rep] of map) {
+    if (badgeMeta) { if (rep.badges.some((b) => b.key === key && b.earned)) userIds.push(uid); }
+    else if (rep.title?.key === key) userIds.push(uid);
+  }
+  return badgeMeta
+    ? { kind: "badge", meta: badgeMeta, userIds }
+    : { kind: "title", meta: titleMeta!, userIds };
+}
+
 export async function getReputationMap(): Promise<Map<string, Reputation>> {
   if (CACHE && Date.now() - CACHE.at <= TTL_MS) return CACHE.map;
   if (!INFLIGHT) INFLIGHT = computeAll().then((map) => { CACHE = { at: Date.now(), map }; INFLIGHT = null; return map; });
