@@ -636,7 +636,17 @@ async function loadLiveGroupStandings(
 export async function getMatchDetail(matchId: string): Promise<FullMatchDetail | null> {
   const cacheKey = `match:${matchId}`;
   const cached = cache.get<FullMatchDetail>(cacheKey);
-  if (cached) return cached;
+  if (cached) {
+    // Piège du cache fini (TTL 24 h) : s'il a été peuplé au coup de sifflet
+    // AVANT que l'API publie les notes, on servirait du null pendant 24 h. On
+    // ignore donc un cache de match FINI qui a des compos mais AUCUNE note —
+    // pour relire la base (les notes y sont peut-être déjà) et re-cacher propre.
+    const finishedNoNotes =
+      cached.match.status === "finished" &&
+      cached.playerStats.length > 0 &&
+      !cached.playerStats.some((p) => p.rating != null);
+    if (!finishedNoNotes) return cached;
+  }
 
   const supabase = createAdminClient();
   let { data: match } = await supabase.from("matches").select("*").eq("id", matchId).single();
