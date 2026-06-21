@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { track } from "@/lib/analytics/track";
 import { LeaderboardTable } from "./LeaderboardTable";
 import type { LeaderboardRow } from "@/lib/supabase/types";
 import type { IndividualRow } from "@/lib/data/teams";
@@ -95,7 +96,7 @@ export function LeaderboardTabs({
         {TABS.map((t) => (
           <button
             key={t.id}
-            onClick={() => setTab(t.id)}
+            onClick={() => { setTab(t.id); track(`/leaderboard#${t.id}`); }}
             className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
               tab === t.id ? "bg-canal-yellow text-canal-black" : "bg-canal-gray-mid text-canal-gray-muted hover:text-white"
             }`}

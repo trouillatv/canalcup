@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import { track } from "@/lib/analytics/track";
 
 // Envoie une vue de page à /api/track à chaque changement de route.
 // Fire-and-forget (keepalive) — n'impacte jamais la navigation.
@@ -13,15 +14,7 @@ export function PageTracker() {
     if (!pathname || pathname === last.current) return;
     if (pathname.startsWith("/admin") || pathname.startsWith("/tv")) return;
     last.current = pathname;
-    try {
-      const body = JSON.stringify({ path: pathname });
-      // sendBeacon si dispo (fiable au unload), sinon fetch keepalive.
-      if (typeof navigator !== "undefined" && navigator.sendBeacon) {
-        navigator.sendBeacon("/api/track", new Blob([body], { type: "application/json" }));
-      } else {
-        fetch("/api/track", { method: "POST", body, headers: { "Content-Type": "application/json" }, keepalive: true }).catch(() => {});
-      }
-    } catch { /* silencieux */ }
+    track(pathname);
   }, [pathname]);
 
   return null;

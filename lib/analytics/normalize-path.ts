@@ -16,10 +16,13 @@ const RULES: [RegExp, string][] = [
 ];
 
 export function normalizePath(raw: string): string {
-  let p = (raw || "/").split("?")[0].split("#")[0];
-  p = p.replace(/\/+$/, "") || "/";
-  for (const [re, tpl] of RULES) if (re.test(p)) return tpl;
-  return p;
+  const noQuery = (raw || "/").split("?")[0];
+  // On PRÉSERVE le fragment "#onglet" (ex. /matches/<id>#notes) → suivi des onglets.
+  const hash = noQuery.indexOf("#");
+  const frag = hash >= 0 ? noQuery.slice(hash) : "";
+  const p = (hash >= 0 ? noQuery.slice(0, hash) : noQuery).replace(/\/+$/, "") || "/";
+  for (const [re, tpl] of RULES) if (re.test(p)) return tpl + frag;
+  return p + frag;
 }
 
 // Routes utilisateur connues — pour détecter celles à 0 vue (« inutilisées »).

@@ -18,6 +18,7 @@ import { PlayerSheet } from "@/components/football/PlayerSheet";
 import { HotColdPlayers } from "@/components/football/HotColdPlayers";
 import { MatchFacts } from "@/components/football/MatchFacts";
 import type { MatchPerf } from "@/components/football/PlayerCardView";
+import { track } from "@/lib/analytics/track";
 
 type Tab = "timeline" | "stats" | "notes" | "pronos" | "chat" | "standings" | "facts";
 
@@ -743,7 +744,7 @@ export default function MatchCenterPage() {
 
       <div className="flex border-b border-canal-gray-light sticky top-0 bg-canal-black z-10">
         {tabs.map((t) => (
-          <button key={t.key} onClick={() => setTab(t.key)}
+          <button key={t.key} onClick={() => { setTab(t.key); track(`/matches/${id}#${t.key}`); }}
             className={cn(
               "flex-1 min-w-0 px-0.5 py-3 text-[10px] sm:text-base font-black leading-tight transition-colors relative",
               tab === t.key ? "text-canal-yellow border-b-2 border-canal-yellow" : "text-canal-gray-muted hover:text-white"

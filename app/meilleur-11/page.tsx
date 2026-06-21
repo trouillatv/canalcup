@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { Trophy, Star, Users, Medal, ChevronUp, ChevronDown, Minus } from "lucide-react";
+import { track } from "@/lib/analytics/track";
 
 type Player = {
   player_name: string;
@@ -194,7 +195,7 @@ export default function Meilleur11Page() {
         {tabs.map(({ key, label, icon }) => (
           <button
             key={key}
-            onClick={() => setTab(key)}
+            onClick={() => { setTab(key); track(`/meilleur-11#${key}`); }}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-bold transition-colors ${
               tab === key
                 ? "bg-canal-yellow text-canal-black"

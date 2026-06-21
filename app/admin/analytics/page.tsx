@@ -92,6 +92,7 @@ export default function AdminAnalyticsPage() {
           {/* ── Pages utilisées ── */}
           <section className="space-y-2">
             <p className="text-xs text-canal-yellow font-bold uppercase tracking-wider">Pages les plus vues · {data.totalViews} vues / {data.days} j</p>
+            <p className="text-[10px] text-canal-gray-muted">Les entrées <span className="font-mono">#onglet</span> = onglets consultés (ex. <span className="font-mono">/matches/[id]#notes</span>).</p>
             {data.pages.length === 0 ? (
               <p className="text-canal-gray-muted text-sm py-4 text-center">Aucune vue enregistrée. Le suivi démarre au déploiement — laisse les joueurs naviguer puis recharge.</p>
             ) : (

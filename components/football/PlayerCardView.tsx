@@ -7,6 +7,7 @@ import type { PlayerCard, PlayerFormMatch, RelatedPlayer, SeasonStats } from "@/
 import { ratingPillClass, formDotClass } from "@/lib/football/player-card-types";
 import { ComparePicker } from "./ComparePicker";
 import { TopFormList } from "./TopFormList";
+import { track } from "@/lib/analytics/track";
 
 function lastName(name: string): string {
   return name.split(" ").slice(-1).join(" ");
@@ -402,7 +403,7 @@ export function PlayerCardView({
         {tabs.map((t) => (
           <button
             key={t.key}
-            onClick={() => setTab(t.key)}
+            onClick={() => { setTab(t.key); track(`/football/players/${card.id}#${t.key}`); }}
             className={cn(
               "flex-1 py-2.5 text-sm font-black transition-colors",
               tab === t.key ? "text-canal-yellow border-b-2 border-canal-yellow" : "text-canal-gray-muted hover:text-white"
