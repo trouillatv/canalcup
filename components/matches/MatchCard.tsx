@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn, teamFlag, toNCDate, toNCTime } from "@/lib/utils";
 import type { Match, PredictionTrend } from "@/lib/supabase/types";
 import { getResult, scoreLabel } from "@/lib/scoring";
-import { Clock, ChevronRight, Check, Lock } from "lucide-react";
+import { getVarWindowMatchIds } from "@/lib/jokers/var-windows-client";
+import { Clock, ChevronRight, Check, Lock, Video } from "lucide-react";
 import { Countdown } from "./Countdown";
 import { TeamLink } from "@/components/teams/TeamLink";
 import { useTimezone } from "@/components/timezone/TimezoneProvider";
@@ -44,12 +45,28 @@ function ScorePredictInput({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(!!initialSavedScore);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [varActive, setVarActive] = useState(false);
+
+  // 🎥 Joker VAR : fenêtre de modification prolongée jusqu'à la mi-temps.
+  useEffect(() => {
+    let alive = true;
+    getVarWindowMatchIds().then((set) => { if (alive) setVarActive(set.has(match.id)); });
+    return () => { alive = false; };
+  }, [match.id]);
 
   const hasStarted =
     new Date(match.starts_at) <= new Date() ||
     match.status === "live" ||
     match.status === "finished" ||
     !!match.is_settled;
+
+  // Fenêtre VAR encore ouverte : 1re période + mi-temps (pas la 2e période ni
+  // un match fini/réglé). On garde alors la saisie ÉDITABLE.
+  const inVarWindow =
+    !match.is_settled && match.status !== "finished" &&
+    (match.status === "halftime" || (match.status === "live" && (match.minute == null || match.minute <= 45)));
+  const varEditable = varActive && inVarWindow;
+  const locked = hasStarted && !varEditable;
   const canSave = scoreA !== "" && scoreB !== "";
   const isUpdate = !!savedScore && !saved;
 
@@ -63,7 +80,7 @@ function ScorePredictInput({
     setSaved(!!savedScore && nextA === savedScore.score_a && nextB === savedScore.score_b);
   };
 
-  if (hasStarted && savedPrediction) {
+  if (locked && savedPrediction) {
     const result = getResult(savedPrediction.score_a, savedPrediction.score_b);
     const label = result === "A" ? match.team_a : result === "B" ? match.team_b : "Nul";
     return (
@@ -83,7 +100,7 @@ function ScorePredictInput({
     );
   }
 
-  if (hasStarted) {
+  if (locked) {
     return (
       <div className="mt-3 flex items-center justify-center gap-2 px-3 py-2 bg-canal-gray-mid rounded-xl">
         <Lock size={12} className="text-canal-gray-muted" />
@@ -118,7 +135,13 @@ function ScorePredictInput({
 
   return (
     <div className="mt-3 space-y-2">
-      <p className="text-xs text-canal-gray-muted text-center">Votre pronostic</p>
+      {varEditable ? (
+        <p className="text-xs text-canal-yellow font-bold text-center flex items-center justify-center gap-1.5">
+          <Video size={12} /> VAR : modifiable jusqu&apos;à la mi-temps
+        </p>
+      ) : (
+        <p className="text-xs text-canal-gray-muted text-center">Votre pronostic</p>
+      )}
       <div className="flex items-center gap-3 justify-center">
         {/* Score A */}
         <div className="flex flex-col items-center gap-1">

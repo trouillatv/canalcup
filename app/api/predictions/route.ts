@@ -54,9 +54,15 @@ export async function POST(req: Request) {
     if (lock) return NextResponse.json({ error: lock }, { status: 403 });
   }
 
-  // 🎥 VAR : fenêtre de modif étendue jusqu'à la mi-temps sur ce match.
+  // 🎥 VAR : fenêtre de modif étendue jusqu'à la mi-temps (1re période + pause).
+  // Inclut le statut "halftime" et borne la 2e période via la minute (≤ 45).
   const varActive = await hasVarWindow(profile.id, match_id);
-  const varModifiable = varActive && (match.status === "upcoming" || match.status === "live") && !match.is_settled;
+  const inVarWindow =
+    !match.is_settled && match.status !== "finished" &&
+    (match.status === "upcoming" ||
+      match.status === "halftime" ||
+      (match.status === "live" && (match.minute == null || match.minute <= 45)));
+  const varModifiable = varActive && inVarWindow;
 
   if (!varModifiable) {
     if (match.status === "live" || match.status === "halftime" || match.status === "finished" || match.is_settled) {

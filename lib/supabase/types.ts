@@ -135,6 +135,7 @@ export interface Match {
   starts_at: string;
   channel: string;
   status: MatchStatus;
+  minute?: number | null;
   score_a?: number;
   score_b?: number;
   is_match_of_week?: boolean;
