@@ -32,6 +32,18 @@ export function PushNotifications() {
       const sub = await reg.pushManager.getSubscription();
       setIsSubscribed(!!sub);
       setReady(true);
+      // Self-heal : le navigateur peut avoir un abonnement créé sous un AUTRE
+      // compte (même navigateur, multi-comptes) ou jamais persisté. On le
+      // ré-enregistre sous le COMPTE COURANT pour que la base reflète le bon
+      // utilisateur (sinon « cloche jaune » mais 0 ligne → aucun push reçu).
+      if (sub && Notification.permission === "granted") {
+        fetch("/api/push/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(sub),
+          credentials: "same-origin",
+        }).catch(() => {});
+      }
     });
   }, []);
 
