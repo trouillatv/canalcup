@@ -327,8 +327,8 @@ export function SupportersClient() {
   const [title, setTitle] = useState("");
   const [flash, setFlash] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
   const [tab, setTab] = useState<"galerie" | "nonvoters" | "radar">("galerie");
-  const fileRef = useRef<HTMLInputElement>(null);
-  const slotRef = useRef<"main" | "bonus">("main");
+  const mainFileRef = useRef<HTMLInputElement>(null);
+  const bonusFileRef = useRef<HTMLInputElement>(null);
 
   const [lightbox, setLightbox] = useState<{ url: string; type: "image" | "video" } | null>(null);
 
@@ -361,7 +361,8 @@ export function SupportersClient() {
       }
     } finally {
       setBusy(false);
-      if (fileRef.current) fileRef.current.value = "";
+      if (mainFileRef.current) mainFileRef.current.value = "";
+      if (bonusFileRef.current) bonusFileRef.current.value = "";
     }
   };
 
@@ -634,25 +635,26 @@ export function SupportersClient() {
                   placeholder="Titre / légende (optionnel)" maxLength={120}
                   className="w-full bg-canal-black border border-canal-gray-light rounded-lg px-2 py-2 text-sm"
                 />
-                <input
-                  ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" className="hidden"
-                  onChange={(e) => { const f = e.currentTarget.files?.[0]; if (f) upload(f, slotRef.current); }}
-                />
+                {/* Deux inputs DÉDIÉS (un par emplacement) : zéro ambiguïté de slot. */}
+                <input ref={mainFileRef} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" className="hidden"
+                  onChange={(e) => { const f = e.currentTarget.files?.[0]; if (f) upload(f, "main"); }} />
+                <input ref={bonusFileRef} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" className="hidden"
+                  onChange={(e) => { const f = e.currentTarget.files?.[0]; if (f) upload(f, "bonus"); }} />
                 <button
-                  disabled={busy} onClick={() => { slotRef.current = "main"; fileRef.current?.click(); }}
+                  disabled={busy} onClick={() => mainFileRef.current?.click()}
                   className="w-full text-sm font-bold px-3 py-2 rounded-lg bg-canal-yellow text-canal-black disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  <Upload size={15} /> {busy ? "Envoi…" : myEntry ? "Remplacer la photo principale" : "Poster la photo du binôme"}
+                  <Upload size={15} /> {busy ? "Envoi…" : myEntry ? "Remplacer la photo PRINCIPALE (votée)" : "Poster la photo PRINCIPALE (votée)"}
                 </button>
                 {myEntry && (
                   <button
-                    disabled={busy} onClick={() => { slotRef.current = "bonus"; fileRef.current?.click(); }}
-                    className="w-full text-sm font-bold px-3 py-2 rounded-lg border border-canal-yellow/50 text-canal-yellow disabled:opacity-50 flex items-center justify-center gap-2"
+                    disabled={busy} onClick={() => bonusFileRef.current?.click()}
+                    className="w-full text-sm font-bold px-3 py-2 rounded-lg bg-canal-yellow/90 text-canal-black disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    <Upload size={15} /> {myEntry.photo_url_2 ? "Remplacer la 2e image (bonus)" : "Ajouter une 2e image (bonus)"}
+                    <Upload size={15} /> {busy ? "Envoi…" : myEntry.photo_url_2 ? "Remplacer la 2e photo (BONUS)" : "➕ Ajouter une 2e photo (BONUS)"}
                   </button>
                 )}
-                <p className="text-[11px] text-canal-gray-muted/70">2 images max par binôme (1 votée + 1 bonus). Photo (JPG/PNG/WebP, 8 Mo) ou vidéo (MP4/WebM/MOV, 60 Mo).</p>
+                <p className="text-[11px] text-canal-gray-muted/70">2 photos max par binôme : 1 <span className="font-bold">principale</span> (votée) + 1 <span className="font-bold">bonus</span>. La 2e photo s&apos;ajoute SANS remplacer la 1re. Photo (JPG/PNG/WebP, 8 Mo) ou vidéo (MP4/WebM/MOV, 60 Mo).</p>
               </div>
             )}
           </div>
