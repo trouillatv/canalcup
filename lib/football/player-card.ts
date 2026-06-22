@@ -402,18 +402,24 @@ export async function getPlayerCard(playerId: string): Promise<PlayerCard> {
     };
   });
 
-  // Forme = derniers matchs où le joueur a un signe de participation
+  // On ne garde que les matchs de la Coupe du Monde. Les matchs de TEST (amicaux,
+  // Ligue des Champions…) ne portent pas une compétition CdM → exclus des stats
+  // joueur, sinon ils gonflent les totaux (ex. Olise crédité de buts en amical).
+  // Pas de fallback « tous les matchs trackés » : c'était la source du bug.
+  const compById = new Map(rows.map((r) => [r.match_id, r.match?.competition ?? null]));
+  const isWcMatch = (matchId: string) => isWorldCup(compById.get(matchId) ?? null);
+
+  // Forme = derniers matchs CdM où le joueur a un signe de participation
   // (note présente ou minutes > 0). Évite de compter les remplaçants non entrés.
-  const played = allMatches.filter((m) => m.rating != null || (m.minutes ?? 0) > 0);
+  const played = allMatches.filter((m) => isWcMatch(m.matchId) && (m.rating != null || (m.minutes ?? 0) > 0));
   const form = played.slice(0, 5);
   const formRatings = form.map((m) => m.rating).filter((r): r is number => r != null);
   const formAvg = formRatings.length
     ? Math.round((formRatings.reduce((a, b) => a + b, 0) / formRatings.length) * 100) / 100
     : null;
 
-  // Mondial = tous les matchs de la compétition Coupe du Monde joués.
-  const wcMatches = played.filter((m) => isWorldCup(rows.find((r) => r.match_id === m.matchId)?.match?.competition));
-  const wcSource = wcMatches.length ? wcMatches : played; // fallback : tous les matchs trackés
+  // Mondial = tous les matchs CdM joués (played est déjà restreint à la CdM).
+  const wcSource = played;
   const wcRatings = wcSource.map((m) => m.rating).filter((r): r is number => r != null);
   const wc: WCAggregate = {
     matches: wcSource.length,

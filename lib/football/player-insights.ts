@@ -128,11 +128,12 @@ export async function getMatchHotPlayers(matchId: string): Promise<{ hot: Ranked
   // Forme WC trackée (notes/buts/passes/titularisations) pour ces joueurs.
   const { data } = await supabase
     .from("player_match_stats")
-    .select("player_id, rating, goals, assists, started, minutes")
+    .select("player_id, rating, goals, assists, started, minutes, match:matches(competition)")
     .in("player_id", all.map((p) => p.id));
   const form = new Map<string, FormAgg>();
-  for (const r of (data ?? []) as { player_id: string | null; rating: number | null; goals: number | null; assists: number | null; started: boolean | null; minutes: number | null }[]) {
+  for (const r of (data ?? []) as unknown as { player_id: string | null; rating: number | null; goals: number | null; assists: number | null; started: boolean | null; minutes: number | null; match: { competition: string | null } | null }[]) {
     if (!r.player_id) continue;
+    if (!isWorldCup(r.match?.competition)) continue; // exclut les matchs test / hors-CdM
     const f = form.get(r.player_id) ?? { ratings: [], goals: 0, assists: 0, starts: 0, played: 0 };
     if (r.rating != null) f.ratings.push(r.rating);
     f.goals += r.goals ?? 0; f.assists += r.assists ?? 0;
