@@ -5,7 +5,7 @@
 // Réactions + commentaires. Indépendant du concours Supporters.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Upload, RefreshCw, Send, X, MessageCircle, Trash2 } from "lucide-react";
+import { Upload, RefreshCw, Send, X, MessageCircle, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { MOMENT_CATEGORIES, MOMENT_REACTIONS, categoryMeta } from "@/lib/moments/categories";
 
 type Media = "image" | "video";
@@ -15,7 +15,7 @@ interface Moment {
   photo_url: string; media_type: Media; created_at: string; is_mine: boolean;
   reactions: Record<string, number>; my_reactions: string[]; comments: Cmt[];
 }
-interface Data { me: { userId: string }; isOrganizer: boolean; moments: Moment[] }
+interface Data { me: { userId: string }; isOrganizer: boolean; hasVoted: boolean; moments: Moment[] }
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -40,7 +40,8 @@ export function MomentsClient() {
   const [flash, setFlash] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<string>("fun");
-  const [lightbox, setLightbox] = useState<{ url: string; type: Media } | null>(null);
+  const [viewer, setViewer] = useState<number | null>(null);
+  const touchX = useRef<number | null>(null);
   const [openComments, setOpenComments] = useState<Record<string, boolean>>({});
   const [commentText, setCommentText] = useState<Record<string, string>>({});
   const [react, setReact] = useState<Record<string, { counts: Record<string, number>; mine: string[] }>>({});
@@ -61,6 +62,19 @@ export function MomentsClient() {
     for (const m of data.moments) next[m.id] = { counts: { ...m.reactions }, mine: [...m.my_reactions] };
     setReact(next);
   }, [data]);
+
+  // Navigation clavier du viewer plein écran.
+  useEffect(() => {
+    if (viewer === null) return;
+    const len = data?.moments.length ?? 0;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") setViewer((v) => (v === null || !len ? v : (v + 1) % len));
+      else if (e.key === "ArrowLeft") setViewer((v) => (v === null || !len ? v : (v - 1 + len) % len));
+      else if (e.key === "Escape") setViewer(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [viewer, data]);
 
   // Multi-photos : on poste chaque fichier sélectionné comme un Moment distinct.
   const uploadFiles = async (files: FileList) => {
@@ -130,16 +144,67 @@ export function MomentsClient() {
 
   return (
     <div className="space-y-5">
-      {/* Lightbox */}
-      {lightbox && (
-        <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
-          <button aria-label="Fermer" className="absolute top-4 right-4 text-white/80" onClick={() => setLightbox(null)}><X size={28} /></button>
-          {lightbox.type === "video"
-            ? <video src={lightbox.url} className="max-h-[90vh] max-w-full rounded-lg" controls autoPlay playsInline onClick={(e) => e.stopPropagation()} />
-            // eslint-disable-next-line @next/next/no-img-element
-            : <img src={lightbox.url} alt="" className="max-h-[90vh] max-w-full rounded-lg object-contain" onClick={(e) => e.stopPropagation()} />}
-        </div>
-      )}
+      {/* Viewer plein écran navigable (← → · swipe · clavier) — façon Google Photos */}
+      {viewer !== null && data.moments[viewer] && (() => {
+        const m = data.moments[viewer];
+        const rr = react[m.id] ?? { counts: m.reactions, mine: m.my_reactions };
+        const cat = categoryMeta(m.category);
+        const len = data.moments.length;
+        const go = (d: number) => setViewer((v) => (v === null ? v : (v + d + len) % len));
+        return (
+          <div className="fixed inset-0 z-[100] bg-black flex flex-col"
+            onTouchStart={(e) => { touchX.current = e.touches[0].clientX; }}
+            onTouchEnd={(e) => { if (touchX.current === null) return; const dx = e.changedTouches[0].clientX - touchX.current; if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1); touchX.current = null; }}>
+            <div className="absolute top-0 inset-x-0 z-20 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/70 to-transparent">
+              <span className="text-sm font-bold text-white/90 tabular-nums">{viewer + 1} / {len}</span>
+              <button onClick={() => setViewer(null)} className="text-white/80 hover:text-white" aria-label="Fermer"><X size={26} /></button>
+            </div>
+            <div className="flex-1 flex items-center justify-center p-2">
+              {m.media_type === "video"
+                ? <video src={m.photo_url} className="max-h-full max-w-full object-contain" controls autoPlay playsInline />
+                // eslint-disable-next-line @next/next/no-img-element
+                : <img src={m.photo_url} alt="" className="max-h-full max-w-full object-contain" />}
+            </div>
+            {len > 1 && (
+              <>
+                <button onClick={() => go(-1)} className="absolute left-0 top-0 bottom-0 px-2 sm:px-4 flex items-center text-white/40 hover:text-white" aria-label="Précédent"><ChevronLeft size={40} /></button>
+                <button onClick={() => go(1)} className="absolute right-0 top-0 bottom-0 px-2 sm:px-4 flex items-center text-white/40 hover:text-white" aria-label="Suivant"><ChevronRight size={40} /></button>
+              </>
+            )}
+            <div className="absolute bottom-0 inset-x-0 z-20 bg-gradient-to-t from-black/85 to-transparent px-4 pb-6 pt-12">
+              <div className="max-w-xl mx-auto space-y-3">
+                <div className="flex items-end justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-lg font-black text-white truncate">{m.author_name}</p>
+                    {m.title && <p className="text-sm text-white/80 truncate">« {m.title} »</p>}
+                  </div>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-white/15 text-white shrink-0">{cat.emoji} {cat.label}</span>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {m.source === "supporters" ? (
+                    <>
+                      {Object.entries(rr.counts).filter(([, c]) => c > 0).map(([e, c]) => (
+                        <span key={e} className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/10 text-lg leading-none"><span>{e}</span><span className="text-xs font-bold text-white/70">{c}</span></span>
+                      ))}
+                      <a href="/supporters" className="text-[11px] text-canal-yellow font-bold">🎭 Concours →</a>
+                    </>
+                  ) : (
+                    MOMENT_REACTIONS.map((e) => {
+                      const count = rr.counts[e] ?? 0;
+                      const active = rr.mine.includes(e);
+                      return (
+                        <button key={e} onClick={() => toggleReact(m, e)} className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-lg leading-none border ${active ? "bg-canal-yellow/25 border-canal-yellow/60" : "bg-white/10 border-transparent"}`}>
+                          <span>{e}</span>{count > 0 && <span className={`text-xs font-bold ${active ? "text-canal-yellow" : "text-white/70"}`}>{count}</span>}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {flash && (
         <div className={`text-sm rounded-lg p-3 ${flash.kind === "ok" ? "bg-green-950/30 text-green-300 border border-green-500/30" : "bg-red-950/30 text-red-300 border border-red-500/30"}`}>{flash.msg}</div>
@@ -178,13 +243,13 @@ export function MomentsClient() {
       {/* Feed */}
       {data.moments.length === 0 && <p className="text-sm text-canal-gray-muted">Aucun moment {filter ? "dans cette catégorie" : "pour l'instant"}. Sois le premier 📸</p>}
 
-      {data.moments.map((m) => {
+      {data.moments.map((m, i) => {
         const rr = react[m.id] ?? { counts: m.reactions, mine: m.my_reactions };
         const cat = categoryMeta(m.category);
         const open = !!openComments[m.id];
         return (
           <article key={m.id} className="canal-card space-y-2">
-            <Media url={m.photo_url} type={m.media_type} onZoom={() => setLightbox({ url: m.photo_url, type: m.media_type })} className="w-full rounded-lg object-contain max-h-80 bg-canal-black" />
+            <Media url={m.photo_url} type={m.media_type} onZoom={() => setViewer(i)} className="w-full rounded-lg object-contain max-h-80 bg-canal-black" />
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-sm font-bold text-white truncate">{m.author_name}{m.is_mine && <span className="text-canal-gray-muted font-normal"> · toi</span>}</p>
@@ -212,7 +277,7 @@ export function MomentsClient() {
                   {Object.entries(rr.counts).filter(([, c]) => c > 0).map(([e, c]) => (
                     <span key={e} className="flex items-center gap-1 px-2 py-1 rounded-full text-base leading-none bg-canal-gray-mid"><span>{e}</span><span className="text-xs font-bold tabular-nums text-canal-gray-muted">{c}</span></span>
                   ))}
-                  <a href="/supporters" className="text-[11px] text-canal-yellow font-bold hover:underline">🎭 Voter / réagir sur le concours →</a>
+                  <a href="/supporters" className="text-[11px] text-canal-yellow font-bold hover:underline">🎭 {data.hasVoted ? "Réagir sur le concours" : "Voter / réagir sur le concours"} →</a>
                 </>
               ) : (
                 MOMENT_REACTIONS.map((e) => {

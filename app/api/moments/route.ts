@@ -113,8 +113,13 @@ export async function GET(req: Request) {
 
   const all = [...feed, ...supItems].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
+  // A-t-il déjà voté au concours ? (pour ne plus afficher « Voter » sur les
+  // photos Supporters agrégées : 1 vote par joueur.)
+  const { data: myVote } = await admin.from("supporter_photo_votes").select("entry_id").eq("voter_user_id", me.id).maybeSingle();
+  const hasVoted = !!myVote;
+
   return NextResponse.json(
-    { me: { userId: me.id }, isOrganizer, moments: all },
+    { me: { userId: me.id }, isOrganizer, hasVoted, moments: all },
     { headers: { "Cache-Control": "no-store" } }
   );
 }
