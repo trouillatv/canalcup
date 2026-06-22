@@ -30,6 +30,8 @@ export default function TvMomentsPage() {
   const [splash, setSplash] = useState<string | null>(null);
   const seen = useRef<Set<string>>(new Set());
   const seeded = useRef(false);
+  const [floats, setFloats] = useState<{ id: number; emoji: string; x: number; size: number }[]>([]);
+  const floatId = useRef(0);
 
   useEffect(() => {
     const load = () =>
@@ -65,6 +67,25 @@ export default function TvMomentsPage() {
     return () => clearTimeout(t);
   }, [splash]);
 
+  // Emojis flottants : on fait remonter en continu les réactions de la photo
+  // affichée (pondérées par leur nombre) → l'écran salon devient vivant.
+  useEffect(() => {
+    if (splash) return;
+    const len = photos.length;
+    if (!len) return;
+    const cur = photos[idx % len];
+    const reacts = Object.entries(cur.reactions).filter(([, c]) => c > 0);
+    if (!reacts.length) return;
+    const pool: string[] = reacts.flatMap(([e, c]) => Array(Math.min(c, 20)).fill(e));
+    const t = setInterval(() => {
+      const emoji = pool[Math.floor(Math.random() * pool.length)];
+      const item = { id: floatId.current++, emoji, x: 4 + Math.random() * 88, size: 36 + Math.random() * 44 };
+      setFloats((f) => [...f.slice(-30), item]);
+      setTimeout(() => setFloats((f) => f.filter((x) => x.id !== item.id)), 4200);
+    }, 600);
+    return () => clearInterval(t);
+  }, [idx, photos, splash]);
+
   const order = useMemo(() => photos, [photos]);
   if (!n) {
     return <div className="w-full min-h-screen bg-canal-black flex items-center justify-center text-canal-gray-muted text-3xl">Moments CanalCup…</div>;
@@ -84,6 +105,13 @@ export default function TvMomentsPage() {
       {/* Photo plein cadre */}
       <div className="absolute inset-0 flex items-center justify-center p-8">
         <TvMedia url={p.photo_url} className="max-h-[78vh] max-w-[92vw] rounded-3xl object-contain shadow-[0_0_80px_rgba(0,0,0,0.7)]" />
+      </div>
+
+      {/* Emojis flottants (réactions qui remontent) */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-30">
+        {floats.map((f) => (
+          <span key={f.id} className="absolute bottom-0 animate-float-up-far" style={{ left: `${f.x}%`, fontSize: `${f.size}px` }}>{f.emoji}</span>
+        ))}
       </div>
 
       {/* Bandeau bas */}

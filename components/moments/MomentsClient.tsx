@@ -5,7 +5,7 @@
 // Réactions + commentaires. Indépendant du concours Supporters.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Upload, RefreshCw, Send, X, MessageCircle, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Upload, RefreshCw, Send, X, MessageCircle, Trash2, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { MOMENT_CATEGORIES, MOMENT_REACTIONS, categoryMeta } from "@/lib/moments/categories";
 
 type Media = "image" | "video";
@@ -103,6 +103,19 @@ export function MomentsClient() {
     }
   };
 
+  // Télécharger la photo (souvenir) — fetch blob pour forcer le download.
+  const downloadPhoto = async (url: string) => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = (url.split("/").pop() || "moment").split("?")[0];
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(a.href);
+    } catch { window.open(url, "_blank"); }
+  };
+
   const hideSupporters = async (momentId: string) => {
     if (!confirm("Masquer cette photo du concours ? (modération concours)")) return;
     setBusy(true);
@@ -170,7 +183,10 @@ export function MomentsClient() {
             onTouchEnd={(e) => { if (touchX.current === null) return; const dx = e.changedTouches[0].clientX - touchX.current; if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1); touchX.current = null; }}>
             <div className="absolute top-0 inset-x-0 z-20 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/70 to-transparent">
               <span className="text-sm font-bold text-white/90 tabular-nums">{viewer + 1} / {len}</span>
-              <button onClick={() => { setViewer(null); setViewerComments(false); }} className="text-white/80 hover:text-white" aria-label="Fermer"><X size={26} /></button>
+              <div className="flex items-center gap-4">
+                <button onClick={() => downloadPhoto(m.photo_url)} className="text-white/80 hover:text-white flex items-center gap-1 text-sm" aria-label="Télécharger"><Download size={20} /> <span className="hidden sm:inline">Télécharger</span></button>
+                <button onClick={() => { setViewer(null); setViewerComments(false); }} className="text-white/80 hover:text-white" aria-label="Fermer"><X size={26} /></button>
+              </div>
             </div>
             <div className="flex-1 flex items-center justify-center p-2">
               {m.media_type === "video"
@@ -299,7 +315,7 @@ export function MomentsClient() {
 
       {/* Vue GALERIE : grille de vignettes avec compteurs de réactions */}
       {view === "grid" && (
-        <div className="grid grid-cols-3 gap-1">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1">
           {data.moments.map((m, i) => (
             <button key={m.id} onClick={() => setViewer(i)} className="relative aspect-square overflow-hidden rounded-md bg-canal-black">
               {m.media_type === "video"
