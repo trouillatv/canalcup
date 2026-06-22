@@ -78,7 +78,7 @@ function withGoat(text: string): React.ReactNode {
             <img
               src="/goat.png"
               alt="🐐"
-              className="inline h-[1em] object-contain align-middle mx-0.5"
+              className="inline h-[2em] object-contain align-middle mx-0.5 -my-[0.5em]"
             />
           )}
         </React.Fragment>
@@ -1734,7 +1734,7 @@ function SlidePreMatch({ stats }: { stats: PreMatchStats }) {
           </p>
           <p className="text-canal-yellow/60 text-sm sm:text-lg mt-1 flex items-center gap-1">
             —{" "}
-            <img src="/goat.png" alt="🐐" className="h-[1em] object-contain align-middle" />
+            <img src="/goat.png" alt="🐐" className="h-[2.5em] object-contain align-middle" />
           </p>
         </div>
         <p className="text-canal-gray-muted text-base sm:text-xl italic shrink-0 max-w-xs text-right hidden sm:block">{salon}</p>
@@ -2229,7 +2229,7 @@ function SlideHallOfShame({ data }: { data: HallOfShameData }) {
         ))}
       </div>
       <p className="text-canal-yellow/60 text-sm sm:text-lg mt-6 sm:mt-10 flex items-center justify-center gap-2 italic">
-        <img src="/goat.png" alt="🐐" className="h-[1em] object-contain" /> compatit. Très professionnellement.
+        <img src="/goat.png" alt="🐐" className="h-[2.5em] object-contain" /> compatit. Très professionnellement.
       </p>
     </div>
   );
@@ -2254,7 +2254,7 @@ function SlideVisionnaire({ data }: { data: VisionnaireData }) {
         ))}
       </div>
       <p className="text-canal-yellow/60 text-sm sm:text-lg mt-6 sm:mt-10 flex items-center justify-center gap-2 italic">
-        <img src="/goat.png" alt="🐐" className="h-[1em] object-contain" /> s&apos;incline.
+        <img src="/goat.png" alt="🐐" className="h-[2.5em] object-contain" /> s&apos;incline.
       </p>
     </div>
   );
@@ -2277,7 +2277,7 @@ function SlideDrama({ data }: { data: DramaData }) {
       </p>
       <p className="text-canal-gray-muted text-base sm:text-xl mt-3 sm:mt-5">en 24 heures</p>
       <p className="text-canal-yellow/60 text-sm sm:text-lg mt-6 sm:mt-10 flex items-center justify-center gap-2 italic">
-        <img src="/goat.png" alt="🐐" className="h-[1em] object-contain" /> observe. Et approuve.
+        <img src="/goat.png" alt="🐐" className="h-[2.5em] object-contain" /> observe. Et approuve.
       </p>
     </div>
   );
@@ -2315,7 +2315,7 @@ function SlideFantomes({ players }: { players: string[] }) {
         ))}
       </div>
       <p className="text-canal-yellow/60 text-sm sm:text-lg mt-4 sm:mt-8 flex items-center justify-center gap-2 italic shrink-0">
-        <img src="/goat.png" alt="🐐" className="h-[1em] object-contain" /> a lancé un avis de recherche.
+        <img src="/goat.png" alt="🐐" className="h-[2.5em] object-contain" /> a lancé un avis de recherche.
       </p>
     </div>
   );
@@ -2351,7 +2351,7 @@ function SlideGoat() {
         height={180}
         style={{ imageRendering: "auto" }}
         onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-        className="w-28 h-28 sm:w-40 sm:h-40 lg:w-44 lg:h-44 object-contain drop-shadow-2xl"
+        className="w-44 h-44 sm:w-64 sm:h-64 lg:w-80 lg:h-80 object-contain drop-shadow-2xl"
       />
       <p className="text-canal-yellow font-black text-xl sm:text-2xl uppercase tracking-widest">
         Le Goat dit…
@@ -2597,7 +2597,7 @@ function SlideScoreGap({ gap }: { gap: ScoreGap }) {
 
       <p className="text-white/80 text-base sm:text-2xl italic">{gap.jab}</p>
       <p className="text-canal-yellow/60 text-sm sm:text-lg mt-6 sm:mt-10 flex items-center justify-center gap-2 italic">
-        <img src="/goat.png" alt="🐐" className="h-[1em] object-contain" /> a tout vu. Et a déjà choisi son camp.
+        <img src="/goat.png" alt="🐐" className="h-[2.5em] object-contain" /> a tout vu. Et a déjà choisi son camp.
       </p>
     </div>
   );
@@ -3245,7 +3245,7 @@ export default function TVPage() {
                     <p className="text-canal-yellow font-black text-2xl sm:text-3xl">CANAL CUP 2026</p>
                     <p className="text-canal-gray-muted text-xl sm:text-2xl italic">
                       &ldquo;Aucun match à l&apos;horizon.{" "}
-                      <img src="/goat.png" alt="🐐" className="inline h-[1em] object-contain align-middle mx-0.5" />
+                      <img src="/goat.png" alt="🐐" className="inline h-[2em] object-contain align-middle mx-0.5 -my-[0.5em]" />
                       {" "}se repose. Temporairement.&rdquo;
                     </p>
                   </div>
