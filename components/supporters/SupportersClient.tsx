@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { RefreshCw, Upload, Check, Trophy, Vote, Clock, Users, Send, X, MessageCircle, EyeOff } from "lucide-react";
-import { SUPPORTERS_REACTIONS } from "@/lib/supporters/access";
+import { SUPPORTERS_REACTIONS, VAR_MANUAL_CATEGORIES } from "@/lib/supporters/access";
 
 interface Comment {
   id: string;
@@ -44,6 +44,7 @@ interface VarAward {
   photo_url: string;
   title: string | null;
   count: number;
+  jury?: boolean;
 }
 interface Data {
   settings: { votes_open: boolean; results_published: boolean; votes_closed: boolean; close_at: string };
@@ -66,6 +67,7 @@ interface Data {
     notPostedTeams: string[];
     nonVoters: number;
   } | null;
+  manualVar?: Record<string, string>;
 }
 interface ActivityEvent {
   kind: "photo" | "reaction" | "comment";
@@ -361,7 +363,7 @@ export function SupportersClient() {
     return <div className="text-canal-gray-muted text-sm flex items-center gap-2"><RefreshCw size={14} className="animate-spin" /> Chargement…</div>;
   }
 
-  const { settings, me, myEntry, myVote, gallery, results, isOrganizer, participants, varAwards, stats, activity, radar } = data;
+  const { settings, me, myEntry, myVote, gallery, results, isOrganizer, participants, varAwards, stats, activity, radar, manualVar } = data;
   // Plus de validation préalable : on peut publier/remplacer tant que les
   // résultats ne sont pas dévoilés.
   const canEdit = !settings.results_published;
@@ -413,10 +415,10 @@ export function SupportersClient() {
         // Action recommandée : on hiérarchise vers la relance la plus utile.
         const action =
           radar.notPostedTeams.length > 0
-            ? { txt: `Relancer les ${radar.notPostedTeams.length} binôme${radar.notPostedTeams.length > 1 ? "s" : ""} sans photo`, hint: "Le concours a besoin de photos pour démarrer." }
+            ? { txt: `Relancer les ${radar.notPostedTeams.length} binôme${radar.notPostedTeams.length > 1 ? "s" : ""} sans photo`, hint: "Le concours a besoin de photos pour démarrer.", target: "no_photo" as const }
             : radar.nonVoters > 0
-              ? { txt: `Envoyer un rappel aux ${radar.nonVoters} non-votant${radar.nonVoters > 1 ? "s" : ""}`, hint: "Onglet « Pas voté » pour la liste nominative." }
-              : { txt: "Rien à faire — tout le monde joue le jeu 🎉", hint: "" };
+              ? { txt: `Envoyer un rappel aux ${radar.nonVoters} non-votant${radar.nonVoters > 1 ? "s" : ""}`, hint: "Push ciblé aux personnes concernées.", target: "no_vote" as const }
+              : { txt: "Rien à faire — tout le monde joue le jeu 🎉", hint: "", target: null };
         return (
           <section className="canal-card space-y-4">
             <h2 className="text-xs text-canal-yellow font-bold uppercase flex items-center gap-1.5">📡 Radar d&apos;animation · organisateurs</h2>
@@ -454,11 +456,34 @@ export function SupportersClient() {
               </div>
             </div>
 
-            {/* Action recommandée */}
+            {/* Action recommandée + relance en 1 clic (ferme la boucle) */}
             <div className="rounded-xl border border-canal-yellow/40 bg-canal-yellow/5 p-3">
               <p className="text-[11px] text-canal-yellow font-bold uppercase tracking-wide mb-1">Action recommandée</p>
               <p className="text-sm font-bold text-white">{action.txt}</p>
               {action.hint && <p className="text-[11px] text-canal-gray-muted mt-0.5">{action.hint}</p>}
+              {action.target && (
+                <button
+                  onClick={async () => {
+                    const label = action.target === "no_photo" ? "binômes sans photo" : "non-votants";
+                    if (!confirm(`Envoyer un push de relance aux ${label} ?`)) return;
+                    setBusy(true);
+                    try {
+                      const res = await fetch("/api/supporters/relance", {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ target: action.target }),
+                      });
+                      const d = await res.json();
+                      setFlash(res.ok
+                        ? { kind: "ok", msg: `Relance envoyée à ${d.sent}/${d.targeted} personne(s). 📢` }
+                        : { kind: "err", msg: d.error ?? "Relance impossible." });
+                    } finally { setBusy(false); }
+                  }}
+                  disabled={busy}
+                  className="mt-2.5 w-full text-sm font-bold px-3 py-2 rounded-lg bg-canal-yellow text-canal-black disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  📢 Relancer maintenant
+                </button>
+              )}
             </div>
           </section>
         );
@@ -584,11 +609,16 @@ export function SupportersClient() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={a.photo_url} alt={a.label} className="w-12 h-12 rounded-lg object-cover shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-black text-canal-yellow uppercase tracking-wide">{a.label}</p>
-                  <p className="text-sm font-bold text-white truncate">{a.team_name}</p>
-                  <p className="text-[11px] text-canal-gray-muted">
-                    {a.count} {a.key === "plus_commentee" ? `commentaire${a.count > 1 ? "s" : ""}` : `réaction${a.count > 1 ? "s" : ""}`}
+                  <p className="text-[11px] font-black text-canal-yellow uppercase tracking-wide">
+                    {a.label}
+                    {a.jury && <span className="ml-1 text-canal-gray-muted">· Jury</span>}
                   </p>
+                  <p className="text-sm font-bold text-white truncate">{a.team_name}</p>
+                  {!a.jury && (
+                    <p className="text-[11px] text-canal-gray-muted">
+                      {a.count} {a.key === "plus_commentee" ? `commentaire${a.count > 1 ? "s" : ""}` : `réaction${a.count > 1 ? "s" : ""}`}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
@@ -665,6 +695,35 @@ export function SupportersClient() {
                 >
                   <EyeOff size={12} /> Masquer (organisateur)
                 </button>
+              )}
+
+              {/* Attribution Prix VAR (jury) — organisateurs */}
+              {isOrganizer && (
+                <div className="border-t border-canal-gray-light/20 pt-2">
+                  <p className="text-[10px] text-canal-gray-muted uppercase tracking-wide mb-1.5">🏆 Décerner un Prix VAR (jury)</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {VAR_MANUAL_CATEGORIES.map((cat) => {
+                      const active = manualVar?.[cat.key] === g.id;
+                      return (
+                        <button
+                          key={cat.key}
+                          onClick={async () => {
+                            await fetch("/api/supporters/var", {
+                              method: "POST", headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ category_key: cat.key, entry_id: g.id }),
+                            });
+                            load();
+                          }}
+                          className={`px-2 py-1 rounded-full text-[11px] font-bold border transition-colors ${
+                            active ? "bg-canal-yellow/20 border-canal-yellow/50 text-canal-yellow" : "bg-canal-gray-mid border-transparent text-canal-gray-muted hover:text-white"
+                          }`}
+                        >
+                          {cat.emoji} {cat.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
             </div>
           );

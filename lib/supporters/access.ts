@@ -67,6 +67,15 @@ export const VAR_CATEGORIES: { key: string; emoji: string; label: string; source
   { key: "plus_commentee", emoji: "💬", label: "Photo la plus commentée", source: "comments" },
 ];
 
+// Prix VAR décernés MANUELLEMENT par le jury (Marie/Vincent) — en plus des
+// prix auto. Permettent de corriger un effet de popularité (créativité, esprit…).
+export const VAR_MANUAL_CATEGORIES: { key: string; emoji: string; label: string }[] = [
+  { key: "m_creativite", emoji: "🎨", label: "VAR Créativité" },
+  { key: "m_canalplus", emoji: "📺", label: "VAR Canal+" },
+  { key: "m_fou_rire", emoji: "😂", label: "VAR Fou rire (Jury)" },
+  { key: "m_coeur", emoji: "💛", label: "Coup de cœur du jury" },
+];
+
 // ─── Push supporter ───────────────────────────────────────────────────────────
 // Le code des notifications (nouvelle photo → tout le monde ; commentaire → le
 // binôme) est EN PLACE mais désactivé : on bascule à `true` quand on veut les

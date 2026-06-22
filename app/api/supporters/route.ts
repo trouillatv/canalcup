@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserRole } from "@/lib/auth/session";
 import { PODIUM_POINTS } from "@/lib/supporters/service";
-import { isSupportersOrganizer, VOTES_CLOSE_AT, votesClosed, VAR_CATEGORIES } from "@/lib/supporters/access";
+import { isSupportersOrganizer, VOTES_CLOSE_AT, votesClosed, VAR_CATEGORIES, VAR_MANUAL_CATEGORIES } from "@/lib/supporters/access";
 
 export async function GET() {
   const supabase = await createClient();
@@ -103,8 +103,14 @@ export async function GET() {
   // self-réactions/auto-commentaires EXCLUS. Aperçu live aux organisateurs,
   // visible par tous après le reveal (results_published).
   let varAwards:
-    | { key: string; emoji: string; label: string; team_name: string; photo_url: string; title: string | null; count: number }[]
+    | { key: string; emoji: string; label: string; team_name: string; photo_url: string; title: string | null; count: number; jury?: boolean }[]
     | null = null;
+  // Map des prix manuels (catégorie → photo) pour l'UI d'attribution organisateur.
+  const manualVar: Record<string, string> = {};
+  {
+    const { data: manualRows } = await admin.from("supporter_var_awards").select("category_key, entry_id");
+    for (const m of manualRows ?? []) manualVar[m.category_key] = m.entry_id;
+  }
   if ((isOrganizer || resultsPublished) && approved.length) {
     const { data: allUsersTeam } = await admin.from("users").select("id, team_id");
     const userTeam = new Map((allUsersTeam ?? []).map((u: { id: string; team_id: string | null }) => [u.id, u.team_id]));
@@ -125,6 +131,13 @@ export async function GET() {
     }
 
     varAwards = [];
+    // Prix du JURY (manuels) en premier — ils priment l'effet de popularité.
+    for (const cat of VAR_MANUAL_CATEGORIES) {
+      const eid = manualVar[cat.key];
+      const m = eid ? meta.get(eid) : undefined;
+      if (m) varAwards.push({ key: cat.key, emoji: cat.emoji, label: cat.label, team_name: m.team_name, photo_url: m.photo_url, title: m.title, count: 0, jury: true });
+    }
+    // Prix AUTO (dérivés des réactions/commentaires).
     for (const cat of VAR_CATEGORIES) {
       let bestId: string | null = null;
       let bestN = 0;
@@ -277,6 +290,7 @@ export async function GET() {
       stats,
       activity,
       radar,
+      manualVar: isOrganizer ? manualVar : undefined,
     },
     { headers: { "Cache-Control": "no-store" } }
   );
