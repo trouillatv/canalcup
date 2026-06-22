@@ -6,7 +6,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, Bell, RefreshCw, Send, Trash2 } from "lucide-react";
+import { ArrowLeft, Bell, Megaphone, RefreshCw, Send, Trash2 } from "lucide-react";
 
 interface Status {
   vapid: { configured: boolean; publicKeyTail: string | null; contact: string };
@@ -23,11 +23,40 @@ interface Result {
   dead?: boolean;
 }
 
+// Modèles prêts à l'emploi (les 3 push Journée Supporters).
+const PRESETS: { label: string; title: string; body: string; url: string }[] = [
+  {
+    label: "🎭 Concours ouvert",
+    title: "🎭 Concours Supporters ouvert !",
+    body: "Les publications ouvrent demain (mardi). Votez déjà pour vos binômes préférés !",
+    url: "/supporters",
+  },
+  {
+    label: "📸 Publications ouvertes",
+    title: "📸 Les publications sont ouvertes !",
+    body: "Publiez vos photos et vidéos de déguisement — et votez pour vos binômes préférés !",
+    url: "/supporters",
+  },
+  {
+    label: "⏳ 24h pour voter",
+    title: "⏳ Plus que 24h pour voter !",
+    body: "Les votes de la Journée Supporters ferment jeudi à 23h59. Soutenez vos collègues !",
+    url: "/supporters",
+  },
+];
+
 export default function AdminNotificationsPage() {
   const [status, setStatus] = useState<Status | null>(null);
   const [results, setResults] = useState<Result[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+
+  // Composer (envoi d'un vrai message à tous via /api/push/send).
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [url, setUrl] = useState("/supporters");
+  const [sending, setSending] = useState(false);
+  const [sendNote, setSendNote] = useState<string | null>(null);
 
   const loadStatus = useCallback(() => {
     fetch("/api/admin/push/diagnostic")
@@ -64,6 +93,35 @@ export default function AdminNotificationsPage() {
       setNote("Réseau indisponible");
     } finally {
       setBusy(null);
+    }
+  };
+
+  const broadcast = async () => {
+    const t = title.trim();
+    const b = body.trim();
+    if (t.length < 3 || b.length < 3) {
+      setSendNote("Titre et message requis (3 caractères min).");
+      return;
+    }
+    if (!window.confirm(`Envoyer cette notification à TOUS les abonnés ?\n\n${t}\n${b}`)) return;
+    setSending(true);
+    setSendNote(null);
+    try {
+      const res = await fetch("/api/push/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: t, body: b, url: url.trim() || "/" }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        setSendNote(d.error ?? "Envoi impossible.");
+      } else {
+        setSendNote(`✅ ${d.sent}/${d.total} notification(s) envoyée(s).`);
+      }
+    } catch {
+      setSendNote("Réseau indisponible.");
+    } finally {
+      setSending(false);
     }
   };
 
@@ -114,6 +172,63 @@ export default function AdminNotificationsPage() {
             </div>
           </>
         )}
+      </div>
+
+      {/* Composer — envoi d'un vrai message à tous */}
+      <div className="canal-card space-y-3">
+        <p className="text-canal-yellow font-bold text-sm flex items-center gap-2">
+          <Megaphone size={15} /> Envoyer une notification
+        </p>
+
+        <div className="flex flex-wrap gap-2">
+          {PRESETS.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              onClick={() => { setTitle(p.title); setBody(p.body); setUrl(p.url); setSendNote(null); }}
+              className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold border border-canal-gray-light bg-canal-gray-mid text-canal-gray-muted hover:text-white transition-colors"
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Titre"
+          maxLength={80}
+          className="w-full rounded-xl border border-canal-gray-light bg-canal-gray-mid px-4 py-2.5 text-sm text-white placeholder:text-canal-gray-muted focus:outline-none focus:border-canal-yellow"
+        />
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="Message"
+          rows={3}
+          maxLength={300}
+          className="w-full resize-none rounded-xl border border-canal-gray-light bg-canal-gray-mid px-4 py-2.5 text-sm text-white placeholder:text-canal-gray-muted focus:outline-none focus:border-canal-yellow"
+        />
+        <input
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="Lien à l'ouverture (ex. /supporters)"
+          maxLength={200}
+          className="w-full rounded-xl border border-canal-gray-light bg-canal-gray-mid px-4 py-2.5 text-xs font-mono text-white placeholder:text-canal-gray-muted focus:outline-none focus:border-canal-yellow"
+        />
+
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[11px] text-canal-gray-muted">
+            Envoi à <span className="font-bold text-white">tous les abonnés</span> ({status?.total ?? 0}).
+          </p>
+          <button
+            onClick={broadcast}
+            disabled={sending || title.trim().length < 3 || body.trim().length < 3}
+            className="inline-flex items-center gap-2 rounded-xl bg-canal-yellow px-4 py-2 text-sm font-black text-canal-black disabled:opacity-50"
+          >
+            <Send size={14} /> {sending ? "Envoi…" : "Envoyer à tous"}
+          </button>
+        </div>
+        {sendNote && <p className="text-sm font-bold text-white">{sendNote}</p>}
       </div>
 
       {/* Actions */}
