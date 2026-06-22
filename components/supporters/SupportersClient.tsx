@@ -2,7 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { RefreshCw, Upload, Check, Trophy, Vote, Clock, Users, Send, X, MessageCircle, EyeOff } from "lucide-react";
-import { SUPPORTERS_REACTIONS, VAR_MANUAL_CATEGORIES } from "@/lib/supporters/access";
+import { SUPPORTERS_REACTIONS, VAR_MANUAL_CATEGORIES, publishOpen } from "@/lib/supporters/access";
+
+// Affiche une photo OU une vidéo selon le type de média.
+function MediaView({ url, type, className }: { url: string; type: "image" | "video"; className?: string }) {
+  if (type === "video") {
+    return <video src={url} className={className} controls playsInline preload="metadata" />;
+  }
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url} alt="" className={className} />;
+}
 
 interface Comment {
   id: string;
@@ -18,6 +27,7 @@ interface GalleryItem {
   title: string | null;
   photo_url: string;
   is_mine: boolean;
+  media_type: "image" | "video";
   votes_count: number | null;
   comments: Comment[];
   reactions: Record<string, number>;
@@ -50,7 +60,7 @@ interface Data {
   settings: { votes_open: boolean; results_published: boolean; votes_closed: boolean; close_at: string };
   me: { userId: string; teamId: string | null; teamName: string | null };
   isOrganizer: boolean;
-  myEntry: { id: string; title: string | null; photo_url: string; status: string } | null;
+  myEntry: { id: string; title: string | null; photo_url: string; status: string; media_type: "image" | "video" } | null;
   myVote: { entry_id: string } | null;
   gallery: GalleryItem[];
   results: ResultRow[] | null;
@@ -339,7 +349,7 @@ export function SupportersClient() {
       const res = await fetch("/api/supporters/entry", { method: "POST", body: fd });
       const d = await res.json();
       if (!res.ok) setFlash({ kind: "err", msg: d.error ?? "Échec de l'envoi." });
-      else { setFlash({ kind: "ok", msg: "Photo publiée ! Elle est déjà dans la galerie. 📸" }); load(); }
+      else { setFlash({ kind: "ok", msg: "Publié ! C'est déjà dans la galerie. 📸" }); load(); }
     } finally {
       setBusy(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -364,9 +374,9 @@ export function SupportersClient() {
   }
 
   const { settings, me, myEntry, myVote, gallery, results, isOrganizer, participants, varAwards, stats, activity, radar, manualVar } = data;
-  // Plus de validation préalable : on peut publier/remplacer tant que les
-  // résultats ne sont pas dévoilés.
-  const canEdit = !settings.results_published;
+  // Publication ouverte seulement à partir de mardi, et tant que les résultats
+  // ne sont pas dévoilés.
+  const canPublish = publishOpen() && !settings.results_published;
   const hasVoted = !!myVote;
   const nonVoters = (participants ?? []).filter((p) => !p.voted);
 
@@ -541,13 +551,20 @@ export function SupportersClient() {
             <p className="text-sm font-bold text-white">{me.teamName ?? "Mon binôme"}</p>
             {myEntry && (
               <div className="space-y-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={myEntry.photo_url} alt={myEntry.title ?? "Ma photo"} className="w-full rounded-lg object-cover max-h-56" />
+                <MediaView url={myEntry.photo_url} type={myEntry.media_type} className="w-full rounded-lg object-cover max-h-56" />
                 {myEntry.title && <p className="text-sm text-white">{myEntry.title}</p>}
                 <p className="text-xs text-canal-gray-muted">{STATUS_LABEL[myEntry.status] ?? myEntry.status}</p>
               </div>
             )}
-            {canEdit ? (
+            {settings.results_published ? (
+              <p className="text-xs text-canal-gray-muted border-t border-canal-gray-light pt-3">
+                Concours terminé — la publication est figée.
+              </p>
+            ) : !canPublish ? (
+              <p className="text-sm text-canal-yellow border-t border-canal-gray-light pt-3">
+                📸 Les publications ouvrent <span className="font-bold">demain (mardi)</span>. Reviens pour poster ta photo ou ta vidéo de supporter !
+              </p>
+            ) : (
               <div className="space-y-2 border-t border-canal-gray-light pt-3">
                 <input
                   type="text" value={title} onChange={(e) => setTitle(e.target.value)}
@@ -555,21 +572,17 @@ export function SupportersClient() {
                   className="w-full bg-canal-black border border-canal-gray-light rounded-lg px-2 py-2 text-sm"
                 />
                 <input
-                  ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+                  ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" className="hidden"
                   onChange={(e) => { const f = e.currentTarget.files?.[0]; if (f) upload(f); }}
                 />
                 <button
                   disabled={busy} onClick={() => fileRef.current?.click()}
                   className="w-full text-sm font-bold px-3 py-2 rounded-lg bg-canal-yellow text-canal-black disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  <Upload size={15} /> {busy ? "Envoi…" : myEntry ? "Remplacer la photo" : "Poster ma photo"}
+                  <Upload size={15} /> {busy ? "Envoi…" : myEntry ? "Remplacer" : "Poster ma photo / vidéo"}
                 </button>
-                <p className="text-[11px] text-canal-gray-muted/70">JPG, PNG ou WebP — 8 Mo max.</p>
+                <p className="text-[11px] text-canal-gray-muted/70">Photo (JPG/PNG/WebP, 8 Mo) ou vidéo (MP4/WebM/MOV, 60 Mo).</p>
               </div>
-            ) : (
-              <p className="text-xs text-canal-gray-muted border-t border-canal-gray-light pt-3">
-                Concours terminé — la photo est figée.
-              </p>
             )}
           </div>
         )}
@@ -650,8 +663,7 @@ export function SupportersClient() {
           const canVote = settings.votes_open && !settings.results_published && !hasVoted && !g.is_mine;
           return (
             <div key={g.id} className="canal-card space-y-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={g.photo_url} alt={g.title ?? g.team_name} className="w-full rounded-lg object-cover max-h-64" />
+              <MediaView url={g.photo_url} type={g.media_type} className="w-full rounded-lg object-cover max-h-64" />
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-white truncate">{g.team_name}{g.is_mine && <span className="text-canal-gray-muted font-normal"> · toi</span>}</p>

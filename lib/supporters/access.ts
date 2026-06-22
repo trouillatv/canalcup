@@ -3,10 +3,10 @@
 // Pour ouvrir au public : vider SUPPORTERS_BETA_EMAILS et retirer le gating
 // dans app/supporters/page.tsx + l'entrée de menu (components/layout/TopBar.tsx).
 
-export const SUPPORTERS_BETA_EMAILS: string[] = [
-  "marie.lucas@canal-plus.com",
-  "vincent.trouillat@canal-plus.com",
-];
+// Ouvert à TOUS (liste vide = public). La beta de test est terminée : la page
+// est annoncée à l'ensemble des joueurs. Les publications restent verrouillées
+// jusqu'à mardi (cf. PUBLISH_OPEN_AT), mais la page (votes, galerie) est visible.
+export const SUPPORTERS_BETA_EMAILS: string[] = [];
 
 /** L'accès est-il ouvert à tout le monde ? (liste beta vide) */
 export const SUPPORTERS_PUBLIC = SUPPORTERS_BETA_EMAILS.length === 0;
@@ -48,6 +48,14 @@ export const VOTES_CLOSE_AT = "2026-06-25T23:59:59+02:00";
 
 export function votesClosed(now: Date = new Date()): boolean {
   return now.getTime() >= new Date(VOTES_CLOSE_AT).getTime();
+}
+
+// ─── Ouverture des publications ───────────────────────────────────────────────
+// Les binômes ne peuvent publier (photo OU vidéo) qu'à partir du mardi 23/06.
+export const PUBLISH_OPEN_AT = "2026-06-23T08:00:00+02:00";
+
+export function publishOpen(now: Date = new Date()): boolean {
+  return now.getTime() >= new Date(PUBLISH_OPEN_AT).getTime();
 }
 
 // ─── Réactions emoji rapides ──────────────────────────────────────────────────

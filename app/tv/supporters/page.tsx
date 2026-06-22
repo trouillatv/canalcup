@@ -20,6 +20,14 @@ type Slide =
 const MEDAL = ["", "🥇", "🥈", "🥉"];
 const SLIDE_MS = 8000;
 
+const isVideoUrl = (u: string) => /\.(mp4|webm|mov)(\?|$)/i.test(u);
+// Média plein cadre pour la TV (photo ou vidéo en autoplay muet bouclé).
+function TvMedia({ url, className }: { url: string; className: string }) {
+  if (isVideoUrl(url)) return <video src={url} className={className} autoPlay muted loop playsInline />;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url} alt="" className={className} />;
+}
+
 export default function TvSupportersPage() {
   const [data, setData] = useState<Data | null>(null);
   const [idx, setIdx] = useState(0);
@@ -75,8 +83,7 @@ export default function TvSupportersPage() {
 
       {slide.type === "photo" && (
         <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={slide.p.photo_url} alt={slide.p.team_name} className="max-h-[60vh] rounded-3xl object-contain mb-6 shadow-[0_0_60px_rgba(0,0,0,0.6)]" />
+          <TvMedia url={slide.p.photo_url} className="max-h-[60vh] rounded-3xl object-contain mb-6 shadow-[0_0_60px_rgba(0,0,0,0.6)]" />
           <h2 className="canal-headline text-6xl mb-2">{slide.p.team_name}</h2>
           {slide.p.title && <p className="text-3xl text-white/80 mb-4">« {slide.p.title} »</p>}
           <div className="flex items-center gap-8 text-4xl mt-2">
@@ -93,8 +100,7 @@ export default function TvSupportersPage() {
           <p className="text-5xl text-canal-yellow font-black uppercase tracking-widest mb-6">🏆 Prix VAR</p>
           <div className="text-[10rem] leading-none mb-4">{slide.v.emoji}</div>
           <h2 className="canal-headline text-7xl mb-4">{slide.v.label}</h2>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={slide.v.photo_url} alt={slide.v.team_name} className="max-h-[35vh] rounded-3xl object-contain mb-5" />
+          <TvMedia url={slide.v.photo_url} className="max-h-[35vh] rounded-3xl object-contain mb-5" />
           <p className="text-5xl font-black text-white">{slide.v.team_name}</p>
           <p className="text-2xl text-canal-gray-muted mt-2">{slide.v.count} {slide.v.label === "Photo la plus commentée" ? "commentaires" : "réactions"}</p>
         </>
@@ -106,8 +112,7 @@ export default function TvSupportersPage() {
           <p className="text-4xl text-canal-yellow font-black uppercase tracking-widest mb-4">
             {slide.p.rank === 1 ? "La photo gagnante" : `${slide.p.rank}e place`}
           </p>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={slide.p.photo_url} alt={slide.p.team_name} className="max-h-[45vh] rounded-3xl object-contain mb-5 shadow-[0_0_60px_rgba(255,215,0,0.25)]" />
+          <TvMedia url={slide.p.photo_url} className="max-h-[45vh] rounded-3xl object-contain mb-5 shadow-[0_0_60px_rgba(255,215,0,0.25)]" />
           <h2 className="canal-headline text-7xl">{slide.p.team_name}</h2>
           <p className="text-3xl text-canal-gray-muted mt-3">🗳️ {slide.p.votes} votes · +{slide.p.points} pts</p>
         </>

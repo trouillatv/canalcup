@@ -6,7 +6,7 @@ import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, UserPlus, 
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { isSupportersBetaEmail } from "@/lib/supporters/access";
+import { isSupportersBetaEmail, SUPPORTERS_PUBLIC } from "@/lib/supporters/access";
 import type { User } from "@supabase/supabase-js";
 
 const MENU_ITEMS = [
@@ -213,7 +213,7 @@ export function TopBar() {
             <p className="text-xs text-canal-gray-muted font-bold uppercase tracking-wider">Navigation</p>
           </div>
 
-          {MENU_ITEMS.filter((item) => !("betaSupporters" in item && item.betaSupporters) || isAdmin || isSupportersBetaEmail(user?.email)).map(({ href, icon: Icon, label }) => {
+          {MENU_ITEMS.filter((item) => !("betaSupporters" in item && item.betaSupporters) || SUPPORTERS_PUBLIC || isAdmin || isSupportersBetaEmail(user?.email)).map(({ href, icon: Icon, label }) => {
             const showBadge = href === "/inbox" && unread > 0;
             return (
               <Link
