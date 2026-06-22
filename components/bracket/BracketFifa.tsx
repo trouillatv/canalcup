@@ -312,6 +312,28 @@ function GroupTabs({
     (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
   );
 
+  // Explication du départage : pour chaque paire adjacente à égalité de points,
+  // on indique le critère qui sépare (diff de buts, puis buts marqués). Les
+  // critères « confrontation directe » et « fair-play » ne sont pas calculables
+  // ici (pas de données) → renvoyés au libellé générique. Affiché seulement
+  // quand le tournoi a démarré (sinon tout est à 0 = bruit).
+  const fmtDiff = (n: number) => (n > 0 ? `+${n}` : `${n}`);
+  const tieNotes = live
+    ? tableRows
+        .slice(0, -1)
+        .map((a, i) => ({ a, b: tableRows[i + 1] }))
+        .filter(({ a, b }) => a.points === b.points && (a.played > 0 || b.played > 0))
+        .map(({ a, b }) => {
+          const reason =
+            a.goal_diff !== b.goal_diff
+              ? `meilleure différence de buts (${fmtDiff(a.goal_diff)} vs ${fmtDiff(b.goal_diff)})`
+              : a.goals_for !== b.goals_for
+                ? `plus de buts marqués (${a.goals_for} vs ${b.goals_for})`
+                : `critères FIFA (confrontation directe, fair-play)`;
+          return { top: a.team_name_fr, bottom: b.team_name_fr, reason };
+        })
+    : [];
+
   return (
     <div>
       <div className="flex items-center gap-3 mb-3">
@@ -390,6 +412,40 @@ function GroupTabs({
             Classement à 0 — démarre au coup d&apos;envoi du tournoi.
           </p>
         )}
+
+        {/* Explications de départage (égalités de points) */}
+        {tieNotes.length > 0 && (
+          <div className="mt-2 space-y-1">
+            {tieNotes.map((t, i) => (
+              <p key={i} className="text-[11px] text-canal-gray-muted flex items-start gap-1.5">
+                <span className="text-canal-yellow shrink-0">⚖</span>
+                <span>
+                  <span className="font-bold text-white">{t.top}</span> devant{" "}
+                  <span className="font-semibold">{t.bottom}</span> : {t.reason}
+                </span>
+              </p>
+            ))}
+          </div>
+        )}
+
+        {/* Règles officielles de départage FIFA 2026 (dépliable) */}
+        <details className="mt-2 text-[11px] text-canal-gray-muted group">
+          <summary className="cursor-pointer hover:text-white select-none font-semibold list-none flex items-center gap-1">
+            <span className="text-canal-yellow">⚖</span> Règles de départage FIFA
+            <span className="text-canal-gray-muted/60 group-open:hidden"> ▸</span>
+            <span className="text-canal-gray-muted/60 hidden group-open:inline"> ▾</span>
+          </summary>
+          <ol className="list-decimal list-inside mt-1.5 space-y-0.5 pl-1 text-canal-gray-muted/90">
+            <li>Plus grand nombre de points</li>
+            <li>Confrontation directe : points entre équipes à égalité</li>
+            <li>Confrontation directe : différence de buts</li>
+            <li>Confrontation directe : buts marqués</li>
+            <li>Différence de buts générale</li>
+            <li>Buts marqués au total</li>
+            <li>Fair-play (jaune −1, rouge −3/−4)</li>
+            <li>Classement mondial FIFA</li>
+          </ol>
+        </details>
 
         {/* Matchs de la poule — mêmes disposition pour toutes les poules */}
         <div className="mt-4 pt-3 border-t border-canal-gray-light/25">
