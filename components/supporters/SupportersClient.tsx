@@ -640,19 +640,37 @@ export function SupportersClient() {
                   onChange={(e) => { const f = e.currentTarget.files?.[0]; if (f) upload(f, "main"); }} />
                 <input ref={bonusFileRef} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" className="hidden"
                   onChange={(e) => { const f = e.currentTarget.files?.[0]; if (f) upload(f, "bonus"); }} />
-                <button
-                  disabled={busy} onClick={() => mainFileRef.current?.click()}
-                  className="w-full text-sm font-bold px-3 py-2 rounded-lg bg-canal-yellow text-canal-black disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  <Upload size={15} /> {busy ? "Envoi…" : myEntry ? "Remplacer la photo PRINCIPALE (votée)" : "Poster la photo PRINCIPALE (votée)"}
-                </button>
-                {myEntry && (
-                  <button
-                    disabled={busy} onClick={() => bonusFileRef.current?.click()}
-                    className="w-full text-sm font-bold px-3 py-2 rounded-lg bg-canal-yellow/90 text-canal-black disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    <Upload size={15} /> {busy ? "Envoi…" : myEntry.photo_url_2 ? "Remplacer la 2e photo (BONUS)" : "➕ Ajouter une 2e photo (BONUS)"}
+                {!myEntry ? (
+                  /* 0 photo → on poste la principale. */
+                  <button disabled={busy} onClick={() => mainFileRef.current?.click()}
+                    className="w-full text-sm font-bold px-3 py-2.5 rounded-lg bg-canal-yellow text-canal-black disabled:opacity-50 flex items-center justify-center gap-2">
+                    <Upload size={15} /> {busy ? "Envoi…" : "📸 Poster la photo du binôme"}
                   </button>
+                ) : !myEntry.photo_url_2 ? (
+                  /* 1 photo → on peut en AJOUTER une 2e, ou remplacer la principale. */
+                  <>
+                    <button disabled={busy} onClick={() => bonusFileRef.current?.click()}
+                      className="w-full text-sm font-bold px-3 py-2.5 rounded-lg bg-canal-yellow text-canal-black disabled:opacity-50 flex items-center justify-center gap-2">
+                      <Upload size={15} /> {busy ? "Envoi…" : "➕ Ajouter une 2e photo"}
+                    </button>
+                    <button disabled={busy} onClick={() => mainFileRef.current?.click()}
+                      className="w-full text-xs font-bold px-3 py-2 rounded-lg border border-canal-gray-light text-canal-gray-muted disabled:opacity-50 flex items-center justify-center gap-2">
+                      Remplacer la photo principale
+                    </button>
+                  </>
+                ) : (
+                  /* 2 photos (max) → on demande laquelle remplacer. */
+                  <>
+                    <p className="text-[11px] text-canal-yellow">Tu as déjà 2 photos (le max). Pour en changer une, choisis laquelle remplacer :</p>
+                    <button disabled={busy} onClick={() => mainFileRef.current?.click()}
+                      className="w-full text-sm font-bold px-3 py-2 rounded-lg border border-canal-yellow/50 text-canal-yellow disabled:opacity-50 flex items-center justify-center gap-2">
+                      <Upload size={15} /> Remplacer la PRINCIPALE (votée)
+                    </button>
+                    <button disabled={busy} onClick={() => bonusFileRef.current?.click()}
+                      className="w-full text-sm font-bold px-3 py-2 rounded-lg border border-canal-yellow/50 text-canal-yellow disabled:opacity-50 flex items-center justify-center gap-2">
+                      <Upload size={15} /> Remplacer la BONUS
+                    </button>
+                  </>
                 )}
                 <p className="text-[11px] text-canal-gray-muted/70">2 photos max par binôme : 1 <span className="font-bold">principale</span> (votée) + 1 <span className="font-bold">bonus</span>. La 2e photo s&apos;ajoute SANS remplacer la 1re. Photo (JPG/PNG/WebP, 8 Mo) ou vidéo (MP4/WebM/MOV, 60 Mo).</p>
               </div>
