@@ -39,36 +39,19 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .maybeSingle();
 
   if (existing) {
-    await admin.from("score_events").delete().eq("source_type", "vote").eq("source_id", existing.id);
     const { error } = await admin.from("vestiaire_message_reactions").delete().eq("id", existing.id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true, active: false });
   }
 
-  const { data: reaction, error: insertError } = await admin
+  const { error: insertError } = await admin
     .from("vestiaire_message_reactions")
-    .insert({ message_id: id, user_id: me.userId, emoji })
-    .select("id")
-    .single();
+    .insert({ message_id: id, user_id: me.userId, emoji });
 
   if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 });
 
-  const { data: author } = message.user_id
-    ? await admin.from("users").select("id, team_id, display_name, name").eq("id", message.user_id).maybeSingle()
-    : { data: null };
-
-  if (author?.team_id) {
-    await admin.from("score_events").insert({
-      team_id: author.team_id,
-      user_id: author.id,
-      category: "social",
-      source_type: "vote",
-      source_id: reaction.id,
-      raw_points: 1,
-      label: "Reaction Vestiaire",
-      description: `${emoji} recu sur un message du Vestiaire`,
-    });
-  }
-
+  // Les réactions du Vestiaire sont PUREMENT SOCIALES : aucun point au score.
+  // (Sinon un like de chat gonfle le pilier Animations via la catégorie
+  // 'social', qui est réservée aux awards de la Journée Supporters.)
   return NextResponse.json({ ok: true, active: true });
 }
