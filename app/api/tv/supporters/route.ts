@@ -14,7 +14,7 @@ export async function GET() {
   const [{ data: settings }, { data: entries }, { data: teams }, { data: reactions }, { data: comments }, { data: votes }, { data: users }] =
     await Promise.all([
       admin.from("supporter_settings").select("results_published").eq("id", 1).maybeSingle(),
-      admin.from("supporter_photo_entries").select("id, team_id, title, photo_url, media_type, status, podium_rank").eq("status", "approved"),
+      admin.from("supporter_photo_entries").select("id, team_id, title, photo_url, photo_url_2, media_type, media_type_2, status, podium_rank").eq("status", "approved"),
       admin.from("teams").select("id, name"),
       admin.from("supporter_photo_reactions").select("entry_id, user_id, emoji"),
       admin.from("supporter_photo_comments").select("entry_id, user_id"),
@@ -53,7 +53,9 @@ export async function GET() {
     team_name: teamName.get(e.team_id) ?? "Binôme",
     title: e.title,
     photo_url: e.photo_url,
+    photo_url_2: e.photo_url_2 ?? null,
     media_type: e.media_type ?? "image",
+    media_type_2: e.media_type_2 ?? null,
     reactions: reactByEntry.get(e.id) ?? {},
     votes: revealed ? voteCount.get(e.id) ?? 0 : null,
   }));

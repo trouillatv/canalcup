@@ -76,42 +76,64 @@ export async function POST(req: Request) {
   }
   /* vidéo : upload tel quel (pas de transcodage) */
 
-  const path = `${me.team_id}/${Date.now()}.${ext}`;
+  // Slot : photo PRINCIPALE (votable) ou 2e image BONUS du binôme. 2 images max.
+  const slot = (form.get("slot") as string | null) === "bonus" ? "bonus" : "main";
+
+  const SELECT = "id, title, photo_url, photo_url_2, status, media_type, media_type_2";
+  const path = `${me.team_id}/${slot}-${Date.now()}.${ext}`;
   const { error: upErr } = await admin.storage.from(BUCKET).upload(path, body, { contentType, upsert: true });
   if (upErr) return NextResponse.json({ error: `Upload impossible : ${upErr.message}` }, { status: 500 });
   const { data: pub } = admin.storage.from(BUCKET).getPublicUrl(path);
 
-  // Le binôme a-t-il déjà une photo ? (remplacement vs première publication.)
+  // Entrée existante du binôme ? (1 entrée votable par binôme, unique team_id.)
   const { data: existing } = await admin
     .from("supporter_photo_entries")
     .select("id, participation_awarded")
     .eq("team_id", me.team_id)
     .maybeSingle();
-  const alreadyAwarded = !!existing?.participation_awarded;
 
-  // Publication immédiate (auto-approuvée). On conserve les points de
-  // participation déjà acquis (le remplacement de photo ne les retire pas).
-  const { data: entry, error: entryErr } = await admin
-    .from("supporter_photo_entries")
-    .upsert(
-      {
-        team_id: me.team_id,
-        uploaded_by_user_id: me.id,
-        title,
-        photo_url: pub.publicUrl,
-        media_type: mediaType,
-        status: "approved",
-        participation_awarded: alreadyAwarded,
-        approved_at: new Date().toISOString(),
-      },
-      { onConflict: "team_id" }
-    )
-    .select("id, title, photo_url, status, media_type")
-    .single();
-  if (entryErr) return NextResponse.json({ error: entryErr.message }, { status: 500 });
+  // ── 2e image BONUS : ajout/remplacement sur l'entrée existante (non votée) ──
+  if (slot === "bonus") {
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Postez d'abord la photo principale du binôme, puis ajoutez l'image bonus." },
+        { status: 400 }
+      );
+    }
+    const { data: entry, error } = await admin
+      .from("supporter_photo_entries")
+      .update({ photo_url_2: pub.publicUrl, media_type_2: mediaType })
+      .eq("id", existing.id)
+      .select(SELECT)
+      .single();
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, entry, isNew: false, slot });
+  }
+
+  // ── Photo PRINCIPALE : update si l'entrée existe (préserve la bonus), sinon insert.
+  const nowIso = new Date().toISOString();
+  let entry: { id: string } | null = null;
+  if (existing) {
+    const { data, error } = await admin
+      .from("supporter_photo_entries")
+      .update({ uploaded_by_user_id: me.id, title, photo_url: pub.publicUrl, media_type: mediaType, status: "approved", approved_at: nowIso })
+      .eq("id", existing.id)
+      .select(SELECT)
+      .single();
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    entry = data;
+  } else {
+    const { data, error } = await admin
+      .from("supporter_photo_entries")
+      .insert({ team_id: me.team_id, uploaded_by_user_id: me.id, title, photo_url: pub.publicUrl, media_type: mediaType, status: "approved", participation_awarded: false, approved_at: nowIso })
+      .select(SELECT)
+      .single();
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    entry = data;
+  }
 
   // +10 participation (idempotent) à la première publication du binôme.
-  const isNew = !existing;
+  const alreadyAwarded = !!existing?.participation_awarded;
   if (!alreadyAwarded && entry) {
     await awardToTeam(admin, {
       teamId: me.team_id,
@@ -126,6 +148,7 @@ export async function POST(req: Request) {
   // 🔔 Nouvelle photo = un événement : push à TOUT LE MONDE (sauf l'auteur).
   // Uniquement à la première publication du binôme (un remplacement ne spamme pas).
   // Préparé mais inactif tant que SUPPORTERS_PUSH_ENABLED est à false.
+  const isNew = !existing;
   if (isNew && entry && SUPPORTERS_PUSH_ENABLED) {
     const teamLabel = me.display_name || me.name || "Un binôme";
     void sendPushToAll(
@@ -138,5 +161,5 @@ export async function POST(req: Request) {
     ).catch((e) => console.error("[supporters/entry] push-to-all failed", e));
   }
 
-  return NextResponse.json({ ok: true, entry, isNew });
+  return NextResponse.json({ ok: true, entry, isNew, slot });
 }

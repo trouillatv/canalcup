@@ -26,8 +26,10 @@ interface GalleryItem {
   team_name: string;
   title: string | null;
   photo_url: string;
+  photo_url_2: string | null;
   is_mine: boolean;
   media_type: "image" | "video";
+  media_type_2: "image" | "video" | null;
   votes_count: number | null;
   comments: Comment[];
   reactions: Record<string, number>;
@@ -60,7 +62,7 @@ interface Data {
   settings: { votes_open: boolean; results_published: boolean; votes_closed: boolean; close_at: string };
   me: { userId: string; teamId: string | null; teamName: string | null };
   isOrganizer: boolean;
-  myEntry: { id: string; title: string | null; photo_url: string; status: string; media_type: "image" | "video" } | null;
+  myEntry: { id: string; title: string | null; photo_url: string; photo_url_2: string | null; status: string; media_type: "image" | "video"; media_type_2: "image" | "video" | null } | null;
   myVote: { entry_id: string } | null;
   gallery: GalleryItem[];
   results: ResultRow[] | null;
@@ -326,6 +328,7 @@ export function SupportersClient() {
   const [flash, setFlash] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
   const [tab, setTab] = useState<"galerie" | "nonvoters" | "radar">("galerie");
   const fileRef = useRef<HTMLInputElement>(null);
+  const slotRef = useRef<"main" | "bonus">("main");
 
   const [lightbox, setLightbox] = useState<{ url: string; type: "image" | "video" } | null>(null);
 
@@ -342,16 +345,20 @@ export function SupportersClient() {
     return () => clearInterval(t);
   }, [load]);
 
-  const upload = async (file: File) => {
+  const upload = async (file: File, slot: "main" | "bonus" = "main") => {
     setBusy(true); setFlash(null);
     try {
       const fd = new FormData();
       fd.append("file", file);
-      if (title.trim()) fd.append("title", title.trim());
+      fd.append("slot", slot);
+      if (slot === "main" && title.trim()) fd.append("title", title.trim());
       const res = await fetch("/api/supporters/entry", { method: "POST", body: fd });
       const d = await res.json();
       if (!res.ok) setFlash({ kind: "err", msg: d.error ?? "Échec de l'envoi." });
-      else { setFlash({ kind: "ok", msg: "Publié ! C'est déjà dans la galerie. 📸" }); load(); }
+      else {
+        setFlash({ kind: "ok", msg: slot === "bonus" ? "2e image ajoutée ! 📷" : "Publié ! C'est déjà dans la galerie. 📸" });
+        load();
+      }
     } finally {
       setBusy(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -567,10 +574,18 @@ export function SupportersClient() {
           <div className="space-y-3">
             <p className="text-sm font-bold text-white">{me.teamName ?? "Mon binôme"}</p>
             {myEntry && (
-              <div className="space-y-2">
-                <MediaView url={myEntry.photo_url} type={myEntry.media_type} onZoom={() => setLightbox({ url: myEntry.photo_url, type: myEntry.media_type })} className="w-full rounded-lg object-contain max-h-72 bg-canal-black" />
-                {myEntry.title && <p className="text-sm text-white">{myEntry.title}</p>}
-                <p className="text-xs text-canal-gray-muted">{STATUS_LABEL[myEntry.status] ?? myEntry.status}</p>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <MediaView url={myEntry.photo_url} type={myEntry.media_type} onZoom={() => setLightbox({ url: myEntry.photo_url, type: myEntry.media_type })} className="w-full rounded-lg object-contain max-h-72 bg-canal-black" />
+                  {myEntry.title && <p className="text-sm text-white">{myEntry.title}</p>}
+                  <p className="text-xs text-canal-gray-muted">{STATUS_LABEL[myEntry.status] ?? myEntry.status} · photo principale (votée)</p>
+                </div>
+                {myEntry.photo_url_2 && (
+                  <div className="space-y-1.5">
+                    <MediaView url={myEntry.photo_url_2} type={myEntry.media_type_2 ?? "image"} onZoom={() => setLightbox({ url: myEntry.photo_url_2!, type: myEntry.media_type_2 ?? "image" })} className="w-full rounded-lg object-contain max-h-72 bg-canal-black" />
+                    <p className="text-xs text-canal-gray-muted">📷 2e image (bonus, non votée)</p>
+                  </div>
+                )}
               </div>
             )}
             {settings.results_published ? (
@@ -590,15 +605,23 @@ export function SupportersClient() {
                 />
                 <input
                   ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" className="hidden"
-                  onChange={(e) => { const f = e.currentTarget.files?.[0]; if (f) upload(f); }}
+                  onChange={(e) => { const f = e.currentTarget.files?.[0]; if (f) upload(f, slotRef.current); }}
                 />
                 <button
-                  disabled={busy} onClick={() => fileRef.current?.click()}
+                  disabled={busy} onClick={() => { slotRef.current = "main"; fileRef.current?.click(); }}
                   className="w-full text-sm font-bold px-3 py-2 rounded-lg bg-canal-yellow text-canal-black disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  <Upload size={15} /> {busy ? "Envoi…" : myEntry ? "Remplacer" : "Poster ma photo / vidéo"}
+                  <Upload size={15} /> {busy ? "Envoi…" : myEntry ? "Remplacer la photo principale" : "Poster la photo du binôme"}
                 </button>
-                <p className="text-[11px] text-canal-gray-muted/70">Photo (JPG/PNG/WebP, 8 Mo) ou vidéo (MP4/WebM/MOV, 60 Mo).</p>
+                {myEntry && (
+                  <button
+                    disabled={busy} onClick={() => { slotRef.current = "bonus"; fileRef.current?.click(); }}
+                    className="w-full text-sm font-bold px-3 py-2 rounded-lg border border-canal-yellow/50 text-canal-yellow disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    <Upload size={15} /> {myEntry.photo_url_2 ? "Remplacer la 2e image (bonus)" : "Ajouter une 2e image (bonus)"}
+                  </button>
+                )}
+                <p className="text-[11px] text-canal-gray-muted/70">2 images max par binôme (1 votée + 1 bonus). Photo (JPG/PNG/WebP, 8 Mo) ou vidéo (MP4/WebM/MOV, 60 Mo).</p>
               </div>
             )}
           </div>
@@ -681,6 +704,9 @@ export function SupportersClient() {
           return (
             <div key={g.id} className="canal-card space-y-2">
               <MediaView url={g.photo_url} type={g.media_type} onZoom={() => setLightbox({ url: g.photo_url, type: g.media_type })} className="w-full rounded-lg object-contain max-h-80 bg-canal-black" />
+              {g.photo_url_2 && (
+                <MediaView url={g.photo_url_2} type={g.media_type_2 ?? "image"} onZoom={() => setLightbox({ url: g.photo_url_2!, type: g.media_type_2 ?? "image" })} className="w-full rounded-lg object-contain max-h-64 bg-canal-black" />
+              )}
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-white truncate">{g.team_name}{g.is_mine && <span className="text-canal-gray-muted font-normal"> · toi</span>}</p>

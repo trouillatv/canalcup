@@ -6,7 +6,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-interface Photo { id: string; team_name: string; title: string | null; photo_url: string; reactions: Record<string, number>; votes: number | null }
+interface Photo { id: string; team_name: string; title: string | null; photo_url: string; photo_url_2: string | null; reactions: Record<string, number>; votes: number | null }
 interface Var { emoji: string; label: string; team_name: string; photo_url: string; count: number }
 interface Podium { rank: number; team_name: string; title: string | null; photo_url: string; votes: number; points: number }
 interface Data { revealed: boolean; photos: Photo[]; varAwards: Var[]; podium: Podium[] }
@@ -83,7 +83,14 @@ export default function TvSupportersPage() {
 
       {slide.type === "photo" && (
         <>
-          <TvMedia url={slide.p.photo_url} className="max-h-[60vh] rounded-3xl object-contain mb-6 shadow-[0_0_60px_rgba(0,0,0,0.6)]" />
+          {slide.p.photo_url_2 ? (
+            <div className="flex gap-5 items-center justify-center mb-6 w-full">
+              <TvMedia url={slide.p.photo_url} className="max-h-[55vh] max-w-[46%] rounded-3xl object-contain shadow-[0_0_60px_rgba(0,0,0,0.6)]" />
+              <TvMedia url={slide.p.photo_url_2} className="max-h-[55vh] max-w-[46%] rounded-3xl object-contain shadow-[0_0_60px_rgba(0,0,0,0.6)]" />
+            </div>
+          ) : (
+            <TvMedia url={slide.p.photo_url} className="max-h-[60vh] rounded-3xl object-contain mb-6 shadow-[0_0_60px_rgba(0,0,0,0.6)]" />
+          )}
           <h2 className="canal-headline text-6xl mb-2">{slide.p.team_name}</h2>
           {slide.p.title && <p className="text-3xl text-white/80 mb-4">« {slide.p.title} »</p>}
           <div className="flex items-center gap-8 text-4xl mt-2">

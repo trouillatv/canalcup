@@ -25,7 +25,7 @@ export async function GET() {
   const [{ data: settings }, { data: entries }, { data: teams }, { data: myVote }] =
     await Promise.all([
       admin.from("supporter_settings").select("votes_open, results_published").eq("id", 1).maybeSingle(),
-      admin.from("supporter_photo_entries").select("id, team_id, uploaded_by_user_id, title, photo_url, media_type, status, podium_rank, created_at"),
+      admin.from("supporter_photo_entries").select("id, team_id, uploaded_by_user_id, title, photo_url, photo_url_2, media_type, media_type_2, status, podium_rank, created_at"),
       admin.from("teams").select("id, name"),
       admin.from("supporter_photo_votes").select("entry_id").eq("voter_user_id", me.id).maybeSingle(),
     ]);
@@ -92,8 +92,10 @@ export async function GET() {
     team_name: teamName.get(e.team_id) ?? "Binôme",
     title: e.title,
     photo_url: e.photo_url,
+    photo_url_2: e.photo_url_2 ?? null,
     is_mine: e.team_id === me.team_id,
     media_type: e.media_type ?? "image",
+    media_type_2: e.media_type_2 ?? null,
     votes_count: revealVotes ? voteCount.get(e.id) ?? 0 : null,
     comments: commentsByEntry.get(e.id) ?? [],
     reactions: reactionsByEntry.get(e.id) ?? {},
@@ -245,7 +247,7 @@ export async function GET() {
   // Ma photo (tous statuts confondus pour mon binôme).
   const mine = me.team_id ? (entries ?? []).find((e) => e.team_id === me.team_id) ?? null : null;
   const myEntry = mine
-    ? { id: mine.id, title: mine.title, photo_url: mine.photo_url, status: mine.status, media_type: mine.media_type ?? "image" }
+    ? { id: mine.id, title: mine.title, photo_url: mine.photo_url, photo_url_2: mine.photo_url_2 ?? null, status: mine.status, media_type: mine.media_type ?? "image", media_type_2: mine.media_type_2 ?? null }
     : null;
 
   // Podium (après publication).
