@@ -160,6 +160,10 @@ export async function GET() {
 
   // Onglet organisateur « N'ont pas voté » : joueurs inscrits + binôme + statut.
   let participants: { name: string; teamName: string | null; voted: boolean }[] | null = null;
+  let uxAudit: {
+    postedTeams: number; totalReactions: number; distinctReactors: number;
+    totalComments: number; distinctCommenters: number; engagedUsers: number;
+  } | null = null;
   if (isOrganizer) {
     participants = (allUsers ?? [])
       .map((u) => ({
@@ -168,6 +172,19 @@ export async function GET() {
         voted: voters.has(u.id),
       }))
       .sort((a, b) => Number(a.voted) - Number(b.voted) || a.name.localeCompare(b.name));
+
+    // Audit d'engagement (réservé Marie/Vincent) : profondeur d'interaction.
+    const reactors = new Set(reactionsRaw.map((r) => r.user_id).filter(Boolean));
+    const commenters = new Set(commentsRaw.map((c) => c.user_id).filter(Boolean));
+    const engaged = new Set<string>([...voters, ...reactors, ...commenters].filter(Boolean) as string[]);
+    uxAudit = {
+      postedTeams: approved.length,
+      totalReactions: reactionsRaw.length,
+      distinctReactors: reactors.size,
+      totalComments: commentsRaw.length,
+      distinctCommenters: commenters.size,
+      engagedUsers: engaged.size,
+    };
   }
 
   // 🔴 Flux d'activité : publications + réactions + commentaires, du plus récent.
@@ -240,6 +257,7 @@ export async function GET() {
       varAwards,
       stats,
       activity,
+      uxAudit,
     },
     { headers: { "Cache-Control": "no-store" } }
   );

@@ -58,6 +58,7 @@ interface Data {
   varAwards: VarAward[] | null;
   stats: { photos: number; teams: number; voters: number; participants: number; nonVoters: number; daysLeft: number };
   activity: ActivityEvent[];
+  uxAudit: { postedTeams: number; totalReactions: number; distinctReactors: number; totalComments: number; distinctCommenters: number; engagedUsers: number } | null;
 }
 interface ActivityEvent {
   kind: "photo" | "reaction" | "comment";
@@ -151,6 +152,8 @@ function PhotoComments({
 }
 
 // ─── Réactions emoji rapides ─────────────────────────────────────────────────
+// Optimiste : le compteur bouge AU TAP (récompense immédiate), puis on
+// synchronise avec le serveur (et le polling resynchronise les autres).
 function ReactionBar({
   entryId, reactions, mine, onReload,
 }: {
@@ -159,29 +162,33 @@ function ReactionBar({
   mine: string[];
   onReload: () => void;
 }) {
-  const [busy, setBusy] = useState(false);
-  const toggle = async (emoji: string) => {
-    setBusy(true);
-    try {
-      const res = await fetch("/api/supporters/reactions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ entry_id: entryId, emoji }),
-      });
-      if (res.ok) onReload();
-    } finally { setBusy(false); }
+  const [localCounts, setLocalCounts] = useState<Record<string, number>>(reactions);
+  const [localMine, setLocalMine] = useState<string[]>(mine);
+
+  // Resync quand les données serveur arrivent (chargement initial / polling).
+  useEffect(() => { setLocalCounts(reactions); setLocalMine(mine); }, [reactions, mine]);
+
+  const toggle = (emoji: string) => {
+    const active = localMine.includes(emoji);
+    // Mise à jour optimiste immédiate.
+    setLocalMine(active ? localMine.filter((e) => e !== emoji) : [...localMine, emoji]);
+    setLocalCounts({ ...localCounts, [emoji]: Math.max(0, (localCounts[emoji] ?? 0) + (active ? -1 : 1)) });
+    fetch("/api/supporters/reactions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ entry_id: entryId, emoji }),
+    }).then(() => onReload()).catch(() => onReload());
   };
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
       {SUPPORTERS_REACTIONS.map((e) => {
-        const count = reactions[e] ?? 0;
-        const active = mine.includes(e);
+        const count = localCounts[e] ?? 0;
+        const active = localMine.includes(e);
         return (
           <button
             key={e}
             onClick={() => toggle(e)}
-            disabled={busy}
-            className={`flex items-center gap-1 px-2 py-1 rounded-full text-base leading-none border transition-colors disabled:opacity-50 ${
+            className={`flex items-center gap-1 px-2 py-1 rounded-full text-base leading-none border transition-colors active:scale-95 ${
               active ? "bg-canal-yellow/20 border-canal-yellow/50" : "bg-canal-gray-mid border-transparent hover:border-canal-gray-light"
             }`}
           >
@@ -298,13 +305,21 @@ export function SupportersClient() {
   const [busy, setBusy] = useState(false);
   const [title, setTitle] = useState("");
   const [flash, setFlash] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
-  const [tab, setTab] = useState<"galerie" | "nonvoters">("galerie");
+  const [tab, setTab] = useState<"galerie" | "nonvoters" | "audit">("galerie");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(() => {
     fetch("/api/supporters").then((r) => r.json()).then((d) => { if (!d.error) setData(d); }).catch(() => {});
   }, []);
   useEffect(() => load(), [load]);
+
+  // Temps réel (léger) : on rafraîchit en fond toutes les 12 s quand l'onglet
+  // est visible → réactions/commentaires/activité/compteur des autres
+  // apparaissent sans recharger. (Optimiste côté tap pour la réaction propre.)
+  useEffect(() => {
+    const t = setInterval(() => { if (document.visibilityState === "visible") load(); }, 12000);
+    return () => clearInterval(t);
+  }, [load]);
 
   const upload = async (file: File) => {
     setBusy(true); setFlash(null);
@@ -339,7 +354,7 @@ export function SupportersClient() {
     return <div className="text-canal-gray-muted text-sm flex items-center gap-2"><RefreshCw size={14} className="animate-spin" /> Chargement…</div>;
   }
 
-  const { settings, me, myEntry, myVote, gallery, results, isOrganizer, participants, varAwards, stats, activity } = data;
+  const { settings, me, myEntry, myVote, gallery, results, isOrganizer, participants, varAwards, stats, activity, uxAudit } = data;
   // Plus de validation préalable : on peut publier/remplacer tant que les
   // résultats ne sont pas dévoilés.
   const canEdit = !settings.results_published;
@@ -370,9 +385,67 @@ export function SupportersClient() {
             onClick={() => setTab("nonvoters")}
             className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5 ${tab === "nonvoters" ? "bg-canal-yellow text-canal-black" : "text-canal-gray-muted hover:text-white"}`}
           >
-            <Users size={13} /> N&apos;ont pas voté ({nonVoters.length})
+            <Users size={13} /> Pas voté ({nonVoters.length})
+          </button>
+          <button
+            onClick={() => setTab("audit")}
+            className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${tab === "audit" ? "bg-canal-yellow text-canal-black" : "text-canal-gray-muted hover:text-white"}`}
+          >
+            📊 Audit UX
           </button>
         </div>
+      )}
+
+      {/* Vue organisateur : audit UX / engagement (réservé Marie & Vincent) */}
+      {isOrganizer && tab === "audit" && uxAudit && (
+        <section className="canal-card space-y-4">
+          <h2 className="text-xs text-canal-yellow font-bold uppercase flex items-center gap-1.5">📊 Audit UX · réservé organisateurs</h2>
+
+          {/* Entonnoir d'engagement */}
+          <div>
+            <p className="text-[11px] text-canal-gray-muted uppercase tracking-wide mb-2">Entonnoir d&apos;engagement</p>
+            {(() => {
+              const P = stats.participants || 1;
+              const Row = ({ label, n, accent }: { label: string; n: number; accent?: boolean }) => (
+                <div className="mb-1.5">
+                  <div className="flex items-center justify-between text-xs mb-0.5">
+                    <span className="text-white">{label}</span>
+                    <span className={`font-bold tabular-nums ${accent ? "text-canal-yellow" : "text-canal-gray-muted"}`}>{n} · {Math.round((n / P) * 100)}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-canal-gray-light/20 overflow-hidden">
+                    <div className="h-full bg-canal-yellow" style={{ width: `${Math.min(100, Math.round((n / P) * 100))}%` }} />
+                  </div>
+                </div>
+              );
+              return (
+                <>
+                  <Row label="👥 Inscrits" n={stats.participants} accent />
+                  <Row label="🗳️ Ont voté" n={stats.voters} />
+                  <Row label="😂 Ont réagi" n={uxAudit.distinctReactors} />
+                  <Row label="💬 Ont commenté" n={uxAudit.distinctCommenters} />
+                  <Row label="✨ Engagés (au moins 1 action)" n={uxAudit.engagedUsers} accent />
+                </>
+              );
+            })()}
+          </div>
+
+          {/* Volumes */}
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="rounded-lg bg-canal-gray-mid/50 py-2"><p className="text-xl font-black text-canal-yellow tabular-nums">{uxAudit.postedTeams}</p><p className="text-[10px] text-canal-gray-muted uppercase">photos</p></div>
+            <div className="rounded-lg bg-canal-gray-mid/50 py-2"><p className="text-xl font-black text-canal-yellow tabular-nums">{uxAudit.totalReactions}</p><p className="text-[10px] text-canal-gray-muted uppercase">réactions</p></div>
+            <div className="rounded-lg bg-canal-gray-mid/50 py-2"><p className="text-xl font-black text-canal-yellow tabular-nums">{uxAudit.totalComments}</p><p className="text-[10px] text-canal-gray-muted uppercase">commentaires</p></div>
+          </div>
+
+          {/* Objectifs de fluidité (référence) */}
+          <div>
+            <p className="text-[11px] text-canal-gray-muted uppercase tracking-wide mb-2">Objectifs de fluidité (cibles)</p>
+            <ul className="text-xs text-canal-gray-light space-y-1">
+              <li>📸 Poster une photo <span className="text-canal-gray-muted">≤ 30 s</span></li>
+              <li>🗳️ Voter <span className="text-canal-gray-muted">≤ 20 s</span></li>
+              <li>💬 Commenter / réagir <span className="text-canal-gray-muted">≤ 10 s</span></li>
+            </ul>
+          </div>
+        </section>
       )}
 
       {/* Vue organisateur : qui n'a pas voté */}
