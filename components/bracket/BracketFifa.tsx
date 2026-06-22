@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Fragment, useState } from "react";
 import { teamFlag, cn } from "@/lib/utils";
 import { WC2026_GROUPS } from "@/lib/football/groups-2026";
+import { resolveKnockout, type ResolvedSlot, type ResolvedRound } from "@/lib/football/bracket-2026";
 import { TeamLink } from "@/components/teams/TeamLink";
 import { LocalTime } from "@/components/timezone/LocalTime";
 
@@ -412,6 +413,143 @@ function GroupTabs({
   );
 }
 
+// ─── Tableau final PROJETÉ (échafaudage WC2026, équipes pas encore connues) ───
+// On affiche TOUJOURS l'arbre complet (Seizièmes→Finale) à partir de la matrice
+// officielle FIFA : emplacements (1er A, 2e B, 3e C·E·F·H·I) + équipes
+// provisoires si la phase de groupes a déjà des données. 0 API / 0 IA / 0 base.
+
+function ProjSlotLine({ slot, big }: { slot: ResolvedSlot; big?: boolean }) {
+  if (slot.teamName) {
+    return (
+      <div className="px-2.5 py-1.5">
+        <TeamLink
+          name={slot.teamName}
+          flag={teamFlag(slot.teamFlag || null, slot.teamName)}
+          flagClassName={big ? "text-2xl" : "text-lg"}
+          className={cn("font-bold text-white", big ? "text-base" : "text-sm")}
+          wrapperClassName="min-w-0"
+        />
+        <span className="block pl-[26px] text-[9px] text-canal-gray-muted truncate leading-tight">
+          {slot.sub}
+          {!slot.confirmed && <span className="text-canal-yellow/70"> · prov.</span>}
+        </span>
+      </div>
+    );
+  }
+  return (
+    <div className="px-2.5 py-2">
+      <span className={cn("font-semibold text-canal-gray-muted", big ? "text-sm" : "text-xs")}>{slot.label}</span>
+    </div>
+  );
+}
+
+function ProjCard({ match, big }: { match: ResolvedRound["matches"][number]; big?: boolean }) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl border overflow-hidden transition-all bg-canal-gray-mid/30",
+        big ? "w-64 border-canal-yellow/40 shadow-[0_0_40px_rgba(255,215,0,0.18)]" : "w-52 border-canal-gray-light/40"
+      )}
+    >
+      <div className="flex items-center justify-between px-2.5 pt-1.5">
+        <span className="text-[10px] uppercase tracking-wider text-canal-gray-muted font-bold">{match.code}</span>
+      </div>
+      <ProjSlotLine slot={match.a} big={big} />
+      <div className="h-px bg-canal-gray-light/30 mx-2.5" />
+      <ProjSlotLine slot={match.b} big={big} />
+    </div>
+  );
+}
+
+function ProjectionKnockout({ standings }: { standings: Record<string, StandingRow[]> }) {
+  const [mode, setMode] = useState<"projection" | "reel">("projection");
+  const rounds = resolveKnockout(standings, mode);
+
+  const maxMatches = Math.max(1, ...rounds.map((r) => r.matches.length));
+  const bracketHeight = Math.max(420, maxMatches * 92 + 40);
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-3 flex-wrap">
+        <span className="text-2xl">🏆</span>
+        <h3 className="font-black text-lg text-white uppercase tracking-widest">Tableau final</h3>
+        <div className="flex-1 h-px bg-gradient-to-r from-canal-yellow/50 to-transparent min-w-[20px]" />
+        {/* Toggle Projection / Réel */}
+        <div className="flex items-center rounded-lg bg-canal-gray-mid/60 p-0.5 shrink-0">
+          <button
+            onClick={() => setMode("projection")}
+            className={cn(
+              "px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors",
+              mode === "projection" ? "bg-canal-yellow text-canal-black" : "text-canal-gray-muted hover:text-white"
+            )}
+          >
+            🔮 Projection
+          </button>
+          <button
+            onClick={() => setMode("reel")}
+            className={cn(
+              "px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors",
+              mode === "reel" ? "bg-canal-yellow text-canal-black" : "text-canal-gray-muted hover:text-white"
+            )}
+          >
+            🔒 Réel
+          </button>
+        </div>
+      </div>
+
+      <p className="text-[11px] mb-3 flex items-center gap-1.5">
+        {mode === "projection" ? (
+          <span className="text-canal-yellow/90">
+            ⚠ <span className="font-bold">Projection actuelle</span> — d&apos;après les classements provisoires. Les positions se figent à la fin des poules.
+          </span>
+        ) : (
+          <span className="text-canal-gray-muted italic">
+            Mode réel — seules les places déjà actées sont affichées. La matrice officielle FIFA est montrée en attendant.
+          </span>
+        )}
+      </p>
+
+      <div className="overflow-x-auto pb-4">
+        <div className="flex items-stretch min-w-max" style={{ height: `${bracketHeight}px` }}>
+          {rounds.map((round, ri) => {
+            const isLast = ri === rounds.length - 1;
+            const emoji = PHASE_EMOJIS[round.round] ?? "⚽";
+            const label = PHASE_LABELS[round.round] ?? round.round;
+            const isFinale = round.round === "Finale";
+            return (
+              <Fragment key={round.round}>
+                <div className="flex flex-col shrink-0">
+                  <div className={cn(HEADER_H, "flex items-center justify-center px-3")}>
+                    <span
+                      className={cn(
+                        "font-black uppercase tracking-widest whitespace-nowrap",
+                        isFinale ? "text-canal-yellow text-base" : "text-canal-gray-muted text-xs"
+                      )}
+                    >
+                      {emoji} {label}
+                    </span>
+                  </div>
+                  <div className={cn("flex-1 flex flex-col gap-3 px-1", isFinale ? "justify-center" : "justify-around")}>
+                    {round.matches.map((m) => (
+                      <div key={m.code} className="relative flex items-center">
+                        <ProjCard match={m} big={isFinale} />
+                        {!isLast && (
+                          <span className="absolute left-full top-1/2 -translate-y-1/2 h-px w-2 bg-canal-yellow/25" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {!isLast && <ConnectorColumn nextCount={rounds[ri + 1].matches.length} />}
+              </Fragment>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 // Normalise un nom d'équipe pour le rapprochement poule (accents/casse).
@@ -454,37 +592,16 @@ export function BracketFifa({ data, initialGroup }: { data: BracketData; initial
     .map((p) => ({ phase: p.phase, matches: p.groups[0]?.matches ?? [] }))
     .filter((r) => r.matches.length > 0);
 
-  // Échafaudage WC2026 (32 qualifiés) : on affiche TOUJOURS l'arbre à
-  // élimination directe, même si les équipes ne sont pas encore connues.
-  const SCAFFOLD: { phase: string; count: number }[] = [
-    { phase: "Seizièmes", count: 16 },
-    { phase: "Huitièmes", count: 8 },
-    { phase: "Quarts", count: 4 },
-    { phase: "Demis", count: 2 },
-    { phase: "Finale", count: 1 },
-  ];
-  const placeholder = (phase: string, i: number): MatchRow => ({
-    id: `tbd-${phase}-${i}`,
-    team_a: "",
-    team_b: "",
-    status: "upcoming",
-    starts_at: "",
-  });
-
+  // Tant qu'aucun match à élimination directe n'existe en base (équipes pas
+  // encore qualifiées), on affiche le tableau PROJETÉ depuis la matrice
+  // officielle FIFA (ProjectionKnockout). Sinon, l'arbre des vrais matchs.
   const isScaffold = realRounds.length === 0;
-  const rounds = isScaffold
-    ? SCAFFOLD.map((s) => ({
-        phase: s.phase,
-        matches: Array.from({ length: s.count }, (_, i) => placeholder(s.phase, i)),
-      }))
-    : realRounds;
+  const rounds = realRounds;
 
   const effectiveThird =
     thirdPlace && (thirdPlace.groups[0]?.matches.length ?? 0) > 0
       ? thirdPlace.groups[0].matches
-      : isScaffold
-        ? [placeholder("3eme", 0)]
-        : [];
+      : [];
 
   // Bracket height scales with the widest round so connectors stay aligned
   const maxMatches = Math.max(1, ...rounds.map((r) => r.matches.length));
@@ -495,7 +612,11 @@ export function BracketFifa({ data, initialGroup }: { data: BracketData; initial
       {/* Group phase — one tab per pool (always shown for a WC bracket) */}
       <GroupTabs standings={data.standings} matchesByLetter={matchesByLetter} initialGroup={initialGroup} />
 
-      {/* Knockout bracket — toujours affiché (échafaudé si équipes inconnues) */}
+      {/* Knockout : tableau projeté (matrice FIFA) tant qu'aucun vrai match KO,
+          sinon l'arbre des matchs réels. */}
+      {isScaffold ? (
+        <ProjectionKnockout standings={data.standings} />
+      ) : (
       <div>
           <div className="flex items-center gap-3 mb-4">
             <span className="text-2xl">🏆</span>
@@ -505,11 +626,6 @@ export function BracketFifa({ data, initialGroup }: { data: BracketData; initial
             <div className="flex-1 h-px bg-gradient-to-r from-canal-yellow/50 to-transparent" />
             <span className="text-canal-gray-muted text-xs italic shrink-0 sm:hidden">← défiler →</span>
           </div>
-          {isScaffold && (
-            <p className="text-canal-gray-muted text-xs italic mb-3">
-              Équipes déterminées à l&apos;issue de la phase de groupes — structure du tableau ci-dessous.
-            </p>
-          )}
 
           <div className="overflow-x-auto pb-4">
             <div
@@ -561,6 +677,7 @@ export function BracketFifa({ data, initialGroup }: { data: BracketData; initial
             </div>
           </div>
         </div>
+      )}
     </div>
   );
 }
