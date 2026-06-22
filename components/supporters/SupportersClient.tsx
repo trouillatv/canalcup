@@ -365,6 +365,17 @@ export function SupportersClient() {
     }
   };
 
+  const deletePhoto = async () => {
+    if (!confirm("Supprimer la photo de ton binôme ? Les votes, réactions et commentaires liés seront retirés. Tu pourras en reposter une.")) return;
+    setBusy(true); setFlash(null);
+    try {
+      const res = await fetch("/api/supporters/entry", { method: "DELETE" });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) setFlash({ kind: "err", msg: d.error ?? "Suppression impossible." });
+      else { setFlash({ kind: "ok", msg: "Photo supprimée. Tu peux en reposter une. 🗑️" }); load(); }
+    } finally { setBusy(false); }
+  };
+
   const vote = async (entryId: string) => {
     setBusy(true); setFlash(null);
     try {
@@ -585,6 +596,11 @@ export function SupportersClient() {
                     <MediaView url={myEntry.photo_url_2} type={myEntry.media_type_2 ?? "image"} onZoom={() => setLightbox({ url: myEntry.photo_url_2!, type: myEntry.media_type_2 ?? "image" })} className="w-full rounded-lg object-contain max-h-72 bg-canal-black" />
                     <p className="text-xs text-canal-gray-muted">📷 2e image (bonus, non votée)</p>
                   </div>
+                )}
+                {!settings.results_published && (
+                  <button onClick={deletePhoto} disabled={busy} className="text-xs font-bold text-red-300 hover:text-red-200 disabled:opacity-50 flex items-center gap-1.5">
+                    <X size={13} /> Supprimer la photo du binôme
+                  </button>
                 )}
               </div>
             )}

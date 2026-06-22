@@ -1,9 +1,11 @@
-// POST /api/supporters/entry — le binôme courant poste/modifie sa photo.
-// multipart/form-data : { file: image, title?: string }
+// POST    /api/supporters/entry — le binôme courant poste/modifie sa photo.
+// DELETE  /api/supporters/entry — le binôme supprime SA photo (corriger une
+//   erreur sans passer par un organisateur).
+// multipart/form-data : { file: image, title?: string, slot?: main|bonus }
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { awardToTeam, PARTICIPATION_POINTS, PARTICIPATION_LABEL } from "@/lib/supporters/service";
+import { awardToTeam, revokeAward, PARTICIPATION_POINTS, PARTICIPATION_LABEL, podiumLabel } from "@/lib/supporters/service";
 import { sendPushToAll } from "@/lib/push";
 import { SUPPORTERS_PUSH_ENABLED, publishOpen } from "@/lib/supporters/access";
 
@@ -162,4 +164,46 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ ok: true, entry, isNew, slot });
+}
+
+// ── DELETE : le binôme supprime SA photo (corriger une erreur sans organisateur).
+// Retire photo principale + bonus + votes + réactions + commentaires + points de
+// participation. Le binôme peut ensuite republier. Modération orga = séparée.
+export async function DELETE(req: Request) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const admin = createAdminClient();
+  const { data: me } = await admin.from("users").select("id, team_id").eq("auth_id", user.id).maybeSingle();
+  if (!me) return NextResponse.json({ error: "Profil introuvable" }, { status: 404 });
+  if (!me.team_id) return NextResponse.json({ error: "Aucun binôme." }, { status: 400 });
+
+  // Concours figé une fois les résultats publiés.
+  const { data: settings } = await admin.from("supporter_settings").select("results_published").eq("id", 1).maybeSingle();
+  if (settings?.results_published) {
+    return NextResponse.json({ error: "Le concours est terminé : la photo n'est plus supprimable." }, { status: 400 });
+  }
+
+  // Photo du binôme (1 entrée votable par team).
+  const { data: entry } = await admin
+    .from("supporter_photo_entries")
+    .select("id")
+    .eq("team_id", me.team_id)
+    .maybeSingle();
+  if (!entry) return NextResponse.json({ error: "Aucune photo à supprimer." }, { status: 400 });
+
+  // Retire les points (participation + podium éventuel) AVANT la suppression.
+  await revokeAward(admin, { sourceId: entry.id, label: PARTICIPATION_LABEL });
+  for (const r of [1, 2, 3]) await revokeAward(admin, { sourceId: entry.id, label: podiumLabel(r) });
+
+  // Supprime votes / réactions / commentaires liés, puis l'entrée (photo
+  // principale + bonus partent avec la ligne). Explicite, sans dépendre des cascades.
+  await admin.from("supporter_photo_votes").delete().eq("entry_id", entry.id);
+  await admin.from("supporter_photo_reactions").delete().eq("entry_id", entry.id);
+  await admin.from("supporter_photo_comments").delete().eq("entry_id", entry.id);
+  const { error } = await admin.from("supporter_photo_entries").delete().eq("id", entry.id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ ok: true });
 }
