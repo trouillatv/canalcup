@@ -139,15 +139,28 @@ export async function GET() {
     }
   }
 
-  // Onglet organisateur « N'ont pas voté » : joueurs inscrits + leur binôme +
-  // statut de vote. Réservé à Marie & Vincent.
+  // Stats de participation PUBLIQUES (pression sociale, counts seulement) +
+  // liste détaillée réservée aux organisateurs.
+  const [{ data: allUsers }, { data: allVoteRows }] = await Promise.all([
+    admin.from("users").select("id, display_name, name, team_id").eq("profile_completed", true),
+    admin.from("supporter_photo_votes").select("voter_user_id"),
+  ]);
+  const voters = new Set((allVoteRows ?? []).map((v) => v.voter_user_id));
+  const participantsCount = (allUsers ?? []).length;
+  const teamsWithPlayers = new Set((allUsers ?? []).map((u) => u.team_id).filter(Boolean));
+  const daysLeft = Math.max(0, Math.ceil((new Date(VOTES_CLOSE_AT).getTime() - Date.now()) / 86400000));
+  const stats = {
+    photos: approved.length,
+    teams: teamsWithPlayers.size,
+    voters: voters.size,
+    participants: participantsCount,
+    nonVoters: Math.max(0, participantsCount - voters.size),
+    daysLeft,
+  };
+
+  // Onglet organisateur « N'ont pas voté » : joueurs inscrits + binôme + statut.
   let participants: { name: string; teamName: string | null; voted: boolean }[] | null = null;
   if (isOrganizer) {
-    const [{ data: allUsers }, { data: allVotes }] = await Promise.all([
-      admin.from("users").select("id, display_name, name, team_id").eq("profile_completed", true),
-      admin.from("supporter_photo_votes").select("voter_user_id"),
-    ]);
-    const voters = new Set((allVotes ?? []).map((v) => v.voter_user_id));
     participants = (allUsers ?? [])
       .map((u) => ({
         name: u.display_name || u.name || "Joueur",
@@ -203,6 +216,7 @@ export async function GET() {
       totalVotes,
       participants,
       varAwards,
+      stats,
     },
     { headers: { "Cache-Control": "no-store" } }
   );

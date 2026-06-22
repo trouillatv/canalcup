@@ -56,6 +56,7 @@ interface Data {
   totalVotes: number | null;
   participants: Participant[] | null;
   varAwards: VarAward[] | null;
+  stats: { photos: number; teams: number; voters: number; participants: number; nonVoters: number; daysLeft: number };
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -185,6 +186,24 @@ function ReactionBar({
   );
 }
 
+// ─── Compteur de participation (pression sociale, visible par tous) ──────────
+function StatBar({ stats }: { stats: Data["stats"] }) {
+  const Item = ({ icon, value, label, accent }: { icon: string; value: number; label: string; accent?: boolean }) => (
+    <div className="flex flex-col items-center flex-1 min-w-0">
+      <span className={`text-2xl font-black tabular-nums ${accent ? "text-red-300" : "text-canal-yellow"}`}>{value}</span>
+      <span className="text-[10px] text-canal-gray-muted uppercase tracking-wide text-center leading-tight mt-0.5">{icon} {label}</span>
+    </div>
+  );
+  return (
+    <section className="canal-card flex items-stretch justify-around gap-1 py-3">
+      <Item icon="📸" value={stats.photos} label="photos" />
+      <Item icon="👥" value={stats.teams} label="binômes" />
+      <Item icon="🗳️" value={stats.voters} label="ont voté" />
+      <Item icon="⚠️" value={stats.nonVoters} label="pas encore" accent />
+    </section>
+  );
+}
+
 // ─── Compte à rebours jusqu'à la clôture des votes ───────────────────────────
 function Countdown({ closeAt, closed }: { closeAt: string; closed: boolean }) {
   const [now, setNow] = useState(() => Date.now());
@@ -280,7 +299,7 @@ export function SupportersClient() {
     return <div className="text-canal-gray-muted text-sm flex items-center gap-2"><RefreshCw size={14} className="animate-spin" /> Chargement…</div>;
   }
 
-  const { settings, me, myEntry, myVote, gallery, results, isOrganizer, participants, varAwards } = data;
+  const { settings, me, myEntry, myVote, gallery, results, isOrganizer, participants, varAwards, stats } = data;
   // Plus de validation préalable : on peut publier/remplacer tant que les
   // résultats ne sont pas dévoilés.
   const canEdit = !settings.results_published;
@@ -291,6 +310,9 @@ export function SupportersClient() {
     <div className="space-y-5">
       {/* Compte à rebours */}
       <Countdown closeAt={settings.close_at} closed={settings.votes_closed} />
+
+      {/* Compteur de participation (pression sociale) */}
+      <StatBar stats={stats} />
 
       {/* Onglets organisateurs (Marie & Vincent) */}
       {isOrganizer && (
