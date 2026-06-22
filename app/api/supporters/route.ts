@@ -2,7 +2,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getCurrentUserRole } from "@/lib/auth/session";
 import { PODIUM_POINTS } from "@/lib/supporters/service";
+import { isSupportersOrganizer, VOTES_CLOSE_AT, votesClosed } from "@/lib/supporters/access";
 
 export async function GET() {
   const supabase = await createClient();
@@ -17,6 +19,9 @@ export async function GET() {
     .maybeSingle();
   if (!me) return NextResponse.json({ error: "Profil introuvable" }, { status: 404 });
 
+  const role = await getCurrentUserRole();
+  const isOrganizer = isSupportersOrganizer(role, user.email);
+
   const [{ data: settings }, { data: entries }, { data: teams }, { data: myVote }] =
     await Promise.all([
       admin.from("supporter_settings").select("votes_open, results_published").eq("id", 1).maybeSingle(),
@@ -26,11 +31,14 @@ export async function GET() {
     ]);
 
   const resultsPublished = !!settings?.results_published;
+  const closed = votesClosed();
   const teamName = new Map((teams ?? []).map((t: { id: string; name: string }) => [t.id, t.name]));
 
-  // Comptage des votes par entry (révélé seulement après publication).
+  // Comptage des votes par entry. Révélé après publication OU aux organisateurs
+  // (Marie/Vincent voient les votes au fil de l'eau).
+  const revealVotes = resultsPublished || isOrganizer;
   const voteCount = new Map<string, number>();
-  if (resultsPublished) {
+  if (revealVotes) {
     const { data: allVotes } = await admin.from("supporter_photo_votes").select("entry_id");
     for (const v of allVotes ?? []) voteCount.set(v.entry_id, (voteCount.get(v.entry_id) ?? 0) + 1);
   }
@@ -43,8 +51,26 @@ export async function GET() {
     title: e.title,
     photo_url: e.photo_url,
     is_mine: e.team_id === me.team_id,
-    votes_count: resultsPublished ? voteCount.get(e.id) ?? 0 : null,
+    votes_count: revealVotes ? voteCount.get(e.id) ?? 0 : null,
   }));
+
+  // Onglet organisateur « N'ont pas voté » : joueurs inscrits + leur binôme +
+  // statut de vote. Réservé à Marie & Vincent.
+  let participants: { name: string; teamName: string | null; voted: boolean }[] | null = null;
+  if (isOrganizer) {
+    const [{ data: allUsers }, { data: allVotes }] = await Promise.all([
+      admin.from("users").select("id, display_name, name, team_id").eq("profile_completed", true),
+      admin.from("supporter_photo_votes").select("voter_user_id"),
+    ]);
+    const voters = new Set((allVotes ?? []).map((v) => v.voter_user_id));
+    participants = (allUsers ?? [])
+      .map((u) => ({
+        name: u.display_name || u.name || "Joueur",
+        teamName: u.team_id ? teamName.get(u.team_id) ?? null : null,
+        voted: voters.has(u.id),
+      }))
+      .sort((a, b) => Number(a.voted) - Number(b.voted) || a.name.localeCompare(b.name));
+  }
 
   // Ma photo (tous statuts confondus pour mon binôme).
   const mine = me.team_id ? (entries ?? []).find((e) => e.team_id === me.team_id) ?? null : null;
@@ -68,19 +94,29 @@ export async function GET() {
       }));
   }
 
-  const totalVotes = resultsPublished
+  const totalVotes = revealVotes
     ? [...voteCount.values()].reduce((a, b) => a + b, 0)
     : null;
 
+  // Vote effectivement possible : flag admin ouvert ET avant clôture.
+  const votesEffectivelyOpen = !!settings?.votes_open && !resultsPublished && !closed;
+
   return NextResponse.json(
     {
-      settings: { votes_open: !!settings?.votes_open, results_published: resultsPublished },
+      settings: {
+        votes_open: votesEffectivelyOpen,
+        results_published: resultsPublished,
+        votes_closed: closed,
+        close_at: VOTES_CLOSE_AT,
+      },
       me: { userId: me.id, teamId: me.team_id, teamName: me.team_id ? teamName.get(me.team_id) ?? null : null },
+      isOrganizer,
       myEntry,
       myVote: myVote ? { entry_id: myVote.entry_id } : null,
       gallery,
       results,
       totalVotes,
+      participants,
     },
     { headers: { "Cache-Control": "no-store" } }
   );

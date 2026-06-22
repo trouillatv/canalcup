@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { votesClosed } from "@/lib/supporters/access";
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -20,7 +21,10 @@ export async function POST(req: Request) {
     .maybeSingle();
   if (!me) return NextResponse.json({ error: "Profil introuvable" }, { status: 404 });
 
-  // Fenêtre de vote ouverte ?
+  // Fenêtre de vote ouverte ? (flag admin + avant la clôture du jeudi 25/06)
+  if (votesClosed()) {
+    return NextResponse.json({ error: "Les votes sont clôturés." }, { status: 400 });
+  }
   const { data: settings } = await admin.from("supporter_settings").select("votes_open, results_published").eq("id", 1).maybeSingle();
   if (!settings?.votes_open || settings?.results_published) {
     return NextResponse.json({ error: "Les votes ne sont pas ouverts." }, { status: 400 });
