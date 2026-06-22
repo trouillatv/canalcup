@@ -23,6 +23,12 @@ export default async function SupportersPage() {
         Maillots, drapeaux, maquillage, déco de bureau, mise en scène… Poste la photo de
         ton binôme, fais-toi valider, et que le meilleur supporter gagne&nbsp;!
       </p>
+      <Link
+        href="/supporters/gallery"
+        className="flex items-center justify-center gap-2 w-full text-sm font-bold px-3 py-2.5 rounded-lg bg-canal-yellow text-canal-black"
+      >
+        🖼️ Voir la galerie en plein écran
+      </Link>
       <SupportersClient />
     </div>
   );
