@@ -58,7 +58,14 @@ interface Data {
   varAwards: VarAward[] | null;
   stats: { photos: number; teams: number; voters: number; participants: number; nonVoters: number; daysLeft: number };
   activity: ActivityEvent[];
-  uxAudit: { postedTeams: number; totalReactions: number; distinctReactors: number; totalComments: number; distinctCommenters: number; engagedUsers: number } | null;
+  radar: {
+    temperature: "faible" | "normale" | "tres_active";
+    today: { photos: number; reactions: number; comments: number; votes: number };
+    teamsTotal: number;
+    postedCount: number;
+    notPostedTeams: string[];
+    nonVoters: number;
+  } | null;
 }
 interface ActivityEvent {
   kind: "photo" | "reaction" | "comment";
@@ -305,7 +312,7 @@ export function SupportersClient() {
   const [busy, setBusy] = useState(false);
   const [title, setTitle] = useState("");
   const [flash, setFlash] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
-  const [tab, setTab] = useState<"galerie" | "nonvoters" | "audit">("galerie");
+  const [tab, setTab] = useState<"galerie" | "nonvoters" | "radar">("galerie");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(() => {
@@ -354,7 +361,7 @@ export function SupportersClient() {
     return <div className="text-canal-gray-muted text-sm flex items-center gap-2"><RefreshCw size={14} className="animate-spin" /> Chargement…</div>;
   }
 
-  const { settings, me, myEntry, myVote, gallery, results, isOrganizer, participants, varAwards, stats, activity, uxAudit } = data;
+  const { settings, me, myEntry, myVote, gallery, results, isOrganizer, participants, varAwards, stats, activity, radar } = data;
   // Plus de validation préalable : on peut publier/remplacer tant que les
   // résultats ne sont pas dévoilés.
   const canEdit = !settings.results_published;
@@ -388,65 +395,74 @@ export function SupportersClient() {
             <Users size={13} /> Pas voté ({nonVoters.length})
           </button>
           <button
-            onClick={() => setTab("audit")}
-            className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${tab === "audit" ? "bg-canal-yellow text-canal-black" : "text-canal-gray-muted hover:text-white"}`}
+            onClick={() => setTab("radar")}
+            className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${tab === "radar" ? "bg-canal-yellow text-canal-black" : "text-canal-gray-muted hover:text-white"}`}
           >
-            📊 Audit UX
+            📡 Radar
           </button>
         </div>
       )}
 
-      {/* Vue organisateur : audit UX / engagement (réservé Marie & Vincent) */}
-      {isOrganizer && tab === "audit" && uxAudit && (
-        <section className="canal-card space-y-4">
-          <h2 className="text-xs text-canal-yellow font-bold uppercase flex items-center gap-1.5">📊 Audit UX · réservé organisateurs</h2>
+      {/* Vue organisateur : RADAR d'animation — données → décision */}
+      {isOrganizer && tab === "radar" && radar && (() => {
+        const TEMP = {
+          faible: { label: "Calme", emoji: "🥶", cls: "border-blue-500/40 bg-blue-950/20 text-blue-200" },
+          normale: { label: "Ça vit", emoji: "🙂", cls: "border-canal-yellow/40 bg-canal-yellow/10 text-canal-yellow" },
+          tres_active: { label: "Ça chauffe !", emoji: "🔥", cls: "border-red-500/50 bg-red-950/20 text-red-200" },
+        }[radar.temperature];
+        // Action recommandée : on hiérarchise vers la relance la plus utile.
+        const action =
+          radar.notPostedTeams.length > 0
+            ? { txt: `Relancer les ${radar.notPostedTeams.length} binôme${radar.notPostedTeams.length > 1 ? "s" : ""} sans photo`, hint: "Le concours a besoin de photos pour démarrer." }
+            : radar.nonVoters > 0
+              ? { txt: `Envoyer un rappel aux ${radar.nonVoters} non-votant${radar.nonVoters > 1 ? "s" : ""}`, hint: "Onglet « Pas voté » pour la liste nominative." }
+              : { txt: "Rien à faire — tout le monde joue le jeu 🎉", hint: "" };
+        return (
+          <section className="canal-card space-y-4">
+            <h2 className="text-xs text-canal-yellow font-bold uppercase flex items-center gap-1.5">📡 Radar d&apos;animation · organisateurs</h2>
 
-          {/* Entonnoir d'engagement */}
-          <div>
-            <p className="text-[11px] text-canal-gray-muted uppercase tracking-wide mb-2">Entonnoir d&apos;engagement</p>
-            {(() => {
-              const P = stats.participants || 1;
-              const Row = ({ label, n, accent }: { label: string; n: number; accent?: boolean }) => (
-                <div className="mb-1.5">
-                  <div className="flex items-center justify-between text-xs mb-0.5">
-                    <span className="text-white">{label}</span>
-                    <span className={`font-bold tabular-nums ${accent ? "text-canal-yellow" : "text-canal-gray-muted"}`}>{n} · {Math.round((n / P) * 100)}%</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-canal-gray-light/20 overflow-hidden">
-                    <div className="h-full bg-canal-yellow" style={{ width: `${Math.min(100, Math.round((n / P) * 100))}%` }} />
-                  </div>
-                </div>
-              );
-              return (
-                <>
-                  <Row label="👥 Inscrits" n={stats.participants} accent />
-                  <Row label="🗳️ Ont voté" n={stats.voters} />
-                  <Row label="😂 Ont réagi" n={uxAudit.distinctReactors} />
-                  <Row label="💬 Ont commenté" n={uxAudit.distinctCommenters} />
-                  <Row label="✨ Engagés (au moins 1 action)" n={uxAudit.engagedUsers} accent />
-                </>
-              );
-            })()}
-          </div>
+            {/* Température */}
+            <div className={`rounded-xl border p-4 text-center ${TEMP.cls}`}>
+              <p className="text-4xl mb-1">{TEMP.emoji}</p>
+              <p className="text-lg font-black uppercase tracking-wide">{TEMP.label}</p>
+              <p className="text-[11px] opacity-80 mt-1">Température du concours (dernières 24 h)</p>
+            </div>
 
-          {/* Volumes */}
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="rounded-lg bg-canal-gray-mid/50 py-2"><p className="text-xl font-black text-canal-yellow tabular-nums">{uxAudit.postedTeams}</p><p className="text-[10px] text-canal-gray-muted uppercase">photos</p></div>
-            <div className="rounded-lg bg-canal-gray-mid/50 py-2"><p className="text-xl font-black text-canal-yellow tabular-nums">{uxAudit.totalReactions}</p><p className="text-[10px] text-canal-gray-muted uppercase">réactions</p></div>
-            <div className="rounded-lg bg-canal-gray-mid/50 py-2"><p className="text-xl font-black text-canal-yellow tabular-nums">{uxAudit.totalComments}</p><p className="text-[10px] text-canal-gray-muted uppercase">commentaires</p></div>
-          </div>
+            {/* Activité du jour */}
+            <div>
+              <p className="text-[11px] text-canal-gray-muted uppercase tracking-wide mb-2">Dernières 24 h</p>
+              <div className="flex items-center justify-around text-center">
+                <div><p className="text-xl font-black text-white tabular-nums">+{radar.today.photos}</p><p className="text-[10px] text-canal-gray-muted">📸 photos</p></div>
+                <div><p className="text-xl font-black text-white tabular-nums">+{radar.today.reactions}</p><p className="text-[10px] text-canal-gray-muted">😂 réactions</p></div>
+                <div><p className="text-xl font-black text-white tabular-nums">+{radar.today.comments}</p><p className="text-[10px] text-canal-gray-muted">💬 commentaires</p></div>
+                <div><p className="text-xl font-black text-white tabular-nums">+{radar.today.votes}</p><p className="text-[10px] text-canal-gray-muted">🗳️ votes</p></div>
+              </div>
+            </div>
 
-          {/* Objectifs de fluidité (référence) */}
-          <div>
-            <p className="text-[11px] text-canal-gray-muted uppercase tracking-wide mb-2">Objectifs de fluidité (cibles)</p>
-            <ul className="text-xs text-canal-gray-light space-y-1">
-              <li>📸 Poster une photo <span className="text-canal-gray-muted">≤ 30 s</span></li>
-              <li>🗳️ Voter <span className="text-canal-gray-muted">≤ 20 s</span></li>
-              <li>💬 Commenter / réagir <span className="text-canal-gray-muted">≤ 10 s</span></li>
-            </ul>
-          </div>
-        </section>
-      )}
+            {/* Points de friction */}
+            <div className="space-y-1.5 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-white">📸 Binômes ayant posté</span>
+                <span className="font-bold tabular-nums text-canal-gray-muted">{radar.postedCount}/{radar.teamsTotal}</span>
+              </div>
+              {radar.notPostedTeams.length > 0 && (
+                <p className="text-[11px] text-red-300">Sans photo : {radar.notPostedTeams.join(", ")}</p>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-white">🗳️ N&apos;ont pas voté</span>
+                <span className={`font-bold tabular-nums ${radar.nonVoters > 0 ? "text-red-300" : "text-green-300"}`}>{radar.nonVoters}</span>
+              </div>
+            </div>
+
+            {/* Action recommandée */}
+            <div className="rounded-xl border border-canal-yellow/40 bg-canal-yellow/5 p-3">
+              <p className="text-[11px] text-canal-yellow font-bold uppercase tracking-wide mb-1">Action recommandée</p>
+              <p className="text-sm font-bold text-white">{action.txt}</p>
+              {action.hint && <p className="text-[11px] text-canal-gray-muted mt-0.5">{action.hint}</p>}
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Vue organisateur : qui n'a pas voté */}
       {isOrganizer && tab === "nonvoters" && (

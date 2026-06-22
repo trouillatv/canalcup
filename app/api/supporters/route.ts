@@ -143,7 +143,7 @@ export async function GET() {
   // liste détaillée réservée aux organisateurs.
   const [{ data: allUsers }, { data: allVoteRows }] = await Promise.all([
     admin.from("users").select("id, display_name, name, team_id").eq("profile_completed", true),
-    admin.from("supporter_photo_votes").select("voter_user_id"),
+    admin.from("supporter_photo_votes").select("voter_user_id, created_at"),
   ]);
   const voters = new Set((allVoteRows ?? []).map((v) => v.voter_user_id));
   const participantsCount = (allUsers ?? []).length;
@@ -160,9 +160,15 @@ export async function GET() {
 
   // Onglet organisateur « N'ont pas voté » : joueurs inscrits + binôme + statut.
   let participants: { name: string; teamName: string | null; voted: boolean }[] | null = null;
-  let uxAudit: {
-    postedTeams: number; totalReactions: number; distinctReactors: number;
-    totalComments: number; distinctCommenters: number; engagedUsers: number;
+  // Radar d'animation (réservé Marie/Vincent) : données -> DÉCISION (relancer ?
+  // pousser un rappel ?). Pas un tableau de bord, un signal + une action.
+  let radar: {
+    temperature: "faible" | "normale" | "tres_active";
+    today: { photos: number; reactions: number; comments: number; votes: number };
+    teamsTotal: number;
+    postedCount: number;
+    notPostedTeams: string[];
+    nonVoters: number;
   } | null = null;
   if (isOrganizer) {
     participants = (allUsers ?? [])
@@ -173,17 +179,30 @@ export async function GET() {
       }))
       .sort((a, b) => Number(a.voted) - Number(b.voted) || a.name.localeCompare(b.name));
 
-    // Audit d'engagement (réservé Marie/Vincent) : profondeur d'interaction.
-    const reactors = new Set(reactionsRaw.map((r) => r.user_id).filter(Boolean));
-    const commenters = new Set(commentsRaw.map((c) => c.user_id).filter(Boolean));
-    const engaged = new Set<string>([...voters, ...reactors, ...commenters].filter(Boolean) as string[]);
-    uxAudit = {
-      postedTeams: approved.length,
-      totalReactions: reactionsRaw.length,
-      distinctReactors: reactors.size,
-      totalComments: commentsRaw.length,
-      distinctCommenters: commenters.size,
-      engagedUsers: engaged.size,
+    // Activité des dernières 24 h (proxy « aujourd'hui », sans souci de fuseau).
+    const since = Date.now() - 86400000;
+    const recent = (iso?: string | null) => !!iso && new Date(iso).getTime() >= since;
+    const todayPhotos = approved.filter((e) => recent(e.created_at as string)).length;
+    const todayReactions = reactionsRaw.filter((r) => recent(r.created_at)).length;
+    let todayComments = 0;
+    for (const list of commentsByEntry.values()) for (const c of list) if (recent(c.created_at)) todayComments++;
+    const todayVotes = (allVoteRows ?? []).filter((v) => recent((v as { created_at?: string }).created_at)).length;
+
+    const postedTeamIds = new Set(approved.map((e) => e.team_id));
+    const notPostedTeams = [...teamsWithPlayers]
+      .filter((tid): tid is string => !!tid && !postedTeamIds.has(tid))
+      .map((tid) => teamName.get(tid) ?? "Binôme");
+
+    const score = todayPhotos * 3 + todayReactions + todayComments * 2 + todayVotes;
+    const temperature = score >= 30 ? "tres_active" : score >= 10 ? "normale" : "faible";
+
+    radar = {
+      temperature,
+      today: { photos: todayPhotos, reactions: todayReactions, comments: todayComments, votes: todayVotes },
+      teamsTotal: teamsWithPlayers.size,
+      postedCount: postedTeamIds.size,
+      notPostedTeams,
+      nonVoters: Math.max(0, participantsCount - voters.size),
     };
   }
 
@@ -257,7 +276,7 @@ export async function GET() {
       varAwards,
       stats,
       activity,
-      uxAudit,
+      radar,
     },
     { headers: { "Cache-Control": "no-store" } }
   );
