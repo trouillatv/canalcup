@@ -316,7 +316,7 @@ function Countdown({ closeAt, closed }: { closeAt: string; closed: boolean }) {
         <span className="text-xl text-canal-gray-light">:</span>
         <Box v={s} l="sec" />
       </div>
-      <p className="text-[10px] text-canal-gray-muted/70 mt-2">Jeudi 25 juin à 23h59</p>
+      <p className="text-[10px] text-canal-gray-muted/70 mt-2">Jeudi 25 juin à 23:59:59 (heure NC)</p>
     </section>
   );
 }

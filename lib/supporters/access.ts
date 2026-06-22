@@ -43,8 +43,8 @@ export function isSupportersOrganizer(
 }
 
 // ─── Clôture des votes ────────────────────────────────────────────────────────
-// Jeudi 25 juin 2026 à 23:59:59 (heure de Paris, CEST = UTC+2).
-export const VOTES_CLOSE_AT = "2026-06-25T23:59:59+02:00";
+// Jeudi 25 juin 2026 à 23:59:59 heure de Nouvelle-Calédonie (UTC+11).
+export const VOTES_CLOSE_AT = "2026-06-25T23:59:59+11:00";
 
 export function votesClosed(now: Date = new Date()): boolean {
   return now.getTime() >= new Date(VOTES_CLOSE_AT).getTime();
@@ -68,22 +68,19 @@ export const SUPPORTERS_REACTIONS = ["😂", "🔥", "⚽", "🤡", "❤️"] as
 // ─── Prix VAR (marque maison) ─────────────────────────────────────────────────
 // Catégories AUTO calculées depuis les réactions/commentaires (les
 // self-réactions et auto-commentaires sont exclus). En plus du podium par votes.
-export const VAR_CATEGORIES: { key: string; emoji: string; label: string; source: "reaction" | "comments" }[] = [
-  { key: "fou_rire", emoji: "😂", label: "VAR Fou rire", source: "reaction" },
-  { key: "ambiance", emoji: "🔥", label: "VAR Ambiance", source: "reaction" },
-  { key: "esprit_foot", emoji: "⚽", label: "VAR Esprit foot", source: "reaction" },
-  { key: "nimporte_quoi", emoji: "🤡", label: "VAR N'importe quoi", source: "reaction" },
-  { key: "coup_de_coeur", emoji: "❤️", label: "Coup de cœur", source: "reaction" },
-  { key: "plus_commentee", emoji: "💬", label: "Photo la plus commentée", source: "comments" },
-];
+// ⚠️ DÉSACTIVÉ (décision produit) : les Prix VAR sont décernés MANUELLEMENT par
+// le jury (cf. VAR_MANUAL_CATEGORIES), pas dérivés automatiquement des réactions.
+// Les réactions emoji restent (engagement), mais ne donnent plus de prix auto.
+export const VAR_CATEGORIES: { key: string; emoji: string; label: string; source: "reaction" | "comments" }[] = [];
 
-// Prix VAR décernés MANUELLEMENT par le jury (Marie/Vincent) — en plus des
-// prix auto. Permettent de corriger un effet de popularité (créativité, esprit…).
+// Prix VAR décernés MANUELLEMENT par le jury (Marie & Vincent). Choix humain,
+// PAS d'automatique : ce sont les seuls prix VAR du concours déguisements.
 export const VAR_MANUAL_CATEGORIES: { key: string; emoji: string; label: string }[] = [
-  { key: "m_creativite", emoji: "🎨", label: "VAR Créativité" },
-  { key: "m_canalplus", emoji: "📺", label: "VAR Canal+" },
-  { key: "m_fou_rire", emoji: "😂", label: "VAR Fou rire (Jury)" },
-  { key: "m_coeur", emoji: "💛", label: "Coup de cœur du jury" },
+  { key: "m_deguisement", emoji: "🏆", label: "Prix VAR du plus beau déguisement" },
+  { key: "m_drole",       emoji: "😂", label: "Prix VAR le plus drôle" },
+  { key: "m_improbable",  emoji: "🤯", label: "Prix VAR le plus improbable" },
+  { key: "m_esprit",      emoji: "🤝", label: "Prix VAR du meilleur esprit d'équipe" },
+  { key: "m_coeur",       emoji: "❤️", label: "Prix VAR coup de cœur" },
 ];
 
 // ─── Push supporter ───────────────────────────────────────────────────────────
