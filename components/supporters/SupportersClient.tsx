@@ -5,12 +5,12 @@ import { RefreshCw, Upload, Check, Trophy, Vote, Clock, Users, Send, X, MessageC
 import { SUPPORTERS_REACTIONS, VAR_MANUAL_CATEGORIES, publishOpen } from "@/lib/supporters/access";
 
 // Affiche une photo OU une vidéo selon le type de média.
-function MediaView({ url, type, className }: { url: string; type: "image" | "video"; className?: string }) {
+function MediaView({ url, type, className, onZoom }: { url: string; type: "image" | "video"; className?: string; onZoom?: () => void }) {
   if (type === "video") {
     return <video src={url} className={className} controls playsInline preload="metadata" />;
   }
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={url} alt="" className={className} />;
+  return <img src={url} alt="" className={`${className ?? ""}${onZoom ? " cursor-zoom-in" : ""}`} onClick={onZoom} />;
 }
 
 interface Comment {
@@ -327,6 +327,8 @@ export function SupportersClient() {
   const [tab, setTab] = useState<"galerie" | "nonvoters" | "radar">("galerie");
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const [lightbox, setLightbox] = useState<{ url: string; type: "image" | "video" } | null>(null);
+
   const load = useCallback(() => {
     fetch("/api/supporters").then((r) => r.json()).then((d) => { if (!d.error) setData(d); }).catch(() => {});
   }, []);
@@ -382,6 +384,21 @@ export function SupportersClient() {
 
   return (
     <div className="space-y-5">
+      {/* Lightbox plein écran (clic sur une photo pour l'agrandir) */}
+      {lightbox && (
+        <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
+          <button aria-label="Fermer" className="absolute top-4 right-4 text-white/80 hover:text-white" onClick={() => setLightbox(null)}>
+            <X size={28} />
+          </button>
+          {lightbox.type === "video" ? (
+            <video src={lightbox.url} className="max-h-[90vh] max-w-full rounded-lg" controls autoPlay playsInline onClick={(e) => e.stopPropagation()} />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={lightbox.url} alt="" className="max-h-[90vh] max-w-full rounded-lg object-contain" onClick={(e) => e.stopPropagation()} />
+          )}
+        </div>
+      )}
+
       {/* Compte à rebours */}
       <Countdown closeAt={settings.close_at} closed={settings.votes_closed} />
 
@@ -551,7 +568,7 @@ export function SupportersClient() {
             <p className="text-sm font-bold text-white">{me.teamName ?? "Mon binôme"}</p>
             {myEntry && (
               <div className="space-y-2">
-                <MediaView url={myEntry.photo_url} type={myEntry.media_type} className="w-full rounded-lg object-cover max-h-56" />
+                <MediaView url={myEntry.photo_url} type={myEntry.media_type} onZoom={() => setLightbox({ url: myEntry.photo_url, type: myEntry.media_type })} className="w-full rounded-lg object-contain max-h-72 bg-canal-black" />
                 {myEntry.title && <p className="text-sm text-white">{myEntry.title}</p>}
                 <p className="text-xs text-canal-gray-muted">{STATUS_LABEL[myEntry.status] ?? myEntry.status}</p>
               </div>
@@ -663,7 +680,7 @@ export function SupportersClient() {
           const canVote = settings.votes_open && !settings.results_published && !hasVoted && !g.is_mine;
           return (
             <div key={g.id} className="canal-card space-y-2">
-              <MediaView url={g.photo_url} type={g.media_type} className="w-full rounded-lg object-cover max-h-64" />
+              <MediaView url={g.photo_url} type={g.media_type} onZoom={() => setLightbox({ url: g.photo_url, type: g.media_type })} className="w-full rounded-lg object-contain max-h-80 bg-canal-black" />
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-white truncate">{g.team_name}{g.is_mine && <span className="text-canal-gray-muted font-normal"> · toi</span>}</p>
