@@ -362,7 +362,7 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
     ] = await Promise.all([
       selectAll<{ id: string; display_name: string | null; name: string | null; team_id: string | null; email: string | null }>(supabase, "users", "id, display_name, name, team_id, email"),
       selectAll<{ id: string; name: string }>(supabase, "teams", "id, name"),
-      selectAll<{ user_id: string | null; points_awarded: number | null; match: { is_settled: boolean | null } | null }>(supabase, "predictions", "user_id, points_awarded, match:matches(is_settled)"),
+      selectAll<{ user_id: string | null; points_awarded: number | null; predicted_score_a: number | null; predicted_score_b: number | null; match: { is_settled: boolean | null; score_a: number | null; score_b: number | null } | null }>(supabase, "predictions", "user_id, points_awarded, predicted_score_a, predicted_score_b, match:matches(is_settled, score_a, score_b)"),
       selectAll<{ user_id: string | null; points_awarded: number | null }>(supabase, "bonus_predictions", "user_id, points_awarded"),
       selectAll<{ user_id: string | null; points_awarded: number | null }>(supabase, "quiz_answers", "user_id, points_awarded"),
       casinoPointsByUser(supabase),
@@ -378,11 +378,15 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
     // Le prono embarque le match pour distinguer « évalué » (match settled) de
     // « en attente » : points_awarded vaut 0 dans les deux cas (colonne NOT NULL
     // DEFAULT 0), donc seul is_settled permet de compter les pronos réellement notés.
-    type PredRow = PtRow & { match: { is_settled: boolean | null } | null };
+    type PredRow = PtRow & {
+      predicted_score_a: number | null; predicted_score_b: number | null;
+      match: { is_settled: boolean | null; score_a: number | null; score_b: number | null } | null;
+    };
     const pronosRaw = new Map<string, number>();
     const quizRaw = new Map<string, number>();
     const pronosCount = new Map<string, number>();
     const quizCount = new Map<string, number>();
+    const exactCount = new Map<string, number>(); // scores exacts (départage classement)
     const add = (m: Map<string, number>, id: string | null, n: number | null) => {
       if (!id) return;
       m.set(id, (m.get(id) ?? 0) + (n ?? 0));
@@ -393,7 +397,13 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
     };
     for (const r of (preds ?? []) as unknown as PredRow[]) {
       add(pronosRaw, r.user_id, r.points_awarded);
-      if (r.match?.is_settled) inc(pronosCount, r.user_id); // matchs évalués uniquement
+      if (r.match?.is_settled) {
+        inc(pronosCount, r.user_id); // matchs évalués uniquement
+        if (
+          r.predicted_score_a != null && r.predicted_score_b != null &&
+          r.predicted_score_a === r.match.score_a && r.predicted_score_b === r.match.score_b
+        ) inc(exactCount, r.user_id);
+      }
     }
     for (const r of (bonuses ?? []) as PtRow[]) add(pronosRaw, r.user_id, r.points_awarded);
     for (const r of (quizzes ?? []) as PtRow[]) {
@@ -425,7 +435,14 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
       })
       .filter((r) => r.display_name); // joueurs identifiés
 
-    rows.sort((a, b) => b.total - a.total);
+    // Départage : à points égaux, on classe devant celui qui a deviné le plus
+    // de scores exacts (puis, à défaut, ordre stable par nom).
+    rows.sort(
+      (a, b) =>
+        b.total - a.total ||
+        (exactCount.get(b.user_id) ?? 0) - (exactCount.get(a.user_id) ?? 0) ||
+        (a.display_name ?? "").localeCompare(b.display_name ?? "")
+    );
     rows.forEach((r, i) => (r.rank = i + 1));
     return rows;
   } catch {

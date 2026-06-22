@@ -298,7 +298,7 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
     ] = await Promise.all([
       selectAll<{ id: string; display_name: string | null; name: string | null; team_id: string | null; email: string | null }>(supabase, "users", "id, display_name, name, team_id, email"),
       selectAll<{ id: string; name: string }>(supabase, "teams", "id, name"),
-      selectAll<{ user_id: string | null; points_awarded: number | null }>(supabase, "predictions", "user_id, points_awarded"),
+      selectAll<{ user_id: string | null; points_awarded: number | null; predicted_score_a: number | null; predicted_score_b: number | null; match: { is_settled: boolean | null; score_a: number | null; score_b: number | null } | null }>(supabase, "predictions", "user_id, points_awarded, predicted_score_a, predicted_score_b, match:matches(is_settled, score_a, score_b)"),
       selectAll<{ user_id: string | null; points_awarded: number | null }>(supabase, "bonus_predictions", "user_id, points_awarded"),
       selectAll<{ user_id: string | null; points_awarded: number | null }>(supabase, "quiz_answers", "user_id, points_awarded"),
       getCasinoPointsByUser(supabase),
@@ -311,13 +311,28 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
     const teamAgg = await computeTeamScores(supabase, (teams ?? []).map((t: { id: string }) => t.id));
 
     type PtRow = { user_id: string | null; points_awarded: number | null };
+    type PredRow = PtRow & {
+      predicted_score_a: number | null; predicted_score_b: number | null;
+      match: { is_settled: boolean | null; score_a: number | null; score_b: number | null } | null;
+    };
     const pronosRaw = new Map<string, number>();
     const quizRaw = new Map<string, number>();
+    const exactCount = new Map<string, number>(); // scores exacts (départage classement)
     const add = (m: Map<string, number>, id: string | null, n: number | null) => {
       if (!id) return;
       m.set(id, (m.get(id) ?? 0) + (n ?? 0));
     };
-    for (const r of (preds ?? []) as PtRow[]) add(pronosRaw, r.user_id, r.points_awarded);
+    const inc = (m: Map<string, number>, id: string | null) => {
+      if (!id) return;
+      m.set(id, (m.get(id) ?? 0) + 1);
+    };
+    for (const r of (preds ?? []) as unknown as PredRow[]) {
+      add(pronosRaw, r.user_id, r.points_awarded);
+      if (
+        r.match?.is_settled && r.predicted_score_a != null && r.predicted_score_b != null &&
+        r.predicted_score_a === r.match.score_a && r.predicted_score_b === r.match.score_b
+      ) inc(exactCount, r.user_id);
+    }
     for (const r of (bonuses ?? []) as PtRow[]) add(pronosRaw, r.user_id, r.points_awarded);
     for (const r of (quizzes ?? []) as PtRow[]) add(quizRaw, r.user_id, r.points_awarded);
     // 🎰 Casino : points perso pliés dans le pilier pronostics (jeu de pronos).
@@ -346,7 +361,13 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
       })
       .filter((r) => r.display_name); // joueurs identifiés
 
-    rows.sort((a, b) => b.total - a.total);
+    // Départage : à points égaux, plus de scores exacts devinés passe devant.
+    rows.sort(
+      (a, b) =>
+        b.total - a.total ||
+        (exactCount.get(b.user_id) ?? 0) - (exactCount.get(a.user_id) ?? 0) ||
+        (a.display_name ?? "").localeCompare(b.display_name ?? "")
+    );
     rows.forEach((r, i) => (r.rank = i + 1));
     return rows;
   } catch {
