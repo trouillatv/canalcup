@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { RefreshCw, Upload, Check, Trophy, Vote, Clock, Users, Send, X, MessageCircle, EyeOff } from "lucide-react";
+import { SUPPORTERS_REACTIONS } from "@/lib/supporters/access";
 
 interface Comment {
   id: string;
@@ -19,6 +20,8 @@ interface GalleryItem {
   is_mine: boolean;
   votes_count: number | null;
   comments: Comment[];
+  reactions: Record<string, number>;
+  my_reactions: string[];
 }
 interface ResultRow {
   rank: number;
@@ -124,6 +127,50 @@ function PhotoComments({
           <Send size={13} />
         </button>
       </div>
+    </div>
+  );
+}
+
+// ─── Réactions emoji rapides ─────────────────────────────────────────────────
+function ReactionBar({
+  entryId, reactions, mine, onReload,
+}: {
+  entryId: string;
+  reactions: Record<string, number>;
+  mine: string[];
+  onReload: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const toggle = async (emoji: string) => {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/supporters/reactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entry_id: entryId, emoji }),
+      });
+      if (res.ok) onReload();
+    } finally { setBusy(false); }
+  };
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      {SUPPORTERS_REACTIONS.map((e) => {
+        const count = reactions[e] ?? 0;
+        const active = mine.includes(e);
+        return (
+          <button
+            key={e}
+            onClick={() => toggle(e)}
+            disabled={busy}
+            className={`flex items-center gap-1 px-2 py-1 rounded-full text-base leading-none border transition-colors disabled:opacity-50 ${
+              active ? "bg-canal-yellow/20 border-canal-yellow/50" : "bg-canal-gray-mid border-transparent hover:border-canal-gray-light"
+            }`}
+          >
+            <span>{e}</span>
+            {count > 0 && <span className={`text-xs font-bold tabular-nums ${active ? "text-canal-yellow" : "text-canal-gray-muted"}`}>{count}</span>}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -395,6 +442,10 @@ export function SupportersClient() {
                   {g.votes_count != null && <span className="text-xs text-purple-300 font-bold">{g.votes_count} 🗳️</span>}
                 </div>
               </div>
+
+              {/* Réactions rapides */}
+              <ReactionBar entryId={g.id} reactions={g.reactions} mine={g.my_reactions} onReload={load} />
+
               {canVote && (
                 <button
                   disabled={busy} onClick={() => vote(g.id)}

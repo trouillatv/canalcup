@@ -60,6 +60,26 @@ export async function GET() {
     }
   }
 
+  // Réactions emoji groupées par photo (compteurs + mes réactions).
+  const reactionsByEntry = new Map<string, Record<string, number>>();
+  const myReactionsByEntry = new Map<string, string[]>();
+  if (approved.length) {
+    const { data: reactions } = await admin
+      .from("supporter_photo_reactions")
+      .select("entry_id, user_id, emoji")
+      .in("entry_id", approved.map((e) => e.id));
+    for (const r of reactions ?? []) {
+      const counts = reactionsByEntry.get(r.entry_id) ?? {};
+      counts[r.emoji] = (counts[r.emoji] ?? 0) + 1;
+      reactionsByEntry.set(r.entry_id, counts);
+      if (r.user_id === me.id) {
+        const mine = myReactionsByEntry.get(r.entry_id) ?? [];
+        mine.push(r.emoji);
+        myReactionsByEntry.set(r.entry_id, mine);
+      }
+    }
+  }
+
   const gallery = approved.map((e) => ({
     id: e.id,
     team_id: e.team_id,
@@ -69,6 +89,8 @@ export async function GET() {
     is_mine: e.team_id === me.team_id,
     votes_count: revealVotes ? voteCount.get(e.id) ?? 0 : null,
     comments: commentsByEntry.get(e.id) ?? [],
+    reactions: reactionsByEntry.get(e.id) ?? {},
+    my_reactions: myReactionsByEntry.get(e.id) ?? [],
   }));
 
   // Onglet organisateur « N'ont pas voté » : joueurs inscrits + leur binôme +

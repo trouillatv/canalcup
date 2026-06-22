@@ -50,6 +50,11 @@ export function votesClosed(now: Date = new Date()): boolean {
   return now.getTime() >= new Date(VOTES_CLOSE_AT).getTime();
 }
 
+// ─── Réactions emoji rapides ──────────────────────────────────────────────────
+// Tap sous une photo (pas un commentaire). Alimentent les prix auto (😂 plus
+// drôle, ❤️ coup de cœur…). Ordre = ordre d'affichage.
+export const SUPPORTERS_REACTIONS = ["😂", "🔥", "⚽", "🤡", "❤️"] as const;
+
 // ─── Push supporter ───────────────────────────────────────────────────────────
 // Le code des notifications (nouvelle photo → tout le monde ; commentaire → le
 // binôme) est EN PLACE mais désactivé : on bascule à `true` quand on veut les
