@@ -55,6 +55,18 @@ export function votesClosed(now: Date = new Date()): boolean {
 // drôle, ❤️ coup de cœur…). Ordre = ordre d'affichage.
 export const SUPPORTERS_REACTIONS = ["😂", "🔥", "⚽", "🤡", "❤️"] as const;
 
+// ─── Prix VAR (marque maison) ─────────────────────────────────────────────────
+// Catégories AUTO calculées depuis les réactions/commentaires (les
+// self-réactions et auto-commentaires sont exclus). En plus du podium par votes.
+export const VAR_CATEGORIES: { key: string; emoji: string; label: string; source: "reaction" | "comments" }[] = [
+  { key: "fou_rire", emoji: "😂", label: "VAR Fou rire", source: "reaction" },
+  { key: "ambiance", emoji: "🔥", label: "VAR Ambiance", source: "reaction" },
+  { key: "esprit_foot", emoji: "⚽", label: "VAR Esprit foot", source: "reaction" },
+  { key: "nimporte_quoi", emoji: "🤡", label: "VAR N'importe quoi", source: "reaction" },
+  { key: "coup_de_coeur", emoji: "❤️", label: "Coup de cœur", source: "reaction" },
+  { key: "plus_commentee", emoji: "💬", label: "Photo la plus commentée", source: "comments" },
+];
+
 // ─── Push supporter ───────────────────────────────────────────────────────────
 // Le code des notifications (nouvelle photo → tout le monde ; commentaire → le
 // binôme) est EN PLACE mais désactivé : on bascule à `true` quand on veut les

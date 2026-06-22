@@ -36,6 +36,15 @@ interface Participant {
   teamName: string | null;
   voted: boolean;
 }
+interface VarAward {
+  key: string;
+  emoji: string;
+  label: string;
+  team_name: string;
+  photo_url: string;
+  title: string | null;
+  count: number;
+}
 interface Data {
   settings: { votes_open: boolean; results_published: boolean; votes_closed: boolean; close_at: string };
   me: { userId: string; teamId: string | null; teamName: string | null };
@@ -46,6 +55,7 @@ interface Data {
   results: ResultRow[] | null;
   totalVotes: number | null;
   participants: Participant[] | null;
+  varAwards: VarAward[] | null;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -270,7 +280,7 @@ export function SupportersClient() {
     return <div className="text-canal-gray-muted text-sm flex items-center gap-2"><RefreshCw size={14} className="animate-spin" /> Chargement…</div>;
   }
 
-  const { settings, me, myEntry, myVote, gallery, results, isOrganizer, participants } = data;
+  const { settings, me, myEntry, myVote, gallery, results, isOrganizer, participants, varAwards } = data;
   // Plus de validation préalable : on peut publier/remplacer tant que les
   // résultats ne sont pas dévoilés.
   const canEdit = !settings.results_published;
@@ -399,6 +409,32 @@ export function SupportersClient() {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-bold text-white truncate">{r.team_name}</p>
                   <p className="text-xs text-canal-gray-muted">{r.votes_count} vote{r.votes_count > 1 ? "s" : ""} · +{r.points} pts</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Prix VAR (auto, dérivés des réactions/commentaires) */}
+      {varAwards && varAwards.length > 0 && (
+        <section className="canal-card border border-canal-yellow/40">
+          <h2 className="text-xs text-canal-yellow font-bold uppercase mb-1 flex items-center gap-1.5"><Trophy size={14} /> Prix VAR</h2>
+          {!settings.results_published && (
+            <p className="text-[11px] text-canal-gray-muted mb-3">Aperçu provisoire {isOrganizer ? "(organisateur)" : ""} — dévoilé au reveal final.</p>
+          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+            {varAwards.map((a) => (
+              <div key={a.key} className="flex items-center gap-3">
+                <span className="text-2xl shrink-0">{a.emoji}</span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={a.photo_url} alt={a.label} className="w-12 h-12 rounded-lg object-cover shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-black text-canal-yellow uppercase tracking-wide">{a.label}</p>
+                  <p className="text-sm font-bold text-white truncate">{a.team_name}</p>
+                  <p className="text-[11px] text-canal-gray-muted">
+                    {a.count} {a.key === "plus_commentee" ? `commentaire${a.count > 1 ? "s" : ""}` : `réaction${a.count > 1 ? "s" : ""}`}
+                  </p>
                 </div>
               </div>
             ))}

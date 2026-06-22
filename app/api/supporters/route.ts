@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserRole } from "@/lib/auth/session";
 import { PODIUM_POINTS } from "@/lib/supporters/service";
-import { isSupportersOrganizer, VOTES_CLOSE_AT, votesClosed } from "@/lib/supporters/access";
+import { isSupportersOrganizer, VOTES_CLOSE_AT, votesClosed, VAR_CATEGORIES } from "@/lib/supporters/access";
 
 export async function GET() {
   const supabase = await createClient();
@@ -45,14 +45,18 @@ export async function GET() {
 
   const approved = (entries ?? []).filter((e) => e.status === "approved");
 
+  const approvedIds = approved.map((e) => e.id);
+
   // Commentaires groupés par photo (chambrage).
   const commentsByEntry = new Map<string, { id: string; user_id: string | null; display_name: string; body: string; created_at: string }[]>();
+  let commentsRaw: { entry_id: string; user_id: string | null }[] = [];
   if (approved.length) {
     const { data: comments } = await admin
       .from("supporter_photo_comments")
       .select("id, entry_id, user_id, display_name, body, created_at")
-      .in("entry_id", approved.map((e) => e.id))
+      .in("entry_id", approvedIds)
       .order("created_at", { ascending: true });
+    commentsRaw = (comments ?? []).map((c) => ({ entry_id: c.entry_id, user_id: c.user_id }));
     for (const c of comments ?? []) {
       const arr = commentsByEntry.get(c.entry_id) ?? [];
       arr.push({ id: c.id, user_id: c.user_id, display_name: c.display_name, body: c.body, created_at: c.created_at });
@@ -63,11 +67,13 @@ export async function GET() {
   // Réactions emoji groupées par photo (compteurs + mes réactions).
   const reactionsByEntry = new Map<string, Record<string, number>>();
   const myReactionsByEntry = new Map<string, string[]>();
+  let reactionsRaw: { entry_id: string; user_id: string | null; emoji: string }[] = [];
   if (approved.length) {
     const { data: reactions } = await admin
       .from("supporter_photo_reactions")
       .select("entry_id, user_id, emoji")
-      .in("entry_id", approved.map((e) => e.id));
+      .in("entry_id", approvedIds);
+    reactionsRaw = reactions ?? [];
     for (const r of reactions ?? []) {
       const counts = reactionsByEntry.get(r.entry_id) ?? {};
       counts[r.emoji] = (counts[r.emoji] ?? 0) + 1;
@@ -92,6 +98,46 @@ export async function GET() {
     reactions: reactionsByEntry.get(e.id) ?? {},
     my_reactions: myReactionsByEntry.get(e.id) ?? [],
   }));
+
+  // 🏆 Prix VAR AUTO — gagnant par catégorie dérivé des réactions/commentaires,
+  // self-réactions/auto-commentaires EXCLUS. Aperçu live aux organisateurs,
+  // visible par tous après le reveal (results_published).
+  let varAwards:
+    | { key: string; emoji: string; label: string; team_name: string; photo_url: string; title: string | null; count: number }[]
+    | null = null;
+  if ((isOrganizer || resultsPublished) && approved.length) {
+    const { data: allUsersTeam } = await admin.from("users").select("id, team_id");
+    const userTeam = new Map((allUsersTeam ?? []).map((u: { id: string; team_id: string | null }) => [u.id, u.team_id]));
+    const entryTeam = new Map(approved.map((e) => [e.id, e.team_id]));
+    const meta = new Map(approved.map((e) => [e.id, { team_name: teamName.get(e.team_id) ?? "Binôme", photo_url: e.photo_url, title: e.title }]));
+
+    const reactCount = new Map<string, Record<string, number>>();
+    for (const r of reactionsRaw) {
+      if (r.user_id && userTeam.get(r.user_id) === entryTeam.get(r.entry_id)) continue; // self
+      const m = reactCount.get(r.entry_id) ?? {};
+      m[r.emoji] = (m[r.emoji] ?? 0) + 1;
+      reactCount.set(r.entry_id, m);
+    }
+    const commentCount = new Map<string, number>();
+    for (const c of commentsRaw) {
+      if (c.user_id && userTeam.get(c.user_id) === entryTeam.get(c.entry_id)) continue; // self
+      commentCount.set(c.entry_id, (commentCount.get(c.entry_id) ?? 0) + 1);
+    }
+
+    varAwards = [];
+    for (const cat of VAR_CATEGORIES) {
+      let bestId: string | null = null;
+      let bestN = 0;
+      for (const e of approved) {
+        const n = cat.source === "comments" ? commentCount.get(e.id) ?? 0 : reactCount.get(e.id)?.[cat.emoji] ?? 0;
+        if (n > bestN) { bestN = n; bestId = e.id; }
+      }
+      if (bestId && bestN > 0) {
+        const m = meta.get(bestId)!;
+        varAwards.push({ key: cat.key, emoji: cat.emoji, label: cat.label, team_name: m.team_name, photo_url: m.photo_url, title: m.title, count: bestN });
+      }
+    }
+  }
 
   // Onglet organisateur « N'ont pas voté » : joueurs inscrits + leur binôme +
   // statut de vote. Réservé à Marie & Vincent.
@@ -156,6 +202,7 @@ export async function GET() {
       results,
       totalVotes,
       participants,
+      varAwards,
     },
     { headers: { "Cache-Control": "no-store" } }
   );
