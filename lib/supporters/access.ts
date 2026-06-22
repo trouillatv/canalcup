@@ -49,3 +49,9 @@ export const VOTES_CLOSE_AT = "2026-06-25T23:59:59+02:00";
 export function votesClosed(now: Date = new Date()): boolean {
   return now.getTime() >= new Date(VOTES_CLOSE_AT).getTime();
 }
+
+// ─── Push supporter ───────────────────────────────────────────────────────────
+// Le code des notifications (nouvelle photo → tout le monde ; commentaire → le
+// binôme) est EN PLACE mais désactivé : on bascule à `true` quand on veut les
+// activer, sans toucher au reste.
+export const SUPPORTERS_PUSH_ENABLED = false;

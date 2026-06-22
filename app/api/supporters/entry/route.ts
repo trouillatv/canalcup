@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { awardToTeam, PARTICIPATION_POINTS, PARTICIPATION_LABEL } from "@/lib/supporters/service";
+import { sendPushToAll } from "@/lib/push";
+import { SUPPORTERS_PUSH_ENABLED } from "@/lib/supporters/access";
 
 const BUCKET = "supporter-photos";
 const MAX_BYTES = 8 * 1024 * 1024; // 8 Mo en entrée
@@ -91,6 +93,7 @@ export async function POST(req: Request) {
   if (entryErr) return NextResponse.json({ error: entryErr.message }, { status: 500 });
 
   // +10 participation (idempotent) à la première publication du binôme.
+  const isNew = !existing;
   if (!alreadyAwarded && entry) {
     await awardToTeam(admin, {
       teamId: me.team_id,
@@ -102,5 +105,20 @@ export async function POST(req: Request) {
     await admin.from("supporter_photo_entries").update({ participation_awarded: true }).eq("id", entry.id);
   }
 
-  return NextResponse.json({ ok: true, entry, isNew: !existing });
+  // 🔔 Nouvelle photo = un événement : push à TOUT LE MONDE (sauf l'auteur).
+  // Uniquement à la première publication du binôme (un remplacement ne spamme pas).
+  // Préparé mais inactif tant que SUPPORTERS_PUSH_ENABLED est à false.
+  if (isNew && entry && SUPPORTERS_PUSH_ENABLED) {
+    const teamLabel = me.display_name || me.name || "Un binôme";
+    void sendPushToAll(
+      {
+        title: "📸 Nouvelle photo Journée Supporters !",
+        body: title ? `${teamLabel} : « ${title} ». Va voter pour ta préférée 🗳️` : `${teamLabel} vient de poster. Va voter pour ta préférée 🗳️`,
+        url: "/supporters",
+      },
+      { excludeAuthIds: [user.id] }
+    ).catch((e) => console.error("[supporters/entry] push-to-all failed", e));
+  }
+
+  return NextResponse.json({ ok: true, entry, isNew });
 }

@@ -1,8 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { RefreshCw, Upload, Check, Trophy, Vote, Clock, Users } from "lucide-react";
+import { RefreshCw, Upload, Check, Trophy, Vote, Clock, Users, Send, X, MessageCircle, EyeOff } from "lucide-react";
 
+interface Comment {
+  id: string;
+  user_id: string | null;
+  display_name: string;
+  body: string;
+  created_at: string;
+}
 interface GalleryItem {
   id: string;
   team_id: string;
@@ -11,6 +18,7 @@ interface GalleryItem {
   photo_url: string;
   is_mine: boolean;
   votes_count: number | null;
+  comments: Comment[];
 }
 interface ResultRow {
   rank: number;
@@ -42,6 +50,83 @@ const STATUS_LABEL: Record<string, string> = {
   hidden: "🚫 Masquée par un organisateur",
 };
 const MEDAL = ["🥇", "🥈", "🥉"];
+
+// ─── Commentaires sous une photo (chambrage) ────────────────────────────────
+function PhotoComments({
+  entryId, comments, isOrganizer, onReload,
+}: {
+  entryId: string;
+  comments: Comment[];
+  isOrganizer: boolean;
+  onReload: () => void;
+}) {
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const post = async () => {
+    const t = text.trim();
+    if (!t) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/supporters/comments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entry_id: entryId, body: t }),
+      });
+      if (res.ok) { setText(""); onReload(); }
+    } finally { setBusy(false); }
+  };
+
+  const del = async (id: string) => {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/supporters/moderate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete_comment", comment_id: id }),
+      });
+      if (res.ok) onReload();
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="border-t border-canal-gray-light/20 pt-2 space-y-2">
+      {comments.length > 0 && (
+        <div className="space-y-1.5">
+          {comments.map((c) => (
+            <div key={c.id} className="flex items-start gap-1.5 text-xs">
+              <span className="font-bold text-canal-yellow shrink-0">{c.display_name}</span>
+              <span className="text-canal-gray-light flex-1 break-words">{c.body}</span>
+              {isOrganizer && (
+                <button onClick={() => del(c.id)} disabled={busy} className="text-canal-gray-muted hover:text-red-400 shrink-0" title="Supprimer le commentaire">
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="flex items-center gap-1.5">
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); post(); } }}
+          placeholder="Un petit mot, un chambrage…"
+          maxLength={280}
+          className="flex-1 bg-canal-black border border-canal-gray-light rounded-lg px-2 py-1.5 text-xs"
+        />
+        <button
+          onClick={post}
+          disabled={busy || !text.trim()}
+          className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-canal-gray-light text-white disabled:opacity-40 flex items-center gap-1"
+          aria-label="Envoyer"
+        >
+          <Send size={13} />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // ─── Compte à rebours jusqu'à la clôture des votes ───────────────────────────
 function Countdown({ closeAt, closed }: { closeAt: string; closed: boolean }) {
@@ -305,7 +390,10 @@ export function SupportersClient() {
                   <p className="text-sm font-bold text-white truncate">{g.team_name}{g.is_mine && <span className="text-canal-gray-muted font-normal"> · toi</span>}</p>
                   {g.title && <p className="text-xs text-canal-gray-muted truncate">{g.title}</p>}
                 </div>
-                {g.votes_count != null && <span className="text-xs text-purple-300 font-bold shrink-0">{g.votes_count} 🗳️</span>}
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[11px] text-canal-gray-muted flex items-center gap-0.5"><MessageCircle size={12} /> {g.comments.length}</span>
+                  {g.votes_count != null && <span className="text-xs text-purple-300 font-bold">{g.votes_count} 🗳️</span>}
+                </div>
               </div>
               {canVote && (
                 <button
@@ -317,6 +405,26 @@ export function SupportersClient() {
               )}
               {votedThis && <p className="text-xs text-green-400 flex items-center gap-1"><Check size={13} /> Ton vote</p>}
               {g.is_mine && settings.votes_open && <p className="text-[11px] text-canal-gray-muted">Pas de vote pour ton propre binôme.</p>}
+
+              {/* Commentaires (chambrage) */}
+              <PhotoComments entryId={g.id} comments={g.comments} isOrganizer={isOrganizer} onReload={load} />
+
+              {/* Modération organisateur */}
+              {isOrganizer && (
+                <button
+                  onClick={async () => {
+                    if (!confirm("Masquer cette photo ? (retirée de la galerie et des points)")) return;
+                    await fetch("/api/supporters/moderate", {
+                      method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "hide_photo", entry_id: g.id }),
+                    });
+                    load();
+                  }}
+                  className="text-[11px] text-canal-gray-muted hover:text-red-400 flex items-center gap-1"
+                >
+                  <EyeOff size={12} /> Masquer (organisateur)
+                </button>
+              )}
             </div>
           );
         })}

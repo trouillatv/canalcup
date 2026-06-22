@@ -44,6 +44,22 @@ export async function GET() {
   }
 
   const approved = (entries ?? []).filter((e) => e.status === "approved");
+
+  // Commentaires groupés par photo (chambrage).
+  const commentsByEntry = new Map<string, { id: string; user_id: string | null; display_name: string; body: string; created_at: string }[]>();
+  if (approved.length) {
+    const { data: comments } = await admin
+      .from("supporter_photo_comments")
+      .select("id, entry_id, user_id, display_name, body, created_at")
+      .in("entry_id", approved.map((e) => e.id))
+      .order("created_at", { ascending: true });
+    for (const c of comments ?? []) {
+      const arr = commentsByEntry.get(c.entry_id) ?? [];
+      arr.push({ id: c.id, user_id: c.user_id, display_name: c.display_name, body: c.body, created_at: c.created_at });
+      commentsByEntry.set(c.entry_id, arr);
+    }
+  }
+
   const gallery = approved.map((e) => ({
     id: e.id,
     team_id: e.team_id,
@@ -52,6 +68,7 @@ export async function GET() {
     photo_url: e.photo_url,
     is_mine: e.team_id === me.team_id,
     votes_count: revealVotes ? voteCount.get(e.id) ?? 0 : null,
+    comments: commentsByEntry.get(e.id) ?? [],
   }));
 
   // Onglet organisateur « N'ont pas voté » : joueurs inscrits + leur binôme +
