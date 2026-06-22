@@ -52,7 +52,9 @@ export function votesClosed(now: Date = new Date()): boolean {
 
 // ─── Ouverture des publications ───────────────────────────────────────────────
 // Les binômes ne peuvent publier (photo OU vidéo) qu'à partir du mardi 23/06.
-export const PUBLISH_OPEN_AT = "2026-06-23T08:00:00+02:00";
+// ⚠️ Fuseau Nouvelle-Calédonie (UTC+11) : on ouvre au DÉBUT du mardi NC, pas à
+// 08:00 Paris (= 17:00 NC, ce qui bloquait les binômes toute la matinée NC).
+export const PUBLISH_OPEN_AT = "2026-06-23T00:00:00+11:00";
 
 export function publishOpen(now: Date = new Date()): boolean {
   return now.getTime() >= new Date(PUBLISH_OPEN_AT).getTime();
