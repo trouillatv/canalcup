@@ -17,22 +17,6 @@ interface Moment {
 }
 interface Data { me: { userId: string }; isOrganizer: boolean; hasVoted: boolean; moments: Moment[] }
 
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return "à l'instant";
-  if (m < 60) return `il y a ${m} min`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `il y a ${h} h`;
-  return `il y a ${Math.floor(h / 24)} j`;
-}
-
-function Media({ url, type, className, onZoom }: { url: string; type: Media; className?: string; onZoom?: () => void }) {
-  if (type === "video") return <video src={url} className={className} controls playsInline preload="metadata" />;
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={url} alt="" className={`${className ?? ""}${onZoom ? " cursor-zoom-in" : ""}`} onClick={onZoom} />;
-}
-
 export function MomentsClient() {
   const [data, setData] = useState<Data | null>(null);
   const [filter, setFilter] = useState<string | null>(null);
@@ -40,13 +24,11 @@ export function MomentsClient() {
   const [flash, setFlash] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<string>("fun");
-  const [view, setView] = useState<"feed" | "grid">("feed");
   const [viewer, setViewer] = useState<number | null>(null);
   const [viewerComments, setViewerComments] = useState(false);
   const touchX = useRef<number | null>(null);
   const [floats, setFloats] = useState<{ id: number; emoji: string; x: number }[]>([]);
   const floatId = useRef(0);
-  const [openComments, setOpenComments] = useState<Record<string, boolean>>({});
   const [commentText, setCommentText] = useState<Record<string, string>>({});
   const [react, setReact] = useState<Record<string, { counts: Record<string, number>; mine: string[] }>>({});
   const fileRef = useRef<HTMLInputElement>(null);
@@ -185,6 +167,13 @@ export function MomentsClient() {
               <span className="text-sm font-bold text-white/90 tabular-nums">{viewer + 1} / {len}</span>
               <div className="flex items-center gap-4">
                 <button onClick={() => downloadPhoto(m.photo_url)} className="text-white/80 hover:text-white flex items-center gap-1 text-sm" aria-label="Télécharger"><Download size={20} /> <span className="hidden sm:inline">Télécharger</span></button>
+                {((m.source !== "supporters" && (m.is_mine || data.isOrganizer)) || (m.source === "supporters" && data.isOrganizer)) && (
+                  <button onClick={async () => {
+                    if (m.source === "supporters") await hideSupporters(m.id);
+                    else await moderate({ action: "delete_moment", moment_id: m.id }, "Supprimer ce moment ?");
+                    setViewer(null); setViewerComments(false);
+                  }} className="text-white/80 hover:text-red-400" aria-label="Supprimer"><Trash2 size={20} /></button>
+                )}
                 <button onClick={() => { setViewer(null); setViewerComments(false); }} className="text-white/80 hover:text-white" aria-label="Fermer"><X size={26} /></button>
               </div>
             </div>
@@ -272,14 +261,7 @@ export function MomentsClient() {
         <div className={`text-sm rounded-lg p-3 ${flash.kind === "ok" ? "bg-green-950/30 text-green-300 border border-green-500/30" : "bg-red-950/30 text-red-300 border border-red-500/30"}`}>{flash.msg}</div>
       )}
 
-      {/* Bascule Mur (feed) / Galerie (grille) */}
-      <div className="flex items-center gap-1.5 rounded-xl bg-canal-gray-mid/60 p-1">
-        <button onClick={() => setView("feed")} className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${view === "feed" ? "bg-canal-yellow text-canal-black" : "text-canal-gray-muted hover:text-white"}`}>📰 Mur</button>
-        <button onClick={() => setView("grid")} className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${view === "grid" ? "bg-canal-yellow text-canal-black" : "text-canal-gray-muted hover:text-white"}`}>🖼️ Galerie</button>
-      </div>
-
-      {/* Poster (mode Mur uniquement) */}
-      {view === "feed" && (
+      {/* Poster */}
       <section className="canal-card space-y-3">
         <h2 className="text-xs text-canal-yellow font-bold uppercase">Partager un moment</h2>
         <div className="flex flex-wrap gap-1.5">
@@ -300,7 +282,6 @@ export function MomentsClient() {
         </button>
         <p className="text-[11px] text-canal-gray-muted/70">Tout le monde peut publier (même sans binôme). Aucun vote, aucun classement — juste la vie de CanalCup.</p>
       </section>
-      )}
 
       {/* Filtres */}
       <div className="flex flex-wrap gap-1.5">
@@ -313,9 +294,8 @@ export function MomentsClient() {
       {/* Feed / Galerie */}
       {data.moments.length === 0 && <p className="text-sm text-canal-gray-muted">Aucun moment {filter ? "dans cette catégorie" : "pour l'instant"}. Sois le premier 📸</p>}
 
-      {/* Vue GALERIE : grille de vignettes avec compteurs de réactions */}
-      {view === "grid" && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1">
+      {/* Galerie : grille de vignettes (clic → plein écran) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1">
           {data.moments.map((m, i) => (
             <button key={m.id} onClick={() => setViewer(i)} className="relative aspect-square overflow-hidden rounded-md bg-canal-black">
               {m.media_type === "video"
@@ -333,91 +313,6 @@ export function MomentsClient() {
             </button>
           ))}
         </div>
-      )}
-
-      {/* Vue MUR : cartes détaillées */}
-      {view === "feed" && data.moments.map((m, i) => {
-        const rr = react[m.id] ?? { counts: m.reactions, mine: m.my_reactions };
-        const cat = categoryMeta(m.category);
-        const open = !!openComments[m.id];
-        return (
-          <article key={m.id} className="canal-card space-y-2">
-            <Media url={m.photo_url} type={m.media_type} onZoom={() => setViewer(i)} className="w-full rounded-lg object-contain max-h-80 bg-canal-black" />
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-white truncate">{m.author_name}{m.is_mine && <span className="text-canal-gray-muted font-normal"> · toi</span>}</p>
-                {m.title && <p className="text-xs text-canal-gray-muted truncate">{m.title}</p>}
-              </div>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-canal-gray-mid text-canal-gray-muted shrink-0">{cat.emoji} {cat.label}</span>
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] text-canal-gray-muted/60">{timeAgo(m.created_at)}</span>
-              <div className="flex items-center gap-1">
-                {m.source === "supporters"
-                  ? data.isOrganizer && (
-                      <button onClick={() => hideSupporters(m.id)} disabled={busy} className="text-canal-gray-muted hover:text-red-400 p-1" title="Masquer (concours)"><Trash2 size={14} /></button>
-                    )
-                  : (m.is_mine || data.isOrganizer) && (
-                      <button onClick={() => moderate({ action: "delete_moment", moment_id: m.id }, "Supprimer ce moment ?")} disabled={busy} className="text-canal-gray-muted hover:text-red-400 p-1" title="Supprimer"><Trash2 size={14} /></button>
-                    )}
-              </div>
-            </div>
-
-            {/* Réactions */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {m.source === "supporters" ? (
-                <>
-                  {Object.entries(rr.counts).filter(([, c]) => c > 0).map(([e, c]) => (
-                    <span key={e} className="flex items-center gap-1 px-2 py-1 rounded-full text-base leading-none bg-canal-gray-mid"><span>{e}</span><span className="text-xs font-bold tabular-nums text-canal-gray-muted">{c}</span></span>
-                  ))}
-                  <a href="/supporters" className="text-[11px] text-canal-yellow font-bold hover:underline">🎭 {data.hasVoted ? "Réagir sur le concours" : "Voter / réagir sur le concours"} →</a>
-                </>
-              ) : (
-                MOMENT_REACTIONS.map((e) => {
-                  const count = rr.counts[e] ?? 0;
-                  const active = rr.mine.includes(e);
-                  return (
-                    <button key={e} onClick={() => toggleReact(m, e)}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-full text-base leading-none border transition-colors active:scale-95 ${active ? "bg-canal-yellow/20 border-canal-yellow/50" : "bg-canal-gray-mid border-transparent hover:border-canal-gray-light"}`}>
-                      <span>{e}</span>
-                      {count > 0 && <span className={`text-xs font-bold tabular-nums ${active ? "text-canal-yellow" : "text-canal-gray-muted"}`}>{count}</span>}
-                    </button>
-                  );
-                })
-              )}
-              <button onClick={() => setOpenComments((p) => ({ ...p, [m.id]: !open }))} className="ml-auto flex items-center gap-1 text-xs text-canal-gray-muted hover:text-white px-2 py-1">
-                <MessageCircle size={14} /> {m.comments.length}
-              </button>
-            </div>
-
-            {/* Commentaires */}
-            {open && (
-              <div className="border-t border-canal-gray-light/20 pt-2 space-y-2">
-                {m.comments.map((c) => (
-                  <div key={c.id} className="flex items-start gap-1.5 text-xs">
-                    <span className="font-bold text-canal-yellow shrink-0">{c.display_name}</span>
-                    <span className="text-canal-gray-light flex-1 break-words">{c.body}</span>
-                    {m.source !== "supporters" && (data.isOrganizer || c.user_id === data.me.userId) && (
-                      <button onClick={() => moderate({ action: "delete_comment", comment_id: c.id })} disabled={busy} className="text-canal-gray-muted hover:text-red-400 shrink-0"><X size={12} /></button>
-                    )}
-                  </div>
-                ))}
-                {m.source === "supporters" ? (
-                  <a href="/supporters" className="text-xs text-canal-yellow font-bold hover:underline">💬 Commenter sur le concours →</a>
-                ) : (
-                  <div className="flex items-center gap-1.5">
-                    <input value={commentText[m.id] ?? ""} onChange={(e) => setCommentText((p) => ({ ...p, [m.id]: e.target.value }))}
-                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); postComment(m.id); } }}
-                      placeholder="Un petit mot…" maxLength={280}
-                      className="flex-1 bg-canal-black border border-canal-gray-light rounded-lg px-2 py-1.5 text-xs" />
-                    <button onClick={() => postComment(m.id)} disabled={busy || !(commentText[m.id] ?? "").trim()} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-canal-gray-light text-white disabled:opacity-40 flex items-center gap-1" aria-label="Envoyer"><Send size={13} /></button>
-                  </div>
-                )}
-              </div>
-            )}
-          </article>
-        );
-      })}
     </div>
   );
 }
