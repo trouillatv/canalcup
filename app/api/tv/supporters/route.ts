@@ -14,10 +14,10 @@ export async function GET() {
   const [{ data: settings }, { data: entries }, { data: teams }, { data: reactions }, { data: comments }, { data: votes }, { data: users }] =
     await Promise.all([
       admin.from("supporter_settings").select("results_published").eq("id", 1).maybeSingle(),
-      admin.from("supporter_photo_entries").select("id, team_id, title, photo_url, photo_url_2, media_type, media_type_2, status, podium_rank").eq("status", "approved"),
+      admin.from("supporter_photo_entries").select("id, team_id, title, photo_url, photo_url_2, media_type, media_type_2, status, podium_rank, created_at").eq("status", "approved"),
       admin.from("teams").select("id, name"),
       admin.from("supporter_photo_reactions").select("entry_id, user_id, emoji"),
-      admin.from("supporter_photo_comments").select("entry_id, user_id"),
+      admin.from("supporter_photo_comments").select("entry_id, user_id, display_name, body, created_at").order("created_at", { ascending: false }),
       admin.from("supporter_photo_votes").select("entry_id"),
       admin.from("users").select("id, team_id"),
     ]);
@@ -48,6 +48,14 @@ export async function GET() {
   const voteCount = new Map<string, number>();
   for (const v of votes ?? []) voteCount.set(v.entry_id, (voteCount.get(v.entry_id) ?? 0) + 1);
 
+  // Derniers commentaires par photo (pour le mur TV — déjà triés desc).
+  const commentsByEntry = new Map<string, { display_name: string; body: string }[]>();
+  for (const c of comments ?? []) {
+    const arr = commentsByEntry.get(c.entry_id) ?? [];
+    if (arr.length < 4) arr.push({ display_name: c.display_name, body: c.body });
+    commentsByEntry.set(c.entry_id, arr);
+  }
+
   const photos = approved.map((e) => ({
     id: e.id,
     team_name: teamName.get(e.team_id) ?? "Binôme",
@@ -57,7 +65,9 @@ export async function GET() {
     media_type: e.media_type ?? "image",
     media_type_2: e.media_type_2 ?? null,
     reactions: reactByEntry.get(e.id) ?? {},
+    comments: commentsByEntry.get(e.id) ?? [],
     votes: revealed ? voteCount.get(e.id) ?? 0 : null,
+    created_at: e.created_at,
   }));
 
   // Prix VAR + podium : seulement au reveal (cérémonie).
