@@ -11,7 +11,7 @@ import { MOMENT_CATEGORIES, MOMENT_REACTIONS, categoryMeta } from "@/lib/moments
 type Media = "image" | "video";
 interface Cmt { id: string; user_id: string | null; display_name: string; body: string; created_at: string }
 interface Moment {
-  id: string; author_name: string; title: string | null; category: string;
+  id: string; source: "moment" | "supporters"; author_name: string; title: string | null; category: string;
   photo_url: string; media_type: Media; created_at: string; is_mine: boolean;
   reactions: Record<string, number>; my_reactions: string[]; comments: Cmt[];
 }
@@ -62,21 +62,36 @@ export function MomentsClient() {
     setReact(next);
   }, [data]);
 
-  const upload = async (file: File) => {
+  // Multi-photos : on poste chaque fichier sélectionné comme un Moment distinct.
+  const uploadFiles = async (files: FileList) => {
     setBusy(true); setFlash(null);
+    let ok = 0, fail = 0;
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("category", category);
-      if (title.trim()) fd.append("title", title.trim());
-      const res = await fetch("/api/moments/entry", { method: "POST", body: fd });
-      const d = await res.json();
-      if (!res.ok) setFlash({ kind: "err", msg: d.error ?? "Échec de l'envoi." });
-      else { setFlash({ kind: "ok", msg: "Publié sur le mur ! 📸" }); setTitle(""); load(); }
+      for (const file of Array.from(files)) {
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("category", category);
+        if (title.trim()) fd.append("title", title.trim());
+        const res = await fetch("/api/moments/entry", { method: "POST", body: fd });
+        if (res.ok) ok++; else fail++;
+      }
+      if (ok) { setTitle(""); load(); }
+      setFlash(fail
+        ? { kind: "err", msg: `${ok} publiée(s), ${fail} échec(s).` }
+        : { kind: "ok", msg: `${ok} photo${ok > 1 ? "s" : ""} publiée${ok > 1 ? "s" : ""} ! 📸` });
     } finally {
       setBusy(false);
       if (fileRef.current) fileRef.current.value = "";
     }
+  };
+
+  const hideSupporters = async (momentId: string) => {
+    if (!confirm("Masquer cette photo du concours ? (modération concours)")) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/supporters/moderate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "hide_photo", entry_id: momentId.replace(/^sup:/, "") }) });
+      if (res.ok) load();
+    } finally { setBusy(false); }
   };
 
   const toggleReact = (m: Moment, emoji: string) => {
@@ -143,11 +158,11 @@ export function MomentsClient() {
         </div>
         <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Légende (optionnel)" maxLength={120}
           className="w-full bg-canal-black border border-canal-gray-light rounded-lg px-2 py-2 text-sm" />
-        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" className="hidden"
-          onChange={(e) => { const f = e.currentTarget.files?.[0]; if (f) upload(f); }} />
+        <input ref={fileRef} type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" className="hidden"
+          onChange={(e) => { const fs = e.currentTarget.files; if (fs && fs.length) uploadFiles(fs); }} />
         <button disabled={busy} onClick={() => fileRef.current?.click()}
           className="w-full text-sm font-bold px-3 py-2.5 rounded-lg bg-canal-yellow text-canal-black disabled:opacity-50 flex items-center justify-center gap-2">
-          <Upload size={15} /> {busy ? "Envoi…" : "Publier une photo / vidéo"}
+          <Upload size={15} /> {busy ? "Envoi…" : "Publier une ou plusieurs photos"}
         </button>
         <p className="text-[11px] text-canal-gray-muted/70">Tout le monde peut publier (même sans binôme). Aucun vote, aucun classement — juste la vie de CanalCup.</p>
       </section>
@@ -180,25 +195,38 @@ export function MomentsClient() {
             <div className="flex items-center justify-between gap-2">
               <span className="text-[10px] text-canal-gray-muted/60">{timeAgo(m.created_at)}</span>
               <div className="flex items-center gap-1">
-                {(m.is_mine || data.isOrganizer) && (
-                  <button onClick={() => moderate({ action: "delete_moment", moment_id: m.id }, "Supprimer ce moment ?")} disabled={busy} className="text-canal-gray-muted hover:text-red-400 p-1" title="Supprimer"><Trash2 size={14} /></button>
-                )}
+                {m.source === "supporters"
+                  ? data.isOrganizer && (
+                      <button onClick={() => hideSupporters(m.id)} disabled={busy} className="text-canal-gray-muted hover:text-red-400 p-1" title="Masquer (concours)"><Trash2 size={14} /></button>
+                    )
+                  : (m.is_mine || data.isOrganizer) && (
+                      <button onClick={() => moderate({ action: "delete_moment", moment_id: m.id }, "Supprimer ce moment ?")} disabled={busy} className="text-canal-gray-muted hover:text-red-400 p-1" title="Supprimer"><Trash2 size={14} /></button>
+                    )}
               </div>
             </div>
 
             {/* Réactions */}
             <div className="flex items-center gap-1.5 flex-wrap">
-              {MOMENT_REACTIONS.map((e) => {
-                const count = rr.counts[e] ?? 0;
-                const active = rr.mine.includes(e);
-                return (
-                  <button key={e} onClick={() => toggleReact(m, e)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-base leading-none border transition-colors active:scale-95 ${active ? "bg-canal-yellow/20 border-canal-yellow/50" : "bg-canal-gray-mid border-transparent hover:border-canal-gray-light"}`}>
-                    <span>{e}</span>
-                    {count > 0 && <span className={`text-xs font-bold tabular-nums ${active ? "text-canal-yellow" : "text-canal-gray-muted"}`}>{count}</span>}
-                  </button>
-                );
-              })}
+              {m.source === "supporters" ? (
+                <>
+                  {Object.entries(rr.counts).filter(([, c]) => c > 0).map(([e, c]) => (
+                    <span key={e} className="flex items-center gap-1 px-2 py-1 rounded-full text-base leading-none bg-canal-gray-mid"><span>{e}</span><span className="text-xs font-bold tabular-nums text-canal-gray-muted">{c}</span></span>
+                  ))}
+                  <a href="/supporters" className="text-[11px] text-canal-yellow font-bold hover:underline">🎭 Voter / réagir sur le concours →</a>
+                </>
+              ) : (
+                MOMENT_REACTIONS.map((e) => {
+                  const count = rr.counts[e] ?? 0;
+                  const active = rr.mine.includes(e);
+                  return (
+                    <button key={e} onClick={() => toggleReact(m, e)}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-full text-base leading-none border transition-colors active:scale-95 ${active ? "bg-canal-yellow/20 border-canal-yellow/50" : "bg-canal-gray-mid border-transparent hover:border-canal-gray-light"}`}>
+                      <span>{e}</span>
+                      {count > 0 && <span className={`text-xs font-bold tabular-nums ${active ? "text-canal-yellow" : "text-canal-gray-muted"}`}>{count}</span>}
+                    </button>
+                  );
+                })
+              )}
               <button onClick={() => setOpenComments((p) => ({ ...p, [m.id]: !open }))} className="ml-auto flex items-center gap-1 text-xs text-canal-gray-muted hover:text-white px-2 py-1">
                 <MessageCircle size={14} /> {m.comments.length}
               </button>
@@ -211,18 +239,22 @@ export function MomentsClient() {
                   <div key={c.id} className="flex items-start gap-1.5 text-xs">
                     <span className="font-bold text-canal-yellow shrink-0">{c.display_name}</span>
                     <span className="text-canal-gray-light flex-1 break-words">{c.body}</span>
-                    {(data.isOrganizer || c.user_id === data.me.userId) && (
+                    {m.source !== "supporters" && (data.isOrganizer || c.user_id === data.me.userId) && (
                       <button onClick={() => moderate({ action: "delete_comment", comment_id: c.id })} disabled={busy} className="text-canal-gray-muted hover:text-red-400 shrink-0"><X size={12} /></button>
                     )}
                   </div>
                 ))}
-                <div className="flex items-center gap-1.5">
-                  <input value={commentText[m.id] ?? ""} onChange={(e) => setCommentText((p) => ({ ...p, [m.id]: e.target.value }))}
-                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); postComment(m.id); } }}
-                    placeholder="Un petit mot…" maxLength={280}
-                    className="flex-1 bg-canal-black border border-canal-gray-light rounded-lg px-2 py-1.5 text-xs" />
-                  <button onClick={() => postComment(m.id)} disabled={busy || !(commentText[m.id] ?? "").trim()} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-canal-gray-light text-white disabled:opacity-40 flex items-center gap-1" aria-label="Envoyer"><Send size={13} /></button>
-                </div>
+                {m.source === "supporters" ? (
+                  <a href="/supporters" className="text-xs text-canal-yellow font-bold hover:underline">💬 Commenter sur le concours →</a>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <input value={commentText[m.id] ?? ""} onChange={(e) => setCommentText((p) => ({ ...p, [m.id]: e.target.value }))}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); postComment(m.id); } }}
+                      placeholder="Un petit mot…" maxLength={280}
+                      className="flex-1 bg-canal-black border border-canal-gray-light rounded-lg px-2 py-1.5 text-xs" />
+                    <button onClick={() => postComment(m.id)} disabled={busy || !(commentText[m.id] ?? "").trim()} className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-canal-gray-light text-white disabled:opacity-40 flex items-center gap-1" aria-label="Envoyer"><Send size={13} /></button>
+                  </div>
+                )}
               </div>
             )}
           </article>
