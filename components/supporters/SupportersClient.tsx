@@ -376,6 +376,16 @@ export function SupportersClient() {
     } finally { setBusy(false); }
   };
 
+  const swapMain = async () => {
+    setBusy(true); setFlash(null);
+    try {
+      const res = await fetch("/api/supporters/entry", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "swap" }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) setFlash({ kind: "err", msg: d.error ?? "Action impossible." });
+      else { setFlash({ kind: "ok", msg: "Photo principale mise à jour ! ⭐" }); load(); }
+    } finally { setBusy(false); }
+  };
+
   const vote = async (entryId: string) => {
     setBusy(true); setFlash(null);
     try {
@@ -594,7 +604,12 @@ export function SupportersClient() {
                 {myEntry.photo_url_2 && (
                   <div className="space-y-1.5">
                     <MediaView url={myEntry.photo_url_2} type={myEntry.media_type_2 ?? "image"} onZoom={() => setLightbox({ url: myEntry.photo_url_2!, type: myEntry.media_type_2 ?? "image" })} className="w-full rounded-lg object-contain max-h-72 bg-canal-black" />
-                    <p className="text-xs text-canal-gray-muted">📷 2e image (bonus, non votée)</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs text-canal-gray-muted">📷 2e image (bonus, non votée)</p>
+                      {!settings.results_published && (
+                        <button onClick={swapMain} disabled={busy} className="text-xs font-bold text-canal-yellow hover:underline disabled:opacity-50 shrink-0">⭐ Définir comme principale</button>
+                      )}
+                    </div>
                   </div>
                 )}
                 {!settings.results_published && (

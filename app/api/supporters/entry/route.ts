@@ -207,3 +207,49 @@ export async function DELETE(req: Request) {
 
   return NextResponse.json({ ok: true });
 }
+
+// ── PATCH { action: "swap" } : échange la photo PRINCIPALE (votée) et la BONUS.
+// Les votes/réactions/commentaires restent attachés à l'entrée (entry_id) — seul
+// l'ordre d'affichage/le visuel voté change. Permet de « mettre en principal »
+// une 2e photo sans rien perdre.
+export async function PATCH(req: Request) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const body = await req.json().catch(() => ({}));
+  if (body?.action !== "swap") return NextResponse.json({ error: "Action invalide." }, { status: 400 });
+
+  const admin = createAdminClient();
+  const { data: me } = await admin.from("users").select("id, team_id").eq("auth_id", user.id).maybeSingle();
+  if (!me) return NextResponse.json({ error: "Profil introuvable" }, { status: 404 });
+  if (!me.team_id) return NextResponse.json({ error: "Aucun binôme." }, { status: 400 });
+
+  const { data: settings } = await admin.from("supporter_settings").select("results_published").eq("id", 1).maybeSingle();
+  if (settings?.results_published) {
+    return NextResponse.json({ error: "Le concours est terminé : la photo n'est plus modifiable." }, { status: 400 });
+  }
+
+  const { data: entry } = await admin
+    .from("supporter_photo_entries")
+    .select("id, photo_url, photo_url_2, media_type, media_type_2")
+    .eq("team_id", me.team_id)
+    .maybeSingle();
+  if (!entry) return NextResponse.json({ error: "Aucune photo." }, { status: 400 });
+  if (!entry.photo_url_2) return NextResponse.json({ error: "Ajoute d'abord une 2e image, puis tu pourras la définir comme principale." }, { status: 400 });
+
+  const { data: updated, error } = await admin
+    .from("supporter_photo_entries")
+    .update({
+      photo_url: entry.photo_url_2,
+      media_type: entry.media_type_2 ?? "image",
+      photo_url_2: entry.photo_url,
+      media_type_2: entry.media_type,
+    })
+    .eq("id", entry.id)
+    .select("id, title, photo_url, photo_url_2, status, media_type, media_type_2")
+    .single();
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ ok: true, entry: updated });
+}
