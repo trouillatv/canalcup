@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, UserPlus, Tv, Inbox, Newspaper, Gamepad2, PartyPopper, MessageCircle, Download, Building2, Globe2, CalendarDays, Target, Medal, Bell, BellRing, Sparkles, Camera } from "lucide-react";
+import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, UserPlus, Tv, Inbox, Newspaper, Gamepad2, PartyPopper, MessageCircle, Download, Building2, Globe2, CalendarDays, Target, Medal, Bell, BellRing, Sparkles, Camera, Images } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,7 @@ const MENU_ITEMS = [
   { href: "/animations", icon: PartyPopper, label: "Animations" },
   // BETA : visible seulement pour les comptes de test + admins (cf. access.ts).
   { href: "/supporters", icon: Camera,    label: "Journée Supporters", betaSupporters: true },
+  { href: "/moments",    icon: Images,    label: "Moments CanalCup" },
   { href: "/inbox",      icon: Inbox,     label: "Inbox" },
   { href: "/revivez",    icon: Newspaper, label: "Revivez" },
   { href: "/tv",         icon: Tv,        label: "Mode TV" },
