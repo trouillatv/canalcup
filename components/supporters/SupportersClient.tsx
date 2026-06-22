@@ -57,6 +57,14 @@ interface Data {
   participants: Participant[] | null;
   varAwards: VarAward[] | null;
   stats: { photos: number; teams: number; voters: number; participants: number; nonVoters: number; daysLeft: number };
+  activity: ActivityEvent[];
+}
+interface ActivityEvent {
+  kind: "photo" | "reaction" | "comment";
+  at: string;
+  actor: string;
+  team: string;
+  emoji?: string;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -186,6 +194,38 @@ function ReactionBar({
   );
 }
 
+// ─── Flux d'activité (mur vivant) ────────────────────────────────────────────
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "à l'instant";
+  if (m < 60) return `il y a ${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `il y a ${h} h`;
+  return `il y a ${Math.floor(h / 24)} j`;
+}
+function ActivityFeed({ activity }: { activity: ActivityEvent[] }) {
+  if (!activity.length) return null;
+  const line = (a: ActivityEvent) => {
+    if (a.kind === "photo") return <><span className="font-bold text-white">{a.actor}</span> a publié sa photo 📸</>;
+    if (a.kind === "reaction") return <><span className="font-bold text-white">{a.actor}</span> a réagi {a.emoji} à la photo de <span className="text-canal-gray-light">{a.team}</span></>;
+    return <><span className="font-bold text-white">{a.actor}</span> a commenté la photo de <span className="text-canal-gray-light">{a.team}</span> 💬</>;
+  };
+  return (
+    <section className="canal-card">
+      <h2 className="text-xs text-canal-yellow font-bold uppercase mb-2">🔴 En direct</h2>
+      <div className="space-y-1.5 max-h-60 overflow-y-auto">
+        {activity.map((a, i) => (
+          <div key={i} className="flex items-baseline justify-between gap-2 text-xs">
+            <span className="text-canal-gray-muted min-w-0">{line(a)}</span>
+            <span className="text-[10px] text-canal-gray-muted/60 shrink-0">{timeAgo(a.at)}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // ─── Compteur de participation (pression sociale, visible par tous) ──────────
 function StatBar({ stats }: { stats: Data["stats"] }) {
   const Item = ({ icon, value, label, accent }: { icon: string; value: number; label: string; accent?: boolean }) => (
@@ -299,7 +339,7 @@ export function SupportersClient() {
     return <div className="text-canal-gray-muted text-sm flex items-center gap-2"><RefreshCw size={14} className="animate-spin" /> Chargement…</div>;
   }
 
-  const { settings, me, myEntry, myVote, gallery, results, isOrganizer, participants, varAwards, stats } = data;
+  const { settings, me, myEntry, myVote, gallery, results, isOrganizer, participants, varAwards, stats, activity } = data;
   // Plus de validation préalable : on peut publier/remplacer tant que les
   // résultats ne sont pas dévoilés.
   const canEdit = !settings.results_published;
@@ -313,6 +353,9 @@ export function SupportersClient() {
 
       {/* Compteur de participation (pression sociale) */}
       <StatBar stats={stats} />
+
+      {/* Flux d'activité en direct */}
+      <ActivityFeed activity={activity} />
 
       {/* Onglets organisateurs (Marie & Vincent) */}
       {isOrganizer && (

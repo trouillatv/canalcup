@@ -67,11 +67,11 @@ export async function GET() {
   // Réactions emoji groupées par photo (compteurs + mes réactions).
   const reactionsByEntry = new Map<string, Record<string, number>>();
   const myReactionsByEntry = new Map<string, string[]>();
-  let reactionsRaw: { entry_id: string; user_id: string | null; emoji: string }[] = [];
+  let reactionsRaw: { entry_id: string; user_id: string | null; emoji: string; created_at?: string }[] = [];
   if (approved.length) {
     const { data: reactions } = await admin
       .from("supporter_photo_reactions")
-      .select("entry_id, user_id, emoji")
+      .select("entry_id, user_id, emoji, created_at")
       .in("entry_id", approvedIds);
     reactionsRaw = reactions ?? [];
     for (const r of reactions ?? []) {
@@ -170,6 +170,28 @@ export async function GET() {
       .sort((a, b) => Number(a.voted) - Number(b.voted) || a.name.localeCompare(b.name));
   }
 
+  // 🔴 Flux d'activité : publications + réactions + commentaires, du plus récent.
+  // Dérivé des created_at existants (aucune table dédiée).
+  const userName = new Map((allUsers ?? []).map((u) => [u.id, u.display_name || u.name || "Quelqu'un"]));
+  const entryTeamName = new Map(approved.map((e) => [e.id, teamName.get(e.team_id) ?? "un binôme"]));
+  type Act = { kind: "photo" | "reaction" | "comment"; at: string; actor: string; team: string; emoji?: string };
+  const activityRaw: Act[] = [];
+  for (const e of approved) {
+    activityRaw.push({ kind: "photo", at: e.created_at as string, actor: teamName.get(e.team_id) ?? "Un binôme", team: teamName.get(e.team_id) ?? "un binôme" });
+  }
+  for (const r of reactionsRaw) {
+    if (!r.created_at) continue;
+    activityRaw.push({ kind: "reaction", at: r.created_at, actor: r.user_id ? userName.get(r.user_id) ?? "Quelqu'un" : "Quelqu'un", team: entryTeamName.get(r.entry_id) ?? "un binôme", emoji: r.emoji });
+  }
+  for (const [entryId, list] of commentsByEntry) {
+    for (const c of list) {
+      activityRaw.push({ kind: "comment", at: c.created_at, actor: c.display_name, team: entryTeamName.get(entryId) ?? "un binôme" });
+    }
+  }
+  const activity = activityRaw
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+    .slice(0, 25);
+
   // Ma photo (tous statuts confondus pour mon binôme).
   const mine = me.team_id ? (entries ?? []).find((e) => e.team_id === me.team_id) ?? null : null;
   const myEntry = mine
@@ -217,6 +239,7 @@ export async function GET() {
       participants,
       varAwards,
       stats,
+      activity,
     },
     { headers: { "Cache-Control": "no-store" } }
   );
