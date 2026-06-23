@@ -14,7 +14,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Crown, Star, StarOff, Check, Users, UserCheck, UserX,
-  RefreshCw, LogOut, Plus, Ticket, AlertCircle, Share2,
+  RefreshCw, LogOut, Plus, Ticket, AlertCircle, Share2, Pencil, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TEAM_MAX_MEMBERS } from "@/lib/teams/config";
@@ -57,6 +57,9 @@ export function MyTeamsPanel() {
   const [okMsg, setOkMsg] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState("");
   const [newTeamName, setNewTeamName] = useState("");
+  // Renommage en cours : id de l'équipe éditée + valeur du champ.
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   // Onglet actif dans la box du bas. L'onglet 'invite' a été retiré :
   // le partage est déjà dans la carte de chaque équipe (bouton Partager).
   type Tab = "create" | "join";
@@ -173,6 +176,41 @@ export function MyTeamsPanel() {
         setErr(b?.error ?? `HTTP ${res.status}`);
       } else {
         setNewTeamName("");
+      }
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Erreur réseau");
+    }
+    setBusy(null);
+    await refresh();
+  };
+
+  const startRename = (teamId: string, current: string) => {
+    setErr(null);
+    setRenamingId(teamId);
+    setRenameValue(current);
+  };
+  const cancelRename = () => {
+    setRenamingId(null);
+    setRenameValue("");
+  };
+  const submitRename = async (e: React.FormEvent, teamId: string) => {
+    e.preventDefault();
+    const name = renameValue.trim();
+    if (name.length < 2) return;
+    setBusy(`rename-${teamId}`);
+    setErr(null);
+    try {
+      const res = await fetch("/api/teams/rename", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ team_id: teamId, name }),
+      });
+      if (!res.ok) {
+        const b = await res.json().catch(() => ({}));
+        setErr(b?.error ?? `HTTP ${res.status}`);
+      } else {
+        cancelRename();
       }
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Erreur réseau");
@@ -349,27 +387,76 @@ export function MyTeamsPanel() {
             >
               {/* En-tête équipe */}
               <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  {t.is_primary && (
-                    <Star size={14} className="text-canal-yellow fill-canal-yellow shrink-0" />
-                  )}
-                  <Link
-                    href={`/teams/${t.id}`}
-                    className="font-bold text-white truncate hover:text-canal-yellow"
+                {renamingId === t.id ? (
+                  <form
+                    onSubmit={(e) => submitRename(e, t.id)}
+                    className="flex items-center gap-1.5 flex-1 min-w-0"
                   >
-                    {t.name}
-                  </Link>
-                  {t.is_captain && (
-                    <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-canal-yellow text-canal-black flex items-center gap-1 shrink-0">
-                      <Crown size={9} /> Capitaine
-                    </span>
-                  )}
-                  {t.is_primary && (
-                    <span className="text-[10px] font-bold uppercase text-canal-yellow shrink-0">
-                      Principale
-                    </span>
-                  )}
-                </div>
+                    <input
+                      type="text"
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      placeholder="Nom de l'équipe"
+                      maxLength={60}
+                      autoFocus
+                      aria-label="Nouveau nom de l'équipe"
+                      className="flex-1 min-w-0 min-h-[40px] bg-canal-gray border border-canal-yellow/50 rounded-lg px-2.5 text-sm text-white placeholder:text-canal-gray-muted focus:outline-none focus:border-canal-yellow"
+                    />
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      size="sm"
+                      disabled={renameValue.trim().length < 2}
+                      loading={busy === `rename-${t.id}`}
+                      loadingText="…"
+                      aria-label="Valider le nouveau nom"
+                      leftIcon={<Check size={13} />}
+                    >
+                      OK
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={cancelRename}
+                      aria-label="Annuler le renommage"
+                      className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg border border-canal-gray-light text-canal-gray-muted hover:text-white hover:border-canal-gray-light/80 transition-colors"
+                    >
+                      <X size={15} />
+                    </button>
+                  </form>
+                ) : (
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    {t.is_primary && (
+                      <Star size={14} className="text-canal-yellow fill-canal-yellow shrink-0" />
+                    )}
+                    <Link
+                      href={`/teams/${t.id}`}
+                      className="font-bold text-white truncate hover:text-canal-yellow"
+                    >
+                      {t.name}
+                    </Link>
+                    {t.is_captain && (
+                      <button
+                        type="button"
+                        onClick={() => startRename(t.id, t.name)}
+                        aria-label="Renommer l'équipe"
+                        title="Renommer l'équipe"
+                        className="shrink-0 text-canal-gray-muted hover:text-canal-yellow transition-colors p-0.5"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                    )}
+                    {t.is_captain && (
+                      <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-canal-yellow text-canal-black flex items-center gap-1 shrink-0">
+                        <Crown size={9} /> Capitaine
+                      </span>
+                    )}
+                    {t.is_primary && (
+                      <span className="text-[10px] font-bold uppercase text-canal-yellow shrink-0">
+                        Principale
+                      </span>
+                    )}
+                  </div>
+                )}
                 <span
                   className={cn(
                     "text-[11px] font-bold uppercase px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1",
