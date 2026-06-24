@@ -36,6 +36,16 @@ export async function GET() {
     (usersRaw ?? []).map((u) => [u.id, u.display_name?.trim() || u.name?.trim() || "Joueur"])
   );
 
+  // Libellés des matchs concernés par les plays (pour tracer « sur quel match »).
+  const matchIds = [...new Set((plays ?? []).map((p) => p.match_id).filter(Boolean) as string[])];
+  const matchLabelById = new Map<string, string>();
+  if (matchIds.length) {
+    const { data: ms } = await admin.from("matches").select("id, team_a, team_b").in("id", matchIds);
+    for (const m of ms ?? []) {
+      if (m.team_a && m.team_b) matchLabelById.set(m.id, `${m.team_a}–${m.team_b}`);
+    }
+  }
+
   // Joueurs (hors admins) + leurs wallets
   const walletByUser = new Map<string, Record<string, number>>();
   for (const w of wallets ?? []) {
@@ -57,6 +67,7 @@ export async function GET() {
     ...p,
     playerName: nameById.get(p.played_by_user_id) ?? "Joueur",
     targetName: p.target_user_id ? nameById.get(p.target_user_id) ?? "Joueur" : null,
+    matchLabel: p.match_id ? matchLabelById.get(p.match_id) ?? null : null,
   }));
 
   // Plus ciblés + cartons reçus

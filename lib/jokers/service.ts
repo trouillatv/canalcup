@@ -184,11 +184,18 @@ export async function playJoker(params: PlayParams): Promise<PlayResult> {
   }
 
   // 4. Validation du match (timing) si nécessaire
-  let match: { id: string; status: string; starts_at: string; phase: string | null } | null = null;
+  let match: {
+    id: string;
+    status: string;
+    starts_at: string;
+    phase: string | null;
+    team_a?: string | null;
+    team_b?: string | null;
+  } | null = null;
   if (params.matchId) {
     const { data: m } = await admin
       .from("matches")
-      .select("id, status, starts_at, phase")
+      .select("id, status, starts_at, phase, team_a, team_b")
       .eq("id", params.matchId)
       .maybeSingle();
     if (!m) return { ok: false, error: "Match introuvable." };
@@ -239,7 +246,7 @@ export async function playJoker(params: PlayParams): Promise<PlayResult> {
     .eq("id", wallet.id);
 
   // 7. Crée le play + applique l'effet
-  return applyJoker(admin, params);
+  return applyJoker(admin, params, match);
 }
 
 /** Tirage pondéré : renvoie un item selon ses poids (somme quelconque). */
@@ -300,7 +307,11 @@ async function checkTargetGuards(
   return null;
 }
 
-async function applyJoker(admin: Admin, params: PlayParams): Promise<PlayResult> {
+async function applyJoker(
+  admin: Admin,
+  params: PlayParams,
+  match?: { team_a?: string | null; team_b?: string | null } | null
+): Promise<PlayResult> {
   const def = JOKER_CATALOG[params.type];
   const now = new Date();
   const endsAt = def.durationHours ? new Date(now.getTime() + def.durationHours * 60 * 60 * 1000) : null;
@@ -310,6 +321,10 @@ async function applyJoker(admin: Admin, params: PlayParams): Promise<PlayResult>
     displayName(admin, params.playedByUserId),
     params.targetUserId ? displayName(admin, params.targetUserId) : Promise.resolve(null),
   ]);
+
+  // Libellé du match (équipe A–équipe B) pour tracer « sur quel match » dans le
+  // feed public et la notif à la victime.
+  const matchLabel = match?.team_a && match?.team_b ? `${match.team_a}–${match.team_b}` : null;
 
   const metadata: Record<string, unknown> = {};
   let publicMessage = "";
@@ -374,7 +389,9 @@ async function applyJoker(admin: Admin, params: PlayParams): Promise<PlayResult>
           .eq("user_id", params.targetUserId)
           .eq("match_id", params.matchId);
       }
-      publicMessage = `🚫 ${playerName} a joué Carton Rouge sur ${targetName}. Suspension pour ce match.`;
+      publicMessage = matchLabel
+        ? `🚫 ${playerName} a sorti un Carton Rouge à ${targetName} sur ${matchLabel} : suspendu, 0 pt sur ce match.`
+        : `🚫 ${playerName} a joué Carton Rouge sur ${targetName}. Suspension pour ce match.`;
       break;
     }
     case "brouillard": {
@@ -447,7 +464,7 @@ async function applyJoker(admin: Admin, params: PlayParams): Promise<PlayResult>
       const { data: tu } = await admin.from("users").select("auth_id").eq("id", effect.affected).maybeSingle();
       if (!tu?.auth_id) return;
       const M: Record<string, { title: string; body: string }> = {
-        red_card_block: { title: "🚨 Carton Rouge contre toi !", body: `${playerName} t'a suspendu sur un match. Aïe.` },
+        red_card_block: { title: "🚨 Carton Rouge contre toi !", body: matchLabel ? `${playerName} t'a suspendu sur ${matchLabel} — 0 pt. Aïe.` : `${playerName} t'a suspendu sur un match. Aïe.` },
         fog: { title: "🌫 Brouillard sur toi", body: `${playerName} te masque les pronos des autres.` },
         flight_delay: { title: "✈️ Retard d'Avion", body: `${playerName} t'a bloqué la modif de tes pronos.` },
         var_window: { title: "🎥 VAR contre toi ?", body: `${playerName} a joué un joker qui te concerne.` },

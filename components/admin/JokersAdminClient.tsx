@@ -7,6 +7,7 @@ import { JOKER_CATALOG, ALL_JOKER_TYPES, type JokerType } from "@/lib/jokers/cat
 interface PlayerRow { id: string; name: string; wallet: Record<string, number> }
 interface HistoryRow {
   id: string; joker_type: string; playerName: string; targetName: string | null;
+  matchLabel: string | null;
   status: string; metadata: Record<string, unknown>; created_at: string;
 }
 interface CountRow { id: string; name: string; count: number }
@@ -150,6 +151,7 @@ export function JokersAdminClient() {
               <span>
                 {JOKER_CATALOG[h.joker_type as JokerType]?.emoji ?? "🃏"} <span className="font-bold">{h.playerName}</span>
                 {h.targetName ? <> → {h.targetName}</> : null}
+                {h.matchLabel ? <span className="text-canal-gray-muted"> · {h.matchLabel}</span> : null}
                 {typeof (h.metadata as { points_delta?: number })?.points_delta === "number" && (
                   <> ({(h.metadata as { points_delta: number }).points_delta > 0 ? "+" : ""}{(h.metadata as { points_delta: number }).points_delta} pts)</>
                 )}
