@@ -31,6 +31,11 @@ function TvMedia({ url, className }: { url: string; className: string }) {
 export default function TvSupportersPage() {
   const [data, setData] = useState<Data | null>(null);
   const [idx, setIdx] = useState(0);
+  const [origin, setOrigin] = useState("");
+
+  useEffect(() => {
+    setOrigin(process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin);
+  }, []);
 
   useEffect(() => {
     const load = () => fetch("/api/tv/supporters").then((r) => r.json()).then((d) => { if (!d.error) setData(d); }).catch(() => {});
@@ -83,6 +88,19 @@ export default function TvSupportersPage() {
 
       {slide.type === "photo" && (
         <>
+          {/* QR de vote — propre à cette photo (avant le reveal seulement) */}
+          {origin && !data?.revealed && (
+            <div className="absolute top-8 right-8 z-30 flex flex-col items-center gap-2 bg-canal-gray-mid/80 border border-canal-yellow/40 rounded-2xl p-3 backdrop-blur-sm">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=4&data=${encodeURIComponent(`${origin}/supporters/gallery?photo=${slide.p.id}`)}`}
+                alt="QR vote"
+                className="w-32 h-32 rounded-md bg-white p-1.5"
+              />
+              <p className="text-base font-black text-canal-yellow leading-tight text-center">🗳️ Votez pour<br />cette photo</p>
+              <p className="text-xs text-white/60">1 vote par personne</p>
+            </div>
+          )}
           {slide.p.photo_url_2 ? (
             <div className="flex gap-5 items-center justify-center mb-6 w-full">
               <TvMedia url={slide.p.photo_url} className="max-h-[55vh] max-w-[46%] rounded-3xl object-contain shadow-[0_0_60px_rgba(0,0,0,0.6)]" />
@@ -91,13 +109,13 @@ export default function TvSupportersPage() {
           ) : (
             <TvMedia url={slide.p.photo_url} className="max-h-[60vh] rounded-3xl object-contain mb-6 shadow-[0_0_60px_rgba(0,0,0,0.6)]" />
           )}
-          <h2 className="canal-headline text-6xl mb-2">{slide.p.team_name}</h2>
-          {slide.p.title && <p className="text-3xl text-white/80 mb-4">« {slide.p.title} »</p>}
-          <div className="flex items-center gap-8 text-4xl mt-2">
+          <h2 className="canal-headline text-4xl mb-2">{slide.p.team_name}</h2>
+          {slide.p.title && <p className="text-2xl text-white/80 mb-4">« {slide.p.title} »</p>}
+          <div className="flex items-center gap-6 text-2xl mt-2">
             {Object.entries(slide.p.reactions).map(([e, n]) => (
-              <span key={e} className="flex items-center gap-2"><span>{e}</span><span className="font-black text-canal-yellow tabular-nums">{n}</span></span>
+              <span key={e} className="flex items-center gap-1.5"><span>{e}</span><span className="font-black text-canal-yellow tabular-nums">{n}</span></span>
             ))}
-            {slide.p.votes != null && <span className="flex items-center gap-2">🗳️ <span className="font-black text-canal-yellow tabular-nums">{slide.p.votes}</span></span>}
+            {slide.p.votes != null && <span className="flex items-center gap-1.5">🗳️ <span className="font-black text-canal-yellow tabular-nums">{slide.p.votes}</span></span>}
           </div>
         </>
       )}
