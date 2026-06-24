@@ -140,7 +140,7 @@ function PhotoComments({
           {comments.map((c) => (
             <div key={c.id} className="flex items-start gap-1.5 text-xs">
               <span className="font-bold text-canal-yellow shrink-0">{c.display_name}</span>
-              <span className="text-canal-gray-light flex-1 break-words">{c.body}</span>
+              <span className="text-white/85 flex-1 break-words">{c.body}</span>
               {isOrganizer && (
                 <button onClick={() => del(c.id)} disabled={busy} className="text-canal-gray-muted hover:text-red-400 shrink-0" title="Supprimer le commentaire">
                   <X size={12} />
@@ -157,7 +157,7 @@ function PhotoComments({
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); post(); } }}
           placeholder="Un petit mot, un chambrage…"
           maxLength={280}
-          className="flex-1 bg-canal-black border border-canal-gray-light rounded-lg px-2 py-1.5 text-xs"
+          className="flex-1 bg-canal-black border border-canal-gray-light rounded-lg px-2 py-1.5 text-xs text-white placeholder:text-canal-gray-muted"
         />
         <button
           onClick={post}
@@ -236,8 +236,8 @@ function ActivityFeed({ activity }: { activity: ActivityEvent[] }) {
   if (!activity.length) return null;
   const line = (a: ActivityEvent) => {
     if (a.kind === "photo") return <><span className="font-bold text-white">{a.actor}</span> a publié sa photo 📸</>;
-    if (a.kind === "reaction") return <><span className="font-bold text-white">{a.actor}</span> a réagi {a.emoji} à la photo de <span className="text-canal-gray-light">{a.team}</span></>;
-    return <><span className="font-bold text-white">{a.actor}</span> a commenté la photo de <span className="text-canal-gray-light">{a.team}</span> 💬</>;
+    if (a.kind === "reaction") return <><span className="font-bold text-white">{a.actor}</span> a réagi {a.emoji} à la photo de <span className="text-canal-gray-muted">{a.team}</span></>;
+    return <><span className="font-bold text-white">{a.actor}</span> a commenté la photo de <span className="text-canal-gray-muted">{a.team}</span> 💬</>;
   };
   return (
     <section className="canal-card">

@@ -254,7 +254,7 @@ export function SupportersGallery() {
               <input value={commentText} onChange={(e) => setCommentText(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); postComment(); } }}
                 placeholder="Un petit mot, un chambrage…" maxLength={280}
-                className="flex-1 bg-canal-black border border-canal-gray-light rounded-lg px-3 py-2 text-sm" />
+                className="flex-1 bg-canal-black border border-canal-gray-light rounded-lg px-3 py-2 text-sm text-white placeholder:text-canal-gray-muted" />
               <button onClick={postComment} disabled={busy || !commentText.trim()} className="text-sm font-bold px-3 py-2 rounded-lg bg-canal-yellow text-canal-black disabled:opacity-40 flex items-center gap-1" aria-label="Envoyer">
                 <Send size={15} />
               </button>
