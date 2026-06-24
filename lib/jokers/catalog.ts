@@ -135,8 +135,9 @@ export function isJokerType(v: unknown): v is JokerType {
 }
 
 // ── Garde-fous anti-acharnement ──────────────────────────────────────────────
-/** Cooldown global sur les jokers OFFENSIFS joués (toutes cibles confondues). */
-export const OFFENSIVE_JOKER_COOLDOWN_DAYS = 10;
+// Plus de cooldown temporel sur l'attaquant : la règle est désormais « une même
+// personne ne peut pas subir DEUX jokers offensifs en même temps » (appliquée
+// dans lib/jokers/service.ts → playJoker).
 // Casino v2 — issues possibles (du meilleur au pire), plus gros écarts pour
 // peser sur un classement serré (gros lot +40, grosse perte −25).
 export const CASINO_OUTCOMES = [40, 25, 10, 0, -10, -25];

@@ -11,7 +11,6 @@ import {
   JOKER_CATALOG,
   type JokerType,
   type JokerEffectType,
-  OFFENSIVE_JOKER_COOLDOWN_DAYS,
   CASINO_OUTCOMES,
   casinoWeights,
   SPY_MAX_MATCHES,
@@ -21,8 +20,6 @@ import {
 import type { JokerEffect, JokerPlay, JokerWallet } from "@/lib/supabase/types";
 
 type Admin = ReturnType<typeof createAdminClient>;
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface PlayResult {
   ok: boolean;
@@ -161,23 +158,28 @@ export async function playJoker(params: PlayParams): Promise<PlayResult> {
     return { ok: false, error: "Tu ne peux pas te cibler toi-même." };
   }
 
-  // 3. Cooldown jokers offensifs (10 jours, toutes cibles confondues)
-  if (def.offensive) {
-    const since = new Date(Date.now() - OFFENSIVE_JOKER_COOLDOWN_DAYS * DAY_MS).toISOString();
-    const { data: recent } = await admin
-      .from("joker_plays")
-      .select("id, joker_type, created_at")
-      .eq("played_by_user_id", params.playedByUserId)
-      .neq("status", "cancelled")
-      .gte("created_at", since)
-      .in("joker_type", offensiveTypes())
-      .limit(1);
-    if (recent && recent.length > 0) {
-      const next = new Date(new Date(recent[0].created_at).getTime() + OFFENSIVE_JOKER_COOLDOWN_DAYS * DAY_MS);
-      return {
-        ok: false,
-        error: `Tu as déjà joué un joker offensif récemment. Prochain disponible le ${next.toLocaleDateString("fr-FR")}.`,
-      };
+  // 3. Une même personne ne peut pas subir DEUX jokers offensifs EN MÊME TEMPS.
+  // (Plus de cooldown sur l'attaquant.) On regarde si la cible a déjà un effet
+  // offensif « en cours » : un effet daté non expiré (Brouillard), ou un effet
+  // lié à un match pas encore terminé (Carton Rouge, Jet Lag).
+  if (def.offensive && params.targetUserId) {
+    await expireStaleEffects(admin); // purge les effets datés périmés
+    const { data: effs } = await admin
+      .from("joker_effects")
+      .select("match_id")
+      .eq("affected_user_id", params.targetUserId)
+      .eq("status", "active")
+      .in("effect_type", ["red_card_block", "fog", "jet_lag", "flight_delay"]);
+    // Effets sans match (Brouillard…) = encore actifs s'ils ne sont pas expirés.
+    let blocking = (effs ?? []).filter((e) => !e.match_id).length;
+    // Effets liés à un match : « en cours » seulement si le match n'est pas fini.
+    const matchIds = (effs ?? []).map((e) => e.match_id).filter(Boolean) as string[];
+    if (matchIds.length) {
+      const { data: ms } = await admin.from("matches").select("id, status").in("id", matchIds);
+      blocking += (ms ?? []).filter((m) => m.status !== "finished").length;
+    }
+    if (blocking > 0) {
+      return { ok: false, error: "Ce joueur subit déjà un joker offensif — un seul à la fois." };
     }
   }
 
@@ -240,10 +242,6 @@ export async function playJoker(params: PlayParams): Promise<PlayResult> {
   return applyJoker(admin, params);
 }
 
-function offensiveTypes(): JokerType[] {
-  return (Object.values(JOKER_CATALOG).filter((d) => d.offensive).map((d) => d.type));
-}
-
 /** Tirage pondéré : renvoie un item selon ses poids (somme quelconque). */
 function weightedPick<T>(items: T[], weights: number[]): T {
   const total = weights.reduce((a, b) => a + b, 0);
@@ -288,23 +286,9 @@ async function checkTargetGuards(
     }
   }
 
-  // 🌫 Brouillard : un seul brouillard actif à la fois sur une même cible.
-  if (params.type === "brouillard" && target) {
-    const fog = await hasActiveEffect(target, "fog");
-    if (fog) {
-      const until = fog.ends_at
-        ? ` (fin le ${new Date(fog.ends_at).toLocaleString("fr-FR", { weekday: "long", hour: "2-digit", minute: "2-digit" })})`
-        : "";
-      return `Ce joueur est déjà dans le Brouillard${until}. Attends la fin de l'effet.`;
-    }
-  }
-
-  // 🛬 Jet Lag : pas deux fois la même cible sur le même match.
-  if (params.type === "retard_avion" && target && match) {
-    if (await hasActiveEffect(target, "jet_lag", match.id)) {
-      return "Ce joueur a déjà un Jet Lag actif sur ce match.";
-    }
-  }
+  // (Brouillard / Jet Lag : le cumul d'offensifs sur une même cible est déjà
+  // bloqué en amont par la règle « un seul joker offensif à la fois » — cf.
+  // playJoker étape 3.)
   if (params.type === "var" && params.matchId) {
     if (await hasActiveEffect(params.playedByUserId, "var_window", params.matchId)) {
       return "Tu as déjà une VAR active sur ce match.";
