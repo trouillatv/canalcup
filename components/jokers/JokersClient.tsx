@@ -127,8 +127,10 @@ export function JokersClient() {
         </section>
       )}
 
-      {flash && (
-        <div className={`text-sm rounded-lg p-3 ${flash.kind === "ok" ? "bg-green-950/30 text-green-300 border border-green-500/30" : "bg-red-950/30 text-red-300 border border-red-500/30"}`}>
+      {/* Succès en haut (le panneau se ferme). Les ERREURS, elles, s'affichent
+          DANS la carte du joker concerné, au plus près du bouton. */}
+      {flash?.kind === "ok" && (
+        <div className="text-sm rounded-lg p-3 bg-green-950/30 text-green-300 border border-green-500/30">
           {flash.msg}
         </div>
       )}
@@ -145,6 +147,18 @@ export function JokersClient() {
           const isOpen = openType === t;
           const needsTarget = def.targeting === "target" || def.targeting === "target_match";
           const needsMatch = def.targeting === "self_match" || def.targeting === "target_match";
+          // Matchs proposables pour CE joker (VAR = non terminé ; sinon à venir).
+          const availableMatches = needsMatch
+            ? data.matches.filter((m) => (def.type === "var" ? m.status !== "finished" : m.status === "upcoming"))
+            : [];
+          // Pourquoi le joker ne peut pas (encore) être validé ? On l'explique au
+          // joueur au lieu de laisser un bouton grisé muet.
+          const blockers: string[] = [];
+          if (needsTarget && data.players.length === 0) blockers.push("aucune cible disponible");
+          else if (needsTarget && !targetId) blockers.push("choisis une cible");
+          if (needsMatch && availableMatches.length === 0) blockers.push(def.type === "var" ? "aucun match en cours ou à venir" : "aucun match à venir à viser");
+          else if (needsMatch && !matchId) blockers.push("choisis un match");
+          const blockReason = blockers.length ? blockers.join(" · ") : null;
           return (
             <div key={t} className={`canal-card ${n === 0 ? "opacity-50" : ""}`}>
               <div className="flex items-start justify-between gap-3">
@@ -191,11 +205,9 @@ export function JokersClient() {
                       className="w-full bg-canal-black border border-canal-gray-light rounded-lg px-2 py-2 text-sm"
                     >
                       <option value="">— Choisir un match —</option>
-                      {data.matches
-                        .filter((m) => (def.type === "var" ? m.status !== "finished" : m.status === "upcoming"))
-                        .map((m) => (
-                          <option key={m.id} value={m.id}>{matchLabel(m)}</option>
-                        ))}
+                      {availableMatches.map((m) => (
+                        <option key={m.id} value={m.id}>{matchLabel(m)}</option>
+                      ))}
                     </select>
                   )}
                   {def.type === "kamikaze" && (
@@ -228,11 +240,17 @@ export function JokersClient() {
                       </p>
                     </div>
                   )}
+                  {!confirming && blockReason && (
+                    <p className="text-xs text-amber-300 bg-amber-950/20 border border-amber-500/30 rounded-lg px-2.5 py-1.5 flex items-start gap-1.5">
+                      <span className="shrink-0">⚠️</span>
+                      <span>Pour jouer ce joker : <span className="font-semibold">{blockReason.charAt(0).toUpperCase() + blockReason.slice(1)}</span>.</span>
+                    </p>
+                  )}
                   {!confirming ? (
                     <button
-                      disabled={busy || (needsTarget && !targetId) || (needsMatch && !matchId)}
+                      disabled={busy || !!blockReason}
                       onClick={() => setConfirming(true)}
-                      className="w-full text-sm font-bold px-3 py-2 rounded-lg bg-purple-600 text-white disabled:opacity-40"
+                      className="w-full text-sm font-bold px-3 py-2 rounded-lg bg-purple-600 text-white disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       Jouer {def.emoji}
                     </button>
@@ -260,6 +278,14 @@ export function JokersClient() {
                         </button>
                       </div>
                     </div>
+                  )}
+                  {/* Erreur serveur (cible déjà ciblée, match commencé, prono
+                      manquant, mise invalide…) affichée ICI, jamais en silence. */}
+                  {flash?.kind === "err" && (
+                    <p className="text-xs text-red-300 bg-red-950/30 border border-red-500/30 rounded-lg px-2.5 py-1.5 flex items-start gap-1.5">
+                      <span className="shrink-0">🚫</span>
+                      <span>{flash.msg}</span>
+                    </p>
                   )}
                 </div>
               )}
