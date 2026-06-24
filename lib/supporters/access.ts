@@ -50,6 +50,15 @@ export function votesClosed(now: Date = new Date()): boolean {
   return now.getTime() >= new Date(VOTES_CLOSE_AT).getTime();
 }
 
+// Début du dernier jour de vote (même journée NC que la clôture, à 00:00).
+export const VOTES_LAST_DAY_START = "2026-06-25T00:00:00+11:00";
+
+/** Sommes-nous le dernier jour de vote (journée NC du 25/06, votes encore ouverts) ? */
+export function isLastVoteDay(now: Date = new Date()): boolean {
+  const t = now.getTime();
+  return t >= new Date(VOTES_LAST_DAY_START).getTime() && t < new Date(VOTES_CLOSE_AT).getTime();
+}
+
 // ─── Ouverture des publications ───────────────────────────────────────────────
 // Les binômes ne peuvent publier (photo OU vidéo) qu'à partir du mardi 23/06.
 // ⚠️ Fuseau Nouvelle-Calédonie (UTC+11) : on ouvre au DÉBUT du mardi NC, pas à
