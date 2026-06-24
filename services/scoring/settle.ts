@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { calculatePoints } from "@/lib/scoring";
 import { generateMatchStory } from "@/services/ai/generators/match-story";
 import { createFlash } from "@/lib/tv/flash";
-import { resolveQuitteOuDoubleForMatch, resolveKamikazeForMatch, resolveJetLagForMatch } from "@/lib/jokers/service";
+import { resolveQuitteOuDoubleForMatch, resolveKamikazeForMatch, resolveJetLagForMatch, consumeMatchBoundEffects } from "@/lib/jokers/service";
 import { sendPushToUser } from "@/lib/push";
 
 // ─── Settle a single match ────────────────────────────────────────────────────
@@ -76,6 +76,12 @@ export async function settleMatch(matchId: string): Promise<{ settled: number; s
     score_ht_a: match.score_ht_a,
     score_ht_b: match.score_ht_b,
   }).catch((e) => console.error(`[settle] jet_lag failed for match=${matchId}`, e));
+
+  // 🚫 Carton Rouge : le match est fini → l'effet (red_card_block) n'a plus de
+  // sens. On le consomme pour qu'il ne traîne pas dans « Effets actifs sur toi ».
+  await consumeMatchBoundEffects(supabase, matchId).catch((e) =>
+    console.error(`[settle] red_card cleanup failed for match=${matchId}`, e)
+  );
 
   // Check perfect streak for each user who had a prediction on this match
   const userIds = [...new Set(predictions.map((p) => p.user_id))];

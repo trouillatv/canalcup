@@ -63,7 +63,36 @@ export async function getActiveEffectsForUser(userId: string): Promise<JokerEffe
     .eq("affected_user_id", userId)
     .eq("status", "active")
     .order("created_at", { ascending: false });
-  return (data ?? []) as JokerEffect[];
+  const effects = (data ?? []) as JokerEffect[];
+
+  // Un effet lié à un match (ex. Carton Rouge / red_card_block, ends_at = null)
+  // n'a plus aucun sens une fois le match terminé : il ne doit plus traîner dans
+  // « Effets actifs sur toi ». On le consomme paresseusement (couvre aussi les
+  // cartons posés sur des matchs réglés avant ce correctif) et on le masque.
+  const matchIds = [...new Set(effects.map((e) => e.match_id).filter(Boolean) as string[])];
+  if (!matchIds.length) return effects;
+  const { data: ms } = await admin.from("matches").select("id, status").in("id", matchIds);
+  const finished = new Set((ms ?? []).filter((m) => m.status === "finished").map((m) => m.id));
+  if (finished.size) {
+    await admin
+      .from("joker_effects")
+      .update({ status: "consumed" })
+      .eq("affected_user_id", userId)
+      .eq("status", "active")
+      .in("match_id", [...finished]);
+  }
+  return effects.filter((e) => !(e.match_id && finished.has(e.match_id)));
+}
+
+/** Consomme les effets liés à un match une fois le match terminé (ex. Carton
+ *  Rouge). Le Jet Lag est déjà consommé par resolveJetLagForMatch, on l'exclut. */
+export async function consumeMatchBoundEffects(admin: Admin, matchId: string): Promise<void> {
+  await admin
+    .from("joker_effects")
+    .update({ status: "consumed" })
+    .eq("match_id", matchId)
+    .eq("status", "active")
+    .eq("effect_type", "red_card_block");
 }
 
 /** Tous les effets actifs (TV chaos / admin). */
