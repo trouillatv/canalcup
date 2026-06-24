@@ -3031,12 +3031,13 @@ interface SupporterTVPhoto {
 }
 interface SupportersTVData {
   votesOpen: boolean;
+  revealed: boolean;
   photos: SupporterTVPhoto[];
 }
 
 const isVideoUrl = (u: string) => /\.(mp4|webm|mov)(\?|$)/i.test(u);
 
-function SlideSupportersVote({ photos, origin }: { photos: SupporterTVPhoto[]; origin: string }) {
+function SlideSupportersVote({ photos, origin, votesOpen }: { photos: SupporterTVPhoto[]; origin: string; votesOpen: boolean }) {
   const [idx, setIdx] = useState(0);
   const n = photos.length;
 
@@ -3074,12 +3075,14 @@ function SlideSupportersVote({ photos, origin }: { photos: SupporterTVPhoto[]; o
             📸 Journée Supporters
           </p>
           <p className="font-black text-3xl sm:text-5xl lg:text-6xl text-white leading-tight">
-            Votez pour votre photo préférée
+            {votesOpen ? "Votez pour votre photo préférée" : "Soutenez votre binôme préféré"}
           </p>
         </div>
 
         <p className="text-canal-gray-muted text-base sm:text-2xl lg:text-3xl italic leading-snug">
-          Scannez le QR de la photo affichée pour voter — chaque binôme compte sur vous !
+          {votesOpen
+            ? "Scannez le QR de la photo affichée pour voter — chaque binôme compte sur vous !"
+            : "Scannez le QR de la photo affichée pour la découvrir, réagir et commenter !"}
         </p>
 
         <div className="flex items-center gap-4 sm:gap-6 bg-canal-gray-mid/50 border border-canal-yellow/30 rounded-2xl px-5 sm:px-8 py-4 sm:py-5">
@@ -3096,9 +3099,9 @@ function SlideSupportersVote({ photos, origin }: { photos: SupporterTVPhoto[]; o
             <QrCode size={96} className="text-canal-gray-muted" />
           )}
           <div className="text-left">
-            <p className="text-white font-black text-base sm:text-2xl">Scannez & votez</p>
+            <p className="text-white font-black text-base sm:text-2xl">{votesOpen ? "Scannez & votez" : "Scannez & réagissez"}</p>
             <p className="text-canal-yellow text-sm sm:text-lg">pour {p.team_name}</p>
-            <p className="text-canal-gray-muted text-xs sm:text-base mt-1.5">🗳️ 1 seul vote par personne</p>
+            {votesOpen && <p className="text-canal-gray-muted text-xs sm:text-base mt-1.5">🗳️ 1 seul vote par personne</p>}
           </div>
         </div>
 
@@ -3240,8 +3243,10 @@ export default function TVPage() {
   );
   // Quiz : seulement si des points quiz ont été attribués
   const hasQuizData = !!data?.individual?.some((r) => r.quiz > 0);
-  // Rappel de vote Supporters : photos présentes ET votes ouverts (avant reveal).
-  const hasSupportersVote = !!supporters?.votesOpen && !!supporters?.photos?.length;
+  // Galerie Supporters sur la TV : dès qu'il y a des photos approuvées et que les
+  // résultats ne sont pas encore publiés. (Indépendant du flag admin "votes_open" :
+  // on veut voir défiler les photos même si le vote n'a pas été formellement ouvert.)
+  const hasSupportersVote = !!supporters?.photos?.length && !supporters?.revealed;
 
   const filtered = BASE_SLIDES.filter((s) => {
     if (s === "livematch") return hasLiveMatch;
@@ -3387,7 +3392,7 @@ export default function TVPage() {
             {slide === "topscorerrace" && <SlideTopScorerRace bets={data.topScorerBets ?? []} scorers={data.topScorers ?? []} />}
             {slide === "notifcta" && <SlideNotifCTA />}
             {slide === "binomes" && <SlideBinomes origin={origin} />}
-            {slide === "supportersvote" && supporters && <SlideSupportersVote photos={supporters.photos} origin={origin} />}
+            {slide === "supportersvote" && supporters && <SlideSupportersVote photos={supporters.photos} origin={origin} votesOpen={supporters.votesOpen} />}
           </>
         )}
       </div>
