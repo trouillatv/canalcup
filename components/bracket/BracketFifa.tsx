@@ -571,6 +571,24 @@ function ProjectionKnockout({ standings }: { standings: Record<string, StandingR
 
       <div className="overflow-x-auto pb-4">
         <div className="flex items-stretch min-w-max" style={{ height: `${bracketHeight}px` }}>
+          {/* Rail des deux moitiés : haut = Partie A (→ Demi 1), bas = Partie B
+              (→ Demi 2). Les deux blocs flex-1 s'alignent pile sur les 8 16es du
+              haut / du bas. Elles ne se croisent qu'en finale. */}
+          <div className="flex flex-col shrink-0 w-7 sm:w-9">
+            <div className={HEADER_H} />
+            <div className="flex-1 flex flex-col">
+              <div className="flex-1 flex items-center justify-center border-r-2 border-canal-yellow/30">
+                <span className="[writing-mode:vertical-rl] rotate-180 text-[10px] font-black uppercase tracking-[0.25em] text-canal-yellow/80 whitespace-nowrap">
+                  🔼 Partie A · haute
+                </span>
+              </div>
+              <div className="flex-1 flex items-center justify-center border-r-2 border-t-2 border-sky-400/30">
+                <span className="[writing-mode:vertical-rl] rotate-180 text-[10px] font-black uppercase tracking-[0.25em] text-sky-300/80 whitespace-nowrap">
+                  🔽 Partie B · basse
+                </span>
+              </div>
+            </div>
+          </div>
           {rounds.map((round, ri) => {
             const isLast = ri === rounds.length - 1;
             const emoji = PHASE_EMOJIS[round.round] ?? "⚽";
