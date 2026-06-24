@@ -522,7 +522,11 @@ function ProjectionKnockout({ standings }: { standings: Record<string, StandingR
   const rounds = resolveKnockout(standings, mode);
 
   const maxMatches = Math.max(1, ...rounds.map((r) => r.matches.length));
-  const bracketHeight = Math.max(420, maxMatches * 92 + 40);
+  // Hauteur = 1 cellule flex-1 par match du tour le plus large. 120px/cellule
+  // garantit que la carte projetée la plus haute (2 équipes + sous-libellé,
+  // ~107px) tient SANS déborder, sinon justify-around se tasse et les
+  // connecteurs décrochent en bas du tableau (ex. S13→H7). +48 = en-tête.
+  const bracketHeight = Math.max(480, maxMatches * 120 + 48);
 
   return (
     <div>
@@ -585,13 +589,18 @@ function ProjectionKnockout({ standings }: { standings: Record<string, StandingR
                       {emoji} {label}
                     </span>
                   </div>
-                  <div className={cn("flex-1 flex flex-col gap-3 px-1", isFinale ? "justify-center" : "justify-around")}>
+                  <div className={cn("flex-1 flex flex-col px-1", isFinale && "justify-center")}>
                     {round.matches.map((m) => (
-                      <div key={m.code} className="relative flex items-center">
-                        <ProjCard match={m} big={isFinale} />
-                        {!isLast && (
-                          <span className="absolute left-full top-1/2 -translate-y-1/2 h-px w-2 bg-canal-yellow/25" />
-                        )}
+                      <div
+                        key={m.code}
+                        className={cn("flex items-center justify-center", !isFinale && "flex-1")}
+                      >
+                        <div className="relative">
+                          <ProjCard match={m} big={isFinale} />
+                          {!isLast && (
+                            <span className="absolute left-full top-1/2 -translate-y-1/2 h-px w-2 bg-canal-yellow/25" />
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
