@@ -30,8 +30,13 @@ export default function TvSupportersGalleryPage() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [idx, setIdx] = useState(0);
   const [splash, setSplash] = useState<string | null>(null);
+  const [origin, setOrigin] = useState("");
   const seen = useRef<Set<string>>(new Set());
   const seeded = useRef(false);
+
+  useEffect(() => {
+    setOrigin(process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin);
+  }, []);
 
   useEffect(() => {
     const load = () =>
@@ -102,26 +107,40 @@ export default function TvSupportersGalleryPage() {
         <TvMedia url={cur.url} className="max-h-[78vh] max-w-[92vw] rounded-3xl object-contain shadow-[0_0_80px_rgba(0,0,0,0.7)]" />
       </div>
 
+      {/* QR de vote — propre à cette photo (scanner = voter pour ce binôme) */}
+      {origin && (
+        <div className="absolute top-8 right-8 z-30 flex flex-col items-center gap-2 bg-canal-gray-mid/80 border border-canal-yellow/40 rounded-2xl p-3 backdrop-blur-sm">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=4&data=${encodeURIComponent(`${origin}/supporters/gallery?photo=${p.id}`)}`}
+            alt="QR vote"
+            className="w-32 h-32 rounded-md bg-white p-1.5"
+          />
+          <p className="text-base font-black text-canal-yellow leading-tight text-center">🗳️ Votez pour<br />cette photo</p>
+          <p className="text-xs text-white/60">1 vote par personne</p>
+        </div>
+      )}
+
       {/* Bandeau bas : binôme, titre, réactions, commentaires */}
       <div className="absolute bottom-0 inset-x-0 z-20 bg-gradient-to-t from-black/90 via-black/60 to-transparent px-12 pb-10 pt-24">
         <div className="flex items-end justify-between gap-8">
           <div className="min-w-0">
-            <h2 className="canal-headline text-6xl mb-1">{p.team_name}</h2>
-            {p.title && <p className="text-3xl text-white/80">« {p.title} »</p>}
-            {cur.bonus && <p className="text-xl text-canal-yellow/80 mt-1">📷 Photo bonus</p>}
+            <h2 className="canal-headline text-4xl mb-1">{p.team_name}</h2>
+            {p.title && <p className="text-2xl text-white/80">« {p.title} »</p>}
+            {cur.bonus && <p className="text-lg text-canal-yellow/80 mt-1">📷 Photo bonus</p>}
           </div>
-          <div className="flex items-center gap-6 text-4xl shrink-0">
+          <div className="flex items-center gap-5 text-2xl shrink-0">
             {Object.entries(p.reactions).map(([e, c]) => (
-              <span key={e} className="flex items-center gap-2"><span>{e}</span><span className="font-black text-canal-yellow tabular-nums">{c}</span></span>
+              <span key={e} className="flex items-center gap-1.5"><span>{e}</span><span className="font-black text-canal-yellow tabular-nums">{c}</span></span>
             ))}
           </div>
         </div>
 
         {/* Commentaires drôles */}
         {p.comments.length > 0 && (
-          <div className="mt-5 flex flex-wrap gap-x-10 gap-y-2">
+          <div className="mt-4 flex flex-wrap gap-x-10 gap-y-2">
             {p.comments.slice(0, 2).map((c, i) => (
-              <p key={i} className="text-2xl text-white/85">
+              <p key={i} className="text-xl text-white/85">
                 <span className="text-canal-yellow font-black">{c.display_name}</span> <span className="italic">« {c.body} »</span>
               </p>
             ))}
