@@ -6,6 +6,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendPushToUser } from "@/lib/push";
+import { calculatePoints } from "@/lib/scoring";
 import {
   JOKER_CATALOG,
   type JokerType,
@@ -192,7 +193,12 @@ export async function playJoker(params: PlayParams): Promise<PlayResult> {
     match = m;
     const started = m.status !== "upcoming" || new Date(m.starts_at) <= new Date();
 
-    if (params.type === "carton_rouge" || params.type === "quitte_ou_double" || params.type === "kamikaze") {
+    if (
+      params.type === "carton_rouge" ||
+      params.type === "quitte_ou_double" ||
+      params.type === "kamikaze" ||
+      params.type === "retard_avion" // 🛬 Jet Lag
+    ) {
       if (started) return { ok: false, error: "Match déjà commencé : trop tard." };
     }
     if (params.type === "var") {
@@ -282,26 +288,21 @@ async function checkTargetGuards(
     }
   }
 
-  // 🌫 Brouillard / ✈️ Retard d'Avion : un seul malus de verrouillage à la fois
-  // sur une même cible. Les deux verrouillent la modification des pronos → pas
-  // de cumul (même type OU type croisé). Il faut attendre la fin de l'effet en
-  // cours avant d'en reposer un.
-  if ((params.type === "brouillard" || params.type === "retard_avion") && target) {
+  // 🌫 Brouillard : un seul brouillard actif à la fois sur une même cible.
+  if (params.type === "brouillard" && target) {
     const fog = await hasActiveEffect(target, "fog");
-    const delay = await hasActiveEffect(target, "flight_delay");
-    const until = (e: JokerEffect) =>
-      e.ends_at
-        ? ` (fin le ${new Date(e.ends_at).toLocaleString("fr-FR", { weekday: "long", hour: "2-digit", minute: "2-digit" })})`
-        : "";
     if (fog) {
-      return params.type === "brouillard"
-        ? `Ce joueur est déjà dans le Brouillard${until(fog)}. Attends la fin de l'effet.`
-        : `Ce joueur a déjà un malus actif (Brouillard)${until(fog)}. Attends qu'il se termine avant un Retard d'Avion.`;
+      const until = fog.ends_at
+        ? ` (fin le ${new Date(fog.ends_at).toLocaleString("fr-FR", { weekday: "long", hour: "2-digit", minute: "2-digit" })})`
+        : "";
+      return `Ce joueur est déjà dans le Brouillard${until}. Attends la fin de l'effet.`;
     }
-    if (delay) {
-      return params.type === "retard_avion"
-        ? `Ce joueur a déjà un Retard d'Avion actif${until(delay)}. Attends la fin de l'effet.`
-        : `Ce joueur a déjà un malus actif (Retard d'Avion)${until(delay)}. Attends qu'il se termine avant un Brouillard.`;
+  }
+
+  // 🛬 Jet Lag : pas deux fois la même cible sur le même match.
+  if (params.type === "retard_avion" && target && match) {
+    if (await hasActiveEffect(target, "jet_lag", match.id)) {
+      return "Ce joueur a déjà un Jet Lag actif sur ce match.";
     }
   }
   if (params.type === "var" && params.matchId) {
@@ -398,8 +399,12 @@ async function applyJoker(admin: Admin, params: PlayParams): Promise<PlayResult>
       break;
     }
     case "retard_avion": {
-      effect = { type: "flight_delay", affected: params.targetUserId!, endsAt };
-      publicMessage = `✈️ ${targetName} a un Retard d'Avion : pronos verrouillés pendant 24 h.`;
+      // 🛬 Jet Lag : effet CACHÉ sur la victime pour CE match, résolu au
+      // settlement (resolveJetLagForMatch). Pas de ends_at → il vit jusqu'au
+      // coup de sifflet final. Message teasing qui ne nomme PAS la victime
+      // (elle ne doit le découvrir qu'à la fin du match).
+      effect = { type: "jet_lag", affected: params.targetUserId!, endsAt: null };
+      publicMessage = `🛬 ${playerName} a programmé un Jet Lag sur un match… quelqu'un va déchanter au coup de sifflet final.`;
       break;
     }
     case "espion": {
@@ -451,7 +456,9 @@ async function applyJoker(admin: Admin, params: PlayParams): Promise<PlayResult>
 
   // 🚨 Notif NARRATIVE « un joker joué CONTRE toi » — uniquement si l'effet vise
   // QUELQU'UN D'AUTRE (jokers offensifs). Fire-and-forget, jamais bloquant.
-  if (effect && effect.affected && effect.affected !== params.playedByUserId) {
+  // 🛬 Exception Jet Lag : effet caché → AUCUNE notif (la victime ne le découvre
+  // qu'au coup de sifflet final, via le feed de résolution).
+  if (effect && effect.type !== "jet_lag" && effect.affected && effect.affected !== params.playedByUserId) {
     void (async () => {
       const { data: tu } = await admin.from("users").select("auth_id").eq("id", effect.affected).maybeSingle();
       if (!tu?.auth_id) return;
@@ -467,6 +474,82 @@ async function applyJoker(admin: Admin, params: PlayParams): Promise<PlayResult>
   }
 
   return { ok: true, play: playRow as JokerPlay, publicMessage, data };
+}
+
+// ── Jet Lag : résolution au settlement d'un match ────────────────────────────
+// Le prono de la victime est RE-JUGÉ sur la SEULE 2e mi-temps (= plein temps −
+// mi-temps), avec le barème normal (calculatePoints). La victime ne le découvre
+// qu'ici, au coup de sifflet final : feed de révélation + push. Écrase les
+// points du prono concerné → doit passer APRÈS le calcul de base (settle.ts).
+export async function resolveJetLagForMatch(
+  admin: Admin,
+  match: {
+    id: string;
+    phase: string | null;
+    score_a: number;
+    score_b: number;
+    score_ht_a: number | null;
+    score_ht_b: number | null;
+  }
+): Promise<void> {
+  const { data: effects } = await admin
+    .from("joker_effects")
+    .select("id, affected_user_id, joker_play_id")
+    .eq("effect_type", "jet_lag")
+    .eq("match_id", match.id)
+    .eq("status", "active");
+  if (!effects?.length) return;
+
+  // 2e mi-temps = plein temps − mi-temps. Sans score mi-temps fiable, on ne peut
+  // pas re-juger → on consomme l'effet sans toucher aux points.
+  const hasHt = match.score_ht_a != null && match.score_ht_b != null;
+  const secondHalfA = hasHt ? match.score_a - (match.score_ht_a as number) : null;
+  const secondHalfB = hasHt ? match.score_b - (match.score_ht_b as number) : null;
+
+  for (const eff of effects) {
+    const victim = eff.affected_user_id as string;
+    let revealed = false;
+
+    if (secondHalfA != null && secondHalfB != null) {
+      const { data: pred } = await admin
+        .from("predictions")
+        .select("id, predicted_score_a, predicted_score_b")
+        .eq("user_id", victim)
+        .eq("match_id", match.id)
+        .maybeSingle();
+
+      if (pred && pred.predicted_score_a != null && pred.predicted_score_b != null) {
+        const newPoints = calculatePoints(
+          { phase: match.phase, score_a: secondHalfA, score_b: secondHalfB } as Parameters<typeof calculatePoints>[0],
+          pred.predicted_score_a,
+          pred.predicted_score_b
+        );
+        await admin.from("predictions").update({ points_awarded: newPoints }).eq("id", pred.id);
+
+        const name = await displayName(admin, victim);
+        const msg = `🛬 JET LAG sur ${name} ! Son prono a été jugé sur la SEULE 2e mi-temps (${secondHalfA}–${secondHalfB}) → ${newPoints} pts.`;
+        await postJokerFeed(admin, msg, eff.joker_play_id as string, victim, name);
+        revealed = true;
+
+        // Révélation à la victime (uniquement maintenant, jamais avant).
+        void (async () => {
+          const { data: tu } = await admin.from("users").select("auth_id").eq("id", victim).maybeSingle();
+          if (tu?.auth_id) {
+            await sendPushToUser(tu.auth_id as string, {
+              title: "🛬 Jet Lag !",
+              body: `Surprise : ton prono n'était jugé que sur la 2e mi-temps (${secondHalfA}–${secondHalfB}). Résultat : ${newPoints} pts.`,
+              url: "/jokers",
+            });
+          }
+        })().catch(() => {});
+      }
+    }
+
+    await admin
+      .from("joker_effects")
+      .update({ status: "consumed", metadata: { resolved: true, revealed } })
+      .eq("id", eff.id);
+  }
 }
 
 async function displayName(admin: Admin, userId: string): Promise<string> {

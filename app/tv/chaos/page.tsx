@@ -37,7 +37,8 @@ function playLine(p: PlayRow): string {
     case "brouillard":
       return `${emoji} ${p.playerName} a plongé ${p.targetName} dans le Brouillard`;
     case "retard_avion":
-      return `${emoji} ${p.playerName} a cloué ${p.targetName} au sol (Retard d'Avion)`;
+      // 🛬 Jet Lag : on ne révèle pas la victime (surprise jusqu'au coup de sifflet).
+      return `${emoji} ${p.playerName} a programmé un Jet Lag${p.matchLabel ? ` sur ${p.matchLabel}` : ""}… 😴`;
     case "espion":
       return `${emoji} ${p.playerName} espionne les pronos des autres…`;
     case "var":
@@ -89,13 +90,6 @@ export default function TvChaosPage() {
             <ul className="space-y-1 text-2xl">
               {(data?.fog ?? []).map((f, i) => <li key={i}>{f.name}</li>)}
               {(!data || data.fog.length === 0) && <li className="text-canal-gray-muted text-xl">Personne.</li>}
-            </ul>
-          </div>
-          <div className="canal-card bg-canal-gray-dark/40">
-            <h2 className="text-lg text-amber-300 font-bold uppercase mb-2">✈️ Retard d'Avion</h2>
-            <ul className="space-y-1 text-2xl">
-              {(data?.flightDelay ?? []).map((f, i) => <li key={i}>{f.name}</li>)}
-              {(!data || data.flightDelay.length === 0) && <li className="text-canal-gray-muted text-xl">Personne.</li>}
             </ul>
           </div>
           <div className="canal-card bg-canal-gray-dark/40">

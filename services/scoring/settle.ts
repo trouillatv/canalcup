@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { calculatePoints } from "@/lib/scoring";
 import { generateMatchStory } from "@/services/ai/generators/match-story";
 import { createFlash } from "@/lib/tv/flash";
-import { resolveQuitteOuDoubleForMatch, resolveKamikazeForMatch } from "@/lib/jokers/service";
+import { resolveQuitteOuDoubleForMatch, resolveKamikazeForMatch, resolveJetLagForMatch } from "@/lib/jokers/service";
 import { sendPushToUser } from "@/lib/push";
 
 // ─── Settle a single match ────────────────────────────────────────────────────
@@ -20,7 +20,7 @@ export async function settleMatch(matchId: string): Promise<{ settled: number; s
     .eq("id", matchId)
     .eq("is_settled", false)
     .eq("status", "finished")
-    .select("id, phase, score_a, score_b, team_a, team_b, flag_a, flag_b")
+    .select("id, phase, score_a, score_b, score_ht_a, score_ht_b, team_a, team_b, flag_a, flag_b")
     .single();
 
   // Another process already settled this match, or it's not finished/scores missing
@@ -65,6 +65,17 @@ export async function settleMatch(matchId: string): Promise<{ settled: number; s
   await resolveKamikazeForMatch(supabase, matchId, match.score_a!, match.score_b!).catch((e) =>
     console.error(`[settle] kamikaze failed for match=${matchId}`, e)
   );
+
+  // 🛬 Jet Lag : re-juge le prono des victimes sur la SEULE 2e mi-temps
+  // (= plein temps − mi-temps). Écrase les points → APRÈS le calcul de base.
+  await resolveJetLagForMatch(supabase, {
+    id: matchId,
+    phase: match.phase,
+    score_a: match.score_a!,
+    score_b: match.score_b!,
+    score_ht_a: match.score_ht_a,
+    score_ht_b: match.score_ht_b,
+  }).catch((e) => console.error(`[settle] jet_lag failed for match=${matchId}`, e));
 
   // Check perfect streak for each user who had a prediction on this match
   const userIds = [...new Set(predictions.map((p) => p.user_id))];

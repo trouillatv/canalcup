@@ -19,7 +19,8 @@ export type JokerStatus = "active" | "consumed" | "expired" | "cancelled";
 export type JokerEffectType =
   | "red_card_block" // Carton Rouge : le ciblé ne peut pas pronostiquer ce match
   | "fog" // Brouillard : aveugle (pronos des autres / tendances) + verrou modif 24h
-  | "flight_delay" // Retard d'Avion : verrou modif des pronos existants 24h
+  | "flight_delay" // (déprécié) ancien Retard d'Avion — conservé pour l'historique
+  | "jet_lag" // Jet Lag : le prono de la victime est re-jugé sur la SEULE 2e mi-temps
   | "var_window" // VAR : modif autorisée jusqu'à la mi-temps sur un match
   | "spy"; // Espion : voit certains pronos futurs (max 5 consultés)
 
@@ -109,16 +110,17 @@ export const JOKER_CATALOG: Record<JokerType, JokerDef> = {
     targeting: "self_match",
     offensive: false,
   },
+  // ⚠️ Clé de type conservée ("retard_avion") pour ne pas casser les wallets
+  // déjà attribués, mais le joker est désormais le « Jet Lag » (cf. effet jet_lag).
   retard_avion: {
     type: "retard_avion",
-    emoji: "✈️",
-    name: "Retard d'Avion",
+    emoji: "🛬",
+    name: "Jet Lag",
     description:
-      "Pendant 24 h, la cible ne peut plus modifier ses pronos déjà saisis (peut encore créer un prono manquant).",
-    conditions: "Un seul retard actif par joueur.",
-    targeting: "target",
+      "Offensif : sur un match, le pronostic de ta cible sera jugé sur la SEULE 2e mi-temps. Elle ne le découvre qu'au coup de sifflet final.",
+    conditions: "Match non commencé. Pas soi-même. Soumis au cooldown des jokers offensifs.",
+    targeting: "target_match",
     offensive: true,
-    durationHours: 24,
   },
 };
 

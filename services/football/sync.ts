@@ -78,6 +78,9 @@ async function syncLiveScoresApiF(): Promise<number> {
     const minute = f.fixture.status.elapsed ?? null;
     const scoreA = f.goals.home ?? null;
     const scoreB = f.goals.away ?? null;
+    // Score à la mi-temps (cumulé 45') — sert au joker Jet Lag (2e MT = FT − MT).
+    const scoreHtA = f.score?.halftime?.home ?? null;
+    const scoreHtB = f.score?.halftime?.away ?? null;
     const apifId: number = f.fixture.id;
 
     // Match by apif_id first, then by team names
@@ -98,6 +101,7 @@ async function syncLiveScoresApiF(): Promise<number> {
     await supabase.from("matches").update({
       apif_id: apifId, status, minute,
       score_a: scoreA, score_b: scoreB,
+      score_ht_a: scoreHtA, score_ht_b: scoreHtB,
       venue: f.fixture.venue?.name ?? undefined,
       referee: f.fixture.referee ?? undefined,
       updated_at: new Date().toISOString(),
@@ -906,6 +910,8 @@ export async function syncSeason(): Promise<{ updated: number; inserted: number;
     const status = apifStatus(f.fixture.status.short);
     const scoreA = f.goals.home ?? null;
     const scoreB = f.goals.away ?? null;
+    const scoreHtA = f.score?.halftime?.home ?? null;
+    const scoreHtB = f.score?.halftime?.away ?? null;
     const { phase, stage } = normalizePhase(f.league.round ?? undefined);
 
     const existing =
@@ -919,6 +925,7 @@ export async function syncSeason(): Promise<{ updated: number; inserted: number;
     if (existing) {
       await supabase.from("matches").update({
         external_id: apifId, apif_id: apifId, status, score_a: scoreA, score_b: scoreB,
+        score_ht_a: scoreHtA, score_ht_b: scoreHtB,
         team_a: teamAFr, team_b: teamBFr,
         flag_a: toFlag(f.teams.home.name), flag_b: toFlag(f.teams.away.name),
         phase, stage: stage ?? undefined,
@@ -935,6 +942,7 @@ export async function syncSeason(): Promise<{ updated: number; inserted: number;
         flag_a: toFlag(f.teams.home.name), flag_b: toFlag(f.teams.away.name),
         starts_at: f.fixture.date, channel: "Canal+", status,
         score_a: scoreA, score_b: scoreB,
+        score_ht_a: scoreHtA, score_ht_b: scoreHtB,
         venue: f.fixture.venue?.name ?? undefined,
       }).select("id").single();
       if (!error && inserted_match) {

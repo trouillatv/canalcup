@@ -31,6 +31,8 @@ const EFFECT_LABEL: Record<string, string> = {
   red_card_block: "🚫 Carton Rouge (suspendu sur un match)",
   fog: "🌫 Brouillard (tu ne vois plus les autres, modifs bloquées)",
   flight_delay: "✈️ Retard d'Avion (modifs bloquées)",
+  // 🛬 jet_lag : volontairement absent — l'effet est masqué à la victime
+  // (filtré côté /api/jokers). Elle ne le découvre qu'au coup de sifflet final.
   var_window: "🎥 VAR (modif jusqu'à la mi-temps)",
   spy: "🕵️ Espion (consulte les pronos des autres)",
 };

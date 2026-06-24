@@ -47,7 +47,14 @@ export async function GET() {
     id: p.id,
     jokerType: p.joker_type,
     playerName: nameById.get(p.played_by_user_id) ?? "Joueur",
-    targetName: p.target_user_id ? nameById.get(p.target_user_id) ?? "Joueur" : null,
+    // 🛬 Jet Lag (retard_avion) : on NE révèle JAMAIS la victime ici — elle ne
+    // doit le découvrir qu'au coup de sifflet final (feed de résolution).
+    targetName:
+      p.joker_type === "retard_avion"
+        ? null
+        : p.target_user_id
+          ? nameById.get(p.target_user_id) ?? "Joueur"
+          : null,
     matchLabel: p.match_id ? matchById.get(p.match_id) ?? null : null,
     metadata: p.metadata ?? {},
     status: p.status,

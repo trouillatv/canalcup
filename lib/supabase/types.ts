@@ -138,6 +138,8 @@ export interface Match {
   minute?: number | null;
   score_a?: number;
   score_b?: number;
+  score_ht_a?: number | null;
+  score_ht_b?: number | null;
   is_match_of_week?: boolean;
   is_settled?: boolean;
   finished_at?: string | null;

@@ -51,8 +51,12 @@ export async function GET() {
     .order("created_at", { ascending: false })
     .limit(20);
 
+  // 🛬 Jet Lag : effet CACHÉ — la victime ne doit pas le voir dans ses effets
+  // actifs (elle ne le découvre qu'au coup de sifflet final). On le retire ici.
+  const visibleEffects = effects.filter((e) => e.effect_type !== "jet_lag");
+
   return NextResponse.json(
-    { userId: me.id, wallet, effects, players, matches: matchesRaw ?? [], myPlays: myPlays ?? [] },
+    { userId: me.id, wallet, effects: visibleEffects, players, matches: matchesRaw ?? [], myPlays: myPlays ?? [] },
     { headers: { "Cache-Control": "no-store" } }
   );
 }

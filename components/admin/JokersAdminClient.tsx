@@ -23,7 +23,8 @@ interface Overview {
 const EFFECT_LABEL: Record<string, string> = {
   red_card_block: "🚫 Carton Rouge",
   fog: "🌫 Brouillard",
-  flight_delay: "✈️ Retard d'Avion",
+  jet_lag: "🛬 Jet Lag (jugé sur la 2e mi-temps)",
+  flight_delay: "✈️ Retard d'Avion (déprécié)",
   var_window: "🎥 VAR",
   spy: "🕵️ Espion",
 };
