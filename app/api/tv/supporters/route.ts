@@ -3,7 +3,7 @@
 //  + votes, Prix VAR et podium pour la cérémonie.
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { VAR_CATEGORIES } from "@/lib/supporters/access";
+import { VAR_CATEGORIES, votesClosed } from "@/lib/supporters/access";
 import { PODIUM_POINTS } from "@/lib/supporters/service";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export async function GET() {
 
   const [{ data: settings }, { data: entries }, { data: teams }, { data: reactions }, { data: comments }, { data: votes }, { data: users }] =
     await Promise.all([
-      admin.from("supporter_settings").select("results_published").eq("id", 1).maybeSingle(),
+      admin.from("supporter_settings").select("results_published, votes_open").eq("id", 1).maybeSingle(),
       admin.from("supporter_photo_entries").select("id, team_id, title, photo_url, photo_url_2, media_type, media_type_2, status, podium_rank, created_at").eq("status", "approved"),
       admin.from("teams").select("id, name"),
       admin.from("supporter_photo_reactions").select("entry_id, user_id, emoji"),
@@ -23,6 +23,8 @@ export async function GET() {
     ]);
 
   const revealed = !!settings?.results_published;
+  // Vote ouvert pour le rappel TV : flag admin actif, avant reveal et avant clôture.
+  const votesOpen = !!settings?.votes_open && !revealed && !votesClosed();
   const teamName = new Map((teams ?? []).map((t: { id: string; name: string }) => [t.id, t.name]));
   const userTeam = new Map((users ?? []).map((u: { id: string; team_id: string | null }) => [u.id, u.team_id]));
   const approved = entries ?? [];
@@ -71,7 +73,7 @@ export async function GET() {
   }));
 
   // Prix VAR + podium : seulement au reveal (cérémonie).
-  let varAwards: { emoji: string; label: string; team_name: string; photo_url: string; count: number }[] = [];
+  const varAwards: { emoji: string; label: string; team_name: string; photo_url: string; count: number }[] = [];
   let podium: { rank: number; team_name: string; title: string | null; photo_url: string; votes: number; points: number }[] = [];
   if (revealed) {
     for (const cat of VAR_CATEGORIES) {
@@ -100,7 +102,7 @@ export async function GET() {
   }
 
   return NextResponse.json(
-    { revealed, photos, varAwards, podium },
+    { revealed, votesOpen, photos, varAwards, podium },
     { headers: { "Cache-Control": "no-store" } }
   );
 }
