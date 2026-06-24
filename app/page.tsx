@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getMatches, getPredictionTrends } from "@/lib/data/matches";
 import { getLeaderboard } from "@/lib/data/teams";
 import { getTodayBrief, getRevivezPosts } from "@/lib/data/content";
@@ -11,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import { MagicLinkReception } from "@/components/auth/MagicLinkReception";
 import { PronoReminder } from "@/components/predictions/PronoReminder";
 import { ensureAllowlisted } from "@/lib/auth/allowlist";
+import { isLastVoteDay } from "@/lib/supporters/access";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +28,9 @@ export default async function RootPage() {
     await supabase.auth.signOut();
     return <MagicLinkReception />;
   }
+
+  // Dernier jour de vote (25/06 NC) : l'accueil devient la page Journée Supporters.
+  if (isLastVoteDay()) redirect("/supporters");
 
   const [matches, trends, leaderboard, brief, revivez] = await Promise.all([
     getMatches(),
