@@ -62,6 +62,7 @@ type Slide =
   | "notifcta"
   | "scoregap"
   | "binomes"
+  | "supportersvote"
   | "results";
 
 // ─── Goat helper: remplace "Le Goat" par l'image de chèvre ────────────────────
@@ -174,6 +175,7 @@ const BASE_SLIDES: Slide[] = [
   "quiz",          // champions du quiz
   "topscorerrace", // paris meilleur buteur
   "binomes",       // annonce : page "Trouver un binôme"
+  "supportersvote",// galerie Journée Supporters + QR rappel de vote
   "services",      // classement services
   "welcome",       // nouveaux joueurs
   "fantomes",      // joueurs inactifs
@@ -3016,11 +3018,108 @@ function SlideBinomes({ origin }: { origin: string }) {
   );
 }
 
+// ─── Slide: Journée Supporters — galerie + QR « rappel de vote » ──────────────
+// Défile les photos approuvées et invite TOUT LE MONDE à voter : chaque photo
+// porte son propre QR qui ouvre /supporters/gallery sur cette photo précise.
+// Rappel affiché : 1 seul vote par personne.
+interface SupporterTVPhoto {
+  id: string;
+  team_name: string;
+  title: string | null;
+  photo_url: string;
+  media_type: string;
+}
+interface SupportersTVData {
+  votesOpen: boolean;
+  photos: SupporterTVPhoto[];
+}
+
+const isVideoUrl = (u: string) => /\.(mp4|webm|mov)(\?|$)/i.test(u);
+
+function SlideSupportersVote({ photos, origin }: { photos: SupporterTVPhoto[]; origin: string }) {
+  const [idx, setIdx] = useState(0);
+  const n = photos.length;
+
+  // Défilement interne (plusieurs photos pendant l'affichage de la slide).
+  useEffect(() => {
+    if (n <= 1) return;
+    const t = setInterval(() => setIdx((i) => (i + 1) % n), 6000);
+    return () => clearInterval(t);
+  }, [n]);
+
+  if (!n) return null;
+  const p = photos[idx % n];
+  const url = origin ? `${origin}/supporters/gallery?photo=${p.id}` : "";
+
+  return (
+    <div className="flex flex-col lg:flex-row h-full items-center justify-center gap-6 sm:gap-10 px-4 sm:px-10 lg:px-20 py-6 sm:py-10">
+      {/* Photo en grand */}
+      <div className="relative shrink-0 flex items-center justify-center">
+        {isVideoUrl(p.photo_url) ? (
+          <video src={p.photo_url} className="max-h-[40vh] lg:max-h-[68vh] max-w-[88vw] lg:max-w-[46vw] rounded-3xl object-contain shadow-[0_0_80px_rgba(0,0,0,0.7)]" autoPlay muted loop playsInline />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={p.photo_url} alt="" className="max-h-[40vh] lg:max-h-[68vh] max-w-[88vw] lg:max-w-[46vw] rounded-3xl object-contain shadow-[0_0_80px_rgba(0,0,0,0.7)]" />
+        )}
+        <div className="absolute bottom-3 left-3 right-3 bg-gradient-to-t from-black/85 to-transparent rounded-b-3xl px-4 pt-10 pb-3">
+          <p className="canal-headline text-2xl sm:text-4xl text-white truncate">{p.team_name}</p>
+          {p.title && <p className="text-base sm:text-xl text-white/75 truncate">« {p.title} »</p>}
+        </div>
+      </div>
+
+      {/* Appel au vote + QR de cette photo */}
+      <div className="flex flex-col items-center lg:items-start text-center lg:text-left gap-4 sm:gap-6 max-w-xl">
+        <div>
+          <p className="text-canal-yellow font-black text-xs sm:text-sm uppercase tracking-widest mb-2 sm:mb-3">
+            📸 Journée Supporters
+          </p>
+          <p className="font-black text-3xl sm:text-5xl lg:text-6xl text-white leading-tight">
+            Votez pour votre photo préférée
+          </p>
+        </div>
+
+        <p className="text-canal-gray-muted text-base sm:text-2xl lg:text-3xl italic leading-snug">
+          Scannez le QR de la photo affichée pour voter — chaque binôme compte sur vous !
+        </p>
+
+        <div className="flex items-center gap-4 sm:gap-6 bg-canal-gray-mid/50 border border-canal-yellow/30 rounded-2xl px-5 sm:px-8 py-4 sm:py-5">
+          {url ? (
+            <img
+              key={url}
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=6&data=${encodeURIComponent(url)}`}
+              alt="QR code vote supporters"
+              width={140}
+              height={140}
+              className="rounded-md bg-white p-1.5 w-24 h-24 sm:w-36 sm:h-36 animate-fade-in"
+            />
+          ) : (
+            <QrCode size={96} className="text-canal-gray-muted" />
+          )}
+          <div className="text-left">
+            <p className="text-white font-black text-base sm:text-2xl">Scannez & votez</p>
+            <p className="text-canal-yellow text-sm sm:text-lg">pour {p.team_name}</p>
+            <p className="text-canal-gray-muted text-xs sm:text-base mt-1.5">🗳️ 1 seul vote par personne</p>
+          </div>
+        </div>
+
+        {n > 1 && (
+          <div className="flex gap-1.5">
+            {photos.map((_, i) => (
+              <div key={i} className={`h-1.5 w-6 rounded-full ${i === idx % n ? "bg-canal-yellow" : "bg-white/20"}`} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function TVPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [data, setData] = useState<TVData | null>(null);
+  const [supporters, setSupporters] = useState<SupportersTVData | null>(null);
   const [origin, setOrigin] = useState<string>("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [cursorVisible, setCursorVisible] = useState(true);
@@ -3068,6 +3167,10 @@ export default function TVPage() {
     fetch("/api/tv")
       .then((r) => r.json())
       .then((d: TVData) => setData(d))
+      .catch(() => {});
+    fetch("/api/tv/supporters")
+      .then((r) => r.json())
+      .then((d: SupportersTVData) => setSupporters(d))
       .catch(() => {});
   };
 
@@ -3137,6 +3240,8 @@ export default function TVPage() {
   );
   // Quiz : seulement si des points quiz ont été attribués
   const hasQuizData = !!data?.individual?.some((r) => r.quiz > 0);
+  // Rappel de vote Supporters : photos présentes ET votes ouverts (avant reveal).
+  const hasSupportersVote = !!supporters?.votesOpen && !!supporters?.photos?.length;
 
   const filtered = BASE_SLIDES.filter((s) => {
     if (s === "livematch") return hasLiveMatch;
@@ -3162,6 +3267,7 @@ export default function TVPage() {
     if (s === "squads") return hasTodayUpcoming;
     if (s === "results") return hasTodayMatches;
     if (s === "scoregap") return hasScoreGap;
+    if (s === "supportersvote") return hasSupportersVote;
     return true;
   });
 
@@ -3281,6 +3387,7 @@ export default function TVPage() {
             {slide === "topscorerrace" && <SlideTopScorerRace bets={data.topScorerBets ?? []} scorers={data.topScorers ?? []} />}
             {slide === "notifcta" && <SlideNotifCTA />}
             {slide === "binomes" && <SlideBinomes origin={origin} />}
+            {slide === "supportersvote" && supporters && <SlideSupportersVote photos={supporters.photos} origin={origin} />}
           </>
         )}
       </div>

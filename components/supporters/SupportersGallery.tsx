@@ -80,6 +80,18 @@ export function SupportersGallery() {
   const n = slides.length;
   const go = useCallback((delta: number) => setIdx((i) => (n ? (i + delta + n) % n : 0)), [n]);
 
+  // Deep-link « rappel de vote » (QR de la TV) : ?photo=<entry_id> ouvre la
+  // galerie directement sur cette photo pour voter. Appliqué une seule fois.
+  const deepLinked = useRef(false);
+  useEffect(() => {
+    if (deepLinked.current || !n) return;
+    const wanted = new URLSearchParams(window.location.search).get("photo");
+    if (!wanted) { deepLinked.current = true; return; }
+    const target = slides.findIndex((s) => s.g.id === wanted && !s.bonus);
+    if (target >= 0) { setIdx(target); setAuto(false); }
+    deepLinked.current = true;
+  }, [n, slides]);
+
   // Défilement automatique (pause si commentaires ouverts).
   useEffect(() => {
     if (!auto || showComments || n <= 1) return;
