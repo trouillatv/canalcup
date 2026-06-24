@@ -8,6 +8,7 @@ import { LocalTime } from "@/components/timezone/LocalTime";
 import { Flag } from "@/components/shared/Flag";
 import { ViewSwitcher } from "@/components/views/ViewSwitcher";
 import { BracketFifa } from "@/components/bracket/BracketFifa";
+import { BracketMirror } from "@/components/bracket/BracketMirror";
 import { BracketCompact } from "@/components/bracket/BracketCompact";
 import { wcTeamHref } from "@/lib/football/wc-teams-index";
 
@@ -280,7 +281,7 @@ function BracketPageInner() {
               <CalendarDays size={14} />
               <span className="hidden sm:inline">Calendrier</span>
             </Link>
-            <ViewSwitcher view={view} onChange={handleViewChange} modes={["fifa", "compact"]} />
+            <ViewSwitcher view={view} onChange={handleViewChange} modes={["fifa", "complet", "compact"]} />
           </div>
         </div>
 
@@ -294,6 +295,7 @@ function BracketPageInner() {
           <>
             {view === "standard" && <BracketStandard data={data} />}
             {view === "fifa" && <BracketFifa data={data} initialGroup={groupParam} />}
+            {view === "complet" && <BracketMirror data={data} />}
             {view === "compact" && <BracketCompact data={data} />}
           </>
         )}
