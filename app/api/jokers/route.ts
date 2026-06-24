@@ -43,7 +43,8 @@ export async function GET() {
     .order("starts_at", { ascending: true })
     .limit(60);
 
-  // Mes plays récents
+  // Mes plays récents — enrichis du match (libellé + score live/final) pour que
+  // l'historique dise « sur quel match » et le score actuel de ce match.
   const { data: myPlays } = await admin
     .from("joker_plays")
     .select("id, joker_type, target_user_id, match_id, status, metadata, created_at")
@@ -51,12 +52,26 @@ export async function GET() {
     .order("created_at", { ascending: false })
     .limit(20);
 
+  const playMatchIds = [...new Set((myPlays ?? []).map((p) => p.match_id).filter(Boolean) as string[])];
+  const matchById = new Map<string, { team_a: string; team_b: string; score_a: number | null; score_b: number | null; status: string }>();
+  if (playMatchIds.length) {
+    const { data: pm } = await admin
+      .from("matches")
+      .select("id, team_a, team_b, score_a, score_b, status")
+      .in("id", playMatchIds);
+    for (const m of pm ?? []) matchById.set(m.id, m);
+  }
+  const myPlaysEnriched = (myPlays ?? []).map((p) => ({
+    ...p,
+    match: p.match_id ? matchById.get(p.match_id) ?? null : null,
+  }));
+
   // 🛬 Jet Lag : effet CACHÉ — la victime ne doit pas le voir dans ses effets
   // actifs (elle ne le découvre qu'au coup de sifflet final). On le retire ici.
   const visibleEffects = effects.filter((e) => e.effect_type !== "jet_lag");
 
   return NextResponse.json(
-    { userId: me.id, wallet, effects: visibleEffects, players, matches: matchesRaw ?? [], myPlays: myPlays ?? [] },
+    { userId: me.id, wallet, effects: visibleEffects, players, matches: matchesRaw ?? [], myPlays: myPlaysEnriched },
     { headers: { "Cache-Control": "no-store" } }
   );
 }

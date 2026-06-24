@@ -16,7 +16,8 @@ interface Player { id: string; name: string }
 interface MatchRow { id: string; team_a: string; team_b: string; starts_at: string; status: string; phase: string | null }
 interface WalletRow { joker_type: string; quantity: number }
 interface EffectRow { id: string; effect_type: string; match_id: string | null; ends_at: string | null; metadata: Record<string, unknown> }
-interface PlayRow { id: string; joker_type: string; status: string; metadata: Record<string, unknown>; created_at: string }
+interface PlayMatch { team_a: string; team_b: string; score_a: number | null; score_b: number | null; status: string }
+interface PlayRow { id: string; joker_type: string; status: string; metadata: Record<string, unknown>; created_at: string; match: PlayMatch | null }
 
 interface Data {
   userId: string;
@@ -40,6 +41,15 @@ const EFFECT_LABEL: Record<string, string> = {
 function matchLabel(m: MatchRow): string {
   const d = new Date(m.starts_at);
   return `${m.team_a} – ${m.team_b} · ${d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })} ${d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
+}
+
+// Libellé du score d'un match pour l'historique : live (rouge), final, ou à venir.
+function playMatchScore(m: PlayMatch): { text: string; live: boolean } {
+  const live = m.status === "live" || m.status === "halftime";
+  const hasScore = m.score_a !== null && m.score_b !== null;
+  if (live) return { text: `🔴 ${m.score_a ?? 0}–${m.score_b ?? 0}`, live: true };
+  if (m.status === "finished" && hasScore) return { text: `${m.score_a}–${m.score_b} (fini)`, live: false };
+  return { text: "à venir", live: false };
 }
 
 export function JokersClient() {
@@ -298,18 +308,29 @@ export function JokersClient() {
       {data.myPlays.length > 0 && (
         <section className="canal-card">
           <h2 className="text-xs text-canal-yellow font-bold uppercase mb-2">Historique</h2>
-          <ul className="space-y-1 text-xs text-canal-gray-muted">
-            {data.myPlays.slice(0, 8).map((p) => (
-              <li key={p.id} className="flex items-center justify-between gap-2">
-                <span>{JOKER_CATALOG[p.joker_type as JokerType]?.emoji ?? "🃏"} {JOKER_CATALOG[p.joker_type as JokerType]?.name ?? p.joker_type}</span>
-                <span>
-                  {typeof (p.metadata as { points_delta?: number })?.points_delta === "number"
-                    ? `${(p.metadata as { points_delta: number }).points_delta > 0 ? "+" : ""}${(p.metadata as { points_delta: number }).points_delta} pts · `
-                    : ""}
-                  {new Date(p.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}
-                </span>
-              </li>
-            ))}
+          <ul className="space-y-2 text-xs text-canal-gray-muted">
+            {data.myPlays.slice(0, 8).map((p) => {
+              const score = p.match ? playMatchScore(p.match) : null;
+              return (
+                <li key={p.id} className="border-t border-canal-gray-light/20 pt-2 first:border-0 first:pt-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-white/90">{JOKER_CATALOG[p.joker_type as JokerType]?.emoji ?? "🃏"} {JOKER_CATALOG[p.joker_type as JokerType]?.name ?? p.joker_type}</span>
+                    <span>
+                      {typeof (p.metadata as { points_delta?: number })?.points_delta === "number"
+                        ? `${(p.metadata as { points_delta: number }).points_delta > 0 ? "+" : ""}${(p.metadata as { points_delta: number }).points_delta} pts · `
+                        : ""}
+                      {new Date(p.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}
+                    </span>
+                  </div>
+                  {p.match && (
+                    <div className="flex items-center justify-between gap-2 pl-5 mt-0.5 text-[11px]">
+                      <span className="truncate">{p.match.team_a} – {p.match.team_b}</span>
+                      <span className={score?.live ? "text-red-400 font-bold shrink-0" : "text-canal-gray-muted shrink-0"}>{score?.text}</span>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}
