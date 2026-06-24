@@ -5,6 +5,9 @@ import { RefreshCw } from "lucide-react";
 import {
   JOKER_CATALOG,
   ALL_JOKER_TYPES,
+  KAMIKAZE_MIN_STAKE,
+  KAMIKAZE_MAX_STAKE,
+  KAMIKAZE_WIN_MULTIPLIER,
   type JokerType,
   type JokerDef,
 } from "@/lib/jokers/catalog";
@@ -42,6 +45,7 @@ export function JokersClient() {
   const [openType, setOpenType] = useState<JokerType | null>(null);
   const [targetId, setTargetId] = useState("");
   const [matchId, setMatchId] = useState("");
+  const [stake, setStake] = useState(10); // 💣 mise Kamikaze (1..20)
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [flash, setFlash] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
@@ -61,6 +65,7 @@ export function JokersClient() {
     setOpenType((prev) => (prev === t ? null : t));
     setTargetId("");
     setMatchId("");
+    setStake(10);
     setConfirming(false);
     setFlash(null);
   };
@@ -76,6 +81,7 @@ export function JokersClient() {
           type: def.type,
           target_user_id: targetId || undefined,
           match_id: matchId || undefined,
+          stake: def.type === "kamikaze" ? stake : undefined,
         }),
       });
       const d = await res.json();
@@ -189,6 +195,36 @@ export function JokersClient() {
                           <option key={m.id} value={m.id}>{matchLabel(m)}</option>
                         ))}
                     </select>
+                  )}
+                  {def.type === "kamikaze" && (
+                    <div className="rounded-lg border border-canal-gray-light bg-canal-black/40 p-3 space-y-2">
+                      <label className="flex items-center justify-between gap-3 text-sm">
+                        <span className="font-bold">💣 Ta mise</span>
+                        <input
+                          type="number"
+                          min={KAMIKAZE_MIN_STAKE}
+                          max={KAMIKAZE_MAX_STAKE}
+                          value={stake}
+                          onChange={(e) => {
+                            const v = Math.round(Number(e.target.value));
+                            setStake(Number.isFinite(v) ? Math.max(KAMIKAZE_MIN_STAKE, Math.min(KAMIKAZE_MAX_STAKE, v)) : KAMIKAZE_MIN_STAKE);
+                          }}
+                          className="w-20 bg-canal-black border border-canal-gray-light rounded-lg px-2 py-1.5 text-sm text-right tabular-nums"
+                        />
+                      </label>
+                      <input
+                        type="range"
+                        min={KAMIKAZE_MIN_STAKE}
+                        max={KAMIKAZE_MAX_STAKE}
+                        value={stake}
+                        onChange={(e) => setStake(Number(e.target.value))}
+                        className="w-full accent-purple-500"
+                      />
+                      <p className="text-xs text-canal-gray-muted">
+                        Score exact → <span className="text-green-300 font-bold">+{KAMIKAZE_WIN_MULTIPLIER * stake} pts</span>
+                        {" · "}sinon → <span className="text-red-300 font-bold">−{stake} pts</span>
+                      </p>
+                    </div>
                   )}
                   {!confirming ? (
                     <button

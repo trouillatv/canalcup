@@ -1,5 +1,6 @@
 // POST /api/jokers/play — le joueur courant joue un joker.
-// Body : { type: JokerType, target_user_id?: string, match_id?: string }
+// Body : { type: JokerType, target_user_id?: string, match_id?: string, stake?: number }
+// stake = mise du Kamikaze (1..20 pts), ignoré pour les autres jokers.
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -24,6 +25,7 @@ export async function POST(req: Request) {
     type,
     targetUserId: typeof body?.target_user_id === "string" ? body.target_user_id : null,
     matchId: typeof body?.match_id === "string" ? body.match_id : null,
+    stake: typeof body?.stake === "number" ? body.stake : null,
   });
 
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });

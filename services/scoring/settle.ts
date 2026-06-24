@@ -54,14 +54,9 @@ export async function settleMatch(matchId: string): Promise<{ settled: number; s
   }
 
   // 💥 Quitte ou Double : écrase les points des joueurs ayant joué ce joker sur
-  // ce match (score exact = +20, sinon −5). Doit passer APRÈS le calcul de base.
-  const exactByUser = new Map<string, boolean>(
-    predictions.map((p) => [
-      p.user_id,
-      p.predicted_score_a === match.score_a && p.predicted_score_b === match.score_b,
-    ])
-  );
-  await resolveQuitteOuDoubleForMatch(supabase, matchId, exactByUser).catch((e) =>
+  // ce match (score exact = +25, bon vainqueur = +20, raté = −10). Doit passer
+  // APRÈS le calcul de base.
+  await resolveQuitteOuDoubleForMatch(supabase, matchId, match.score_a!, match.score_b!).catch((e) =>
     console.error(`[settle] quitte_ou_double failed for match=${matchId}`, e)
   );
 

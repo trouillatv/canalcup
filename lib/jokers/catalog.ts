@@ -55,8 +55,8 @@ export const JOKER_CATALOG: Record<JokerType, JokerDef> = {
     type: "quitte_ou_double",
     emoji: "💥",
     name: "Quitte ou Double",
-    description: "Sur un match : score exact = +20 pts, sinon −5 pts.",
-    conditions: "À jouer sur un match non commencé. Résolu à la fin du match.",
+    description: "Sur un match : score exact = +25 pts, bon vainqueur = +20 pts, raté = −10 pts.",
+    conditions: "À jouer sur un match non commencé où tu as déjà pronostiqué. Résolu à la fin du match.",
     targeting: "self_match",
     offensive: false,
   },
@@ -64,7 +64,7 @@ export const JOKER_CATALOG: Record<JokerType, JokerDef> = {
     type: "kamikaze",
     emoji: "💣",
     name: "Kamikaze",
-    description: "Sur un match : score exact = +30 pts, bon résultat = 0 pt, raté = −15 pts. Tu mets ta vie dessus.",
+    description: "Tu mises 1 à 20 pts sur un match : score EXACT = +3× ta mise, sinon tu perds ta mise. « Mais t'es fou ?! »",
     conditions: "À jouer sur un match non commencé où tu as déjà pronostiqué. Résolu à la fin du match. 1 seul par joueur.",
     targeting: "self_match",
     offensive: false,
@@ -151,12 +151,14 @@ export function casinoWeights(lowness: number): number[] {
   const t = Math.max(0, Math.min(1, lowness));
   return CASINO_OUTCOMES.map((_, i) => CASINO_WEIGHTS_TOP[i] * (1 - t) + CASINO_WEIGHTS_BOTTOM[i] * t);
 }
-/** Quitte ou Double — barème. */
-export const QUITTE_OU_DOUBLE_WIN = 20;
-export const QUITTE_OU_DOUBLE_LOSS = -5;
-/** Kamikaze — barème (score exact / bon résultat / raté). */
-export const KAMIKAZE_EXACT = 30;
-export const KAMIKAZE_RESULT = 0;
-export const KAMIKAZE_WRONG = -15;
+/** Quitte ou Double — barème (score exact / bon vainqueur / raté). */
+export const QUITTE_OU_DOUBLE_EXACT = 25;
+export const QUITTE_OU_DOUBLE_RESULT = 20;
+export const QUITTE_OU_DOUBLE_WRONG = -10;
+/** Kamikaze — pari à mise variable. Le joueur mise 1..20 pts ; score EXACT =
+ *  +KAMIKAZE_WIN_MULTIPLIER × mise, sinon il perd sa mise (−mise). */
+export const KAMIKAZE_MIN_STAKE = 1;
+export const KAMIKAZE_MAX_STAKE = 20;
+export const KAMIKAZE_WIN_MULTIPLIER = 3;
 /** Espion — nombre max de matchs consultables pendant l'effet. */
 export const SPY_MAX_MATCHES = 5;

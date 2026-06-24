@@ -810,7 +810,11 @@ export async function getMatchDetail(matchId: string): Promise<FullMatchDetail |
 // fournisseur (ex. classement des 3es) — mais JAMAIS le fallback "Group A" qui
 // agrégeait toutes les lignes sans groupe dans une fausse poule A surchargée.
 function normalizedGroupName(teamName: string, providerGroup?: string | null): string {
-  const letter = groupLetterForTeam(teamName);
+  // API-Football renvoie les noms en anglais ("Brazil", "Germany"…) que le
+  // tirage (français) ne résout pas directement → on tente d'abord tel quel,
+  // puis via la traduction FR. Sans ça, group_name retombait sur le libellé
+  // fournisseur ("Group C") et créait des poules en double.
+  const letter = groupLetterForTeam(teamName) ?? groupLetterForTeam(toFrench(teamName));
   if (letter) return `Groupe ${letter}`;
   return providerGroup?.trim() || "Hors poule";
 }
