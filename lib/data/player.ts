@@ -11,6 +11,7 @@ import { getIndividualLeaderboard, getLeaderboard, computeTeamScores } from "@/l
 import { getServiceLeaderboard } from "@/lib/data/users";
 import { getAdminEmails } from "@/lib/data/roles";
 import { getPredictionOutcome, type PredictionOutcome } from "@/lib/scoring";
+import { JOKER_CATALOG, type JokerType } from "@/lib/jokers/catalog";
 
 export type PredStatus = "exact" | "correct" | "missed" | "pending";
 
@@ -35,6 +36,8 @@ export interface PlayerDashboard {
   predictionStats: {
     count: number;
     points: number;
+    /** Points pronos PURS (hors effet Quitte/Kamikaze, qui écrasent le prono). */
+    pronoOnlyPoints: number;
     finishedCount: number;
     exact: number;
     correct: number;
@@ -46,6 +49,11 @@ export interface PlayerDashboard {
     bestStreak: number;
     currentStreak: number;
     recent: { id: string; label: string; status: PredStatus; score: string; points: number; created_at: string }[];
+  };
+  jokerStats: {
+    played: number;
+    points: number;
+    byType: { type: string; emoji: string; name: string; count: number; points: number }[];
   };
   quizStats: { count: number; correct: number; correctPct: number; fast: number; points: number };
   babyfootStats: { teamName: string; wins: number } | null;
@@ -193,6 +201,7 @@ export async function getPlayerDashboard(userId: string): Promise<PlayerDashboar
     { data: entries },
     { data: parts },
     { data: challenges },
+    { data: jplays },
     individuals,
     teamRows,
     serviceRows,
@@ -205,6 +214,7 @@ export async function getPlayerDashboard(userId: string): Promise<PlayerDashboar
     supabase.from("challenge_entries").select("id, challenge_id, points_awarded, created_at").eq("user_id", userId).order("created_at", { ascending: false }),
     supabase.from("challenge_entry_participants").select("entry_id, created_at").eq("user_id", userId),
     supabase.from("challenges").select("id, title"),
+    supabase.from("joker_plays").select("joker_type, status, metadata, created_at").eq("played_by_user_id", userId),
     getIndividualLeaderboard(),
     getLeaderboard(),
     getServiceLeaderboard(),
@@ -278,6 +288,50 @@ export async function getPlayerDashboard(userId: string): Promise<PlayerDashboar
   }
 
   const predPoints = predList.reduce((s, p) => s + (p.points_awarded ?? 0), 0);
+
+  // ─── Stats jokers ───────────────────────────────────────────────────────────
+  // Points jokers qui pèsent sur le score PERSO (pilier pronos) :
+  //  • Casino → metadata.points_delta (compté à part, hors predictions) ;
+  //  • Quitte ou Double / Kamikaze → metadata.points (écrasent le prono concerné,
+  //    donc DÉJÀ inclus dans predPoints → on les soustrait pour isoler le prono pur).
+  // Les jokers offensifs (Carton Rouge, Brouillard, Jet Lag, VAR, Espion) ne
+  // rapportent pas de points perso → 0.
+  type JP = { joker_type: string; status: string; metadata: Record<string, unknown> | null; created_at: string };
+  const jokerPlays = (jplays ?? []) as JP[];
+  const jokerPointsOf = (jp: JP): number => {
+    if (jp.joker_type === "casino") return Number((jp.metadata as { points_delta?: unknown } | null)?.points_delta ?? 0);
+    if (jp.joker_type === "quitte_ou_double" || jp.joker_type === "kamikaze") return Number((jp.metadata as { points?: unknown } | null)?.points ?? 0);
+    return 0;
+  };
+  let jokerEmbeddedInPronos = 0; // QouD + Kamikaze (déjà dans predPoints)
+  let jokerPointsTotal = 0;
+  const jokerByType = new Map<string, { count: number; points: number }>();
+  for (const jp of jokerPlays) {
+    const pts = jokerPointsOf(jp);
+    if (Number.isFinite(pts)) {
+      jokerPointsTotal += pts;
+      if (jp.joker_type === "quitte_ou_double" || jp.joker_type === "kamikaze") jokerEmbeddedInPronos += pts;
+    }
+    const e = jokerByType.get(jp.joker_type) ?? { count: 0, points: 0 };
+    e.count += 1;
+    e.points += Number.isFinite(pts) ? pts : 0;
+    jokerByType.set(jp.joker_type, e);
+  }
+  const jokerStats = {
+    played: jokerPlays.length,
+    points: Math.round(jokerPointsTotal),
+    byType: [...jokerByType.entries()]
+      .map(([type, v]) => ({
+        type,
+        emoji: JOKER_CATALOG[type as JokerType]?.emoji ?? "🃏",
+        name: JOKER_CATALOG[type as JokerType]?.name ?? type,
+        count: v.count,
+        points: Math.round(v.points),
+      }))
+      .sort((a, b) => b.count - a.count),
+  };
+  // Points pronos PURS (sans l'effet des jokers Quitte/Kamikaze qui écrasent le prono).
+  const pronoOnlyPoints = Math.round(predPoints - jokerEmbeddedInPronos);
   const recentPreds = predList.slice(0, 6).map((p) => {
     const m = p.match_id ? matchById.get(p.match_id) : undefined;
     const finished = m?.status === "finished" && m.score_a != null && m.score_b != null;
@@ -356,6 +410,7 @@ export async function getPlayerDashboard(userId: string): Promise<PlayerDashboar
     predictionStats: {
       count: predList.length,
       points: predPoints,
+      pronoOnlyPoints,
       finishedCount,
       exact, correct, missed, pending,
       exactPct: pct(exact),
@@ -365,6 +420,7 @@ export async function getPlayerDashboard(userId: string): Promise<PlayerDashboar
       currentStreak,
       recent: recentPreds,
     },
+    jokerStats,
     quizStats: {
       count: quizList.length,
       correct: quizCorrect,

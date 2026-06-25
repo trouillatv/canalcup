@@ -144,7 +144,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           <p className="text-canal-yellow font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
             <Target size={13} /> Pronostics
           </p>
-          <span className="text-xs text-canal-gray-muted">{ps.count} pronos · {ps.points} pts</span>
+          <span className="text-xs text-canal-gray-muted">{ps.count} pronos · {ps.pronoOnlyPoints} pts</span>
         </div>
 
         {ps.finishedCount > 0 ? (
@@ -182,6 +182,43 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
                 {r.points > 0 && <span className="text-canal-yellow font-bold">+{r.points}</span>}
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* ─── Jokers (séparés des pronos) ─── */}
+      <div className="canal-card space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-canal-yellow font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-sm">🃏</span> Jokers
+          </p>
+          <span className="text-xs text-canal-gray-muted">
+            {d.jokerStats.played} joué{d.jokerStats.played > 1 ? "s" : ""} ·{" "}
+            <span className={d.jokerStats.points > 0 ? "text-green-400 font-bold" : d.jokerStats.points < 0 ? "text-red-400 font-bold" : "text-canal-gray-muted"}>
+              {d.jokerStats.points > 0 ? "+" : ""}{d.jokerStats.points} pts
+            </span>
+          </span>
+        </div>
+        {d.jokerStats.played === 0 ? (
+          <p className="text-xs text-canal-gray-muted">Aucun joker joué pour l&apos;instant.</p>
+        ) : (
+          <div className="space-y-1">
+            {d.jokerStats.byType.map((j) => (
+              <div key={j.type} className="flex items-center justify-between text-xs">
+                <span className="text-white flex items-center gap-1.5">
+                  <span className="text-sm">{j.emoji}</span> {j.name}
+                  <span className="text-canal-gray-muted">×{j.count}</span>
+                </span>
+                {j.points !== 0 && (
+                  <span className={j.points > 0 ? "text-green-400 font-bold" : "text-red-400 font-bold"}>
+                    {j.points > 0 ? "+" : ""}{j.points} pts
+                  </span>
+                )}
+              </div>
+            ))}
+            <p className="text-[10px] text-canal-gray-muted italic pt-1 border-t border-canal-gray-light">
+              🎰 Casino, 💥 Quitte ou Double &amp; 💣 Kamikaze rapportent des points perso (déjà inclus dans ton score). Les jokers offensifs n&apos;en rapportent pas.
+            </p>
           </div>
         )}
       </div>
