@@ -9,6 +9,13 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { selectAll } from "@/lib/data/select-all";
 
+// Données vivantes (buts/notes mis à jour à chaque match) → JAMAIS de cache de
+// route. Sans ça, Next.js fige la réponse au build (le Cache-Control no-store de
+// la réponse ne suffit pas) → les buts synchronisés après le build n'apparaissent
+// pas (ex. Nicolas Pépé affiché à 0).
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 // Normalise les postes bruts vers 4 buckets stables.
 function positionBucket(raw: string | null | undefined): "GK" | "DEF" | "MID" | "FWD" | null {
   if (!raw) return null;
@@ -140,18 +147,27 @@ export async function GET() {
       ? (r.team_side === "home" ? teamMap.home : teamMap.away)
       : "";
 
-    const key = `${r.player_name}|||${teamName}`;
-    if (!byPlayer.has(key)) {
-      byPlayer.set(key, {
+    // Dédoublonnage : un même joueur peut apparaître sous plusieurs orthographes
+    // ("Nicolas Pépé" vs "N. Pépé") → on rapproche par nom normalisé / initiale+nom
+    // (comme la boucle events) AVANT de créer une entrée, sinon il est fragmenté
+    // (les buts d'events tombaient sur une variante, l'autre restait à 0).
+    const canonKey =
+      playerKeyIndex.get(`${teamName}|||${normName(r.player_name)}`) ??
+      playerKeyIndex.get(`${teamName}|||${shortNameKey(r.player_name)}`) ??
+      `${r.player_name}|||${teamName}`;
+    if (!byPlayer.has(canonKey)) {
+      byPlayer.set(canonKey, {
         player_name: r.player_name, team: teamName, player_id: null,
         matches: 0, goals: 0, assists: 0,
         yellow_cards: 0, red_cards: 0, motm: 0,
         ratingSum: 0, ratingCount: 0,
       });
-      playerKeyIndex.set(`${teamName}|||${normName(r.player_name)}`, key);
-      playerKeyIndex.set(`${teamName}|||${shortNameKey(r.player_name)}`, key);
     }
-    const a = byPlayer.get(key)!;
+    playerKeyIndex.set(`${teamName}|||${normName(r.player_name)}`, canonKey);
+    playerKeyIndex.set(`${teamName}|||${shortNameKey(r.player_name)}`, canonKey);
+    const a = byPlayer.get(canonKey)!;
+    // Garde le nom le plus complet pour l'affichage (préfère "Nicolas Pépé").
+    if (r.player_name.length > a.player_name.length) a.player_name = r.player_name;
     if (!a.player_id && r.player_id) a.player_id = String(r.player_id);
     a.matches += 1;
     // ⚠️ Buts/passes : PAS depuis player_match_stats (peu fiable — ex. Messi y a
