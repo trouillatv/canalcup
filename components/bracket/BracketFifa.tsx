@@ -478,16 +478,21 @@ function ProjSlotLine({ slot, big }: { slot: ResolvedSlot; big?: boolean }) {
   if (slot.teamName) {
     return (
       <div className="px-2.5 py-1.5">
-        <TeamLink
-          name={slot.teamName}
-          flag={teamFlag(slot.teamFlag || null, slot.teamName)}
-          flagClassName={big ? "text-2xl" : "text-lg"}
-          className={cn("font-bold text-white", big ? "text-base" : "text-sm")}
-          wrapperClassName="min-w-0"
-        />
+        <span className="flex items-center gap-1 min-w-0">
+          {slot.confirmed && (
+            <span className="shrink-0 text-green-400 font-black text-sm leading-none" title="Qualifié — position actée">✓</span>
+          )}
+          <TeamLink
+            name={slot.teamName}
+            flag={teamFlag(slot.teamFlag || null, slot.teamName)}
+            flagClassName={big ? "text-2xl" : "text-lg"}
+            className={cn("font-bold", big ? "text-base" : "text-sm", slot.confirmed ? "text-green-300" : "text-white")}
+            wrapperClassName="min-w-0 flex-1"
+          />
+        </span>
         <span className="block pl-[26px] text-[9px] text-canal-gray-muted truncate leading-tight">
           {slot.sub}
-          {!slot.confirmed && <span className="text-canal-yellow/70"> · prov.</span>}
+          {slot.confirmed ? <span className="text-green-400/80"> · validé</span> : <span className="text-canal-yellow/70"> · prov.</span>}
         </span>
       </div>
     );

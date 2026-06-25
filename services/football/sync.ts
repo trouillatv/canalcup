@@ -828,6 +828,81 @@ export async function syncStandings(): Promise<number> {
   return syncStandingsApiF();
 }
 
+// Recalcule les colonnes de classement (played/won/draw/lost/buts/points/rang)
+// DEPUIS nos matchs terminés, en mettant à jour les lignes `standings`
+// existantes. À appeler APRÈS syncStandings() : l'endpoint /standings
+// d'API-Football est parfois EN RETARD (renvoie encore 2 journées alors que des
+// J3 sont jouées) ; notre table `matches` est la source à jour. Départage :
+// points > diff de buts > buts marqués (la confrontation directe n'est pas
+// calculée — suffisant pour l'affichage). Renvoie le nb de lignes modifiées.
+export async function syncStandingsFromMatches(): Promise<number> {
+  const supabase = createAdminClient();
+  const COMP = ["FIFA World Cup 2026", "Coupe du Monde 2026"];
+  const [{ data: standings }, { data: matches }] = await Promise.all([
+    supabase
+      .from("standings")
+      .select("id, team_name, team_name_fr, group_name, played, won, draw, lost, goals_for, goals_against, goal_diff, points, rank")
+      .in("competition", COMP),
+    supabase
+      .from("matches")
+      .select("team_a, team_b, score_a, score_b, status")
+      .in("competition", COMP)
+      .eq("phase", "Groupe"),
+  ]);
+  if (!standings?.length) return 0;
+
+  const norm = (s: string) =>
+    (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  type Row = (typeof standings)[number];
+  const rowByKey = new Map<string, Row>();
+  for (const r of standings) {
+    rowByKey.set(norm(r.team_name), r);
+    rowByKey.set(norm(r.team_name_fr), r);
+  }
+  type S = { played: number; won: number; draw: number; lost: number; gf: number; ga: number; pts: number };
+  const stat = new Map<string, S>();
+  for (const r of standings) stat.set(r.id, { played: 0, won: 0, draw: 0, lost: 0, gf: 0, ga: 0, pts: 0 });
+
+  const bump = (name: string, gf: number, ga: number) => {
+    const r = rowByKey.get(norm(name));
+    if (!r) return;
+    const s = stat.get(r.id)!;
+    s.played++; s.gf += gf; s.ga += ga;
+    if (gf > ga) { s.won++; s.pts += 3; } else if (gf === ga) { s.draw++; s.pts += 1; } else s.lost++;
+  };
+  for (const m of matches ?? []) {
+    if (m.status !== "finished" || m.score_a == null || m.score_b == null) continue;
+    bump(m.team_a, m.score_a, m.score_b);
+    bump(m.team_b, m.score_b, m.score_a);
+  }
+
+  // Rang par groupe (points > diff > buts pour).
+  const byGroup: Record<string, Row[]> = {};
+  for (const r of standings) (byGroup[r.group_name] ??= []).push(r);
+  const rankById = new Map<string, number>();
+  for (const g of Object.keys(byGroup)) {
+    const sorted = byGroup[g].slice().sort((a, b) => {
+      const sa = stat.get(a.id)!, sb = stat.get(b.id)!;
+      return sb.pts - sa.pts || (sb.gf - sb.ga) - (sa.gf - sa.ga) || sb.gf - sa.gf || norm(a.team_name_fr).localeCompare(norm(b.team_name_fr));
+    });
+    sorted.forEach((r, i) => rankById.set(r.id, i + 1));
+  }
+
+  const COLS = ["played", "won", "draw", "lost", "goals_for", "goals_against", "goal_diff", "points", "rank"] as const;
+  let changed = 0;
+  for (const r of standings) {
+    const s = stat.get(r.id)!;
+    const next = {
+      played: s.played, won: s.won, draw: s.draw, lost: s.lost,
+      goals_for: s.gf, goals_against: s.ga, goal_diff: s.gf - s.ga, points: s.pts, rank: rankById.get(r.id)!,
+    };
+    if (!COLS.some((k) => ((r as Record<string, number>)[k] ?? 0) !== (next as Record<string, number>)[k])) continue;
+    await supabase.from("standings").update(next).eq("id", r.id);
+    changed++;
+  }
+  return changed;
+}
+
 async function syncStandingsApiF(): Promise<number> {
   const supabase = createAdminClient();
   const json = await apifFetch(`/standings?league=${APIF_WC_LEAGUE}&season=${APIF_WC_SEASON}`);

@@ -181,11 +181,12 @@ function SlotLine({ slot, big }: { slot: ResolvedMatch["a"]; big?: boolean }) {
     return (
       <div className="px-2 py-1 min-w-0">
         <span className="flex items-center gap-1.5 min-w-0">
+          {slot.confirmed && <span className="shrink-0 text-green-400 font-black text-xs leading-none" title="Qualifié — position actée">✓</span>}
           <Flag flag={slot.teamFlag} name={slot.teamName} className="h-3.5 w-auto rounded-sm" emojiClassName={big ? "text-lg" : "text-base"} />
-          <span className={cn("font-bold text-white truncate", big ? "text-sm" : "text-xs")}>{slot.teamName}</span>
+          <span className={cn("font-bold truncate", big ? "text-sm" : "text-xs", slot.confirmed ? "text-green-300" : "text-white")}>{slot.teamName}</span>
         </span>
         <span className="block pl-[22px] text-[8px] text-canal-gray-muted truncate leading-tight">
-          {slot.sub}{!slot.confirmed && <span className="text-canal-yellow/70"> · prov.</span>}
+          {slot.sub}{slot.confirmed ? <span className="text-green-400/80"> · validé</span> : <span className="text-canal-yellow/70"> · prov.</span>}
         </span>
       </div>
     );

@@ -4,7 +4,7 @@
 // Logged dans public.cron_runs via runCron() (page /admin/monitoring).
 
 import { NextResponse } from "next/server";
-import { syncSeason, syncLiveScores, syncStandings } from "@/services/football";
+import { syncSeason, syncLiveScores, syncStandings, syncStandingsFromMatches } from "@/services/football";
 import { settleAllFinished } from "@/services/scoring/settle";
 import { runCron } from "@/lib/monitoring/cron-log";
 
@@ -37,11 +37,15 @@ export async function GET(request: Request) {
     // Snapshot quota AVANT — coûte 1 call API-Football (compté dans le delta).
     const quotaBefore = await apifQuotaCurrent();
 
-    const [seasonResult, liveSynced, standingsSynced] = await Promise.all([
+    const [seasonResult, liveSynced, providerStandings] = await Promise.all([
       syncSeason(),
       syncLiveScores(),
-      syncStandings(),
+      syncStandings().catch(() => 0),
     ]);
+    // Recalcule les classements depuis NOS matchs (à jour) — l'endpoint
+    // /standings d'API-Football est parfois figé sur une journée de retard.
+    // Doit passer APRÈS syncSeason/syncLiveScores (matchs frais).
+    const standingsSynced = await syncStandingsFromMatches().catch(() => 0);
     const settleResult = await settleAllFinished();
 
     // Snapshot quota APRÈS — 1 call de plus, mais on a un delta précis.
@@ -54,6 +58,7 @@ export async function GET(request: Request) {
       meta: {
         ...(typeof seasonResult === "object" ? seasonResult : {}),
         live_synced: liveSynced,
+        provider_standings: providerStandings,
         standings_synced: standingsSynced,
         settled_total: settleResult.total,
         apif_calls: apifCalls,

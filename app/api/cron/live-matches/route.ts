@@ -13,7 +13,7 @@
 
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { syncLiveScores, syncStandings } from "@/services/football";
+import { syncLiveScores, syncStandings, syncStandingsFromMatches } from "@/services/football";
 import { settleAllFinished } from "@/services/scoring/settle";
 import { runCron } from "@/lib/monitoring/cron-log";
 
@@ -49,11 +49,12 @@ export async function GET(request: Request) {
   return runCron("live-matches", async () => {
     const liveSynced = await syncLiveScores();
     const settleResult = await settleAllFinished();
-    // Rafraîchit aussi le classement des poules : sinon il reste figé (les scores
-    // des matchs se mettent à jour via syncLiveScores, mais la table standings
-    // n'était touchée que par le cron quotidien). +1 appel API-Football, mais
-    // uniquement dans la fenêtre live (déjà gardée plus haut) → coût négligeable.
-    const standingsSynced = await syncStandings().catch(() => 0);
+    // Rafraîchit le classement des poules : le fournisseur (syncStandings) pose
+    // les lignes, puis on RECALCULE depuis nos matchs (à jour) car /standings
+    // API-Football est souvent figé d'une journée. syncStandingsFromMatches doit
+    // passer EN DERNIER. Coût : 1 appel API-Football, uniquement en fenêtre live.
+    await syncStandings().catch(() => 0);
+    const standingsSynced = await syncStandingsFromMatches().catch(() => 0);
     return { meta: { live_synced: liveSynced, settled_total: settleResult.total, standings_synced: standingsSynced } };
   });
 }
