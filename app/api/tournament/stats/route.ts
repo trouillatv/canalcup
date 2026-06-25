@@ -7,6 +7,7 @@
 
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { selectAll } from "@/lib/data/select-all";
 
 // Normalise les postes bruts vers 4 buckets stables.
 function positionBucket(raw: string | null | undefined): "GK" | "DEF" | "MID" | "FWD" | null {
@@ -59,24 +60,23 @@ export async function GET() {
     );
   }
 
-  const [statsRes, lineupsRes, eventsRes] = await Promise.all([
-    supabase
-      .from("player_match_stats")
-      .select("match_id, team_side, player_name, player_id, rating, goals, assists, yellow_cards, red_cards, is_motm")
-      .in("match_id", matchIds),
-    supabase
-      .from("match_lineups")
-      .select("match_id, team_side, player_name, position, is_starting")
-      .in("match_id", matchIds),
-    supabase
-      .from("match_events")
-      .select("match_id, team_side, player_name, assist_player_name, type")
-      .in("match_id", matchIds),
+  // selectAll : pagination OBLIGATOIRE — player_match_stats dépasse 1000 lignes
+  // (≈36/match), donc un .in() simple tronquait SILENCIEUSEMENT à 1000 → stats,
+  // positions (11 type / filtre par poste) et buteurs sous-comptés.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const inMatches = (q: any) => q.in("match_id", matchIds);
+  const [statsAll, lineupsAll, eventsAll] = await Promise.all([
+    selectAll<{ match_id: string; team_side: string; player_name: string; player_id: string | number | null; rating: number | null; goals: number | null; assists: number | null; yellow_cards: number | null; red_cards: number | null; is_motm: boolean | null }>(
+      supabase, "player_match_stats", "match_id, team_side, player_name, player_id, rating, goals, assists, yellow_cards, red_cards, is_motm", inMatches),
+    selectAll<{ match_id: string; team_side: string; player_name: string; position: string | null; is_starting: boolean | null }>(
+      supabase, "match_lineups", "match_id, team_side, player_name, position, is_starting", inMatches),
+    selectAll<{ match_id: string; team_side: string; player_name: string | null; assist_player_name: string | null; type: string }>(
+      supabase, "match_events", "match_id, team_side, player_name, assist_player_name, type", inMatches),
   ]);
 
-  const stats = (statsRes.data ?? []).filter((r) => r.rating != null);
-  const lineups = lineupsRes.data ?? [];
-  const events = eventsRes.data ?? [];
+  const stats = statsAll.filter((r) => r.rating != null);
+  const lineups = lineupsAll;
+  const events = eventsAll;
 
   if (stats.length === 0) {
     return NextResponse.json(
@@ -154,21 +154,18 @@ export async function GET() {
     const a = byPlayer.get(key)!;
     if (!a.player_id && r.player_id) a.player_id = String(r.player_id);
     a.matches += 1;
-    a.goals += r.goals ?? 0;
-    a.assists += r.assists ?? 0;
+    // ⚠️ Buts/passes : PAS depuis player_match_stats (peu fiable — ex. Messi y a
+    // 1 but au lieu de 5). On les compte exclusivement depuis match_events.
     a.yellow_cards += r.yellow_cards ?? 0;
     a.red_cards += r.red_cards ?? 0;
     if (r.is_motm) a.motm += 1;
     if (r.rating != null) { a.ratingSum += Number(r.rating); a.ratingCount += 1; }
 
-    // stats équipes
-    if (teamName) {
-      teamGoals.set(teamName, (teamGoals.get(teamName) ?? 0) + (r.goals ?? 0));
-      if (r.rating != null) {
-        const tr = teamRating.get(teamName) ?? { sum: 0, count: 0 };
-        tr.sum += Number(r.rating); tr.count += 1;
-        teamRating.set(teamName, tr);
-      }
+    // note moyenne d'équipe (les buts d'équipe sont comptés via match_events)
+    if (teamName && r.rating != null) {
+      const tr = teamRating.get(teamName) ?? { sum: 0, count: 0 };
+      tr.sum += Number(r.rating); tr.count += 1;
+      teamRating.set(teamName, tr);
     }
   }
 

@@ -10,14 +10,16 @@ export async function selectAll<T = Record<string, unknown>>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   client: any,
   table: string,
-  columns: string
+  columns: string,
+  // Filtre optionnel appliqué à chaque page (ex. q => q.in("match_id", ids)).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  apply?: (q: any) => any
 ): Promise<T[]> {
   const out: T[] = [];
   for (let from = 0; ; from += PAGE) {
-    const { data, error } = await client
-      .from(table)
-      .select(columns)
-      .range(from, from + PAGE - 1);
+    let q = client.from(table).select(columns);
+    if (apply) q = apply(q);
+    const { data, error } = await q.range(from, from + PAGE - 1);
     if (error || !data?.length) break;
     out.push(...(data as T[]));
     if (data.length < PAGE) break;
