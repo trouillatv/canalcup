@@ -60,8 +60,9 @@ export async function settleMatch(matchId: string): Promise<{ settled: number; s
     console.error(`[settle] quitte_ou_double failed for match=${matchId}`, e)
   );
 
-  // 💣 Kamikaze : score exact = +30, bon résultat = 0, raté = −15. Comme QouD,
-  // écrase les points du prono concerné — donc APRÈS le calcul de base.
+  // 💣 Kamikaze : score exact = +3× mise, bon résultat = 0 (mise sauvée),
+  // mauvais résultat = −mise. Écrase les points du prono — donc APRÈS le calcul
+  // de base. On ne perd la mise que si on se trompe de RÉSULTAT.
   await resolveKamikazeForMatch(supabase, matchId, match.score_a!, match.score_b!).catch((e) =>
     console.error(`[settle] kamikaze failed for match=${matchId}`, e)
   );

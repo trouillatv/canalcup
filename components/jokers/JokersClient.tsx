@@ -244,9 +244,13 @@ export function JokersClient() {
                         onChange={(e) => setStake(Number(e.target.value))}
                         className="w-full accent-purple-500"
                       />
-                      <p className="text-xs text-canal-gray-muted">
+                      <p className="text-xs text-canal-gray-muted leading-relaxed">
                         Score exact → <span className="text-green-300 font-bold">+{KAMIKAZE_WIN_MULTIPLIER * stake} pts</span>
-                        {" · "}sinon → <span className="text-red-300 font-bold">−{stake} pts</span>
+                        {" · "}bon résultat → <span className="text-canal-yellow font-bold">0 (mise sauvée)</span>
+                        {" · "}mauvais résultat → <span className="text-red-300 font-bold">−{stake} pts</span>
+                      </p>
+                      <p className="text-[10px] text-canal-gray-muted/70 italic">
+                        Tu ne perds ta mise que si tu te trompes de vainqueur. Ex. : tu mises 2-0, c&apos;est 3-0 → 0 pt (mise gardée) ; 1-1 ou 0-2 → −{stake}.
                       </p>
                     </div>
                   )}

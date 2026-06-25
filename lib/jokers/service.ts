@@ -729,14 +729,18 @@ export async function resolveKamikazeForMatch(
       .eq("match_id", matchId)
       .maybeSingle();
 
-    let tier: "exact" | "miss" | "no_pred";
+    let tier: "exact" | "result" | "miss" | "no_pred";
     let override: number | null = null;
     if (!pred || pred.predicted_score_a == null || pred.predicted_score_b == null || stake <= 0) {
       tier = "no_pred"; // pas de prono/mise valide → consommé sans note ni pénalité
     } else {
+      const sign = (a: number, b: number) => (a > b ? 1 : a < b ? -1 : 0);
       const exact = pred.predicted_score_a === scoreA && pred.predicted_score_b === scoreB;
-      override = exact ? KAMIKAZE_WIN_MULTIPLIER * stake : -stake;
-      tier = exact ? "exact" : "miss";
+      const goodResult = sign(pred.predicted_score_a, pred.predicted_score_b) === sign(scoreA, scoreB);
+      // Exact = +3× mise ; bon résultat (bon vainqueur, score inexact) = 0 (mise
+      // sauvée) ; mauvais résultat = −mise. On ne perd que si on rate le RÉSULTAT.
+      override = exact ? KAMIKAZE_WIN_MULTIPLIER * stake : goodResult ? 0 : -stake;
+      tier = exact ? "exact" : goodResult ? "result" : "miss";
       await admin.from("predictions").update({ points_awarded: override }).eq("id", pred.id);
     }
 
@@ -749,9 +753,11 @@ export async function resolveKamikazeForMatch(
     const msg =
       tier === "exact"
         ? `💣🎯 ${name} a fait EXPLOSER le Kamikaze : score exact, mise ${stake} → +${override} pts !`
-        : tier === "miss"
-          ? `💣💀 ${name} s'est crashé au Kamikaze : ${override} pts (mise ${stake} perdue).`
-          : `💣 ${name} avait un Kamikaze sans pronostic/mise valide : sans effet.`;
+        : tier === "result"
+          ? `💣😅 ${name} sauve sa mise au Kamikaze : bon résultat (score inexact) → 0 pt, mise ${stake} récupérée.`
+          : tier === "miss"
+            ? `💣💀 ${name} s'est crashé au Kamikaze : ${override} pts (mauvais résultat, mise ${stake} perdue).`
+            : `💣 ${name} avait un Kamikaze sans pronostic/mise valide : sans effet.`;
     await postJokerFeed(admin, msg, play.id, play.played_by_user_id, name);
   }
 }
