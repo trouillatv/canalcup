@@ -61,9 +61,19 @@ export async function GET() {
       .in("id", playMatchIds);
     for (const m of pm ?? []) matchById.set(m.id, m);
   }
+
+  // Cibles des jokers offensifs joués — pour montrer « à qui » dans l'historique.
+  const targetIds = [...new Set((myPlays ?? []).map((p) => p.target_user_id).filter(Boolean) as string[])];
+  const targetNameById = new Map<string, string>();
+  if (targetIds.length) {
+    const { data: tus } = await admin.from("users").select("id, display_name, name").in("id", targetIds);
+    for (const u of tus ?? []) targetNameById.set(u.id, u.display_name?.trim() || u.name?.trim() || "Joueur");
+  }
+
   const myPlaysEnriched = (myPlays ?? []).map((p) => ({
     ...p,
     match: p.match_id ? matchById.get(p.match_id) ?? null : null,
+    targetName: p.target_user_id ? targetNameById.get(p.target_user_id) ?? "Joueur" : null,
   }));
 
   // 🛬 Jet Lag : effet CACHÉ — la victime ne doit pas le voir dans ses effets

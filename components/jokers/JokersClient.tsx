@@ -17,7 +17,7 @@ interface MatchRow { id: string; team_a: string; team_b: string; starts_at: stri
 interface WalletRow { joker_type: string; quantity: number }
 interface EffectRow { id: string; effect_type: string; match_id: string | null; ends_at: string | null; metadata: Record<string, unknown> }
 interface PlayMatch { team_a: string; team_b: string; score_a: number | null; score_b: number | null; status: string }
-interface PlayRow { id: string; joker_type: string; status: string; metadata: Record<string, unknown>; created_at: string; match: PlayMatch | null }
+interface PlayRow { id: string; joker_type: string; status: string; metadata: Record<string, unknown>; created_at: string; match: PlayMatch | null; targetName: string | null }
 
 interface Data {
   userId: string;
@@ -314,7 +314,10 @@ export function JokersClient() {
               return (
                 <li key={p.id} className="border-t border-canal-gray-light/20 pt-2 first:border-0 first:pt-0">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-white/90">{JOKER_CATALOG[p.joker_type as JokerType]?.emoji ?? "🃏"} {JOKER_CATALOG[p.joker_type as JokerType]?.name ?? p.joker_type}</span>
+                    <span className="text-white/90">
+                      {JOKER_CATALOG[p.joker_type as JokerType]?.emoji ?? "🃏"} {JOKER_CATALOG[p.joker_type as JokerType]?.name ?? p.joker_type}
+                      {p.targetName && <span className="text-canal-gray-muted font-normal"> → <span className="text-red-300/90 font-semibold">{p.targetName}</span></span>}
+                    </span>
                     <span>
                       {typeof (p.metadata as { points_delta?: number })?.points_delta === "number"
                         ? `${(p.metadata as { points_delta: number }).points_delta > 0 ? "+" : ""}${(p.metadata as { points_delta: number }).points_delta} pts · `
