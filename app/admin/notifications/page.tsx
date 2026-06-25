@@ -55,6 +55,7 @@ export default function AdminNotificationsPage() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [url, setUrl] = useState("/supporters");
+  const [alsoFeed, setAlsoFeed] = useState(true); // publier aussi dans le live
   const [sending, setSending] = useState(false);
   const [sendNote, setSendNote] = useState<string | null>(null);
 
@@ -110,13 +111,16 @@ export default function AdminNotificationsPage() {
       const res = await fetch("/api/push/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: t, body: b, url: url.trim() || "/" }),
+        body: JSON.stringify({ title: t, body: b, url: url.trim() || "/", alsoFeed }),
       });
       const d = await res.json();
       if (!res.ok) {
         setSendNote(d.error ?? "Envoi impossible.");
       } else {
-        setSendNote(`✅ ${d.sent}/${d.total} notification(s) envoyée(s).`);
+        setSendNote(
+          `✅ ${d.sent}/${d.total} notification(s) envoyée(s).` +
+            (alsoFeed ? (d.feedPosted ? " · publié dans le live 📣" : " · ⚠️ live non publié") : "")
+        );
       }
     } catch {
       setSendNote("Réseau indisponible.");
@@ -215,6 +219,19 @@ export default function AdminNotificationsPage() {
           maxLength={200}
           className="w-full rounded-xl border border-canal-gray-light bg-canal-gray-mid px-4 py-2.5 text-xs font-mono text-white placeholder:text-canal-gray-muted focus:outline-none focus:border-canal-yellow"
         />
+
+        <label className="flex items-center gap-2.5 cursor-pointer select-none rounded-xl border border-canal-gray-light bg-canal-gray-mid/60 px-3 py-2.5">
+          <input
+            type="checkbox"
+            checked={alsoFeed}
+            onChange={(e) => setAlsoFeed(e.target.checked)}
+            className="h-4 w-4 accent-canal-yellow"
+          />
+          <span className="text-sm text-white font-semibold flex items-center gap-1.5">
+            📣 Publier aussi dans le live
+          </span>
+          <span className="text-[11px] text-canal-gray-muted ml-auto">Canal Cup Live</span>
+        </label>
 
         <div className="flex items-center justify-between gap-3">
           <p className="text-[11px] text-canal-gray-muted">

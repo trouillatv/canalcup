@@ -41,11 +41,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { title, body, url, userIds } = (await request.json()) as {
+  const { title, body, url, userIds, alsoFeed } = (await request.json()) as {
     title: string;
     body: string;
     url?: string;
     userIds?: string[];
+    /** Publier aussi l'annonce dans le live (Canal Cup Live). Broadcast uniquement. */
+    alsoFeed?: boolean;
   };
 
   const admin = createAdminClient();
@@ -81,5 +83,27 @@ export async function POST(request: NextRequest) {
   );
 
   const sent = results.filter((r) => r.status === "fulfilled").length;
-  return NextResponse.json({ sent, total: rows.length });
+
+  // Publication dans le live (Canal Cup Live) — uniquement pour un BROADCAST
+  // (pas pour un envoi ciblé à des userIds). Best-effort : n'échoue jamais
+  // l'envoi push si l'insert feed rate.
+  let feedPosted = false;
+  if (alsoFeed && !userIds?.length) {
+    try {
+      const { data: me } = await admin.from("users").select("id").eq("auth_id", user.id).maybeSingle();
+      const { error } = await admin.from("feed_posts").insert({
+        user_id: me?.id ?? null,
+        display_name: "Canal Cup",
+        type: "ambiance",
+        context_type: "announce",
+        body: `📣 ${title}${body ? `\n\n${body}` : ""}`,
+        status: "visible",
+      });
+      feedPosted = !error;
+    } catch {
+      /* le push est parti — le live est best-effort */
+    }
+  }
+
+  return NextResponse.json({ sent, total: rows.length, feedPosted });
 }
