@@ -4,7 +4,8 @@
 //  Avant reveal : photos + réactions (hype). Au reveal : cérémonie complète
 //  (photos avec votes → Prix VAR → podium 🥉🥈🥇). Public (cf. middleware /tv).
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Maximize2, Minimize2 } from "lucide-react";
 
 interface Photo { id: string; team_name: string; title: string | null; photo_url: string; photo_url_2: string | null; reactions: Record<string, number>; votes: number | null }
 interface Var { emoji: string; label: string; team_name: string; photo_url: string; count: number }
@@ -32,10 +33,48 @@ export default function TvSupportersPage() {
   const [data, setData] = useState<Data | null>(null);
   const [idx, setIdx] = useState(0);
   const [origin, setOrigin] = useState("");
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [cursorVisible, setCursorVisible] = useState(true);
+  const cursorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setOrigin(process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin);
   }, []);
+
+  // Suivi de l'état plein écran (comme le mode TV principal).
+  useEffect(() => {
+    const handler = () => setIsFullscreen(
+      !!(document.fullscreenElement || (document as unknown as Record<string, unknown>).webkitFullscreenElement)
+    );
+    document.addEventListener("fullscreenchange", handler);
+    document.addEventListener("webkitfullscreenchange", handler);
+    return () => {
+      document.removeEventListener("fullscreenchange", handler);
+      document.removeEventListener("webkitfullscreenchange", handler);
+    };
+  }, []);
+
+  // Cache le curseur après 3 s d'inactivité (idem mode TV — utile sur grand écran).
+  useEffect(() => {
+    const showCursor = () => {
+      setCursorVisible(true);
+      if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
+      cursorTimerRef.current = setTimeout(() => setCursorVisible(false), 3000);
+    };
+    cursorTimerRef.current = setTimeout(() => setCursorVisible(false), 3000);
+    document.addEventListener("mousemove", showCursor);
+    document.addEventListener("pointermove", showCursor);
+    return () => {
+      document.removeEventListener("mousemove", showCursor);
+      document.removeEventListener("pointermove", showCursor);
+      if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
+    };
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+    else document.exitFullscreen().catch(() => {});
+  };
 
   useEffect(() => {
     const load = () => fetch("/api/tv/supporters").then((r) => r.json()).then((d) => { if (!d.error) setData(d); }).catch(() => {});
@@ -71,7 +110,17 @@ export default function TvSupportersPage() {
   const slide = slides[idx % slides.length];
 
   return (
-    <div className="w-full min-h-screen bg-canal-black text-white overflow-hidden flex flex-col items-center justify-center p-10 text-center relative">
+    <div className={`w-full min-h-screen bg-canal-black text-white overflow-hidden flex flex-col items-center justify-center p-10 text-center relative${!cursorVisible ? " cursor-none" : ""}`}>
+      {/* Plein écran (s'estompe avec le curseur) */}
+      <button
+        onClick={toggleFullscreen}
+        title={isFullscreen ? "Quitter le plein écran" : "Plein écran"}
+        className={`absolute top-3 left-3 z-40 flex items-center gap-2 px-3 py-2 rounded-xl bg-canal-gray-mid/80 border border-canal-gray-light/40 text-white text-sm font-bold backdrop-blur-sm hover:bg-canal-gray-mid transition-opacity ${cursorVisible ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+      >
+        {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+        <span>{isFullscreen ? "Réduire" : "Plein écran"}</span>
+      </button>
+
       {/* progression */}
       <div className="absolute top-0 left-0 right-0 flex gap-1 p-2">
         {slides.map((_, i) => (
