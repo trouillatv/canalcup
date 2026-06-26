@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { Trophy, Star, Users, Medal, ChevronUp, ChevronDown, Minus } from "lucide-react";
 import { track } from "@/lib/analytics/track";
+import { Flag } from "@/components/shared/Flag";
 
 type Player = {
   player_name: string;
@@ -108,6 +109,10 @@ function PitchPlayer({ player }: { player: Player }) {
         )}
       </div>
       <span className="text-[9px] leading-tight text-white font-bold text-center truncate max-w-[58px] drop-shadow">{last}</span>
+      <span className="flex items-center gap-1 max-w-[58px] -mt-0.5">
+        <Flag name={player.team} className="h-2.5 w-auto rounded-[1px] shrink-0" emojiClassName="text-[10px] leading-none" />
+        <span className="text-[8px] text-white/80 truncate drop-shadow">{player.team}</span>
+      </span>
     </div>
   );
 
@@ -402,7 +407,10 @@ export default function Meilleur11Page() {
                         </span>
                         <div className="min-w-0">
                           <PlayerNameLink player={p} className="block text-white font-bold text-sm leading-tight truncate" />
-                          <p className="text-canal-gray-muted text-xs">{p.team}</p>
+                          <p className="text-canal-gray-muted text-xs flex items-center gap-1">
+                            <Flag name={p.team} className="h-3 w-auto rounded-[1px]" emojiClassName="text-xs leading-none" />
+                            {p.team}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0 text-right">
