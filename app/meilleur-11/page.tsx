@@ -263,6 +263,11 @@ export default function Meilleur11Page() {
                   <th className="text-left px-3 py-2.5 text-canal-gray-muted text-xs font-bold w-6">#</th>
                   <th className="text-left px-3 py-2.5 text-canal-gray-muted text-xs font-bold">Joueur</th>
                   <th className="px-2 py-2.5 text-right">
+                    <button onClick={() => toggleSort("matches")} className="flex items-center gap-0.5 ml-auto text-canal-gray-muted text-xs font-bold hover:text-white" title="Matchs joués">
+                      J <SortIcon k="matches" />
+                    </button>
+                  </th>
+                  <th className="px-2 py-2.5 text-right">
                     <button onClick={() => toggleSort("avg_rating")} className="flex items-center gap-0.5 ml-auto text-canal-gray-muted text-xs font-bold hover:text-white">
                       Note <SortIcon k="avg_rating" />
                     </button>
@@ -301,6 +306,9 @@ export default function Meilleur11Page() {
                         </div>
                       </div>
                     </td>
+                    <td className="px-2 py-2.5 text-right text-xs tabular-nums">
+                      {p.matches > 0 ? <span className="text-white font-semibold">{p.matches}</span> : <span className="text-canal-gray-muted">—</span>}
+                    </td>
                     <td className="px-2 py-2.5 text-right">
                       <RatingBadge rating={p.avg_rating} />
                     </td>
@@ -321,7 +329,7 @@ export default function Meilleur11Page() {
                 ))}
                 {sortedPlayers.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-canal-gray-muted text-sm">
+                    <td colSpan={7} className="px-4 py-8 text-center text-canal-gray-muted text-sm">
                       Aucun joueur trouvé pour ce poste.
                     </td>
                   </tr>
