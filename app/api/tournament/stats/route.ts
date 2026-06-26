@@ -20,10 +20,13 @@ export const revalidate = 0;
 function positionBucket(raw: string | null | undefined): "GK" | "DEF" | "MID" | "FWD" | null {
   if (!raw) return null;
   const r = raw.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-  if (r.includes("gardien") || r.includes("goalkeeper") || r.includes("keeper") || r === "gk") return "GK";
-  if (r.includes("defenseur") || r.includes("defender") || r.includes("back") || r.includes("arriere") || r === "cb" || r === "lb" || r === "rb") return "DEF";
-  if (r.includes("milieu") || r.includes("midfielder") || r.includes("midfield") || r === "cm" || r === "dm" || r === "am") return "MID";
-  if (r.includes("avant") || r.includes("ailier") || r.includes("attaquant") || r.includes("forward") || r.includes("striker") || r.includes("winger") || r === "st" || r === "cf" || r === "lw" || r === "rw") return "FWD";
+  // API-Football renvoie souvent la position en LETTRE SIMPLE (grille) : G/D/M/F.
+  // Sans ce mapping, ~99% des lignes match_lineups tombaient en null → 11 type
+  // vide et filtres par poste (GB/DEF/MIL/ATT) vides.
+  if (r === "g" || r.includes("gardien") || r.includes("goalkeeper") || r.includes("keeper") || r === "gk") return "GK";
+  if (r === "d" || r.includes("defenseur") || r.includes("defender") || r.includes("back") || r.includes("arriere") || r === "cb" || r === "lb" || r === "rb") return "DEF";
+  if (r === "m" || r.includes("milieu") || r.includes("midfielder") || r.includes("midfield") || r === "cm" || r === "dm" || r === "am") return "MID";
+  if (r === "f" || r.includes("avant") || r.includes("ailier") || r.includes("attaquant") || r.includes("forward") || r.includes("striker") || r.includes("winger") || r === "st" || r === "cf" || r === "lw" || r === "rw") return "FWD";
   return null;
 }
 
@@ -108,18 +111,24 @@ export async function GET() {
     positionFreq.get(key)!.set(bucket, (positionFreq.get(key)!.get(bucket) ?? 0) + 1);
   }
 
-  // Position globale par joueur (poste le plus fréquent sur le tournoi)
+  // Position globale par joueur (poste le plus fréquent sur le tournoi).
+  // Indexé par nom NORMALISÉ + initiale+nom pour matcher l'entrée agrégée même
+  // si l'orthographe diffère entre lineups et stats ("N. Pépé" vs "Nicolas Pépé").
   const playerPosition = new Map<string, Map<string, number>>();
+  const addPos = (k: string, bucket: string, count: number) => {
+    if (!playerPosition.has(k)) playerPosition.set(k, new Map());
+    playerPosition.get(k)!.set(bucket, (playerPosition.get(k)!.get(bucket) ?? 0) + count);
+  };
   for (const [key, freq] of positionFreq.entries()) {
     const [playerName] = key.split("|||");
-    if (!playerPosition.has(playerName)) playerPosition.set(playerName, new Map());
     for (const [bucket, count] of freq.entries()) {
-      playerPosition.get(playerName)!.set(bucket, (playerPosition.get(playerName)!.get(bucket) ?? 0) + count);
+      addPos(normName(playerName), bucket, count);
+      addPos(shortNameKey(playerName), bucket, count);
     }
   }
 
   function dominantPosition(name: string): "GK" | "DEF" | "MID" | "FWD" | null {
-    const freq = playerPosition.get(name);
+    const freq = playerPosition.get(normName(name)) ?? playerPosition.get(shortNameKey(name));
     if (!freq || freq.size === 0) return null;
     let best: string | null = null; let bestCount = 0;
     for (const [bucket, count] of freq.entries()) {
