@@ -71,6 +71,54 @@ function RatingBadge({ rating }: { rating: number | null }) {
   return <span className={`font-bold tabular-nums ${color}`}>{rating.toFixed(1)}</span>;
 }
 
+// Photo officielle du joueur (même source que le plan de terrain du match center).
+function playerPhotoUrl(playerId?: string | null): string | null {
+  return playerId ? `https://media.api-sports.io/football/players/${playerId}.png` : null;
+}
+function pitchRatingColor(r: number | null): string {
+  if (r == null) return "bg-canal-gray-light text-canal-gray-muted";
+  if (r >= 7.5) return "bg-green-600 text-white";
+  if (r >= 6.5) return "bg-canal-yellow text-canal-black";
+  if (r >= 5) return "bg-orange-500 text-white";
+  return "bg-red-600 text-white";
+}
+
+// Pastille joueur « terrain » : photo ronde + note colorée + nom (style match center).
+function PitchPlayer({ player }: { player: Player }) {
+  const [imgOk, setImgOk] = useState(true);
+  const url = playerPhotoUrl(player.player_id);
+  const last = player.player_name.split(" ").slice(-1).join(" ");
+  const pos = player.position ?? "FWD";
+
+  const body = (
+    <div className="flex flex-col items-center gap-1 w-[58px]">
+      <div className="relative">
+        <div className="w-12 h-12 rounded-full bg-canal-gray-mid border-2 border-white/80 overflow-hidden flex items-center justify-center shadow-md">
+          {url && imgOk ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={url} alt={last} className="w-full h-full object-cover" onError={() => setImgOk(false)} />
+          ) : (
+            <span className="text-white font-black text-[11px]">{POSITION_LABEL[pos]}</span>
+          )}
+        </div>
+        {player.avg_rating != null && (
+          <span className={`absolute -bottom-1 -right-1 min-w-[20px] px-1 h-[18px] rounded-md text-[10px] font-black flex items-center justify-center shadow ${pitchRatingColor(player.avg_rating)}`}>
+            {player.avg_rating.toFixed(1)}
+          </span>
+        )}
+      </div>
+      <span className="text-[9px] leading-tight text-white font-bold text-center truncate max-w-[58px] drop-shadow">{last}</span>
+    </div>
+  );
+
+  if (!player.player_id) return body;
+  return (
+    <Link href={`/football/players/${player.player_id}`} className="hover:opacity-90 transition-opacity">
+      {body}
+    </Link>
+  );
+}
+
 function FormationPitch({ xi }: { xi: BestXI }) {
   const rows = [
     { label: "ATT", players: xi.fwd },
@@ -80,45 +128,33 @@ function FormationPitch({ xi }: { xi: BestXI }) {
   ];
 
   return (
-    <div className="relative rounded-xl overflow-hidden bg-green-950/60 border border-green-900/40 p-4">
-      {/* Field lines */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="w-full h-px bg-green-800/40" />
-      </div>
-      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-center pointer-events-none">
-        <div className="w-28 h-28 rounded-full border border-green-800/40" />
+    <div
+      className="relative rounded-2xl overflow-hidden border border-white/10 flex flex-col justify-around py-3"
+      style={{
+        minHeight: 460,
+        background: "repeating-linear-gradient(0deg, #15803d 0px, #15803d 56px, #166e36 56px, #166e36 112px)",
+      }}
+    >
+      {/* Lignes du terrain (comme le match center) */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute top-1/2 left-0 right-0 h-px bg-white/30" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border border-white/30" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-14 border border-white/25 border-t-0" />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-40 h-14 border border-white/25 border-b-0" />
       </div>
 
-      <div className="relative space-y-4 py-2">
+      <div className="relative flex flex-col justify-around flex-1 gap-2">
         {rows.map(({ label, players }) => (
-          <div key={label} className="flex justify-around items-start gap-2">
+          <div key={label} className="flex justify-around items-center gap-2 px-2">
             {players.map((p) => (
-              <PlayerCard key={p.player_name} player={p} />
+              <PitchPlayer key={`${p.player_name}-${p.team}`} player={p} />
             ))}
             {players.length === 0 && (
-              <div className="text-center text-canal-gray-muted text-xs py-4">Pas encore de données</div>
+              <div className="text-center text-white/70 text-xs py-2">Pas encore de données</div>
             )}
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-function PlayerCard({ player }: { player: Player }) {
-  const pos = player.position ?? "FWD";
-  return (
-    <div className="flex flex-col items-center gap-1 min-w-0 w-16">
-      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold border-2 border-canal-gray-light ${
-        pos === "GK" ? "bg-yellow-500/30 text-yellow-300" :
-        pos === "DEF" ? "bg-blue-500/30 text-blue-300" :
-        pos === "MID" ? "bg-green-500/30 text-green-300" :
-        "bg-red-500/30 text-red-300"
-      }`}>
-        {POSITION_LABEL[pos]}
-      </div>
-      <PlayerNameLink player={player} short className="text-white text-[10px] font-bold text-center leading-tight truncate w-full" />
-      <RatingBadge rating={player.avg_rating} />
     </div>
   );
 }
