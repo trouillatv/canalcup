@@ -220,8 +220,16 @@ export async function getFootballTeamDashboard(slug: string): Promise<FootballTe
     // Classement du groupe
     let groupStandings: FootballGroupRow[] = initGroupFromStatic(groupLetter);
     if (groupLetter) {
-      const groupName = `Groupe ${groupLetter}`;
-      const groupMatches = rows.filter((m) => m.phase === "Groupe" && m.stage === groupName);
+      // ⚠️ matches.stage = la JOURNÉE ("Group Stage - 1/2/3"), pas la lettre de
+      // poule → on NE peut PAS filtrer sur stage === "Groupe X". On reconstruit
+      // la poule depuis les confrontations : on garde les matchs de phase de
+      // groupe dont les DEUX équipes appartiennent à ce groupe (lettre officielle).
+      const groupMatches = rows.filter(
+        (m) =>
+          m.phase === "Groupe" &&
+          groupLetterForTeam(m.team_a) === groupLetter &&
+          groupLetterForTeam(m.team_b) === groupLetter
+      );
       if (groupMatches.length > 0) {
         groupStandings = computeGroupStandings(groupMatches);
       }
