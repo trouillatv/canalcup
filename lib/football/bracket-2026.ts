@@ -136,6 +136,23 @@ export interface StandingLike {
   points: number;
 }
 
+/** Vrai match KO (base) — sert à propager les qualifiés dans les tours suivants. */
+export interface RealKoMatch {
+  team_a: string;
+  team_b: string;
+  flag_a?: string | null;
+  flag_b?: string | null;
+  score_a?: number | null;
+  score_b?: number | null;
+  status: string;
+  phase?: string | null;
+}
+
+// Normalise un nom d'équipe pour rapprocher standings (FR) et matchs (FR).
+function normName(n: string): string {
+  return (n ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+}
+
 export interface ResolvedSlot {
   /** Équipe résolue (projection / réel confirmé), sinon undefined. */
   teamName?: string;
@@ -201,7 +218,8 @@ function assignThirds(
  */
 export function resolveKnockout(
   standings: Record<string, StandingLike[]>,
-  mode: "projection" | "reel"
+  mode: "projection" | "reel",
+  realMatches: RealKoMatch[] = []
 ): ResolvedRound[] {
   // Classement trié par poule
   const perGroup: Record<string, StandingLike[]> = {};
@@ -235,11 +253,39 @@ export function resolveKnockout(
   }));
   const thirdAssignment = assignThirds(qualifiedThirdGroups, thirdSlots);
 
+  // ── Propagation des qualifiés : winnerOf(feeder) → vrai vainqueur dès que le
+  // match amont est joué. On rattache chaque vrai 16e à son emplacement d'arbre
+  // via l'équipe DÉTERMINISTE (1er/2e de poule, non ambiguë). Le vainqueur = le
+  // score FINAL (prolongation/TAB inclus), car c'est lui qui se QUALIFIE — à ne
+  // pas confondre avec le score réglementaire qui, lui, juge les pronos.
+  const winnerByFeeder: Record<number, { teamName: string; teamFlag?: string }> = {};
+  const detTeamToSeize: Record<string, number> = {};
+  for (const m of SEIZIEMES) {
+    const detOf = (s: Slot): StandingLike | undefined =>
+      s.kind === "winner" ? perGroup[s.group]?.[0] : s.kind === "runner" ? perGroup[s.group]?.[1] : undefined;
+    const det = detOf(m.a) ?? detOf(m.b);
+    if (det?.team_name_fr) detTeamToSeize[normName(det.team_name_fr)] = m.no;
+  }
+  for (const rm of realMatches) {
+    if ((rm.phase ?? "") !== "Seizièmes" || rm.status !== "finished") continue;
+    if (rm.score_a == null || rm.score_b == null || rm.score_a === rm.score_b) continue; // égalité = TAB, indécidable sans données
+    const no = detTeamToSeize[normName(rm.team_a)] ?? detTeamToSeize[normName(rm.team_b)];
+    if (!no) continue;
+    winnerByFeeder[no] = rm.score_a > rm.score_b
+      ? { teamName: rm.team_a, teamFlag: rm.flag_a ?? undefined }
+      : { teamName: rm.team_b, teamFlag: rm.flag_b ?? undefined };
+  }
+
   const showTeams = mode === "projection" ? anyData : false; // réel : rien tant que rien d'acté
 
   const resolveSlot = (slot: Slot, fifaNo: number): ResolvedSlot => {
     if (slot.kind === "winnerOf") {
-      return { sub: `Vainqueur ${bracketCode(slot.feeder)}`, label: `Vainqueur ${bracketCode(slot.feeder)}`, confirmed: false };
+      const code = bracketCode(slot.feeder);
+      const w = winnerByFeeder[slot.feeder];
+      if (w) {
+        return { teamName: w.teamName, teamFlag: w.teamFlag, sub: `Vainqueur ${code} (qualifié)`, label: `Vainqueur ${code}`, confirmed: true };
+      }
+      return { sub: `Vainqueur ${code}`, label: `Vainqueur ${code}`, confirmed: false };
     }
     if (slot.kind === "winner" || slot.kind === "runner") {
       const idx = slot.kind === "winner" ? 0 : 1;

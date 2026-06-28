@@ -486,7 +486,10 @@ function ProjectionKnockout({
   thirdPlace: MatchRow[];
 }) {
   const [mode, setMode] = useState<"projection" | "reel">("projection");
-  const rounds = resolveKnockout(standings, mode);
+  // Vrais matchs KO (tous tours) → propagation des qualifiés dans les slots
+  // « Vainqueur Sx » des tours suivants (ex. Canada en 8e après son 16e gagné).
+  const allRealKo = Object.values(realByPhase).flat();
+  const rounds = resolveKnockout(standings, mode, allRealKo);
 
   const maxMatches = Math.max(1, ...rounds.map((r) => r.matches.length));
   // Hauteur = 1 cellule flex-1 par match du tour le plus large. 120px/cellule
