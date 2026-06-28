@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { toFrench } from "@/lib/football/team-names";
 import { groupLetterForTeam, officialTeamFr } from "@/lib/football/groups-2026";
 
-const PHASE_ORDER = ["Groupe", "Huitièmes", "Quarts", "Demis", "3ème place", "Finale"];
+const PHASE_ORDER = ["Groupe", "Seizièmes", "Huitièmes", "Quarts", "Demis", "3ème place", "Finale"];
 
 export async function GET() {
   const supabase = createAdminClient();

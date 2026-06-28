@@ -6,6 +6,7 @@ import type { Match } from "@/lib/supabase/types";
 const PHASE_MULTIPLIERS: Record<string, number> = {
   // French (stored in DB)
   "Groupe": 1,
+  "Seizièmes": 1.25,
   "Huitièmes": 1.5,
   "Quarts": 2,
   "Demis": 2.5,
@@ -13,6 +14,7 @@ const PHASE_MULTIPLIERS: Record<string, number> = {
   "Finale": 3,
   // English fallbacks (TheSportsDB raw values)
   "Group Stage": 1,
+  "Round of 32": 1.25,
   "Round of 16": 1.5,
   "Quarter-final": 2,
   "Semi-final": 2.5,

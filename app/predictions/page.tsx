@@ -458,6 +458,7 @@ export default function PredictionsPage() {
             <div className="border-t border-canal-gray-light pt-3 space-y-1">
               {[
                 ["Phase de groupes", "×1", "max 10 pts"],
+                ["Seizièmes", "×1.25", "max 13 pts"],
                 ["Huitièmes", "×1.5", "max 15 pts"],
                 ["Quarts", "×2", "max 20 pts"],
                 ["Demi-finales", "×2.5", "max 25 pts"],

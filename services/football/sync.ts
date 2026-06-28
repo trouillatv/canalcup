@@ -49,6 +49,7 @@ function normalizePhase(strRound?: string): { phase: string; stage: string | nul
   if (/^group [a-l]$/i.test(strRound) || r.includes("group stage") || r.includes("group")) {
     return { phase: "Groupe", stage: strRound };
   }
+  if (r.includes("round of 32") || r.includes("32")) return { phase: "Seizièmes", stage: null };
   if (r.includes("round of 16") || r.includes("16")) return { phase: "Huitièmes", stage: null };
   if (r.includes("quarter")) return { phase: "Quarts", stage: null };
   if (r.includes("semi")) return { phase: "Demis", stage: null };
