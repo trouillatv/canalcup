@@ -41,15 +41,6 @@ interface GroupBucket { stage?: string; matches: MatchRow[] }
 interface PhaseSection { phase: string; groups: GroupBucket[] }
 export interface BracketData { phases: PhaseSection[]; standings: Record<string, StandingRow[]> }
 
-const KNOCKOUT_ORDER = [
-  "Trente-deuxièmes",
-  "Seizièmes",
-  "Huitièmes",
-  "Quarts",
-  "Demis",
-  "Finale",
-];
-
 const PHASE_EMOJIS: Record<string, string> = {
   "Trente-deuxièmes": "🎯", Seizièmes: "🎲", Huitièmes: "🔥", Quarts: "⚡",
   Demis: "🌟", "3ème place": "🥉", Finale: "🏆",
@@ -166,43 +157,6 @@ function ConnectorColumn({ nextCount }: { nextCount: number }) {
         {Array.from({ length: nextCount }).map((_, j) => (
           <div key={j} className="flex-1 flex items-center">
             <div className="h-1/2 w-full border-r-2 border-t-2 border-b-2 border-canal-yellow/25 rounded-r-md" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Round column ────────────────────────────────────────────────────────────
-
-function RoundColumn({
-  phase, matches, isLast,
-}: {
-  phase: string; matches: MatchRow[]; isLast: boolean;
-}) {
-  const emoji = PHASE_EMOJIS[phase] ?? "⚽";
-  const label = PHASE_LABELS[phase] ?? phase;
-  const isFinale = phase === "Finale";
-
-  return (
-    <div className="flex flex-col shrink-0">
-      <div className={cn(HEADER_H, "flex items-center justify-center px-3")}>
-        <span
-          className={cn(
-            "font-black uppercase tracking-widest whitespace-nowrap",
-            isFinale ? "text-canal-yellow text-base" : "text-canal-gray-muted text-xs"
-          )}
-        >
-          {emoji} {label}
-        </span>
-      </div>
-      <div className="flex-1 flex flex-col justify-around gap-3 px-1">
-        {matches.map((m) => (
-          <div key={m.id} className="relative flex items-center">
-            <BracketTreeCard match={m} big={isFinale} />
-            {!isLast && (
-              <span className="absolute left-full top-1/2 -translate-y-1/2 h-px w-2 bg-canal-yellow/25" />
-            )}
           </div>
         ))}
       </div>
@@ -522,7 +476,15 @@ function ProjCard({ match, big }: { match: ResolvedRound["matches"][number]; big
   );
 }
 
-function ProjectionKnockout({ standings }: { standings: Record<string, StandingRow[]> }) {
+function ProjectionKnockout({
+  standings,
+  realByPhase,
+  thirdPlace,
+}: {
+  standings: Record<string, StandingRow[]>;
+  realByPhase: Record<string, MatchRow[]>;
+  thirdPlace: MatchRow[];
+}) {
   const [mode, setMode] = useState<"projection" | "reel">("projection");
   const rounds = resolveKnockout(standings, mode);
 
@@ -574,6 +536,12 @@ function ProjectionKnockout({ standings }: { standings: Record<string, StandingR
         )}
       </p>
 
+      {Object.values(realByPhase).some((a) => a.length > 0) && (
+        <p className="text-[11px] mb-3 flex items-center gap-1.5 text-green-300">
+          👉 <span className="font-bold">Phase finale ouverte</span> — clique un match pour parier le score.
+        </p>
+      )}
+
       <div className="overflow-x-auto pb-4">
         <div className="flex items-stretch min-w-max" style={{ height: `${bracketHeight}px` }}>
           {/* Rail des deux moitiés : haut = Partie A (→ Demi 1), bas = Partie B
@@ -599,6 +567,13 @@ function ProjectionKnockout({ standings }: { standings: Record<string, StandingR
             const emoji = PHASE_EMOJIS[round.round] ?? "⚽";
             const label = PHASE_LABELS[round.round] ?? round.round;
             const isFinale = round.round === "Finale";
+            // Tour JOUABLE : si les vrais matchs existent en base (équipes
+            // connues), on les affiche — cliquables, score live — à la place des
+            // emplacements projetés. Sinon « Vainqueur Sx » de la matrice FIFA.
+            const real = [...(realByPhase[round.round] ?? [])].sort(
+              (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
+            );
+            const hasReal = real.length > 0;
             return (
               <Fragment key={round.round}>
                 <div className="flex flex-col shrink-0">
@@ -613,19 +588,43 @@ function ProjectionKnockout({ standings }: { standings: Record<string, StandingR
                     </span>
                   </div>
                   <div className={cn("flex-1 flex flex-col px-1", isFinale && "justify-center")}>
-                    {round.matches.map((m) => (
-                      <div
-                        key={m.code}
-                        className={cn("flex items-center justify-center", !isFinale && "flex-1")}
-                      >
-                        <div className="relative">
-                          <ProjCard match={m} big={isFinale} />
-                          {!isLast && (
-                            <span className="absolute left-full top-1/2 -translate-y-1/2 h-px w-2 bg-canal-yellow/25" />
-                          )}
-                        </div>
+                    {hasReal
+                      ? real.map((m) => (
+                          <div
+                            key={m.id}
+                            className={cn("flex items-center justify-center", !isFinale && "flex-1")}
+                          >
+                            <div className="relative">
+                              <BracketTreeCard match={m} big={isFinale} />
+                              {!isLast && (
+                                <span className="absolute left-full top-1/2 -translate-y-1/2 h-px w-2 bg-canal-yellow/25" />
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      : round.matches.map((m) => (
+                          <div
+                            key={m.code}
+                            className={cn("flex items-center justify-center", !isFinale && "flex-1")}
+                          >
+                            <div className="relative">
+                              <ProjCard match={m} big={isFinale} />
+                              {!isLast && (
+                                <span className="absolute left-full top-1/2 -translate-y-1/2 h-px w-2 bg-canal-yellow/25" />
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                    {isFinale && thirdPlace.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-center text-canal-gray-muted text-[11px] uppercase tracking-widest font-bold mb-2">
+                          🥉 Petite finale
+                        </p>
+                        {thirdPlace.map((m) => (
+                          <BracketTreeCard key={m.id} match={m} />
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
                 {!isLast && <ConnectorColumn nextCount={rounds[ri + 1].matches.length} />}
@@ -667,105 +666,31 @@ export function BracketFifa({ data, initialGroup }: { data: BracketData; initial
     }
   }
 
-  // Ordered knockout rounds (exclude groups + 3rd-place, which is shown beside the final)
-  const knockout = data.phases
-    .filter((p) => p.phase !== "Groupe" && p.phase !== "3ème place")
-    .sort((a, b) => {
-      const ia = KNOCKOUT_ORDER.indexOf(a.phase);
-      const ib = KNOCKOUT_ORDER.indexOf(b.phase);
-      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
-    });
-
-  const realRounds = knockout
-    .map((p) => ({ phase: p.phase, matches: p.groups[0]?.matches ?? [] }))
-    .filter((r) => r.matches.length > 0);
-
-  // Tant qu'aucun match à élimination directe n'existe en base (équipes pas
-  // encore qualifiées), on affiche le tableau PROJETÉ depuis la matrice
-  // officielle FIFA (ProjectionKnockout). Sinon, l'arbre des vrais matchs.
-  const isScaffold = realRounds.length === 0;
-  const rounds = realRounds;
-
-  const effectiveThird =
-    thirdPlace && (thirdPlace.groups[0]?.matches.length ?? 0) > 0
-      ? thirdPlace.groups[0].matches
-      : [];
-
-  // Bracket height scales with the widest round so connectors stay aligned
-  const maxMatches = Math.max(1, ...rounds.map((r) => r.matches.length));
-  const bracketHeight = Math.max(420, maxMatches * 96 + 40);
+  // Vrais matchs à élimination directe, regroupés par phase. Dès qu'ils existent
+  // en base (équipes qualifiées connues, ex. 16es), le tableau les rend
+  // cliquables et jouables au prono ; les tours suivants restent en échafaudage
+  // projeté (« Vainqueur Sx ») jusqu'à ce qu'API-Football crée les vrais matchs.
+  const KO_PHASES = ["Seizièmes", "Huitièmes", "Quarts", "Demis", "Finale"];
+  const realByPhase: Record<string, MatchRow[]> = {};
+  for (const p of data.phases) {
+    if (KO_PHASES.includes(p.phase)) {
+      realByPhase[p.phase] = p.groups.flatMap((g) => g.matches);
+    }
+  }
+  const thirdPlaceMatches = thirdPlace?.groups[0]?.matches ?? [];
 
   return (
     <div className="space-y-10">
       {/* Group phase — one tab per pool (always shown for a WC bracket) */}
       <GroupTabs standings={data.standings} matchesByLetter={matchesByLetter} initialGroup={initialGroup} />
 
-      {/* Knockout : tableau projeté (matrice FIFA) tant qu'aucun vrai match KO,
-          sinon l'arbre des matchs réels. */}
-      {isScaffold ? (
-        <ProjectionKnockout standings={data.standings} />
-      ) : (
-      <div>
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-2xl">🏆</span>
-            <h3 className="font-black text-lg text-white uppercase tracking-widest">
-              Tableau final
-            </h3>
-            <div className="flex-1 h-px bg-gradient-to-r from-canal-yellow/50 to-transparent" />
-            <span className="text-canal-gray-muted text-xs italic shrink-0 sm:hidden">← défiler →</span>
-          </div>
-
-          <div className="overflow-x-auto pb-4">
-            <div
-              className="flex items-stretch min-w-max"
-              style={{ height: `${bracketHeight}px` }}
-            >
-              {rounds.map((round, ri) => {
-                const isLast = ri === rounds.length - 1;
-                return (
-                  <Fragment key={round.phase}>
-                    {round.phase === "Finale" ? (
-                      <div className="flex flex-col shrink-0">
-                        <div className={cn(HEADER_H, "flex items-center justify-center px-3")}>
-                          <span className="font-black uppercase tracking-widest text-canal-yellow text-base whitespace-nowrap">
-                            🏆 Finale
-                          </span>
-                        </div>
-                        <div className="flex-1 flex flex-col justify-center gap-6 px-3">
-                          {round.matches.map((m) => (
-                            <BracketTreeCard key={m.id} match={m} big />
-                          ))}
-                          {effectiveThird.length > 0 && (
-                            <div>
-                              <p className="text-center text-canal-gray-muted text-[11px] uppercase tracking-widest font-bold mb-2">
-                                🥉 Petite finale
-                              </p>
-                              {effectiveThird.map((m) => (
-                                <BracketTreeCard key={m.id} match={m} />
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <RoundColumn
-                          phase={round.phase}
-                          matches={round.matches}
-                          isLast={isLast}
-                        />
-                        {!isLast && (
-                          <ConnectorColumn nextCount={rounds[ri + 1].matches.length} />
-                        )}
-                      </>
-                    )}
-                  </Fragment>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Tableau final : matrice FIFA projetée, enrichie des vrais matchs dès
+          qu'ils existent (16es ouverts au prono, suite en « Vainqueur Sx »). */}
+      <ProjectionKnockout
+        standings={data.standings}
+        realByPhase={realByPhase}
+        thirdPlace={thirdPlaceMatches}
+      />
     </div>
   );
 }

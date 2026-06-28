@@ -186,6 +186,7 @@ function GroupSection({ bucket, standings }: { bucket: GroupBucket; standings: R
 
 const PHASE_LABELS: Record<string, string> = {
   Groupe: "Phase de Groupes",
+  "Seizièmes": "Seizièmes de finale",
   "Huitièmes": "Huitièmes de finale",
   Quarts: "Quarts de finale",
   Demis: "Demi-finales",
@@ -194,7 +195,7 @@ const PHASE_LABELS: Record<string, string> = {
 };
 
 const PHASE_ICONS: Record<string, string> = {
-  Groupe: "⚽", "Huitièmes": "🔥", Quarts: "⚡",
+  Groupe: "⚽", "Seizièmes": "🎲", "Huitièmes": "🔥", Quarts: "⚡",
   Demis: "🌟", "3ème place": "🥉", Finale: "🏆",
 };
 

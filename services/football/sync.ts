@@ -49,6 +49,10 @@ function normalizePhase(strRound?: string): { phase: string; stage: string | nul
   if (/^group [a-l]$/i.test(strRound) || r.includes("group stage") || r.includes("group")) {
     return { phase: "Groupe", stage: strRound };
   }
+  // ⚠️ Libellé API "Round of 32" = 16es de finale en FR (32 équipes, 16 matchs).
+  // → phase technique "Seizièmes" ; l'UI n'affiche JAMAIS "32es". Testé avant le
+  // bloc "16" ("Round of 32" ne contient pas "16", mais l'ordre lève le doute).
+  if (r.includes("round of 32") || r.includes("32")) return { phase: "Seizièmes", stage: null };
   if (r.includes("round of 16") || r.includes("16")) return { phase: "Huitièmes", stage: null };
   if (r.includes("quarter")) return { phase: "Quarts", stage: null };
   if (r.includes("semi")) return { phase: "Demis", stage: null };

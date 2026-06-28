@@ -96,6 +96,12 @@ export default async function MatchesPage() {
     .filter((m) => m.status === "finished")
     .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
 
+  // Phase finale ouverte : au moins un match à élimination directe à venir/en
+  // cours (16es & suite). Bannière d'entrée vers le tableau pour parier.
+  const knockoutOpen = matches.some(
+    (m) => (m.status === "upcoming" || m.status === "live") && !!m.phase && m.phase !== "Groupe"
+  );
+
   return (
     <div className="max-w-2xl mx-auto">
       <div className="px-4 py-4 space-y-6">
@@ -138,6 +144,22 @@ export default async function MatchesPage() {
               </p>
             </div>
             <span className="text-canal-yellow text-xs font-bold shrink-0 mt-0.5">Remplir →</span>
+          </Link>
+        )}
+
+        {knockoutOpen && (
+          <Link
+            href="/bracket"
+            className="flex items-center gap-3 rounded-xl border border-canal-yellow/40 bg-gradient-to-r from-canal-yellow/15 to-transparent px-4 py-3 hover:from-canal-yellow/25 transition-colors"
+          >
+            <Trophy size={18} className="text-canal-yellow shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-black text-canal-yellow">🏆 Parier la phase finale</p>
+              <p className="text-xs text-canal-gray-muted mt-0.5">
+                Les seizièmes de finale sont ouverts — pronostique le score de chaque match du tableau.
+              </p>
+            </div>
+            <span className="text-canal-yellow text-xs font-bold shrink-0">Ouvrir →</span>
           </Link>
         )}
 
