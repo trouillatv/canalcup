@@ -85,6 +85,10 @@ async function syncLiveScoresApiF(): Promise<number> {
     // Score à la mi-temps (cumulé 45') — sert au joker Jet Lag (2e MT = FT − MT).
     const scoreHtA = f.score?.halftime?.home ?? null;
     const scoreHtB = f.score?.halftime?.away ?? null;
+    // Score du TEMPS RÉGLEMENTAIRE (90'+) — `goals` inclut la prolongation, donc
+    // on garde `score.fulltime` à part : c'est LUI qui juge les pronos KO.
+    const scoreRegA = f.score?.fulltime?.home ?? null;
+    const scoreRegB = f.score?.fulltime?.away ?? null;
     const apifId: number = f.fixture.id;
 
     // Match by apif_id first, then by team names
@@ -106,6 +110,7 @@ async function syncLiveScoresApiF(): Promise<number> {
       apif_id: apifId, status, minute,
       score_a: scoreA, score_b: scoreB,
       score_ht_a: scoreHtA, score_ht_b: scoreHtB,
+      score_reg_a: scoreRegA, score_reg_b: scoreRegB,
       venue: f.fixture.venue?.name ?? undefined,
       referee: f.fixture.referee ?? undefined,
       updated_at: new Date().toISOString(),
@@ -991,6 +996,9 @@ export async function syncSeason(): Promise<{ updated: number; inserted: number;
     const scoreB = f.goals.away ?? null;
     const scoreHtA = f.score?.halftime?.home ?? null;
     const scoreHtB = f.score?.halftime?.away ?? null;
+    // Score réglementaire (90'+) — base le scoring KO (prolongation exclue).
+    const scoreRegA = f.score?.fulltime?.home ?? null;
+    const scoreRegB = f.score?.fulltime?.away ?? null;
     const { phase, stage } = normalizePhase(f.league.round ?? undefined);
 
     const existing =
@@ -1005,6 +1013,7 @@ export async function syncSeason(): Promise<{ updated: number; inserted: number;
       await supabase.from("matches").update({
         external_id: apifId, apif_id: apifId, status, score_a: scoreA, score_b: scoreB,
         score_ht_a: scoreHtA, score_ht_b: scoreHtB,
+        score_reg_a: scoreRegA, score_reg_b: scoreRegB,
         team_a: teamAFr, team_b: teamBFr,
         flag_a: toFlag(f.teams.home.name), flag_b: toFlag(f.teams.away.name),
         phase, stage: stage ?? undefined,
@@ -1022,6 +1031,7 @@ export async function syncSeason(): Promise<{ updated: number; inserted: number;
         starts_at: f.fixture.date, channel: "Canal+", status,
         score_a: scoreA, score_b: scoreB,
         score_ht_a: scoreHtA, score_ht_b: scoreHtB,
+        score_reg_a: scoreRegA, score_reg_b: scoreRegB,
         venue: f.fixture.venue?.name ?? undefined,
       }).select("id").single();
       if (!error && inserted_match) {

@@ -83,7 +83,7 @@ export async function getTeamDashboard(teamId: string): Promise<TeamDashboard | 
       .select("role, user:users(id, display_name, name, email)")
       .eq("team_id", teamId),
     supabase.from("teams").select("id"),
-    supabase.from("matches").select("id, status, score_a, score_b, starts_at, team_a, team_b"),
+    supabase.from("matches").select("id, status, score_a, score_b, score_reg_a, score_reg_b, starts_at, team_a, team_b"),
     supabase.from("babyfoot_matches").select("team_a_id, team_b_id, score_a, score_b, status, starts_at").or(`team_a_id.eq.${teamId},team_b_id.eq.${teamId}`),
     supabase.from("challenges").select("id, title"),
     supabase.from("team_join_requests")

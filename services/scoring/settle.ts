@@ -2,7 +2,7 @@
 // Called by cron after syncLiveScores(), and by admin trigger
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { calculatePoints } from "@/lib/scoring";
+import { calculatePoints, regulationScore } from "@/lib/scoring";
 import { generateMatchStory } from "@/services/ai/generators/match-story";
 import { createFlash } from "@/lib/tv/flash";
 import { resolveQuitteOuDoubleForMatch, resolveKamikazeForMatch, resolveJetLagForMatch, consumeMatchBoundEffects } from "@/lib/jokers/service";
@@ -20,7 +20,7 @@ export async function settleMatch(matchId: string): Promise<{ settled: number; s
     .eq("id", matchId)
     .eq("is_settled", false)
     .eq("status", "finished")
-    .select("id, phase, score_a, score_b, score_ht_a, score_ht_b, team_a, team_b, flag_a, flag_b")
+    .select("id, phase, score_a, score_b, score_reg_a, score_reg_b, score_ht_a, score_ht_b, team_a, team_b, flag_a, flag_b")
     .single();
 
   // Another process already settled this match, or it's not finished/scores missing
@@ -29,6 +29,11 @@ export async function settleMatch(matchId: string): Promise<{ settled: number; s
   }
 
   const match = claimed;
+
+  // 🏁 RÈGLE PHASE FINALE : on juge sur le temps réglementaire (90'+), pas sur
+  // le score après prolongation/TAB. regulationScore() retombe sur score_a/b en
+  // phase de groupes. C'est CE score (regA/regB) qui sert à tout le scoring.
+  const { a: regA, b: regB } = regulationScore(match);
 
   // Fetch all predictions for this match
   const { data: predictions } = await supabase
@@ -42,8 +47,15 @@ export async function settleMatch(matchId: string): Promise<{ settled: number; s
   const updates = predictions.map((p) => ({
     id: p.id,
     points_awarded: calculatePoints(
-      // Pass minimal match shape required by calculatePoints
-      { phase: match.phase, score_a: match.score_a, score_b: match.score_b } as Parameters<typeof calculatePoints>[0],
+      // Pass minimal match shape required by calculatePoints. On inclut le score
+      // réglementaire : calculatePoints juge dessus (prolongation/TAB exclus).
+      {
+        phase: match.phase,
+        score_a: match.score_a,
+        score_b: match.score_b,
+        score_reg_a: match.score_reg_a,
+        score_reg_b: match.score_reg_b,
+      } as Parameters<typeof calculatePoints>[0],
       p.predicted_score_a ?? 0,
       p.predicted_score_b ?? 0
     ),
@@ -56,14 +68,14 @@ export async function settleMatch(matchId: string): Promise<{ settled: number; s
   // 💥 Quitte ou Double : écrase les points des joueurs ayant joué ce joker sur
   // ce match (score exact = +25, bon vainqueur = +20, raté = −10). Doit passer
   // APRÈS le calcul de base.
-  await resolveQuitteOuDoubleForMatch(supabase, matchId, match.score_a!, match.score_b!).catch((e) =>
+  await resolveQuitteOuDoubleForMatch(supabase, matchId, regA!, regB!).catch((e) =>
     console.error(`[settle] quitte_ou_double failed for match=${matchId}`, e)
   );
 
   // 💣 Kamikaze : score exact = +3× mise, bon résultat = 0 (mise sauvée),
   // mauvais résultat = −mise. Écrase les points du prono — donc APRÈS le calcul
   // de base. On ne perd la mise que si on se trompe de RÉSULTAT.
-  await resolveKamikazeForMatch(supabase, matchId, match.score_a!, match.score_b!).catch((e) =>
+  await resolveKamikazeForMatch(supabase, matchId, regA!, regB!).catch((e) =>
     console.error(`[settle] kamikaze failed for match=${matchId}`, e)
   );
 
@@ -72,8 +84,9 @@ export async function settleMatch(matchId: string): Promise<{ settled: number; s
   await resolveJetLagForMatch(supabase, {
     id: matchId,
     phase: match.phase,
-    score_a: match.score_a!,
-    score_b: match.score_b!,
+    // 2e mi-temps = temps réglementaire − mi-temps (la prolongation ne compte pas).
+    score_a: regA!,
+    score_b: regB!,
     score_ht_a: match.score_ht_a,
     score_ht_b: match.score_ht_b,
   }).catch((e) => console.error(`[settle] jet_lag failed for match=${matchId}`, e));
@@ -90,13 +103,13 @@ export async function settleMatch(matchId: string): Promise<{ settled: number; s
 
   // Flash TV — score exact détecté (fire-and-forget)
   const exactCount = predictions.filter(
-    (p) => p.predicted_score_a === match.score_a && p.predicted_score_b === match.score_b
+    (p) => p.predicted_score_a === regA && p.predicted_score_b === regB
   ).length;
   if (exactCount > 0) {
     createFlash(
       "score_exact",
       "⚡ SCORE EXACT DÉTECTÉ",
-      `${exactCount} équipe${exactCount > 1 ? "s ont" : " a"} vu juste : ${match.score_a}-${match.score_b}`,
+      `${exactCount} équipe${exactCount > 1 ? "s ont" : " a"} vu juste : ${regA}-${regB}`,
       "⚡",
       8
     ).catch(() => {});
@@ -107,11 +120,11 @@ export async function settleMatch(matchId: string): Promise<{ settled: number; s
   // personnes), pour que ça reste un moment « héros ».
   void (async () => {
     const exactPreds = predictions.filter(
-      (p) => p.predicted_score_a === match.score_a && p.predicted_score_b === match.score_b
+      (p) => p.predicted_score_a === regA && p.predicted_score_b === regB
     );
     if (!exactPreds.length || exactPreds.length > 3) return;
     const n = exactPreds.length;
-    const score = `${match.score_a}-${match.score_b}`;
+    const score = `${regA}-${regB}`;
     const url = `/matches/${matchId}?tab=pronos`;
     const { data: users } = await supabase.from("users").select("id, auth_id").in("id", exactPreds.map((p) => p.user_id));
     const authById = new Map((users ?? []).map((u: { id: string; auth_id: string | null }) => [u.id, u.auth_id]));
@@ -153,7 +166,7 @@ async function checkPerfectStreak(userId: string): Promise<void> {
   // Get user's last 3 predictions on finished+settled matches, ordered by kickoff
   const { data: rows } = await supabase
     .from("predictions")
-    .select("points_awarded, predicted_score_a, predicted_score_b, match:matches(score_a, score_b, starts_at, is_settled, status, phase)")
+    .select("points_awarded, predicted_score_a, predicted_score_b, match:matches(score_a, score_b, score_reg_a, score_reg_b, starts_at, is_settled, status, phase)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(10);
@@ -170,11 +183,10 @@ async function checkPerfectStreak(userId: string): Promise<void> {
 
   // Check last 3 settled predictions for exact scores
   const last3 = settled.slice(-3);
-  const allExact = last3.every(
-    (r) =>
-      r.predicted_score_a === r.match.score_a &&
-      r.predicted_score_b === r.match.score_b
-  );
+  const allExact = last3.every((r) => {
+    const { a, b } = regulationScore(r.match);
+    return r.predicted_score_a === a && r.predicted_score_b === b;
+  });
 
   if (!allExact) return;
 

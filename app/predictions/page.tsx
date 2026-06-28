@@ -45,6 +45,9 @@ interface MatchRow {
   flag_b?: string;
   score_a?: number;
   score_b?: number;
+  // Score réglementaire (90'+) — juge le prono en KO (prolongation/TAB exclus).
+  score_reg_a?: number | null;
+  score_reg_b?: number | null;
   status: string;
   starts_at: string;
   phase?: string;
@@ -493,7 +496,13 @@ function PredHistoryRow({ pred }: { pred: PredRow }) {
   // "République Tchèque") pour l'affichage et le drapeau (fallback sur le nom).
   const teamA = toFrench(m.team_a);
   const teamB = toFrench(m.team_b);
-  const isExact = isFinished && m.score_a === pred.predicted_score_a && m.score_b === pred.predicted_score_b;
+  // Score qui juge le prono = temps réglementaire (fallback score affiché).
+  const regA = m.score_reg_a ?? m.score_a;
+  const regB = m.score_reg_b ?? m.score_b;
+  const isExact = isFinished && regA === pred.predicted_score_a && regB === pred.predicted_score_b;
+  // Le match est allé en prolongation si le score final diffère du réglementaire.
+  const wentExtra =
+    isFinished && m.score_reg_a != null && (m.score_reg_a !== m.score_a || m.score_reg_b !== m.score_b);
   const pts = pred.points_awarded ?? 0;
 
   return (
@@ -518,8 +527,13 @@ function PredHistoryRow({ pred }: { pred: PredRow }) {
         {/* Result */}
         {(isFinished || isLive) && (
           <div className="text-center shrink-0">
-            <p className="text-xs text-canal-gray-muted">{isLive ? "En cours" : "Résultat"}</p>
-            <p className="font-black text-sm text-white">{m.score_a ?? 0}–{m.score_b ?? 0}</p>
+            <p className="text-xs text-canal-gray-muted">{isLive ? "En cours" : wentExtra ? "Résultat 90'" : "Résultat"}</p>
+            <p className="font-black text-sm text-white">
+              {isFinished ? regA ?? 0 : m.score_a ?? 0}–{isFinished ? regB ?? 0 : m.score_b ?? 0}
+            </p>
+            {wentExtra && (
+              <p className="text-[10px] text-canal-gray-muted">a.p. {m.score_a}–{m.score_b}</p>
+            )}
           </div>
         )}
 

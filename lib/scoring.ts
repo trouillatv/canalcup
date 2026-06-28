@@ -34,13 +34,28 @@ export function getMultiplier(phase: string | null | undefined): number {
   return PHASE_MULTIPLIERS[phase ?? "Group Stage"] ?? 1;
 }
 
+// Score qui JUGE le prono = temps réglementaire (90' + arrêts de jeu). Règle
+// phase finale : prolongation & tirs au but NE COMPTENT PAS. On lit donc
+// score_reg_a/b en priorité ; fallback sur score_a/b (phase de groupes, ou
+// matchs non encore re-synchronisés où score_reg n'est pas renseigné).
+export function regulationScore(m: {
+  score_a?: number | null;
+  score_b?: number | null;
+  score_reg_a?: number | null;
+  score_reg_b?: number | null;
+}): { a: number | null; b: number | null } {
+  return {
+    a: m.score_reg_a ?? m.score_a ?? null,
+    b: m.score_reg_b ?? m.score_b ?? null,
+  };
+}
+
 export function calculatePoints(
   match: Match,
   predictedScoreA: number,
   predictedScoreB: number
 ): number {
-  const actualA = match.score_a ?? null;
-  const actualB = match.score_b ?? null;
+  const { a: actualA, b: actualB } = regulationScore(match);
 
   if (actualA === null || actualB === null) return 0;
 
@@ -77,15 +92,25 @@ export type PredictionOutcome = "exact" | "correct_result" | "correct_diff" | "w
 
 export function getPredictionOutcome(
   pred: { predicted_score_a: number | null; predicted_score_b: number | null },
-  match: { status?: string | null; score_a: number | null; score_b: number | null } | null | undefined
+  match:
+    | {
+        status?: string | null;
+        score_a: number | null;
+        score_b: number | null;
+        score_reg_a?: number | null;
+        score_reg_b?: number | null;
+      }
+    | null
+    | undefined
 ): PredictionOutcome {
   const pa = pred.predicted_score_a;
   const pb = pred.predicted_score_b;
-  if (!match || match.score_a == null || match.score_b == null) return "pending";
+  if (!match) return "pending";
   if (match.status && match.status !== "finished") return "pending";
   if (pa == null || pb == null) return "pending";
-  const aa = match.score_a;
-  const ab = match.score_b;
+  // Jugé sur le temps réglementaire (prolongation/TAB exclus en KO).
+  const { a: aa, b: ab } = regulationScore(match);
+  if (aa == null || ab == null) return "pending";
   if (pa === aa && pb === ab) return "exact";
   if (getResult(pa, pb) === getResult(aa, ab)) return "correct_result";
   if (pa - pb === aa - ab) return "correct_diff";

@@ -8,7 +8,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminEmails } from "@/lib/data/roles";
-import { calculatePoints } from "@/lib/scoring";
+import { calculatePoints, regulationScore } from "@/lib/scoring";
 import { isFogged } from "@/lib/jokers/gating";
 import type { Match } from "@/lib/supabase/types";
 
@@ -48,9 +48,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const { data: match } = await supabase
     .from("matches")
-    .select("status, score_a, score_b, phase, starts_at")
+    .select("status, score_a, score_b, score_reg_a, score_reg_b, phase, starts_at")
     .eq("id", id)
     .single();
+  // Score qui juge : temps réglementaire si dispo (KO fini), sinon score courant
+  // (en live, score_reg est null → on garde le score live provisoire).
+  const judge = match ? regulationScore(match) : { a: null, b: null };
 
   const { data: preds } = await supabase
     .from("predictions")
@@ -76,7 +79,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const finished = match?.status === "finished";
   const live = match?.status === "live" || match?.status === "halftime";
   // On a un score à comparer dès que le match est en cours OU fini.
-  const hasScore = (live || finished) && match?.score_a != null && match?.score_b != null;
+  const hasScore = (live || finished) && judge.a != null && judge.b != null;
 
   // Détail par personne (admins exclus), avec résultat + points calculés EN
   // DIRECT contre le score courant (provisoires en live, définitifs à la fin).
@@ -87,10 +90,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       if (email && adminEmails.has(email)) return null; // admin → exclu
       const pa = p.predicted_score_a ?? 0;
       const pb = p.predicted_score_b ?? 0;
-      const outcome = hasScore ? liveOutcome(pa, pb, match!.score_a, match!.score_b) : "pending";
+      const outcome = hasScore ? liveOutcome(pa, pb, judge.a, judge.b) : "pending";
       const points = hasScore
         ? calculatePoints(
-            { phase: match?.phase, score_a: match?.score_a, score_b: match?.score_b } as Match,
+            {
+              phase: match?.phase,
+              score_a: match?.score_a,
+              score_b: match?.score_b,
+              score_reg_a: match?.score_reg_a,
+              score_reg_b: match?.score_reg_b,
+            } as Match,
             pa,
             pb
           )

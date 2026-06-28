@@ -69,6 +69,8 @@ function ScorePredictInput({
   const locked = hasStarted && !varEditable;
   const canSave = scoreA !== "" && scoreB !== "";
   const isUpdate = !!savedScore && !saved;
+  // Phase finale : le prono se juge sur le temps réglementaire (90'+).
+  const isKnockout = !!match.phase && match.phase !== "Groupe";
 
   const setDraft = (side: "a" | "b", rawValue: string) => {
     const nextValue: ScoreDraft =
@@ -141,6 +143,11 @@ function ScorePredictInput({
         </p>
       ) : (
         <p className="text-xs text-canal-gray-muted text-center">Votre pronostic</p>
+      )}
+      {isKnockout && (
+        <p className="text-[11px] text-canal-yellow/90 text-center flex items-center justify-center gap-1">
+          ⏱ Score à la fin du temps réglementaire (90&apos;+). Prolongation et tirs au but ne comptent pas.
+        </p>
       )}
       <div className="flex items-center gap-3 justify-center">
         {/* Score A */}

@@ -26,7 +26,7 @@ export async function GET() {
       prediction_result,
       points_awarded,
       created_at,
-      match:matches(id, team_a, team_b, flag_a, flag_b, score_a, score_b, status, starts_at, phase, stage, is_settled)
+      match:matches(id, team_a, team_b, flag_a, flag_b, score_a, score_b, score_reg_a, score_reg_b, status, starts_at, phase, stage, is_settled)
     `)
     .eq("user_id", profile.id)
     .order("created_at", { ascending: false });
@@ -36,9 +36,13 @@ export async function GET() {
   const all = (predictions ?? []) as any[];
   const finished = all.filter((p) => p.match?.status === "finished");
   const totalPts = finished.reduce((s: number, p: any) => s + (p.points_awarded ?? 0), 0);
-  const exactScores = finished.filter((p: any) =>
-    p.match && p.predicted_score_a === p.match.score_a && p.predicted_score_b === p.match.score_b
-  ).length;
+  // Score exact jugé sur le temps réglementaire (prolongation/TAB exclus en KO).
+  const exactScores = finished.filter((p: any) => {
+    if (!p.match) return false;
+    const ra = p.match.score_reg_a ?? p.match.score_a;
+    const rb = p.match.score_reg_b ?? p.match.score_b;
+    return p.predicted_score_a === ra && p.predicted_score_b === rb;
+  }).length;
   const correctResults = finished.filter((p: any) => (p.points_awarded ?? 0) >= 5 && (p.points_awarded ?? 0) < 10).length;
   const pending = all.filter((p: any) => p.match?.status === "upcoming").length;
 

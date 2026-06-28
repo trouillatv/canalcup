@@ -73,7 +73,7 @@ export async function getTeamPredictionHeatmap(teamId: string): Promise<TeamHeat
   const supabase = await createClient();
   const [{ data: membersRaw }, { data: matches }, adminEmails] = await Promise.all([
     supabase.from("users").select("id, display_name, name, email").eq("team_id", teamId),
-    supabase.from("matches").select("id, status, score_a, score_b, starts_at, team_a, team_b"),
+    supabase.from("matches").select("id, status, score_a, score_b, score_reg_a, score_reg_b, starts_at, team_a, team_b"),
     getAdminEmails(),
   ]);
   // Admins exclus (organisateurs, pas des joueurs).
@@ -144,7 +144,7 @@ export async function getTvPredictionHeatmap(): Promise<TvHeatmapRow[]> {
   const ids = top.map((r) => r.user_id);
 
   const [{ data: matches }, { data: preds }] = await Promise.all([
-    supabase.from("matches").select("id, status, score_a, score_b, starts_at"),
+    supabase.from("matches").select("id, status, score_a, score_b, score_reg_a, score_reg_b, starts_at"),
     supabase
       .from("predictions")
       .select("id, user_id, match_id, predicted_score_a, predicted_score_b, created_at")
@@ -209,7 +209,7 @@ export async function getPlayerDashboard(userId: string): Promise<PlayerDashboar
     u.service_id ? supabase.from("services").select("name").eq("id", u.service_id).maybeSingle() : Promise.resolve({ data: null }),
     u.team_id ? supabase.from("teams").select("id, name").eq("id", u.team_id).maybeSingle() : Promise.resolve({ data: null }),
     supabase.from("predictions").select("id, match_id, predicted_score_a, predicted_score_b, points_awarded, created_at").eq("user_id", userId).order("created_at", { ascending: false }),
-    supabase.from("matches").select("id, status, score_a, score_b, starts_at, team_a, team_b"),
+    supabase.from("matches").select("id, status, score_a, score_b, score_reg_a, score_reg_b, starts_at, team_a, team_b"),
     supabase.from("quiz_answers").select("id, is_correct, response_time_ms, points_awarded, created_at").eq("user_id", userId).order("created_at", { ascending: false }),
     supabase.from("challenge_entries").select("id, challenge_id, points_awarded, created_at").eq("user_id", userId).order("created_at", { ascending: false }),
     supabase.from("challenge_entry_participants").select("entry_id, created_at").eq("user_id", userId),

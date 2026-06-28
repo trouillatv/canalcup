@@ -140,6 +140,10 @@ export interface Match {
   score_b?: number;
   score_ht_a?: number | null;
   score_ht_b?: number | null;
+  // Score du temps réglementaire (90'+) — prolongation/TAB exclus. Base le
+  // scoring des pronos KO ; null en phase de groupes (= score_a/score_b).
+  score_reg_a?: number | null;
+  score_reg_b?: number | null;
   is_match_of_week?: boolean;
   is_settled?: boolean;
   finished_at?: string | null;
