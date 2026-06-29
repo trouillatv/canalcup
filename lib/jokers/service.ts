@@ -295,6 +295,7 @@ async function checkTargetGuards(
   match: { id: string; phase: string | null } | null
 ): Promise<string | null> {
   const target = params.targetUserId ?? null;
+  const me = params.playedByUserId;
 
   if (params.type === "carton_rouge" && target && match) {
     // Le ciblé peut-il déjà être suspendu sur CE match ?
@@ -320,20 +321,111 @@ async function checkTargetGuards(
         }
       }
     }
+    // 🚫×🎥/💥/💣 — le Carton Rouge supprime le prono de la cible sur ce match :
+    // il annulerait une VAR ou un pari (Quitte ou Double / Kamikaze) déjà investi
+    // par la cible sur CE match. On refuse pour ne pas gâcher son joker.
+    if (await hasActiveEffect(target, "var_window", match.id)) {
+      return "Cette personne a une VAR active sur ce match : le Carton Rouge l'annulerait. Vise un autre match.";
+    }
+    if (await hasActivePlayOnMatch(admin, target, match.id, ["quitte_ou_double", "kamikaze"])) {
+      return "Cette personne a un pari (Quitte ou Double / Kamikaze) en cours sur ce match : le Carton Rouge l'annulerait.";
+    }
   }
 
-  // (Brouillard / Jet Lag : le cumul d'offensifs sur une même cible est déjà
-  // bloqué en amont par la règle « un seul joker offensif à la fois » — cf.
-  // playJoker étape 3.)
+  // 🌫 Brouillard : verrou de modif global + masque les pronos des autres. Il
+  // annulerait la VAR (sur un match non terminé) ou l'Espion que la cible a déjà
+  // joués sur elle-même. (Le cumul d'offensifs est déjà bloqué à l'étape 3.)
+  if (params.type === "brouillard" && target) {
+    if (await hasActiveVarWindowOnLiveMatch(admin, target)) {
+      return "Cette personne a une VAR active : le Brouillard l'annulerait. Vise quelqu'un d'autre.";
+    }
+    if (await hasActiveEffect(target, "spy")) {
+      return "Cette personne a un Espion actif : le Brouillard la rendrait aveugle. Vise quelqu'un d'autre.";
+    }
+  }
+
+  // 🛬 Jet Lag : re-juge le prono de la cible sur la 2e mi-temps → entrerait en
+  // collision avec un pari (Quitte ou Double / Kamikaze) qui réécrit déjà le
+  // score de ce prono au settlement.
+  if (params.type === "retard_avion" && target && match) {
+    if (await hasActivePlayOnMatch(admin, target, match.id, ["quitte_ou_double", "kamikaze"])) {
+      return "Cette personne a un pari (Quitte ou Double / Kamikaze) en cours sur ce match : le Jet Lag entrerait en collision.";
+    }
+  }
+
+  // 🎥 VAR : refus si elle serait immédiatement neutralisée par un effet hostile
+  // déjà subi (Brouillard / Retard d'Avion = verrou modif ; Carton Rouge = prono
+  // supprimé). Sinon double emploi sur le même match.
   if (params.type === "var" && params.matchId) {
     if (await hasActiveEffect(params.playedByUserId, "var_window", params.matchId)) {
       return "Tu as déjà une VAR active sur ce match.";
     }
+    if (await hasActiveEffect(me, "fog")) {
+      return "🌫 Tu es dans le Brouillard : ta VAR serait sans effet (modif déjà bloquée). Attends la fin de la brume.";
+    }
+    if (await hasActiveEffect(me, "flight_delay")) {
+      return "✈️ Retard d'Avion actif : ta VAR serait sans effet. Impossible de la jouer.";
+    }
+    if (await hasActiveEffect(me, "red_card_block", params.matchId)) {
+      return "🚫 Tu es suspendu (Carton Rouge) sur ce match : la VAR n'y servirait à rien.";
+    }
   }
+
+  // 🕵️ Espion : refus s'il est joué sous Brouillard (il ne verrait rien).
   if (params.type === "espion") {
     if (await hasActiveEffect(params.playedByUserId, "spy")) return "Tu as déjà un Espion actif.";
+    if (await hasActiveEffect(me, "fog")) {
+      return "🌫 Tu es dans le Brouillard : l'Espion ne verrait rien. Attends la fin de la brume.";
+    }
   }
+
+  // 💥/💣 Quitte ou Double / Kamikaze : refus si tu es suspendu (Carton Rouge) sur
+  // ce match — ton prono y est supprimé, le pari serait perdu d'avance. Et un seul
+  // pari par match : les deux écrasent le score du prono au settlement (collision).
+  if ((params.type === "quitte_ou_double" || params.type === "kamikaze") && params.matchId) {
+    if (await hasActiveEffect(me, "red_card_block", params.matchId)) {
+      return "🚫 Tu es suspendu (Carton Rouge) sur ce match : impossible d'y jouer ce joker.";
+    }
+    if (await hasActivePlayOnMatch(admin, me, params.matchId, ["quitte_ou_double", "kamikaze"])) {
+      return "Tu as déjà un pari (Quitte ou Double ou Kamikaze) en cours sur ce match — un seul à la fois.";
+    }
+  }
+
   return null;
+}
+
+/** Un joker (parmi `types`) est-il encore en jeu (status active) pour `userId`
+ *  sur ce match ? Sert à détecter un pari Quitte/Double / Kamikaze en cours. */
+async function hasActivePlayOnMatch(
+  admin: Admin,
+  userId: string,
+  matchId: string,
+  types: JokerType[]
+): Promise<boolean> {
+  const { data } = await admin
+    .from("joker_plays")
+    .select("id")
+    .eq("played_by_user_id", userId)
+    .eq("match_id", matchId)
+    .eq("status", "active")
+    .in("joker_type", types)
+    .limit(1);
+  return (data ?? []).length > 0;
+}
+
+/** La cible a-t-elle une VAR (var_window) active sur un match PAS encore terminé ?
+ *  Une VAR sur un match fini est sans objet → ne bloque pas le Brouillard. */
+async function hasActiveVarWindowOnLiveMatch(admin: Admin, userId: string): Promise<boolean> {
+  const { data: effs } = await admin
+    .from("joker_effects")
+    .select("match_id")
+    .eq("affected_user_id", userId)
+    .eq("effect_type", "var_window")
+    .eq("status", "active");
+  const matchIds = (effs ?? []).map((e) => e.match_id).filter(Boolean) as string[];
+  if (!matchIds.length) return false;
+  const { data: ms } = await admin.from("matches").select("id, status").in("id", matchIds);
+  return (ms ?? []).some((m) => m.status !== "finished");
 }
 
 async function applyJoker(
