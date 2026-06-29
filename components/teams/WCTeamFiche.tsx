@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Users, Newspaper, TrendingUp, Shirt, BarChart3, Award, BarChart2 } from "lucide-react";
@@ -67,6 +67,18 @@ interface PlayerCompStat {
   red_cards: number;
   motm: number;
   avg_rating: number | null;
+}
+
+interface LiveResult {
+  match_id: string;
+  phase: string;
+  is_knockout: boolean;
+  opponent: string;
+  opponent_flag?: string | null;
+  gf: number;
+  ga: number;
+  result: "V" | "N" | "D";
+  date: string;
 }
 
 type EffectifView = "club" | "stats" | "selection";
@@ -181,6 +193,34 @@ function PlayerEffectifRow({
   );
 }
 
+// Ligne « stats compétition » — affiche un VRAI joueur ayant joué (poules + KO),
+// directement depuis l'agrégat live (pas le roster statique), pour éviter le
+// « vide » dû aux écarts de noms roster ↔ API.
+function CompStatRow({ s }: { s: PlayerCompStat }) {
+  return (
+    <div className="canal-card p-3 flex items-center gap-3">
+      <div className="flex-1 min-w-0">
+        <p className="font-bold text-white text-sm truncate">{s.player_name}</p>
+        <p className="text-xs text-canal-gray-muted">
+          {s.matches} match{s.matches > 1 ? "s" : ""}{s.motm ? ` · ⭐ ${s.motm}` : ""}
+        </p>
+      </div>
+      <div className="flex items-center gap-2 shrink-0 tabular-nums">
+        <span className="text-xs text-white" title="Buts">⚽ {s.goals}</span>
+        <span className="text-xs text-canal-gray-muted" title="Passes décisives">🅰️ {s.assists}</span>
+        <span className="text-xs" title="Cartons">
+          🟨 {s.yellow_cards}{s.red_cards ? ` 🟥 ${s.red_cards}` : ""}
+        </span>
+        {s.avg_rating != null && (
+          <span className={cn("text-xs font-black px-1.5 py-0.5 rounded", ratingBadgeClass(s.avg_rating))} title="Note moyenne">
+            {s.avg_rating.toFixed(1)}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function WCTeamFiche({ team }: { team: WCTeam }) {
   const router = useRouter();
   const goBack = () => {
@@ -189,28 +229,36 @@ export function WCTeamFiche({ team }: { team: WCTeam }) {
   };
   const [tab, setTab] = useState<TabKey>("effectif");
   const [effectifView, setEffectifView] = useState<EffectifView>("club");
-  const [compStats, setCompStats] = useState<Record<string, PlayerCompStat> | null>(null);
+  const [live, setLive] = useState<{ players: PlayerCompStat[]; results: LiveResult[]; form: string[] } | null>(null);
   const grouped = groupPlayers(team.players);
   // Poule officielle (bracket) de l'équipe — null si hors tirage des 48.
   const poolLetter = groupLetterForTeam(team.name);
   const fifaEntry = getFIFARank(team.name);
 
-  // Charge les stats compétition une seule fois, à la 1re bascule "stats".
+  // Charge en une fois les données VIVES de la compétition : stats joueurs +
+  // résultats réels (poules ET phase finale) + forme. Sert tous les onglets.
   useEffect(() => {
-    if (effectifView !== "stats" || compStats !== null) return;
+    let alive = true;
     fetch(`/api/wc-team/${team.slug}/stats`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((d: { players?: PlayerCompStat[] } | null) => {
-        const map: Record<string, PlayerCompStat> = {};
-        for (const s of d?.players ?? []) map[normName(s.player_name)] = s;
-        setCompStats(map);
+      .then((d: { players?: PlayerCompStat[]; results?: LiveResult[]; form?: string[] } | null) => {
+        if (!alive) return;
+        setLive({ players: d?.players ?? [], results: d?.results ?? [], form: d?.form ?? [] });
       })
-      .catch(() => setCompStats({}));
-  }, [effectifView, compStats, team.slug]);
+      .catch(() => { if (alive) setLive({ players: [], results: [], form: [] }); });
+    return () => { alive = false; };
+  }, [team.slug]);
 
-  const statFor = (name: string): PlayerCompStat | undefined =>
-    compStats ? compStats[normName(name)] : undefined;
-  const hasAnyStats = compStats != null && Object.keys(compStats).length > 0;
+  const compStats = useMemo(() => {
+    const map: Record<string, PlayerCompStat> = {};
+    for (const s of live?.players ?? []) map[normName(s.player_name)] = s;
+    return map;
+  }, [live]);
+  const statFor = (name: string): PlayerCompStat | undefined => compStats[normName(name)];
+  const hasAnyStats = (live?.players.length ?? 0) > 0;
+  // Résultats & forme RÉELS (poules + KO) ; fallback JSON statique pré-tournoi.
+  const liveResults = live?.results ?? [];
+  const liveForm = live && live.form.length > 0 ? live.form : null;
 
   // Stats sélection : présentes uniquement si data/wc-teams.json a été enrichi
   // (script Python, après validation). Sinon dégradation propre.
@@ -343,14 +391,6 @@ export function WCTeamFiche({ team }: { team: WCTeam }) {
                 ))}
               </div>
 
-              {effectifView === "stats" && !hasAnyStats && (
-                <p className="canal-card text-center text-canal-gray-muted text-xs py-3">
-                  {compStats == null
-                    ? "Chargement des statistiques…"
-                    : "Statistiques cumulées disponibles dès le coup d'envoi de la compétition (buts, notes, cartons par joueur)."}
-                </p>
-              )}
-
               {effectifView === "selection" && !hasSelection && (
                 <p className="canal-card text-center text-canal-gray-muted text-xs py-3">
                   Stats sélection (caps, buts en sélection) à venir — enrichissement
@@ -365,23 +405,48 @@ export function WCTeamFiche({ team }: { team: WCTeam }) {
                 </p>
               )}
 
-              {grouped.map((bucket) => (
-                <section key={bucket.label}>
-                  <h2 className="text-xs font-bold text-canal-yellow uppercase tracking-wider mb-2">
-                    {bucket.label} ({bucket.players.length})
-                  </h2>
-                  <div className="space-y-1.5">
-                    {bucket.players.map((p, i) => (
-                      <PlayerEffectifRow
-                        key={`${p.name}-${i}`}
-                        p={p}
-                        view={effectifView}
-                        stat={statFor(p.name)}
-                      />
-                    ))}
-                  </div>
-                </section>
-              ))}
+              {/* Stats compétition : on liste les VRAIS joueurs ayant joué
+                  (poules + phase finale), tirés de l'agrégat live. */}
+              {effectifView === "stats" ? (
+                live == null ? (
+                  <p className="canal-card text-center text-canal-gray-muted text-xs py-3">
+                    Chargement des statistiques…
+                  </p>
+                ) : !hasAnyStats ? (
+                  <p className="canal-card text-center text-canal-gray-muted text-xs py-3">
+                    Statistiques disponibles dès le coup d&apos;envoi de la compétition (buts, notes, cartons par joueur).
+                  </p>
+                ) : (
+                  <section>
+                    <h2 className="text-xs font-bold text-canal-yellow uppercase tracking-wider mb-2">
+                      Statistiques compétition ({live!.players.length} joueurs)
+                    </h2>
+                    <div className="space-y-1.5">
+                      {live!.players.map((s) => (
+                        <CompStatRow key={s.player_name} s={s} />
+                      ))}
+                    </div>
+                  </section>
+                )
+              ) : (
+                grouped.map((bucket) => (
+                  <section key={bucket.label}>
+                    <h2 className="text-xs font-bold text-canal-yellow uppercase tracking-wider mb-2">
+                      {bucket.label} ({bucket.players.length})
+                    </h2>
+                    <div className="space-y-1.5">
+                      {bucket.players.map((p, i) => (
+                        <PlayerEffectifRow
+                          key={`${p.name}-${i}`}
+                          p={p}
+                          view={effectifView}
+                          stat={statFor(p.name)}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                ))
+              )}
             </>
           )}
         </div>
@@ -392,9 +457,40 @@ export function WCTeamFiche({ team }: { team: WCTeam }) {
         <div className="space-y-5">
           <section>
             <h2 className="text-xs font-bold text-canal-yellow uppercase tracking-wider mb-2">
-              Derniers résultats
+              {liveResults.length > 0 ? "Parcours Coupe du Monde" : "Derniers résultats"}
             </h2>
-            {team.recentScores.length > 0 ? (
+            {liveResults.length > 0 ? (
+              // Résultats RÉELS de la compétition : poules ET phase finale.
+              <div className="canal-card divide-y divide-canal-gray-light/20">
+                {liveResults.map((r) => (
+                  <Link
+                    key={r.match_id}
+                    href={`/matches/${r.match_id}`}
+                    className="flex items-center gap-2 py-2 first:pt-0 last:pb-0 hover:bg-canal-gray/30 rounded-lg px-1 -mx-1 transition-colors"
+                  >
+                    <span
+                      className={cn(
+                        "text-[10px] font-black px-1.5 py-0.5 rounded shrink-0 w-12 text-center",
+                        r.is_knockout ? "bg-canal-yellow/15 text-canal-yellow" : "bg-canal-gray-mid text-canal-gray-muted"
+                      )}
+                    >
+                      {r.phase}
+                    </span>
+                    <Flag flag={r.opponent_flag ?? null} name={r.opponent} className="h-4 w-auto rounded-sm shrink-0" emojiClassName="text-base" />
+                    <span className="flex-1 text-sm text-white truncate">{r.opponent}</span>
+                    <span className="text-sm font-black tabular-nums text-white shrink-0">{r.gf}–{r.ga}</span>
+                    <span
+                      className={cn(
+                        "text-[11px] font-black w-5 text-center shrink-0",
+                        r.result === "V" ? "text-green-400" : r.result === "D" ? "text-red-400" : "text-canal-gray-muted"
+                      )}
+                    >
+                      {r.result}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            ) : team.recentScores.length > 0 ? (
               <div className="canal-card divide-y divide-canal-gray-light/20">
                 {team.recentScores.map((s, i) => (
                   <div key={i} className="flex items-start gap-2 py-2 first:pt-0 last:pb-0">
@@ -449,16 +545,16 @@ export function WCTeamFiche({ team }: { team: WCTeam }) {
                 </span>
               )}
             </div>
-            {team.form.length > 0 ? (
+            {(liveForm ?? team.form).length > 0 ? (
               <div className="canal-card flex flex-wrap gap-2">
-                {team.form.map((f, i) => {
-                  const c = formCode(f);
+                {(liveForm ?? team.form).map((f, i) => {
+                  const c = liveForm ? f : formCode(f);
                   return (
                     <span
                       key={i}
                       className={cn(
                         "px-2.5 py-1.5 rounded-lg border text-xs font-bold",
-                        FORM_STYLE[c]
+                        FORM_STYLE[c] ?? FORM_STYLE["?"]
                       )}
                     >
                       {f}

@@ -49,7 +49,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   // Matchs où la sélection joue, avec son côté (team_a = home, team_b = away).
   const { data: matches } = await supabase
     .from("matches")
-    .select("id, team_a, team_b, phase, stage, status")
+    .select("id, team_a, team_b, flag_a, flag_b, score_a, score_b, phase, stage, status, starts_at")
     .eq("status", "finished")
     .or(`team_a.ilike.${team.name},team_b.ilike.${team.name}`);
 
@@ -61,9 +61,36 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     sideByMatch.set(m.id, m.team_a?.toLowerCase() === team.name.toLowerCase() ? "home" : "away");
   }
 
+  // Résultats réels (poules + phase finale) du point de vue de la sélection,
+  // du plus récent au plus ancien — pour la fiche (« Derniers résultats »).
+  const PHASE_LABEL: Record<string, string> = {
+    Groupe: "Groupe", Seizièmes: "16e", Huitièmes: "8e", Quarts: "Quart",
+    Demis: "Demi", "3ème place": "3e place", Finale: "Finale",
+  };
+  const results = officialMatches
+    .filter((m) => m.score_a != null && m.score_b != null)
+    .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime())
+    .map((m) => {
+      const home = sideByMatch.get(m.id) === "home";
+      const gf = (home ? m.score_a : m.score_b) ?? 0;
+      const ga = (home ? m.score_b : m.score_a) ?? 0;
+      return {
+        match_id: m.id,
+        phase: PHASE_LABEL[m.phase ?? "Groupe"] ?? m.phase ?? "",
+        is_knockout: m.phase !== "Groupe",
+        opponent: home ? m.team_b : m.team_a,
+        opponent_flag: home ? m.flag_b : m.flag_a,
+        gf, ga,
+        result: gf > ga ? "V" : gf < ga ? "D" : "N",
+        date: m.starts_at,
+      };
+    });
+  // Forme = 5 derniers résultats, du plus ancien au plus récent (gauche→droite).
+  const form = results.slice(0, 5).map((r) => r.result).reverse();
+
   if (sideByMatch.size === 0) {
     return NextResponse.json(
-      { team: team.name, players: [], played: 0 },
+      { team: team.name, players: [], played: 0, results: [], form: [] },
       { headers: { "Cache-Control": "no-store" } }
     );
   }
@@ -151,7 +178,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     );
 
   return NextResponse.json(
-    { team: team.name, players, played: playedMatches.size },
+    { team: team.name, players, played: playedMatches.size, results, form },
     { headers: { "Cache-Control": "no-store" } }
   );
 }
