@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAdminEmails } from "@/lib/data/roles";
+import { selectAll } from "@/lib/data/select-all";
 import type { Match, PredictionTrend } from "@/lib/supabase/types";
 import { groupLetterForTeam } from "@/lib/football/groups-2026";
 import { toFrench } from "@/lib/football/team-names";
@@ -125,10 +126,22 @@ export async function getGroupStandings(): Promise<GroupStandingRow[]> {
 export async function getPredictionTrends(): Promise<Record<string, PredictionTrend>> {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("predictions")
-      .select("match_id, prediction_result, user_id, predicted_score_a, predicted_score_b");
-    if (error || !data?.length) return {};
+    // ⚠️ Lecture AGRÉGÉE sur TOUTE la table : PostgREST plafonne chaque réponse
+    // à 1000 lignes. Sans pagination, dès que `predictions` dépasse 1000 lignes
+    // les pronos des matchs récents (insérés en dernier) tombent dans la tranche
+    // coupée → la carte affichait « 3 pronostics » au lieu de 29. On pagine.
+    const data = await selectAll<{
+      match_id: string;
+      prediction_result: "A" | "DRAW" | "B" | null;
+      user_id: string;
+      predicted_score_a: number | null;
+      predicted_score_b: number | null;
+    }>(
+      supabase,
+      "predictions",
+      "match_id, prediction_result, user_id, predicted_score_a, predicted_score_b"
+    );
+    if (!data.length) return {};
 
     // Mêmes règles que l'API /api/matches/[id]/predictions-trend pour que les
     // compteurs concordent : on ignore les pronos incomplets (score null) et on
