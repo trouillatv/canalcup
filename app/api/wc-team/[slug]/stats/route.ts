@@ -127,8 +127,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
       playerKeyIndex.set(shortNameKey(key), key);
     }
     a.matches += 1;
-    a.goals += r.goals ?? 0;
-    a.assists += r.assists ?? 0;
+    // ⚠️ buts/passes NON comptés ici : player_match_stats.goals est peu fiable
+    // (souvent 0 ou partiel, ex. Messi). Source de vérité = match_events (boucle
+    // ci-dessous). Compter les deux = double comptage.
     a.yellow_cards += r.yellow_cards ?? 0;
     a.red_cards += r.red_cards ?? 0;
     if (r.is_motm) a.motm += 1;
