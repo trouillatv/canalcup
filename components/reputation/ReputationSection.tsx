@@ -29,9 +29,12 @@ function BadgeCard({ b }: { b: Badge }) {
           {hidden ? "Badge secret" : b.label}
         </p>
         {b.earned ? (
-          <p className="text-[10px] text-canal-yellow font-bold truncate">
-            Débloqué ✓{b.earnedCount ? ` · ${b.earnedCount} joueur${b.earnedCount > 1 ? "s" : ""}` : ""}
-          </p>
+          <>
+            <p className="text-[10px] text-canal-yellow font-bold truncate">
+              Débloqué ✓{b.earnedCount ? ` · ${b.earnedCount} joueur${b.earnedCount > 1 ? "s" : ""}` : ""}
+            </p>
+            <p className="text-[10px] text-canal-gray-muted leading-snug mt-0.5">{b.description}</p>
+          </>
         ) : hidden ? (
           <p className="text-[10px] text-canal-gray-muted truncate">
             {b.earnedCount ? `Débloqué par ${b.earnedCount}` : "À découvrir…"}

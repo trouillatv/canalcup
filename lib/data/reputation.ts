@@ -255,13 +255,13 @@ function badgesFor(a: UserAgg): Badge[] {
     mk("premier_baby", "⚽", "Première au baby", "1 victoire au babyfoot.", "social", false, a.babyWins, 1),
     mk("jury", "🗳️", "Jury du Peuple", "Voter à un concours.", "social", false, a.votesCount, 1),
     mk("pionnier", "🎂", "Pionnier", "Pronostiquer dès la 1ère journée.", "social", false, a.firstDayProno ? 1 : 0, 1),
-    // 🔥 Secrets (condition cachée)
-    mk("goat", "🐐", "GOAT", "???", "secret", true, a.persoPoints >= 130 ? 1 : 0, 1),
-    mk("fantome", "👻", "Fantôme", "???", "secret", true, a.total >= 10 && a.changed === 0 ? 1 : 0, 1),
-    mk("sorcier", "🧙", "Sorcier", "???", "secret", true, a.knockoutExact, 1),
-    mk("kamikaze", "💣", "Kamikaze", "???", "secret", true, a.jokerTypes.has("kamikaze") ? 1 : 0, 1),
-    mk("carton_rouge", "🚨", "Carton Rouge", "???", "secret", true, a.jokerTypes.has("carton_rouge") ? 1 : 0, 1),
-    mk("high_roller", "🎰", "High Roller", "???", "secret", true, a.casinoMaxDelta >= 30 ? 1 : 0, 1),
+    // 🔥 Secrets (condition cachée tant que non débloqué — révélée à l'obtention)
+    mk("goat", "🐐", "GOAT", "Dépasser 130 points perso (pronos + quiz).", "secret", true, a.persoPoints >= 130 ? 1 : 0, 1),
+    mk("fantome", "👻", "Fantôme", "10 pronos validés sans jamais en modifier un seul.", "secret", true, a.total >= 10 && a.changed === 0 ? 1 : 0, 1),
+    mk("sorcier", "🧙", "Sorcier", "Un score exact en phase à élimination directe.", "secret", true, a.knockoutExact, 1),
+    mk("kamikaze", "💣", "Kamikaze", "Avoir osé jouer le joker Kamikaze.", "secret", true, a.jokerTypes.has("kamikaze") ? 1 : 0, 1),
+    mk("carton_rouge", "🚨", "Carton Rouge", "Avoir dégainé le joker Carton Rouge.", "secret", true, a.jokerTypes.has("carton_rouge") ? 1 : 0, 1),
+    mk("high_roller", "🎰", "High Roller", "Rafler 30 points ou plus en un seul coup au Casino.", "secret", true, a.casinoMaxDelta >= 30 ? 1 : 0, 1),
   ];
 }
 
