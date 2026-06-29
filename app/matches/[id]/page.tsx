@@ -22,8 +22,37 @@ import type { MatchPerf } from "@/components/football/PlayerCardView";
 import { track } from "@/lib/analytics/track";
 import { buildPlayerResolver } from "@/lib/football/resolve-player";
 import { getVarWindowMatchIds } from "@/lib/jokers/var-windows-client";
+import { JOKER_CATALOG, type JokerType } from "@/lib/jokers/catalog";
 
 type Tab = "timeline" | "stats" | "notes" | "pronos" | "chat" | "standings" | "facts";
+
+// ── Jokers sur ce match (réutilise /api/jokers) ──────────────────────────────
+interface MatchJokerEffect { id: string; effect_type: string }
+interface MatchJokerPlay { id: string; joker_type: string; status: string; metadata: Record<string, unknown> | null; targetName: string | null }
+
+/** Libellé d'un joker que J'AI joué sur ce match, avec son résultat si résolu. */
+function playedJokerLabel(p: MatchJokerPlay): string {
+  const def = JOKER_CATALOG[p.joker_type as JokerType];
+  const emoji = def?.emoji ?? "🃏";
+  const name = def?.name ?? p.joker_type;
+  const meta = (p.metadata ?? {}) as { stake?: number; points?: number };
+  const target = p.targetName ? ` → ${p.targetName}` : "";
+  const pts = (n: number) => `${n >= 0 ? "+" : ""}${n} pts`;
+  if (p.joker_type === "kamikaze") {
+    return p.status === "consumed" && typeof meta.points === "number"
+      ? `${emoji} Kamikaze (mise ${meta.stake ?? "?"}) → ${pts(meta.points)}`
+      : `${emoji} Kamikaze (mise ${meta.stake ?? "?"}) — en attente du résultat`;
+  }
+  if (p.joker_type === "quitte_ou_double") {
+    return p.status === "consumed" && typeof meta.points === "number"
+      ? `${emoji} Quitte ou Double → ${pts(meta.points)}`
+      : `${emoji} Quitte ou Double — en attente du résultat`;
+  }
+  if (p.joker_type === "var") return `${emoji} VAR activée`;
+  if (p.joker_type === "carton_rouge") return `${emoji} Carton Rouge${target}`;
+  if (p.joker_type === "retard_avion") return `${emoji} Jet Lag${target}`;
+  return `${emoji} ${name}${target}`;
+}
 
 // Contexte « clic joueur » threadé dans les sous-composants : résout un nom en
 // api_football_id (depuis les notes/compos en mémoire) et ouvre le bottom sheet.
@@ -576,6 +605,10 @@ export default function MatchCenterPage() {
   const [editPB, setEditPB] = useState<string>("");
   const [savingPred, setSavingPred] = useState(false);
   const [predMsg, setPredMsg] = useState<string | null>(null);
+  // 🃏 Jokers sur ce match : ceux qu'on m'a infligés (Carton Rouge) + ceux que
+  // j'ai joués (Kamikaze/Quitte-Double/VAR/Carton/Jet Lag). Le Jet Lag SUBI reste
+  // masqué (déjà filtré côté /api/jokers).
+  const [matchJokers, setMatchJokers] = useState<{ received: MatchJokerEffect[]; played: MatchJokerPlay[] } | null>(null);
 
   // 🎥 Fenêtre VAR active sur ce match ? (refetch frais pour refléter un joker
   // tout juste joué). Permet d'éditer le prono ICI pendant la 1re période/mi-temps.
@@ -607,6 +640,24 @@ export default function MatchCenterPage() {
       .then((d) => {
         const p = (d?.predictions ?? []).find((x: { match_id: string }) => x.match_id === id);
         setMyPred(p ? { predicted_score_a: p.predicted_score_a, predicted_score_b: p.predicted_score_b } : null);
+      })
+      .catch(() => {});
+  }, [id]);
+
+  // 🃏 Jokers sur ce match (reçus contre moi + joués par moi).
+  useEffect(() => {
+    if (!id) return;
+    fetch("/api/jokers", { credentials: "same-origin" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d) return;
+        // « Contre moi » = Carton Rouge sur CE match (les effets globaux comme le
+        // Brouillard ne sont pas propres au match ; le Jet Lag subi est déjà filtré).
+        const received = (d.effects ?? []).filter(
+          (e: { match_id: string | null; effect_type: string }) => e.match_id === id && e.effect_type === "red_card_block"
+        );
+        const played = (d.myPlays ?? []).filter((p: { match_id: string | null }) => p.match_id === id);
+        setMatchJokers({ received, played });
       })
       .catch(() => {});
   }, [id]);
@@ -773,6 +824,22 @@ export default function MatchCenterPage() {
           </span>
         </div>
       ) : null}
+
+      {/* 🃏 Jokers sur ce match : reçus (Carton Rouge) + joués par moi */}
+      {matchJokers && (matchJokers.received.length > 0 || matchJokers.played.length > 0) && (
+        <div className="flex flex-col items-center gap-1 py-2 bg-purple-950/20 border-b border-purple-500/20">
+          {matchJokers.received.map((e) => (
+            <span key={e.id} className="text-xs font-bold text-red-300">
+              🚫 Carton Rouge contre toi : suspendu sur ce match (0 pt)
+            </span>
+          ))}
+          {matchJokers.played.map((p) => (
+            <span key={p.id} className="text-xs text-purple-200">
+              {playedJokerLabel(p)}
+            </span>
+          ))}
+        </div>
+      )}
 
       {isLive && lastUpdate && (
         <div className="flex items-center justify-center gap-1.5 py-1.5 bg-red-950/20 border-b border-red-900/20">
