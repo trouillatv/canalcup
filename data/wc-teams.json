@@ -3386,7 +3386,7 @@
       {
         "name": "T. Yengi",
         "position": "Attaquant",
-        "club": "Cerezo Osaka",
+        "club": "Aberdeen FC",
         "value": "€700k",
         "caps": 11,
         "selection_goals": 6,
@@ -5212,8 +5212,8 @@
       {
         "name": "Danilo Santos",
         "position": "Milieu",
-        "club": "Zenit St. Petersburg",
-        "value": "€10.00m",
+        "club": "Chelsea FC",
+        "value": "€25.00m",
         "caps": 5,
         "selection_goals": 0,
         "selection_yellow_cards": null,
@@ -5629,7 +5629,7 @@
       {
         "name": "D. Cornelius",
         "position": "Défenseur",
-        "club": "Rangers FC",
+        "club": "Olympique Marseille",
         "value": "€4.00m",
         "caps": 42,
         "selection_goals": 1,
@@ -6326,8 +6326,8 @@
       {
         "name": "Kevin Pina",
         "position": "Milieu",
-        "club": null,
-        "value": null,
+        "club": "FC Krasnodar",
+        "value": "€3.50m",
         "caps": null,
         "selection_goals": null,
         "selection_yellow_cards": null,
@@ -15807,7 +15807,7 @@
       {
         "name": "Saleem Obaid",
         "position": "Défenseur",
-        "club": "Al-Hussein SC (Irbid)",
+        "club": "Al-Hussein SC",
         "value": "-",
         "caps": 9,
         "selection_goals": 0,
@@ -15825,7 +15825,7 @@
       {
         "name": "Ehsan Haddad",
         "position": "Défenseur",
-        "club": "Al-Hussein SC (Irbid)",
+        "club": "Al-Hussein SC",
         "value": "€400k",
         "caps": 71,
         "selection_goals": 2,
@@ -15931,7 +15931,7 @@
       {
         "name": "Rajaei Ayed",
         "position": "Milieu",
-        "club": "Al-Hussein SC (Irbid)",
+        "club": "Al-Hussein SC",
         "value": "€350k",
         "caps": 56,
         "selection_goals": 0,
@@ -15967,7 +15967,7 @@
       {
         "name": "Mahmoud Al Mardi",
         "position": "Attaquant",
-        "club": "Al-Hussein SC (Irbid)",
+        "club": "Al-Hussein SC",
         "value": "€450k",
         "caps": 68,
         "selection_goals": 7,
