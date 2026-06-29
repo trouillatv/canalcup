@@ -573,10 +573,15 @@ function ProjectionKnockout({
             // Tour JOUABLE : si les vrais matchs existent en base (équipes
             // connues), on les affiche — cliquables, score live — à la place des
             // emplacements projetés. Sinon « Vainqueur Sx » de la matrice FIFA.
-            const real = [...(realByPhase[round.round] ?? [])].sort(
-              (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
-            );
-            const hasReal = real.length > 0;
+            // Vrais matchs de ce tour, indexés par équipe → on place chaque
+            // carte à sa position d'ARBRE (pas en ordre chrono), pour que le 8e
+            // du qualifié soit bien EN FACE de son 16e (connecteurs fidèles).
+            const realList = realByPhase[round.round] ?? [];
+            const realByTeam: Record<string, MatchRow> = {};
+            for (const rm of realList) {
+              realByTeam[normTeam(rm.team_a)] = rm;
+              realByTeam[normTeam(rm.team_b)] = rm;
+            }
             return (
               <Fragment key={round.round}>
                 <div className="flex flex-col shrink-0">
@@ -591,33 +596,27 @@ function ProjectionKnockout({
                     </span>
                   </div>
                   <div className={cn("flex-1 flex flex-col px-1", isFinale && "justify-center")}>
-                    {hasReal
-                      ? real.map((m) => (
-                          <div
-                            key={m.id}
-                            className={cn("flex items-center justify-center", !isFinale && "flex-1")}
-                          >
-                            <div className="relative">
-                              <BracketTreeCard match={m} big={isFinale} />
-                              {!isLast && (
-                                <span className="absolute left-full top-1/2 -translate-y-1/2 h-px w-2 bg-canal-yellow/25" />
-                              )}
-                            </div>
+                    {round.matches.map((m) => {
+                      // Place le vrai match à sa position d'arbre s'il existe
+                      // (rattaché par une équipe résolue) ; sinon emplacement projeté.
+                      const rm =
+                        (m.a.teamName && realByTeam[normTeam(m.a.teamName)]) ||
+                        (m.b.teamName && realByTeam[normTeam(m.b.teamName)]) ||
+                        null;
+                      return (
+                        <div
+                          key={m.code}
+                          className={cn("flex items-center justify-center", !isFinale && "flex-1")}
+                        >
+                          <div className="relative">
+                            {rm ? <BracketTreeCard match={rm} big={isFinale} /> : <ProjCard match={m} big={isFinale} />}
+                            {!isLast && (
+                              <span className="absolute left-full top-1/2 -translate-y-1/2 h-px w-2 bg-canal-yellow/25" />
+                            )}
                           </div>
-                        ))
-                      : round.matches.map((m) => (
-                          <div
-                            key={m.code}
-                            className={cn("flex items-center justify-center", !isFinale && "flex-1")}
-                          >
-                            <div className="relative">
-                              <ProjCard match={m} big={isFinale} />
-                              {!isLast && (
-                                <span className="absolute left-full top-1/2 -translate-y-1/2 h-px w-2 bg-canal-yellow/25" />
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                        </div>
+                      );
+                    })}
                     {isFinale && thirdPlace.length > 0 && (
                       <div className="mt-4">
                         <p className="text-center text-canal-gray-muted text-[11px] uppercase tracking-widest font-bold mb-2">

@@ -27,7 +27,22 @@ interface StandingRow {
   goal_diff: number;
   points: number;
 }
-interface BracketData { standings: Record<string, StandingRow[]> }
+interface MatchRow {
+  id: string;
+  team_a: string;
+  team_b: string;
+  flag_a?: string;
+  flag_b?: string;
+  score_a?: number | null;
+  score_b?: number | null;
+  status: string;
+  starts_at: string;
+  phase?: string;
+  stage?: string;
+}
+interface GroupBucket { stage?: string; matches: MatchRow[] }
+interface PhaseSection { phase: string; groups: GroupBucket[] }
+interface BracketData { phases: PhaseSection[]; standings: Record<string, StandingRow[]> }
 
 const HEADER_H = "h-10";
 const COL_HEIGHT = 8 * 92 + 40; // 8 = nb de 16es par moitié ; pitch 92 > carte
@@ -257,7 +272,12 @@ function MirrorConnector({ count, dir }: { count: number; dir: "left" | "right" 
 
 export function BracketMirror({ data }: { data: BracketData }) {
   const [mode, setMode] = useState<"projection" | "reel">("projection");
-  const rounds = resolveKnockout(data.standings, mode);
+  // Vrais matchs KO → propage les qualifiés dans les tours suivants (Canada en 8e).
+  const KO_PHASES = ["Seizièmes", "Huitièmes", "Quarts", "Demis", "Finale"];
+  const allRealKo = data.phases
+    .filter((p) => KO_PHASES.includes(p.phase))
+    .flatMap((p) => p.groups.flatMap((g) => g.matches));
+  const rounds = resolveKnockout(data.standings, mode, allRealKo);
   const byKey: Record<string, ResolvedMatch[]> = {};
   for (const r of rounds) byKey[r.round] = r.matches;
 
