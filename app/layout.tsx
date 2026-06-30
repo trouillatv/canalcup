@@ -8,6 +8,7 @@ import { PwaSetup } from "@/components/pwa/PwaSetup";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { PushNotifications } from "@/components/pwa/PushNotifications";
 import { TimezoneProvider } from "@/components/timezone/TimezoneProvider";
+import { EventSplash } from "@/components/events/EventSplash";
 import { PageTracker } from "@/components/analytics/PageTracker";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_TZ, normalizeTimezone } from "@/lib/utils";
@@ -96,6 +97,8 @@ export default async function RootLayout({
           </main>
           {isAuthenticated && <BottomNav />}
           {isAuthenticated && <FloatingFeedback />}
+          {/* 🎆 Annonce événementielle (prochain Quiz) au lancement de l'app. */}
+          {isAuthenticated && <EventSplash />}
           <PwaSetup />
           <InstallPrompt />
           {isAuthenticated && <PushNotifications />}
