@@ -65,16 +65,29 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return { value: home - away, minute: cur.minute };
   });
 
+  // Momentum « qui coule ». À l'échelle de 30 s, les actions (tir, corner,
+  // occasion) sont rares → la plupart des tranches ont un delta nul. Sans rien,
+  // un temps fort retomberait à zéro dès la tranche suivante (forêt de cellules
+  // vides). On lisse donc par moyenne mobile exponentielle : un temps fort
+  // décroît sur ~1–2 min au lieu de disparaître, ce qui remplit les creux entre
+  // deux actions sans inventer de pression.
+  const DECAY = 0.5;
+  let mom = 0;
+  const flowed = raw.map((p) => {
+    mom = mom * DECAY + p.value;
+    return { value: mom, minute: p.minute };
+  });
+
   // Normalisation : on cale le plus gros pic à 1. Plancher pour ne pas amplifier
   // le bruit d'un match calme.
-  const peak = Math.max(1, ...raw.map((p) => Math.abs(p.value)));
+  const peak = Math.max(1, ...flowed.map((p) => Math.abs(p.value)));
 
   // Position de chaque barre = minute de jeu, en RÉSOLUTION 30 s. La minute du
   // fournisseur est entière → quand deux snapshots tombent dans la même minute
   // (cadence ~30 s), on les écarte d'une demi-minute. Garde monotone : robuste
   // aux minutes manquantes / nulles (anciens snapshots).
   let prevPos = -1;
-  const points = raw.map((p) => {
+  const points = flowed.map((p) => {
     let pos = typeof p.minute === "number" ? p.minute : prevPos < 0 ? 0 : prevPos + 0.5;
     if (pos <= prevPos) pos = prevPos + 0.5;
     prevPos = pos;
