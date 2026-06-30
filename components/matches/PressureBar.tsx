@@ -148,9 +148,11 @@ export function PressureBar({
             {/* Ligne centrale. */}
             <line x1={0} y1={cy} x2={W} y2={cy} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
 
-            {/* Minute courante (live) : ligne rouge à la frontière de la zone future. */}
+            {/* Minute courante (live) : barre verticale blanche discrète
+                (pointillés, pour la distinguer des repères pleins) à la frontière
+                de la zone future. */}
             {liveCursor && (
-              <line x1={nowX} y1={0} x2={nowX} y2={H} stroke="#ef4444" strokeWidth={1.5} />
+              <line x1={nowX} y1={0} x2={nowX} y2={H} stroke="rgba(255,255,255,0.45)" strokeWidth={1} strokeDasharray="3 3" />
             )}
           </svg>
 
@@ -171,7 +173,7 @@ export function PressureBar({
       </div>
       <p className="text-[10px] text-canal-gray-muted mt-1.5 px-1">
         Indice dérivé (tirs cadrés · occasions · possession) — une cellule / 30 s sur {totalMin}′.
-        {liveCursor && <span className="text-red-400"> · ligne rouge = minute en cours</span>}
+        {liveCursor && <span> · trait blanc pointillé = minute en cours</span>}
       </p>
     </div>
   );
