@@ -5,15 +5,26 @@
 // petit rituel quotidien. Contenu éditorial statique (pas de données live).
 
 import Link from "next/link";
+import { headers } from "next/headers";
 import {
   CalendarDays, Target, Brain, Gamepad2, Trophy, Star,
-  Sparkles, Clock, ArrowLeft,
+  Sparkles, Clock, ArrowLeft, Users, ScanLine, ChevronRight,
 } from "lucide-react";
 
 export const metadata = {
   title: "Programme CanalCup",
   description: "Le calendrier des animations CanalCup pendant la Coupe du Monde 2026.",
 };
+
+// URL absolue de l'app (pour encoder le QR). NEXT_PUBLIC_APP_URL si défini,
+// sinon reconstruite depuis les en-têtes de la requête.
+async function appBaseUrl(): Promise<string> {
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  return host ? `${proto}://${host}` : "";
+}
 
 type EventItem = {
   date: string;
@@ -44,7 +55,15 @@ const AWARDS: { emoji: string; label: string }[] = [
   { emoji: "📸", label: "Plus beau moment CanalCup" },
 ];
 
-export default function ProgrammePage() {
+export default async function ProgrammePage() {
+  const base = await appBaseUrl();
+  // Le QR amène les nouveaux sur l'app (inscription via magic link), d'où ils
+  // pourront former leur binôme.
+  const joinUrl = base ? `${base}/` : "";
+  const qrUrl = joinUrl
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&data=${encodeURIComponent(joinUrl)}`
+    : "";
+
   return (
     <div className="px-4 py-4 space-y-7 max-w-2xl mx-auto pb-24">
       {/* Header */}
@@ -61,6 +80,43 @@ export default function ProgrammePage() {
           sans monopoliser le temps de travail.
         </p>
       </header>
+
+      {/* Rejoindre CanalCup : QR (inscription) + lien binôme */}
+      <section className="rounded-2xl border border-canal-gray-light bg-canal-gray p-4">
+        <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider flex items-center gap-2 mb-3">
+          <ScanLine size={15} /> Rejoindre & faire son binôme
+        </h2>
+        <div className="flex items-center gap-4">
+          {qrUrl ? (
+            <img
+              src={qrUrl}
+              alt="QR code d'inscription CanalCup"
+              width={120}
+              height={120}
+              className="w-28 h-28 rounded-xl bg-white p-1.5 shrink-0"
+            />
+          ) : (
+            <div className="w-28 h-28 rounded-xl bg-canal-gray-mid flex items-center justify-center shrink-0">
+              <ScanLine size={28} className="text-canal-gray-muted" />
+            </div>
+          )}
+          <div className="min-w-0 flex-1 space-y-2">
+            <p className="text-white font-bold text-sm leading-snug">
+              Scanne pour t&apos;inscrire, puis forme ton binôme.
+            </p>
+            <p className="text-canal-gray-muted text-xs leading-relaxed">
+              Chacun joue en duo : pronostics, quiz et animations comptent pour votre binôme.
+            </p>
+            <Link
+              href="/binomes"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-canal-yellow text-canal-black font-black text-sm hover:bg-canal-yellow-hover transition-colors"
+            >
+              <Users size={15} /> Trouver mon binôme
+              <ChevronRight size={15} />
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {/* À la une : Grand Quiz #1 */}
       <section className="rounded-2xl border border-canal-yellow/40 bg-gradient-to-b from-canal-yellow/10 to-transparent p-4 space-y-3">
