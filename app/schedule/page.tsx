@@ -5,6 +5,11 @@ import Link from "next/link";
 import { Flag } from "@/components/shared/Flag";
 import { LocalTime } from "@/components/timezone/LocalTime";
 import { cn } from "@/lib/utils";
+import {
+  projectedKnockoutCalendar,
+  type StandingLike,
+  type RealKoMatch,
+} from "@/lib/football/bracket-2026";
 
 interface MatchRow {
   id: string;
@@ -19,7 +24,16 @@ interface MatchRow {
   phase?: string;
   stage?: string;
   channel?: string;
+  projected?: boolean; // match futur projeté (pas encore de vraie ligne en base)
 }
+
+// Libellé court de phase pour les matchs projetés.
+const PHASE_SHORT: Record<string, string> = {
+  Huitièmes: "8es de finale",
+  Quarts: "Quarts",
+  Demis: "Demi-finale",
+  Finale: "Finale",
+};
 
 interface DayGroup {
   dateKey: string;   // "2026-06-11"
@@ -64,17 +78,12 @@ function resultFor(match: MatchRow, side: "a" | "b"): "W" | "D" | "L" | null {
 function MatchCard({ match }: { match: MatchRow }) {
   const isLive = match.status === "live" || match.status === "halftime";
   const isFinished = match.status === "finished";
+  const projected = !!match.projected;
   const resA = resultFor(match, "a");
   const resB = resultFor(match, "b");
 
-  return (
-    <Link
-      href={`/matches/${match.id}`}
-      className={cn(
-        "flex items-center gap-2 px-3 py-2.5 hover:bg-canal-gray-mid transition-colors rounded-xl",
-        isLive && "bg-red-950/20"
-      )}
-    >
+  const inner = (
+    <>
       {/* Équipe A */}
       <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
         {resA && isFinished && (
@@ -102,7 +111,12 @@ function MatchCard({ match }: { match: MatchRow }) {
         {isLive && (
           <p className="text-[9px] text-red-400 font-bold uppercase tracking-wider">Live</p>
         )}
-        {match.channel && !isLive && (
+        {projected && (
+          <p className="text-[9px] text-canal-yellow/70 font-bold uppercase tracking-wider truncate">
+            {PHASE_SHORT[match.phase ?? ""] ?? match.phase}
+          </p>
+        )}
+        {match.channel && !isLive && !projected && (
           <p className="text-[9px] text-canal-gray-muted truncate">{match.channel}</p>
         )}
       </div>
@@ -119,6 +133,25 @@ function MatchCard({ match }: { match: MatchRow }) {
           </span>
         )}
       </div>
+    </>
+  );
+
+  // Match projeté (futur, sans vraie fiche) → non cliquable.
+  if (projected) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl opacity-80">{inner}</div>
+    );
+  }
+
+  return (
+    <Link
+      href={`/matches/${match.id}`}
+      className={cn(
+        "flex items-center gap-2 px-3 py-2.5 hover:bg-canal-gray-mid transition-colors rounded-xl",
+        isLive && "bg-red-950/20"
+      )}
+    >
+      {inner}
     </Link>
   );
 }
@@ -130,10 +163,35 @@ export default function SchedulePage() {
   const today = todayKey();
 
   useEffect(() => {
-    fetch("/api/schedule")
-      .then((r) => r.json())
-      .then((d) => {
-        setGroups(groupByDay(d.matches ?? []));
+    // Matchs réels (/api/schedule) + projection des tours futurs (/api/bracket
+    // fournit standings + matchs KO réels → resolveKnockout remplit les équipes
+    // dès qu'elles sont connues ; sinon « Vainqueur S1 »). Les futurs matchs
+    // s'affichent ainsi au calendrier avec leur date AVANT d'exister en base.
+    Promise.all([
+      fetch("/api/schedule").then((r) => r.json()).catch(() => ({ matches: [] })),
+      fetch("/api/bracket").then((r) => r.json()).catch(() => ({ phases: [], standings: {} })),
+    ])
+      .then(([sched, bracket]) => {
+        const real: MatchRow[] = sched.matches ?? [];
+        const realPhases = new Set(real.map((m) => m.phase).filter(Boolean) as string[]);
+
+        // Matchs KO réels (pour propager les vainqueurs dans la projection).
+        const realKo: RealKoMatch[] = real
+          .filter((m) => m.phase && m.phase !== "Groupe")
+          .map((m) => ({
+            team_a: m.team_a, team_b: m.team_b,
+            flag_a: m.flag_a, flag_b: m.flag_b,
+            score_a: m.score_a, score_b: m.score_b,
+            status: m.status, phase: m.phase,
+          }));
+
+        const standings = (bracket.standings ?? {}) as Record<string, StandingLike[]>;
+        const projected = projectedKnockoutCalendar(standings, realKo, realPhases) as MatchRow[];
+
+        const all = [...real, ...projected].sort(
+          (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
+        );
+        setGroups(groupByDay(all));
         setLoading(false);
       })
       .catch(() => setLoading(false));

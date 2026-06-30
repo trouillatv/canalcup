@@ -316,3 +316,72 @@ export function resolveKnockout(
     matches: r.matches.map((m) => ({ code: m.code, fifaNo: m.fifaNo, a: resolveSlot(m.a, m.fifaNo), b: resolveSlot(m.b, m.fifaNo) })),
   }));
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  CALENDRIER des phases finales (projection au calendrier des matchs)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+//  Dates/heures par n° FIFA (Huitièmes → Finale), heure Nouvelle-Calédonie (+11).
+//  ⚠️ À VÉRIFIER avant prod (échelle officielle WC2026 ; affectation jour/heure
+//  par match = projection). Sert à afficher les matchs FUTURS au calendrier avec
+//  leur date AVANT que les vraies lignes n'arrivent (équipes pré-remplies dès
+//  qu'elles sont connues via resolveKnockout).
+
+export const KNOCKOUT_SCHEDULE: Record<number, string> = {
+  // Huitièmes (89-96)
+  89: "2026-07-07T06:00:00+11:00", 90: "2026-07-07T13:00:00+11:00",
+  91: "2026-07-08T06:00:00+11:00", 92: "2026-07-08T13:00:00+11:00",
+  93: "2026-07-09T06:00:00+11:00", 94: "2026-07-09T13:00:00+11:00",
+  95: "2026-07-10T06:00:00+11:00", 96: "2026-07-10T13:00:00+11:00",
+  // Quarts (97-100)
+  97: "2026-07-11T06:00:00+11:00", 98: "2026-07-11T13:00:00+11:00",
+  99: "2026-07-12T13:00:00+11:00", 100: "2026-07-13T13:00:00+11:00",
+  // Demis (101-102)
+  101: "2026-07-16T11:00:00+11:00", 102: "2026-07-17T11:00:00+11:00",
+  // Finale (104)
+  104: "2026-07-20T09:00:00+11:00",
+};
+
+export interface ProjectedCalMatch {
+  id: string;
+  team_a: string;
+  team_b: string;
+  flag_a?: string;
+  flag_b?: string;
+  starts_at: string;
+  phase: string;
+  status: string;
+  projected: true;
+}
+
+// Matchs FUTURS à élimination directe, pour le calendrier : un par match de
+// Huitièmes → Finale dont le TOUR n'a pas encore de vraie ligne en base. Équipes
+// pré-remplies si déjà connues (sinon « Vainqueur S1 » / « 1er Gr. E »).
+export function projectedKnockoutCalendar(
+  standings: Record<string, StandingLike[]>,
+  realKo: RealKoMatch[],
+  realPhases: Set<string>
+): ProjectedCalMatch[] {
+  const rounds = resolveKnockout(standings, "projection", realKo);
+  const out: ProjectedCalMatch[] = [];
+  for (const r of rounds) {
+    if (r.round === "Seizièmes") continue; // déjà réels au calendrier
+    if (realPhases.has(r.round)) continue; // ce tour est déjà en base
+    for (const m of r.matches) {
+      const date = KNOCKOUT_SCHEDULE[m.fifaNo];
+      if (!date) continue;
+      out.push({
+        id: `proj-${m.code}`,
+        team_a: m.a.teamName ?? m.a.label,
+        team_b: m.b.teamName ?? m.b.label,
+        flag_a: m.a.teamFlag,
+        flag_b: m.b.teamFlag,
+        starts_at: date,
+        phase: r.round,
+        status: "upcoming",
+        projected: true,
+      });
+    }
+  }
+  return out;
+}
