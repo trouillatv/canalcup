@@ -72,12 +72,26 @@ export async function POST(req: Request) {
   }
 
   if (action === "reset") {
+    // Championnat : on NE vide PLUS tout l'historique — seulement les réponses
+    // de la session la plus récente (la session de test/en cours). Le cumul des
+    // quiz précédents est préservé.
+    const { data: recent } = await supabase
+      .from("quiz_session")
+      .select("id")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
     await supabase
       .from("quiz_session")
       .update({ ended_at: new Date().toISOString(), status: "finished" })
       .is("ended_at", null);
-    const { error } = await supabase.from("quiz_answers").delete().not("id", "is", null);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (recent?.id) {
+      const { error } = await supabase
+        .from("quiz_answers")
+        .delete()
+        .eq("quiz_session_id", recent.id);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    }
     return NextResponse.json({ ok: true });
   }
 

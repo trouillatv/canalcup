@@ -21,7 +21,7 @@ const MENU_ITEMS = [
   { href: "/schedule",   icon: CalendarDays, label: "Calendrier CdM" },
   { href: "/wc-teams",   icon: Globe2,    label: "Sélections CdM" },
   { href: "/services",   icon: Building2, label: "Services" },
-  { href: "/quiz-live",  icon: Brain,     label: "Quiz Live ⚡" },
+  { href: "/quiz",       icon: Brain,     label: "Quiz ⚡" },
   { href: "/babyfoot",   icon: Gamepad2,  label: "Babyfoot" },
   { href: "/animations", icon: PartyPopper, label: "Animations" },
   // BETA : visible seulement pour les comptes de test + admins (cf. access.ts).

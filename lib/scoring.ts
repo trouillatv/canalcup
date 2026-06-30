@@ -147,6 +147,18 @@ export function quizPoints(isCorrect: boolean, responseTimeMs: number): number {
   return responseTimeMs <= QUIZ_FAST_THRESHOLD_MS ? 5 : 3;
 }
 
+// Championnat Quiz : le mode LIVE (salle, écran projeté) rapporte 100 % des
+// points ; le mode SOLO (joueur seul, à distance) un pourcentage réduit —
+// pour récompenser la participation à l'animation collective. Coefficient
+// configurable. En Solo on N'ACCORDE PAS le bonus rapidité (pas de chrono
+// serveur partagé → non triché) : bonne réponse = points de base × coefficient.
+export const QUIZ_SOLO_COEFFICIENT = 0.5;
+
+export function quizSoloPoints(isCorrect: boolean): number {
+  if (!isCorrect) return 0;
+  return Math.round(3 * QUIZ_SOLO_COEFFICIENT); // base (3) sans bonus, × coefficient
+}
+
 // Recalculate and update points for all predictions on a finished match
 // Called by the cron after match finishes
 export function scoreLabel(points: number): string {
