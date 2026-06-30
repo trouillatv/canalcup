@@ -37,7 +37,7 @@ type SessionState =
   | { status: "idle" }
   | {
       status: "live";
-      phase: "countdown" | "question" | "reveal";
+      phase: "countdown" | "question" | "timeup" | "stats" | "answer" | "leaderboard";
       question: LiveQuestion;
       started_at: string;
       question_index: number;
@@ -210,7 +210,10 @@ export default function QuizLivePage() {
   const q = session.question;
   const rawElapsed = Date.now() - new Date(session.started_at).getTime();
   const inCountdown = session.phase === "countdown" || rawElapsed < 0;
-  const isReveal = session.phase === "reveal";
+  // Après la question, le rythme est piloté par l'animateur : timeup/stats =
+  // « regarde l'écran », answer/leaderboard = résultat perso dévoilé.
+  const isReveal = ["timeup", "stats", "answer", "leaderboard"].includes(session.phase);
+  const resultRevealed = session.phase === "answer" || session.phase === "leaderboard";
   const countdownLeft = inCountdown ? Math.max(1, Math.ceil(-rawElapsed / 1000)) : 0;
   const elapsedMs = Math.max(0, rawElapsed);
   const timeLeft = Math.max(0, Math.ceil((TIMER_SECONDS * 1000 - elapsedMs) / 1000));
@@ -250,8 +253,7 @@ export default function QuizLivePage() {
   //    "Résultat enregistré → Regarde l'écran", puis seulement quand la TV a fini
   //    sa choré (~5s) on dévoile le gain perso "+X pts".
   if (isReveal) {
-    const revealElapsed = elapsedMs - TIMER_SECONDS * 1000;
-    const showPoints = revealElapsed > 5000;
+    const showPoints = resultRevealed; // dévoilé quand Marie montre la bonne réponse
     const pts = outcome?.points ?? 0;
     const answered = !!outcome && outcome.selected !== "";
     return (

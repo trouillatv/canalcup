@@ -45,7 +45,7 @@ interface SessionQuestion {
 }
 interface LiveSession {
   status: "question";
-  phase: "countdown" | "question" | "reveal";
+  phase: "countdown" | "question" | "timeup" | "stats" | "answer" | "leaderboard";
   question: SessionQuestion;
   started_at: string;
   question_index: number;
@@ -56,6 +56,7 @@ interface LiveSession {
   responded?: number;
   participants?: number;
   fastest?: { name: string; ms: number } | null;
+  standings?: Standing[];
 }
 interface Standing {
   name: string;
@@ -117,32 +118,10 @@ export default function QuizShowPage() {
   const [, forceTick] = useState(0);
   const cancelled = useRef(false);
 
-  // 🎬 Chorégraphie du reveal : un état interne 0→4 qui se déroule au fil de
-  // timers, pour un rythme « émission télé ». La PHASE serveur reste "reveal".
-  //   0 = Temps écoulé · 1 = % de répondants · 2 = barres · 3 = bonne réponse
-  //   4 = explication + stats (le plus rapide, « personne n'a trouvé »…)
-  const [revealStage, setRevealStage] = useState(0);
-  const revealForQ = useRef<string | null>(null);
+  // Rythme PILOTÉ par l'animateur : la phase vient du serveur (countdown →
+  // question → timeup → stats → answer → leaderboard), plus de timers auto.
   const phase = session?.phase;
   const currentQId = session?.question.id ?? null;
-  useEffect(() => {
-    if (phase !== "reveal" || !currentQId) {
-      revealForQ.current = null;
-      setRevealStage(0);
-      return;
-    }
-    if (revealForQ.current === currentQId) return; // séquence déjà lancée
-    revealForQ.current = currentQId;
-    setRevealStage(0);
-    if (soundOnRef.current) sfx.buzzer(); // fin du temps
-    const timers = [
-      setTimeout(() => setRevealStage(1), 800),
-      setTimeout(() => { setRevealStage(2); if (soundOnRef.current) sfx.reveal(); }, 1800),
-      setTimeout(() => { setRevealStage(3); if (soundOnRef.current) sfx.correct(); }, 3500),
-      setTimeout(() => setRevealStage(4), 5000),
-    ];
-    return () => timers.forEach(clearTimeout);
-  }, [phase, currentQId]);
 
   // ── 🔊 Son (TV uniquement) ───────────────────────────────────────────────────
   const [soundOn, setSoundOn] = useState(false);
@@ -196,6 +175,20 @@ export default function QuizShowPage() {
     }, 100);
     return () => clearInterval(iv);
   }, [startedAt]);
+
+  // Sons aux transitions d'étape (pilotées par l'animateur) : buzzer au temps
+  // écoulé, son de reveal aux stats, arpège sur la bonne réponse, « up » au classement.
+  const prevPhaseRef = useRef<string>("");
+  useEffect(() => {
+    const p = phase ?? "";
+    if (!p || p === prevPhaseRef.current) return;
+    prevPhaseRef.current = p;
+    if (!soundOnRef.current) return;
+    if (p === "timeup") sfx.buzzer();
+    else if (p === "stats") sfx.reveal();
+    else if (p === "answer") sfx.correct();
+    else if (p === "leaderboard") sfx.rankUp();
+  }, [phase]);
 
   // Bouton son flottant, présent sur tous les écrans.
   const soundBtn = (
@@ -378,9 +371,14 @@ export default function QuizShowPage() {
   }
 
   const q = session.question;
+  const ph = session.phase; // countdown | question | timeup | stats | answer | leaderboard
   const rawElapsed = Date.now() - new Date(session.started_at).getTime();
-  const inCountdown = session.phase === "countdown" || rawElapsed < 0;
-  const isReveal = session.phase === "reveal";
+  const inCountdown = ph === "countdown" || rawElapsed < 0;
+  const isTimeup = ph === "timeup";
+  const isStats = ph === "stats";
+  const isAnswer = ph === "answer";
+  const isLeaderboard = ph === "leaderboard";
+  const showOptions = ph === "question" || isTimeup; // grille des 4 réponses
   const countdownLeft = Math.max(1, Math.ceil(-rawElapsed / 1000));
   const elapsedMs = Math.max(0, rawElapsed);
   const timeLeft = Math.max(0, Math.ceil((QUIZ_TIMER_SECONDS * 1000 - elapsedMs) / 1000));
@@ -388,7 +386,7 @@ export default function QuizShowPage() {
   const timerColor =
     timeLeft <= 2 ? "bg-red-500" : timeLeft <= 3 ? "bg-orange-500" : timeLeft <= 5 ? "bg-yellow-400" : "bg-canal-yellow";
   // 🚨 Mode panique : 10% du temps restant (≤ 2s) → vignette rouge + chrono géant.
-  const panic = !inCountdown && !isReveal && timeLeft > 0 && timeLeft <= 2;
+  const panic = ph === "question" && timeLeft > 0 && timeLeft <= 2;
   const answerText = (key: string) =>
     ({ A: q.answer_a, B: q.answer_b, C: q.answer_c, D: q.answer_d }[key] ?? "");
 
@@ -475,9 +473,9 @@ export default function QuizShowPage() {
             {q.question}
           </p>
 
-          {!isReveal ? (
-            // — Phase question : 4 cartouches colorées —
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4 max-w-6xl mx-auto w-full">
+          {showOptions ? (
+            // — Question / Temps écoulé : 4 cartouches colorées (grisées au timeup) —
+            <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4 max-w-6xl mx-auto w-full transition-opacity ${isTimeup ? "opacity-40" : ""}`}>
               {ANSWER_KEYS.map((key) => {
                 const palette = ANSWER_PALETTE[key];
                 return (
@@ -488,78 +486,73 @@ export default function QuizShowPage() {
                 );
               })}
             </div>
+          ) : isLeaderboard ? (
+            // — Classement (mouvements à venir, slice suivante) —
+            <div className="max-w-2xl mx-auto w-full flex flex-col gap-2.5" style={{ animation: "fadeUp .4s both" }}>
+              <p className="font-black text-2xl sm:text-5xl text-canal-yellow text-center uppercase tracking-widest mb-1">Classement</p>
+              {(session.standings ?? []).slice(0, 8).map((p, i) => (
+                <div
+                  key={i}
+                  className={`flex items-center gap-3 sm:gap-4 rounded-xl px-3 sm:px-5 py-2 sm:py-3 ${i === 0 ? "bg-canal-yellow/15 border border-canal-yellow/40" : "bg-white/5"}`}
+                  style={{ animation: "fadeUp .4s both", animationDelay: `${i * 0.08}s` }}
+                >
+                  <span className={`font-black tabular-nums w-7 sm:w-12 text-center text-lg sm:text-3xl ${i === 0 ? "text-canal-yellow" : i < 3 ? "text-white" : "text-white/40"}`}>{i + 1}</span>
+                  <span className="flex-1 font-bold text-white text-base sm:text-2xl truncate">{i < 3 ? `${["🥇", "🥈", "🥉"][i]} ` : ""}{p.name}</span>
+                  <span className="font-black text-canal-yellow tabular-nums text-base sm:text-2xl w-16 sm:w-24 text-right">{p.points} pts</span>
+                </div>
+              ))}
+            </div>
           ) : (
-            // — Phase reveal : chorégraphie en plusieurs temps (revealStage) —
+            // — Stats / Answer : répartition des votes —
             <div className="max-w-5xl mx-auto w-full flex flex-col gap-4 sm:gap-6">
-              {/* Stage 0 — Temps écoulé */}
-              <div className="text-center" style={{ animation: "fadeUp .4s both" }}>
-                <span className="text-white/60 font-black text-xl sm:text-4xl uppercase tracking-widest">⏱ Temps écoulé</span>
+              <div className="flex items-center justify-center gap-3 sm:gap-6 text-center" style={{ animation: "fadeUp .4s both" }}>
+                <span className="text-white font-black text-xl sm:text-4xl tabular-nums">{responded} / {participants}</span>
+                <span className="text-white/40 font-bold text-base sm:text-2xl">joueurs</span>
+                <span className="text-canal-yellow font-black text-2xl sm:text-5xl tabular-nums">{respondedPct}%</span>
               </div>
 
-              {/* Stage 1 — nb de répondants + % */}
-              {revealStage >= 1 && (
-                <div className="flex items-center justify-center gap-3 sm:gap-6 text-center" style={{ animation: "fadeUp .4s both" }}>
-                  <span className="text-white font-black text-xl sm:text-4xl tabular-nums">{responded} / {participants}</span>
-                  <span className="text-white/40 font-bold text-base sm:text-2xl">joueurs</span>
-                  <span className="text-canal-yellow font-black text-2xl sm:text-5xl tabular-nums">{respondedPct}%</span>
-                </div>
-              )}
-
-              {/* Stage 2 — barres séquencées A→B→C→D ; le bon ne s'allume qu'au stage 3 */}
-              {revealStage >= 2 && (
-                <div className="flex flex-col gap-2.5 sm:gap-3.5">
-                  {ANSWER_KEYS.map((key, i) => {
-                    const palette = ANSWER_PALETTE[key];
-                    const pct = pctOf(key);
-                    const isCorrect = key === correct;
-                    const lit = revealStage >= 3 && isCorrect;
-                    return (
-                      <div key={key} className="flex items-center gap-3 sm:gap-5" style={{ animation: "fadeUp .4s both", animationDelay: `${i * 0.12}s` }}>
-                        <span className={`font-black text-xl sm:text-3xl w-12 sm:w-24 text-center shrink-0 transition-colors ${lit ? "text-green-400" : "text-white/40"}`}>
-                          {lit ? `✓ ${key}` : key}
+              <div className="flex flex-col gap-2.5 sm:gap-3.5">
+                {ANSWER_KEYS.map((key, i) => {
+                  const palette = ANSWER_PALETTE[key];
+                  const pct = pctOf(key);
+                  const lit = isAnswer && key === correct; // le bon ne s'allume qu'à la phase answer
+                  return (
+                    <div key={key} className="flex items-center gap-3 sm:gap-5" style={{ animation: "fadeUp .4s both", animationDelay: `${i * 0.1}s` }}>
+                      <span className={`font-black text-xl sm:text-3xl w-12 sm:w-24 text-center shrink-0 transition-colors ${lit ? "text-green-400" : "text-white/40"}`}>
+                        {lit ? `✓ ${key}` : key}
+                      </span>
+                      <div className="flex-1 h-9 sm:h-14 bg-white/5 rounded-xl overflow-hidden relative">
+                        <div
+                          className={`h-full rounded-xl transition-colors duration-300 ${lit ? "bg-green-500" : palette.bar} ${isAnswer && key !== correct ? "opacity-40" : "opacity-80"}`}
+                          style={{ width: `${Math.max(pct, 3)}%`, transformOrigin: "left", animation: "growX .6s ease-out both", animationDelay: `${i * 0.1}s` }}
+                        />
+                        <span className="absolute inset-0 flex items-center px-3 sm:px-5">
+                          <span className="font-bold text-sm sm:text-2xl truncate text-white/80">{answerText(key)}</span>
                         </span>
-                        <div className="flex-1 h-9 sm:h-14 bg-white/5 rounded-xl overflow-hidden relative">
-                          <div
-                            className={`h-full rounded-xl transition-colors duration-300 ${lit ? "bg-green-500" : palette.bar} ${revealStage >= 3 && !isCorrect ? "opacity-40" : "opacity-80"}`}
-                            style={{ width: `${Math.max(pct, 3)}%`, transformOrigin: "left", animation: "growX .6s ease-out both", animationDelay: `${i * 0.12}s` }}
-                          />
-                          <span className="absolute inset-0 flex items-center px-3 sm:px-5">
-                            <span className="font-bold text-sm sm:text-2xl truncate text-white/80">{answerText(key)}</span>
-                          </span>
-                          <span className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 font-black text-base sm:text-3xl tabular-nums text-white">{pct}%</span>
-                        </div>
+                        <span className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 font-black text-base sm:text-3xl tabular-nums text-white">{pct}%</span>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
+                    </div>
+                  );
+                })}
+              </div>
 
-              {/* Beat de suspense : barres affichées, le bon pas encore allumé */}
-              {revealStage === 2 && (
+              {/* Suspense : barres affichées, on attend que Marie dévoile la réponse */}
+              {isStats && (
                 <p className="text-center text-white/55 font-black text-lg sm:text-3xl uppercase tracking-widest animate-pulse">
                   🥁 La bonne réponse est…
                 </p>
               )}
 
-              {/* Stage 3 — bonne réponse (✓ + lettre + texte), avec un POP discret */}
-              {revealStage >= 3 && correct && (
-                <div className="text-center mt-1 sm:mt-3">
-                  <p
-                    className="text-green-400 font-black text-2xl sm:text-5xl inline-flex items-center justify-center gap-3 flex-wrap"
-                    style={{ animation: "pop .5s ease-out both" }}
-                  >
+              {/* Bonne réponse + explication + punchline (phase answer) */}
+              {isAnswer && correct && (
+                <div className="flex flex-col items-center gap-3 sm:gap-4">
+                  <p className="text-green-400 font-black text-2xl sm:text-5xl inline-flex items-center justify-center gap-3 flex-wrap" style={{ animation: "pop .5s ease-out both" }}>
                     ✅ <span className="text-white/50">{correct}</span> {answerText(correct)}
                   </p>
-                </div>
-              )}
-
-              {/* Stage 4 — explication + stats d'ambiance (le plus rapide, punchline) */}
-              {revealStage >= 4 && (
-                <div className="flex flex-col items-center gap-3 sm:gap-4" style={{ animation: "fadeUp .5s both" }}>
                   {session.explanation && (
-                    <p className="text-white/55 text-sm sm:text-2xl italic text-center max-w-3xl mx-auto leading-snug">{session.explanation}</p>
+                    <p className="text-white/55 text-sm sm:text-2xl italic text-center max-w-3xl mx-auto leading-snug" style={{ animation: "fadeUp .5s both", animationDelay: "0.2s" }}>{session.explanation}</p>
                   )}
-                  <div className="flex items-center justify-center gap-4 sm:gap-10 flex-wrap">
+                  <div className="flex items-center justify-center gap-4 sm:gap-10 flex-wrap" style={{ animation: "fadeUp .5s both", animationDelay: "0.4s" }}>
                     <span className="text-white/70 font-bold text-base sm:text-3xl">{funnyStat}</span>
                     {fastest && (
                       <span className="flex items-center gap-2 text-canal-yellow font-black text-base sm:text-3xl">
@@ -573,9 +566,9 @@ export default function QuizShowPage() {
           )}
         </div>
 
-        {/* Footer : chrono géant (question) ou consigne (reveal) */}
+        {/* Footer : chrono (question), « Temps écoulé » (timeup) ou consigne (reveal) */}
         <footer className="shrink-0 px-4 sm:px-12 pb-5 sm:pb-8 pt-3 sm:pt-4 border-t border-white/5">
-          {!isReveal ? (
+          {ph === "question" ? (
             <div className="flex items-center gap-3 sm:gap-5">
               <span
                 key={timeLeft <= 3 ? `t${timeLeft}` : "calm"}
@@ -590,9 +583,13 @@ export default function QuizShowPage() {
                 <div className={`h-full rounded-full transition-all duration-700 ${timerColor}`} style={{ width: `${timerPct}%` }} />
               </div>
             </div>
+          ) : isTimeup ? (
+            <p className="text-center font-black text-2xl sm:text-5xl text-red-400 uppercase tracking-widest" style={{ animation: "pop .5s both" }}>
+              ⏱ Temps écoulé
+            </p>
           ) : (
             <p className="text-white/35 text-center text-sm sm:text-2xl">
-              {responded} réponse{responded > 1 ? "s" : ""} · l&apos;animateur lance la question suivante
+              {responded} réponse{responded > 1 ? "s" : ""} · l&apos;animateur poursuit le show
             </p>
           )}
         </footer>

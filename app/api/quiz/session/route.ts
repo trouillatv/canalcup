@@ -52,7 +52,7 @@ export async function GET() {
 
   const { data: session } = await supabase
     .from("quiz_session")
-    .select("id, current_question_id, question_index, started_at, status")
+    .select("id, current_question_id, question_index, started_at, status, stage")
     .is("ended_at", null)
     .maybeSingle();
 
@@ -90,11 +90,22 @@ export async function GET() {
 
   if (!question) return NextResponse.json({ status: "idle" });
 
+  // Phase = rythme PILOTÉ par l'animateur. Tant que stage='question', countdown/
+  // question/timeup restent dérivés du temps ; dès que Marie « avance », le stage
+  // persisté (stats → answer → leaderboard) prend la main.
   const elapsed = Date.now() - new Date(session.started_at).getTime();
-  const phase =
-    elapsed < 0 ? "countdown" : elapsed < QUIZ_TIMER_SECONDS * 1000 ? "question" : "reveal";
+  const stage = (session.stage as string) ?? "question";
+  type Phase = "countdown" | "question" | "timeup" | "stats" | "answer" | "leaderboard";
+  const phase: Phase =
+    stage === "stats" || stage === "answer" || stage === "leaderboard"
+      ? (stage as Phase)
+      : elapsed < 0
+        ? "countdown"
+        : elapsed < QUIZ_TIMER_SECONDS * 1000
+          ? "question"
+          : "timeup";
 
-  // Avant le reveal : on ne renvoie JAMAIS la bonne réponse ni l'explication.
+  // On ne renvoie JAMAIS la bonne réponse/explication avant la phase 'answer'.
   const safeQuestion = {
     id: question.id,
     question: question.question,
@@ -115,11 +126,12 @@ export async function GET() {
     total: total ?? 0,
   };
 
-  if (phase !== "reveal") {
+  // Phases sans dévoilement de votes (chrono / temps écoulé tenu).
+  if (phase === "countdown" || phase === "question" || phase === "timeup") {
     return NextResponse.json(base, { headers: { "Cache-Control": "no-store" } });
   }
 
-  // ── Reveal : bonne réponse + explication + répartition des votes ───────────
+  // ── Répartition des votes (stats / answer / leaderboard) ───────────────────
   const { data: answers } = await supabase
     .from("quiz_answers")
     .select("answer")
@@ -133,13 +145,19 @@ export async function GET() {
       responded += 1;
     }
   }
-
-  // Participants ≈ la salle : chaque téléphone auto-soumet "" au timeout, donc le
-  // nombre de user_id distincts sur l'ensemble de la session est un bon proxy.
-  // ⚠️ Approximation connue : un joueur qui rejoint sans avoir encore répondu
-  // n'est pas compté (pas de présence/roster en V1).
+  // Participants ≈ la salle (chaque téléphone auto-soumet "" au timeout).
+  // ⚠️ Approximation : un joueur qui rejoint sans avoir répondu n'est pas compté.
   const { data: allAnswers } = await supabase.from("quiz_answers").select("user_id");
   const participants = new Set((allAnswers ?? []).map((a) => a.user_id)).size;
+
+  // 📊 STATS : barres + participation, mais PAS la bonne réponse (suspense : la
+  // salle débat avant que Marie ne dévoile).
+  if (phase === "stats") {
+    return NextResponse.json(
+      { ...base, distribution, responded, participants },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+  }
 
   // ⚡ Le plus rapide = bonne réponse au temps le plus court sur cette question.
   const { data: fastRows } = await supabase
@@ -162,6 +180,16 @@ export async function GET() {
     };
   }
 
+  // 🏆 LEADERBOARD : on ajoute le classement agrégé.
+  if (phase === "leaderboard") {
+    const standings = await computeStandings(supabase);
+    return NextResponse.json(
+      { ...base, distribution, responded, participants, fastest, standings, correct_answer: question.correct_answer },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+  }
+
+  // ✅ ANSWER : bonne réponse + explication + le plus rapide.
   return NextResponse.json(
     {
       ...base,
