@@ -75,6 +75,11 @@ export function PressureBar({
   // Lignes blanches de repère : 0' (coup d'envoi), 45' (mi-temps), 90' (fin du
   // temps réglementaire) et 120' (fin de prolongation, si l'axe va jusque-là).
   const whiteLines = [0, 45, 90, ...(totalMin >= 120 ? [120] : [])].filter((m) => m <= totalMin);
+  const liveCursor = data.live && !data.finished; // ligne rouge « minute courante »
+  // Position horizontale (en % de la largeur du graphe) pour l'overlay des buts.
+  const leftPct = (posMin: number) => `${(x(posMin) / W) * 100}%`;
+  const goalsHome = goals.filter((g) => g.side === "home"); // équipe A (haut)
+  const goalsAway = goals.filter((g) => g.side === "away"); // équipe B (bas)
 
   return (
     <div className="rounded-2xl bg-canal-gray border border-canal-gray-light p-3 mb-4">
@@ -88,67 +93,85 @@ export function PressureBar({
           <Flag flag={flagB} name={teamB} className="h-7 w-7 rounded-full ring-2 ring-blue-500/50" emojiClassName="text-xl" />
         </div>
 
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" role="img" aria-label="Pression par équipe">
-          {/* Bandes de fond (haut = A, bas = B). */}
-          <rect x={0} y={0} width={W} height={cy} fill="rgba(34,197,94,0.12)" />
-          <rect x={0} y={cy} width={W} height={cy} fill="rgba(59,130,246,0.12)" />
+        <div className="relative flex-1 min-w-0">
+          {/* ⚽ Buts équipe A — au-dessus du graphe, à la minute du but. */}
+          <div className="relative h-4">
+            {goalsHome.map((g, i) => (
+              <span
+                key={`gh${i}`}
+                className="absolute bottom-0 -translate-x-1/2 text-sm leading-none"
+                style={{ left: leftPct(g.pos) }}
+                title={`But ${teamA} — ${Math.round(g.pos)}'`}
+              >
+                ⚽
+              </span>
+            ))}
+          </div>
 
-          {/* Zone future (match en cours) : de la minute courante jusqu'au bout. */}
-          {!data.finished && nowX < W - padX && (
-            <rect x={nowX} y={0} width={W - padX - nowX} height={H} fill="rgba(255,255,255,0.05)" />
-          )}
+          <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto block" role="img" aria-label="Pression par équipe">
+            {/* Bandes de fond (haut = A, bas = B). */}
+            <rect x={0} y={0} width={W} height={cy} fill="rgba(34,197,94,0.12)" />
+            <rect x={0} y={cy} width={W} height={cy} fill="rgba(59,130,246,0.12)" />
 
-          {/* Repères de quart d'heure (lecture de l'échelle 90'/120'). */}
-          {[15, 30, 60, 75, 105].filter((m) => m < totalMin).map((m) => (
-            <line key={`g${m}`} x1={x(m)} y1={0} x2={x(m)} y2={H} stroke="rgba(255,255,255,0.06)" strokeWidth={1} />
-          ))}
+            {/* Zone future (match en cours) : de la minute courante jusqu'au bout. */}
+            {!data.finished && nowX < W - padX && (
+              <rect x={nowX} y={0} width={W - padX - nowX} height={H} fill="rgba(255,255,255,0.05)" />
+            )}
 
-          {/* Lignes blanches : 0' / 45' / 90' / 120'. */}
-          {whiteLines.map((m) => (
-            <line key={`w${m}`} x1={x(m)} y1={0} x2={x(m)} y2={H} stroke="rgba(255,255,255,0.85)" strokeWidth={1.5} />
-          ))}
+            {/* Repères de quart d'heure (lecture de l'échelle 90'/120'). */}
+            {[15, 30, 60, 75, 105].filter((m) => m < totalMin).map((m) => (
+              <line key={`g${m}`} x1={x(m)} y1={0} x2={x(m)} y2={H} stroke="rgba(255,255,255,0.06)" strokeWidth={1} />
+            ))}
 
-          {/* Barres signées, placées à leur vraie minute de jeu. */}
-          {pts.map((p, i) => {
-            const h = Math.abs(p.value) * amp;
-            const up = p.value >= 0;
-            return (
-              <rect
-                key={i}
-                x={x(p.pos) - barW / 2}
-                y={up ? cy - h : cy}
-                width={barW}
-                height={Math.max(h, 0.6)}
-                rx={1}
-                fill={up ? "#22c55e" : "#3b82f6"}
-              />
-            );
-          })}
+            {/* Lignes blanches : 0' / 45' / 90' / 120'. */}
+            {whiteLines.map((m) => (
+              <line key={`w${m}`} x1={x(m)} y1={0} x2={x(m)} y2={H} stroke="rgba(255,255,255,0.85)" strokeWidth={1.5} />
+            ))}
 
-          {/* Ligne centrale. */}
-          <line x1={0} y1={cy} x2={W} y2={cy} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
+            {/* Barres signées, placées à leur vraie minute de jeu. */}
+            {pts.map((p, i) => {
+              const h = Math.abs(p.value) * amp;
+              const up = p.value >= 0;
+              return (
+                <rect
+                  key={i}
+                  x={x(p.pos) - barW / 2}
+                  y={up ? cy - h : cy}
+                  width={barW}
+                  height={Math.max(h, 0.6)}
+                  rx={1}
+                  fill={up ? "#22c55e" : "#3b82f6"}
+                />
+              );
+            })}
 
-          {/* ⚽ Buts : un ballon au-dessus du camp qui a marqué, à la minute du
-              but (home = haut/équipe A, away = bas/équipe B). */}
-          {goals.map((g, i) => (
-            <text
-              key={`goal${i}`}
-              x={x(g.pos)}
-              y={g.side === "home" ? 16 : H - 6}
-              fontSize={15}
-              textAnchor="middle"
-            >
-              ⚽
-            </text>
-          ))}
+            {/* Ligne centrale. */}
+            <line x1={0} y1={cy} x2={W} y2={cy} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
 
-          {/* Coup d'envoi (vert) → minute courante (rouge). */}
-          <circle cx={x(0)} cy={H - 8} r={6} fill="#0e1117" stroke="#22c55e" strokeWidth={3} />
-          <circle cx={nowX} cy={8} r={6} fill="#0e1117" stroke="#ef4444" strokeWidth={3} />
-        </svg>
+            {/* Minute courante (live) : ligne rouge à la frontière de la zone future. */}
+            {liveCursor && (
+              <line x1={nowX} y1={0} x2={nowX} y2={H} stroke="#ef4444" strokeWidth={1.5} />
+            )}
+          </svg>
+
+          {/* ⚽ Buts équipe B — en dessous du graphe, à la minute du but. */}
+          <div className="relative h-4">
+            {goalsAway.map((g, i) => (
+              <span
+                key={`ga${i}`}
+                className="absolute top-0 -translate-x-1/2 text-sm leading-none"
+                style={{ left: leftPct(g.pos) }}
+                title={`But ${teamB} — ${Math.round(g.pos)}'`}
+              >
+                ⚽
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
       <p className="text-[10px] text-canal-gray-muted mt-1.5 px-1">
         Indice dérivé (tirs cadrés · occasions · possession) — une cellule / 30 s sur {totalMin}′.
+        {liveCursor && <span className="text-red-400"> · ligne rouge = minute en cours</span>}
       </p>
     </div>
   );
