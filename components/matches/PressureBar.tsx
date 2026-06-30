@@ -50,7 +50,24 @@ export function PressureBar({
     return () => { alive = false; if (timer) clearTimeout(timer); };
   }, [matchId]);
 
-  if (!data || data.points.length < 2) return null;
+  if (!data) return null;
+
+  // Pas (encore) de barres : en live, on affiche un état « se construit » pour
+  // ne pas donner l'impression que c'est cassé (la 1ʳᵉ barre arrive sous ~30 s,
+  // dès le 2ᵉ snapshot). Hors live sans données : on n'encombre pas.
+  if (data.points.length < 1) {
+    if (!data.live) return null;
+    return (
+      <div className="rounded-2xl bg-canal-gray border border-canal-gray-light p-3 mb-4">
+        <p className="text-[11px] font-black text-canal-yellow uppercase tracking-wider mb-1 px-1">
+          🔥 Pression par équipe
+        </p>
+        <p className="text-xs text-canal-gray-muted px-1 py-3">
+          ⏳ La pression se construit en direct — première barre dans ~30 s.
+        </p>
+      </div>
+    );
+  }
 
   // Repère SVG (unités virtuelles, le viewBox s'étire en largeur 100 %).
   const W = 600, H = 180, cy = H / 2, padX = 10;
