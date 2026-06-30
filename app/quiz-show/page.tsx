@@ -12,7 +12,7 @@
 //
 // Pas de Realtime (V1) : polling 1s, largement suffisant en salle.
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 import { QUIZ_TIMER_SECONDS } from "@/lib/scoring";
 import { sfx, initAudio } from "@/lib/quiz/sound";
@@ -57,6 +57,11 @@ interface LiveSession {
   participants?: number;
   fastest?: { name: string; ms: number } | null;
 }
+interface Standing {
+  name: string;
+  points: number;
+  correct: number;
+}
 
 // ─── PIN Gate ────────────────────────────────────────────────────────────────
 function PinGate({ children }: { children: React.ReactNode }) {
@@ -86,9 +91,28 @@ function PinGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// ─── Colonne de podium (cérémonie de fin) ─────────────────────────────────────
+function PodiumCol({
+  show, medal, player, h, accent, big,
+}: { show: boolean; medal: string; player?: Standing; h: string; accent: string; big?: boolean }) {
+  return (
+    <div className={`flex-1 max-w-[34%] flex flex-col items-center justify-end transition-all duration-700 ${show && player ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}>
+      {player && (
+        <>
+          <span className={`mb-1 ${big ? "text-4xl sm:text-7xl" : "text-3xl sm:text-5xl"}`}>{medal}</span>
+          <span className={`font-black ${accent} text-base sm:text-3xl text-center truncate w-full px-1`}>{player.name}</span>
+          <span className="text-white/50 text-xs sm:text-xl mb-2 tabular-nums">{player.points} pts</span>
+        </>
+      )}
+      <div className={`w-full ${h} rounded-t-xl border-t border-white/20 bg-gradient-to-b ${big ? "from-canal-yellow/40 to-canal-yellow/0" : "from-white/15 to-white/0"}`} />
+    </div>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function QuizShowPage() {
   const [session, setSession] = useState<LiveSession | null>(null);
+  const [finished, setFinished] = useState<{ standings: Standing[] } | null>(null);
   const [idle, setIdle] = useState(true);
   const [, forceTick] = useState(0);
   const cancelled = useRef(false);
@@ -180,6 +204,43 @@ export default function QuizShowPage() {
     </button>
   );
 
+  // 🏆 Cérémonie de fin : stages 0→5 (intro → 3e → 2e → 1er+confettis → photo →
+  // classement complet + merci). Joue la fanfare sur le 1er.
+  const [ceremonyStage, setCeremonyStage] = useState(0);
+  const ceremonyStarted = useRef(false);
+  useEffect(() => {
+    if (!finished) {
+      ceremonyStarted.current = false;
+      setCeremonyStage(0);
+      return;
+    }
+    if (ceremonyStarted.current) return;
+    ceremonyStarted.current = true;
+    setCeremonyStage(0);
+    const t = [
+      setTimeout(() => setCeremonyStage(1), 1200),
+      setTimeout(() => setCeremonyStage(2), 3400),
+      setTimeout(() => { setCeremonyStage(3); if (soundOnRef.current) sfx.fanfare(); }, 5600),
+      setTimeout(() => setCeremonyStage(4), 9500),
+      setTimeout(() => setCeremonyStage(5), 12500),
+    ];
+    return () => t.forEach(clearTimeout);
+  }, [finished]);
+
+  // Confettis : positions déterministes (pas de Math.random → pas de mismatch SSR).
+  const confetti = useMemo(
+    () =>
+      Array.from({ length: 60 }, (_, i) => ({
+        left: (i * 37) % 100,
+        delay: (i % 10) * 0.18,
+        dur: 2.4 + (i % 5) * 0.4,
+        color: ["#FFD400", "#2563eb", "#7c3aed", "#f97316", "#22c55e"][i % 5],
+        size: 6 + (i % 4) * 3,
+        rot: (i * 53) % 360,
+      })),
+    []
+  );
+
   useEffect(() => {
     cancelled.current = false;
     const load = async () => {
@@ -190,9 +251,15 @@ export default function QuizShowPage() {
         if (cancelled.current) return;
         if (d.status === "question" && d.question) {
           setSession(d as LiveSession);
+          setFinished(null);
+          setIdle(false);
+        } else if (d.status === "finished" && Array.isArray(d.standings) && d.standings.length) {
+          setFinished({ standings: d.standings as Standing[] });
+          setSession(null);
           setIdle(false);
         } else {
           setSession(null);
+          setFinished(null);
           setIdle(true);
         }
       } catch {
@@ -208,6 +275,77 @@ export default function QuizShowPage() {
       clearInterval(tick);
     };
   }, []);
+
+  // ── 🏆 Cérémonie de fin ─────────────────────────────────────────────────────
+  if (finished) {
+    const s = finished.standings;
+    const showConfetti = ceremonyStage >= 3;
+    return (
+      <PinGate>
+        <div className="fixed inset-0 flex flex-col items-center justify-center px-4 select-none overflow-hidden" style={{ background: WARM_BG }}>
+          {showConfetti && (
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+              {confetti.map((c, i) => (
+                <span
+                  key={i}
+                  className="absolute top-[-5%] rounded-sm"
+                  style={{
+                    left: `${c.left}%`,
+                    width: c.size,
+                    height: c.size * 1.6,
+                    background: c.color,
+                    animation: `confettiFall ${c.dur}s linear ${c.delay}s infinite`,
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          {ceremonyStage < 5 ? (
+            <div className="relative flex flex-col items-center gap-8 sm:gap-14 w-full max-w-4xl">
+              <p className="font-black text-3xl sm:text-7xl text-canal-yellow uppercase tracking-widest" style={{ animation: "fadeUp .5s both" }}>
+                🏆 Résultats
+              </p>
+              <div className="flex items-end justify-center gap-3 sm:gap-6 w-full">
+                <PodiumCol show={ceremonyStage >= 2} medal="🥈" player={s[1]} h="h-36 sm:h-56" accent="text-white/85" />
+                <PodiumCol show={ceremonyStage >= 3} medal="🥇" player={s[0]} h="h-52 sm:h-80" accent="text-canal-yellow" big />
+                <PodiumCol show={ceremonyStage >= 1} medal="🥉" player={s[2]} h="h-28 sm:h-44" accent="text-orange-300" />
+              </div>
+              {ceremonyStage >= 4 && (
+                <p className="font-black text-xl sm:text-4xl text-white" style={{ animation: "pop .5s both" }}>
+                  📸 Photo de groupe !
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="relative w-full max-w-2xl flex flex-col gap-3" style={{ animation: "fadeUp .5s both" }}>
+              <p className="font-black text-2xl sm:text-5xl text-canal-yellow text-center uppercase tracking-widest mb-1">Classement final</p>
+              <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[62vh]">
+                {s.map((p, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-center gap-3 sm:gap-4 rounded-xl px-3 sm:px-5 py-2 sm:py-3 ${i === 0 ? "bg-canal-yellow/15 border border-canal-yellow/40" : "bg-white/5"}`}
+                  >
+                    <span className={`font-black tabular-nums w-7 sm:w-12 text-center text-lg sm:text-3xl ${i === 0 ? "text-canal-yellow" : i < 3 ? "text-white" : "text-white/40"}`}>
+                      {i + 1}
+                    </span>
+                    <span className="flex-1 font-bold text-white text-base sm:text-2xl truncate">
+                      {i < 3 ? `${["🥇", "🥈", "🥉"][i]} ` : ""}
+                      {p.name}
+                    </span>
+                    <span className="text-white/40 text-xs sm:text-lg tabular-nums">{p.correct} ✓</span>
+                    <span className="font-black text-canal-yellow tabular-nums text-base sm:text-2xl w-16 sm:w-24 text-right">{p.points} pts</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-center text-white/60 text-base sm:text-3xl font-bold mt-2">Merci à tous 🙏</p>
+            </div>
+          )}
+          {soundBtn}
+        </div>
+      </PinGate>
+    );
+  }
 
   // ── Idle : en attente du lancement ─────────────────────────────────────────
   if (idle || !session) {
@@ -437,26 +575,6 @@ export default function QuizShowPage() {
         </footer>
       </div>
       {soundBtn}
-
-      <style jsx global>{`
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(12px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes growX {
-          from { transform: scaleX(0); }
-          to { transform: scaleX(1); }
-        }
-        @keyframes pop {
-          0% { transform: scale(0.8); }
-          60% { transform: scale(1.14); }
-          100% { transform: scale(1); }
-        }
-        @keyframes popSec {
-          0% { transform: scale(1.55); opacity: 0.5; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-      `}</style>
     </PinGate>
   );
 }

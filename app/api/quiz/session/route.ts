@@ -16,6 +16,37 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { QUIZ_TIMER_SECONDS } from "@/lib/scoring";
 
+type Supa = ReturnType<typeof createAdminClient>;
+
+// Classement individuel du quiz (somme des points + nb de bonnes réponses),
+// agrégé depuis quiz_answers (vidé au reset → ne contient que la session courante).
+async function computeStandings(
+  supabase: Supa
+): Promise<{ name: string; points: number; correct: number }[]> {
+  const { data: rows } = await supabase
+    .from("quiz_answers")
+    .select("user_id, points_awarded, is_correct");
+  if (!rows?.length) return [];
+  const byUser = new Map<string, { points: number; correct: number }>();
+  for (const r of rows) {
+    const e = byUser.get(r.user_id) ?? { points: 0, correct: 0 };
+    e.points += r.points_awarded ?? 0;
+    if (r.is_correct) e.correct += 1;
+    byUser.set(r.user_id, e);
+  }
+  const ids = [...byUser.keys()];
+  const { data: users } = await supabase
+    .from("users")
+    .select("id, display_name, name")
+    .in("id", ids);
+  const nameById = new Map(
+    (users ?? []).map((u) => [u.id, u.display_name?.trim() || u.name?.trim() || "Joueur"])
+  );
+  return [...byUser.entries()]
+    .map(([uid, e]) => ({ name: nameById.get(uid) ?? "Joueur", points: e.points, correct: e.correct }))
+    .sort((a, b) => b.points - a.points || b.correct - a.correct);
+}
+
 export async function GET() {
   const supabase = createAdminClient();
 
@@ -26,6 +57,23 @@ export async function GET() {
     .maybeSingle();
 
   if (!session || session.status !== "question" || !session.current_question_id) {
+    // Pas de session active : si la DERNIÈRE session est terminée et qu'il reste
+    // des réponses, on renvoie le classement final → l'écran TV joue la cérémonie.
+    const { data: last } = await supabase
+      .from("quiz_session")
+      .select("id, status")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (last?.status === "finished") {
+      const standings = await computeStandings(supabase);
+      if (standings.length) {
+        return NextResponse.json(
+          { status: "finished", standings },
+          { headers: { "Cache-Control": "no-store" } }
+        );
+      }
+    }
     return NextResponse.json({ status: "idle" });
   }
 

@@ -179,3 +179,26 @@
   100% { transform: translateY(-70vh) scale(1.6); opacity: 0; }
 }
 .animate-float-up-far { animation: float-up-far 4s ease-out forwards; }
+
+/* ── Quiz show (TV maître) : animations de mise en scène ─────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes growX {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+@keyframes pop {
+  0%   { transform: scale(0.8); }
+  60%  { transform: scale(1.14); }
+  100% { transform: scale(1); }
+}
+@keyframes popSec {
+  0%   { transform: scale(1.55); opacity: 0.5; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes confettiFall {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(540deg); opacity: 0.9; }
+}
