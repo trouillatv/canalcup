@@ -36,6 +36,6 @@ export const EVENT_SPLASH: EventSplashConfig = {
     "Il sera aussi disponible depuis votre ordinateur ou téléphone, directement sur la page Quiz de l'application.",
     "📱 Connectez-vous, répondez en direct, et tentez de faire gagner des points à votre équipe.",
   ],
-  primaryCta: { label: "Participer au quiz", href: "/quiz-live" },
+  primaryCta: { label: "Participer au quiz", href: "/quiz" },
   secondaryLabel: "Entrer dans CanalCup",
 };

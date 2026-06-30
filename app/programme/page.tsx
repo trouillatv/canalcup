@@ -41,6 +41,7 @@ const EVENTS: EventItem[] = [
   { date: "Jeu 9 juil.", time: "midi", title: "Baby-foot", why: "Entre les huitièmes et les quarts", icon: Gamepad2 },
   { date: "Lun 13 juil.", time: "midi", title: "Quiz #2 (plus court)", why: "On relance avant les demi-finales", icon: Brain },
   { date: "Jeu 16 / Ven 17 juil.", title: "Finale Baby-foot & animations", why: "La finale approche", icon: Gamepad2 },
+  { date: "Lun 20 juil.", time: "midi", title: "Grande Finale Quiz", why: "Les 5 meilleurs du championnat Quiz s'affrontent en direct", icon: Brain, accent: "star" },
   { date: "Lun 20 juil.", title: "Remise des prix CanalCup", why: "Clôture de l'événement", icon: Trophy, accent: "trophy" },
 ];
 

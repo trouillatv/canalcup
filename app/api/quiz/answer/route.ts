@@ -127,6 +127,8 @@ export async function POST(req: Request) {
       is_correct,
       response_time_ms,
       points_awarded: points,
+      quiz_session_id: session.id,
+      mode: "live",
     });
 
     return NextResponse.json(
