@@ -32,6 +32,13 @@ import {
   getSalonPhrase,
   SALON_PREMATCH,
 } from "@/lib/tv/hype";
+import {
+  resolveKnockout,
+  KNOCKOUT_SCHEDULE,
+  type StandingLike,
+  type RealKoMatch,
+} from "@/lib/football/bracket-2026";
+import { EVENT_SPLASH } from "@/lib/config/event-splash";
 
 type Slide =
   | "upcoming"
@@ -63,6 +70,7 @@ type Slide =
   | "scoregap"
   | "binomes"
   | "supportersvote"
+  | "quizannounce"
   | "results";
 
 // ─── Goat helper: remplace "Le Goat" par l'image de chèvre ────────────────────
@@ -107,6 +115,9 @@ function getQRContext(slide: Slide, data: TVData | null, origin: string): QRCont
   }
   if (slide === "quiz") {
     return { url: `${origin}/quiz-live`, message: "🧠 Quiz en cours", subtext: "Répondez sur votre mobile" };
+  }
+  if (slide === "quizannounce") {
+    return { url: `${origin}/quiz`, message: "🧠 Grand Quiz CanalCup", subtext: "Préparez-vous !" };
   }
   if (slide === "animations") {
     return { url: `${origin}/animations`, message: "🎉 Animation", subtext: "Participez maintenant" };
@@ -180,6 +191,7 @@ const BASE_SLIDES: Slide[] = [
   "welcome",       // nouveaux joueurs
   "fantomes",      // joueurs inactifs
   "bracket",       // phase à élimination
+  "quizannounce",  // annonce du prochain Quiz CanalCup
   "medals",        // médailles absurdes
   "upcoming",      // prochains événements
   "matinale",      // brief matinal
@@ -1227,131 +1239,124 @@ interface TvMatchRow {
 interface TvBracketPhase { phase: string; groups: { matches: TvMatchRow[] }[] }
 
 const TV_PHASE_EMOJIS: Record<string, string> = {
-  Huitièmes: "🔥", Quarts: "⚡", Demis: "🌟", "3ème place": "🥉", Finale: "🏆",
+  Seizièmes: "🎲", Huitièmes: "🔥", Quarts: "⚡", Demis: "🌟", "3ème place": "🥉", Finale: "🏆",
 };
 const TV_PHASE_LABELS: Record<string, string> = {
-  Huitièmes: "Huitièmes de finale", Quarts: "Quarts de finale",
+  Seizièmes: "16es de finale", Huitièmes: "Huitièmes de finale", Quarts: "Quarts de finale",
   Demis: "Demi-finales", "3ème place": "Match pour la 3ème place", Finale: "Grande Finale",
 };
 
+const normTeam = (n?: string) =>
+  (n ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+
+// Tableau final projeté : les vainqueurs CONNUS (qualifiés des poules) sont
+// pré-remplis via resolveKnockout. Les tours futurs ne sont PAS en base (projetés
+// côté client) → on ne peut pas se contenter des matchs DB.
 function SlideBracket() {
-  const [phases, setPhases] = useState<TvBracketPhase[]>([]);
+  const [data, setData] = useState<{ phases: TvBracketPhase[]; standings: Record<string, StandingLike[]> } | null>(null);
 
   useEffect(() => {
-    fetch("/api/bracket")
-      .then((r) => r.json())
-      .then((d: { phases: TvBracketPhase[] }) => setPhases(d.phases ?? []))
-      .catch(() => {});
+    fetch("/api/bracket").then((r) => r.json()).then(setData).catch(() => {});
   }, []);
 
-  // Only show knockout rounds (skip group stage — too dense for TV at distance)
-  const knockout = phases.filter((p) => p.phase !== "Groupe");
+  // Vrais matchs KO en base (pour propager scores/vainqueurs dans la projection).
+  const realKo: RealKoMatch[] = (data?.phases ?? [])
+    .filter((p) => p.phase !== "Groupe")
+    .flatMap((p) => p.groups.flatMap((g) => g.matches))
+    .map((m) => ({ team_a: m.team_a, team_b: m.team_b, flag_a: m.flag_a, flag_b: m.flag_b, score_a: m.score_a, score_b: m.score_b, status: m.status, phase: m.phase }));
+  const realByTeam: Record<string, TvMatchRow> = {};
+  for (const p of data?.phases ?? []) {
+    if (p.phase === "Groupe") continue;
+    for (const g of p.groups) for (const m of g.matches) {
+      realByTeam[normTeam(m.team_a)] = m;
+      realByTeam[normTeam(m.team_b)] = m;
+    }
+  }
+  const findReal = (a?: string, b?: string) =>
+    (a ? realByTeam[normTeam(a)] : undefined) ?? (b ? realByTeam[normTeam(b)] : undefined) ?? null;
 
-  if (!knockout.length) {
+  const rounds = data ? resolveKnockout(data.standings ?? {}, "projection", realKo) : [];
+  // Round actif = le premier pas entièrement terminé (les 16es au sortir des poules).
+  const activeRound =
+    rounds.find((r) => r.matches.some((m) => { const rm = findReal(m.a.teamName, m.b.teamName); return !rm || rm.status !== "finished"; })) ??
+    rounds[rounds.length - 1];
+
+  if (!data || !activeRound) {
     return (
-      <div className="flex h-full items-center justify-center flex-col gap-4 sm:gap-6 px-4 sm:px-20">
-        <span className="text-4xl sm:text-6xl">🏆</span>
-        <p className="text-canal-gray-muted text-xl sm:text-2xl text-center">
-          Phase à élimination directe pas encore commencée.
-        </p>
-        <p className="text-canal-gray-muted text-base sm:text-xl italic text-center">
-          "La phase de groupes décide des combats. Patience."
-        </p>
+      <div className="flex h-full items-center justify-center">
+        <div className="w-10 h-10 border-2 border-canal-yellow border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
-  // Show the current most-active round (first with non-finished matches, else latest)
-  const activePhase =
-    knockout.find((p) => p.groups[0]?.matches.some((m) => m.status !== "finished")) ??
-    knockout[knockout.length - 1];
-
-  const matches = activePhase.groups[0]?.matches ?? [];
-  const emoji = TV_PHASE_EMOJIS[activePhase.phase] ?? "⚽";
-  const label = TV_PHASE_LABELS[activePhase.phase] ?? activePhase.phase;
+  const emoji = TV_PHASE_EMOJIS[activeRound.round] ?? "⚽";
+  const label = TV_PHASE_LABELS[activeRound.round] ?? activeRound.round;
+  const ms = activeRound.matches;
+  const cols = ms.length > 6 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1";
 
   return (
-    <div className="flex flex-col h-full justify-center px-4 sm:px-8 lg:px-16 py-4 sm:py-10">
-      <div className="mb-4 sm:mb-8">
+    <div className="flex flex-col h-full justify-center px-4 sm:px-8 lg:px-12 py-3 sm:py-6">
+      <div className="mb-3 sm:mb-5">
         <p className="text-canal-yellow font-black text-xl sm:text-2xl uppercase tracking-widest mb-2">
           {emoji} {label}
         </p>
         <div className="h-1 w-48 bg-canal-yellow" />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5">
-        {matches.slice(0, 4).map((match) => {
-          const isLive = match.status === "live" || match.status === "halftime";
-          const isFinished = match.status === "finished";
-          const hasScore = match.score_a !== null && match.score_a !== undefined;
-          const winner =
-            isFinished && hasScore && match.score_b !== null
-              ? match.score_a! > match.score_b! ? "a" : match.score_a! < match.score_b! ? "b" : null
-              : null;
-
+      <div className={`grid ${cols} gap-2 sm:gap-2.5`}>
+        {ms.map((m) => {
+          const rm = findReal(m.a.teamName, m.b.teamName);
+          const aName = m.a.teamName ?? m.a.label;
+          const bName = m.b.teamName ?? m.b.label;
+          const date = KNOCKOUT_SCHEDULE[m.fifaNo];
+          const isLive = rm?.status === "live" || rm?.status === "halftime";
+          const isFinished = rm?.status === "finished";
+          const hasScore = !!rm && rm.score_a != null && rm.score_b != null;
+          const winner = isFinished && hasScore ? (rm!.score_a! > rm!.score_b! ? "a" : rm!.score_a! < rm!.score_b! ? "b" : null) : null;
           return (
-            <div
-              key={match.id}
-              className={`rounded-2xl border p-3 sm:p-5 ${
-                isLive
-                  ? "border-red-500/50 bg-red-950/20"
-                  : isFinished
-                  ? "border-canal-yellow/20 bg-canal-gray-mid/40"
-                  : "border-canal-gray-light/30 bg-canal-gray-mid/20"
-              }`}
-            >
-              <div className="flex items-center gap-2 sm:gap-3">
-                {/* Team A */}
-                <div className={`flex-1 text-center ${winner === "b" ? "opacity-35" : ""}`}>
-                  <Flag flag={match.flag_a} name={match.team_a} className="h-7 sm:h-11 w-auto rounded-sm block mx-auto mb-1 sm:mb-2" emojiClassName="text-3xl sm:text-5xl block mb-1 sm:mb-2 leading-none" />
-                  <p className={`font-black text-sm sm:text-lg leading-tight ${winner === "a" ? "text-canal-yellow" : "text-white"}`}>
-                    {match.team_a || "—"}
-                  </p>
-                </div>
-
-                {/* Score */}
-                <div className="shrink-0 text-center flex flex-col gap-1">
-                  {(isLive || isFinished) && hasScore ? (
-                    <div className="flex items-center gap-1 sm:gap-2">
-                      <span className={`font-black text-3xl sm:text-5xl tabular-nums ${
-                        winner === "a" ? "text-canal-yellow" : isLive ? "text-red-400" : "text-white"
-                      }`}>
-                        {match.score_a}
-                      </span>
-                      <span className="text-canal-gray-muted text-xl sm:text-3xl">–</span>
-                      <span className={`font-black text-3xl sm:text-5xl tabular-nums ${
-                        winner === "b" ? "text-canal-yellow" : isLive ? "text-red-400" : "text-white"
-                      }`}>
-                        {match.score_b}
-                      </span>
-                    </div>
-                  ) : (
-                    <p className="text-canal-gray-muted text-lg sm:text-2xl font-black">VS</p>
-                  )}
-                  {isLive && (
-                    <p className="text-red-400 text-xs sm:text-base font-black animate-pulse">🔴 LIVE</p>
-                  )}
-                </div>
-
-                {/* Team B */}
-                <div className={`flex-1 text-center ${winner === "a" ? "opacity-35" : ""}`}>
-                  <Flag flag={match.flag_b} name={match.team_b} className="h-7 sm:h-11 w-auto rounded-sm block mx-auto mb-1 sm:mb-2" emojiClassName="text-3xl sm:text-5xl block mb-1 sm:mb-2 leading-none" />
-                  <p className={`font-black text-sm sm:text-lg leading-tight ${winner === "b" ? "text-canal-yellow" : "text-white"}`}>
-                    {match.team_b || "—"}
-                  </p>
-                </div>
+            <div key={m.code} className={`flex items-center gap-2 rounded-xl border px-2.5 sm:px-3 py-1.5 sm:py-2.5 ${isLive ? "border-red-500/50 bg-red-950/20" : "border-canal-gray-light/30 bg-canal-gray-mid/20"}`}>
+              <div className={`flex items-center gap-1.5 flex-1 min-w-0 ${winner === "b" ? "opacity-40" : ""}`}>
+                <Flag flag={m.a.teamFlag} name={aName} className="h-4 sm:h-6 w-auto rounded-sm shrink-0" emojiClassName="text-base sm:text-2xl" />
+                <span className={`font-black text-xs sm:text-base truncate ${winner === "a" ? "text-canal-yellow" : "text-white"}`}>{aName}</span>
+              </div>
+              <div className="shrink-0 text-center px-1 min-w-[44px]">
+                {hasScore && (isLive || isFinished) ? (
+                  <span className="font-black text-sm sm:text-xl tabular-nums text-white">{rm!.score_a}–{rm!.score_b}</span>
+                ) : (
+                  <span className="text-canal-gray-muted text-[10px] sm:text-sm font-bold">{rm ? toNCDate(rm.starts_at) : date ? toNCDate(date) : "VS"}</span>
+                )}
+                {isLive && <p className="text-red-400 text-[9px] font-black animate-pulse">LIVE</p>}
+              </div>
+              <div className={`flex items-center gap-1.5 flex-1 min-w-0 justify-end ${winner === "a" ? "opacity-40" : ""}`}>
+                <span className={`font-black text-xs sm:text-base truncate text-right ${winner === "b" ? "text-canal-yellow" : "text-white"}`}>{bName}</span>
+                <Flag flag={m.b.teamFlag} name={bName} className="h-4 sm:h-6 w-auto rounded-sm shrink-0" emojiClassName="text-base sm:text-2xl" />
               </div>
             </div>
           );
         })}
       </div>
+    </div>
+  );
+}
 
-      {/* Phase progression indicator if all finished */}
-      {matches.length > 0 && matches.every((m) => m.status === "finished") && (
-        <p className="text-center text-canal-gray-muted text-base sm:text-xl mt-4 sm:mt-8 italic">
-          "Tous qualifiés. Le prochain round s'annonce."
-        </p>
-      )}
+// ─── Slide: Annonce du prochain Quiz CanalCup ────────────────────────────────
+
+function SlideQuizAnnounce() {
+  const c = EVENT_SPLASH;
+  return (
+    <div className="flex flex-col h-full items-center justify-center gap-3 sm:gap-5 px-6 sm:px-16 text-center">
+      <span className="text-5xl sm:text-8xl" style={{ animation: "pop .5s ease-out both" }}>{c.emoji}</span>
+      <p className="text-canal-yellow font-black text-3xl sm:text-6xl uppercase tracking-wide leading-tight">{c.title}</p>
+      <div className="flex items-center gap-5 sm:gap-12">
+        <p className="text-white font-black text-2xl sm:text-5xl">📅 {c.dateLabel}</p>
+        <p className="text-white font-black text-2xl sm:text-5xl">🕛 {c.timeLabel}</p>
+      </div>
+      <p className="text-canal-gray-muted text-base sm:text-2xl max-w-3xl leading-relaxed mt-1">
+        {c.body[0]} {c.body[1]}
+      </p>
+      <p className="text-canal-yellow font-bold text-lg sm:text-3xl mt-1">
+        📱 Scannez le QR pour jouer depuis votre téléphone
+      </p>
     </div>
   );
 }
@@ -1797,29 +1802,38 @@ function SlideTodaySquads({ matches }: { matches: Match[] }) {
   });
 
   const [idx, setIdx] = useState(0);
-  const [previews, setPreviews] = useState<Record<string, MatchPreview>>({});
+  // null = preview tentée mais indisponible (compos non publiées) → on EXCLUT ce
+  // match du défilé au lieu de rester bloqué sur « Chargement des effectifs… ».
+  const [previews, setPreviews] = useState<Record<string, MatchPreview | null>>({});
 
   const matchIds = todayUpcoming.map((m) => m.id).join(",");
   useEffect(() => {
     for (const m of todayUpcoming) {
-      if (previews[m.id]) continue;
+      if (m.id in previews) continue;
       fetch(`/api/match-preview/${m.id}`)
         .then((r) => (r.ok ? r.json() : null))
-        .then((d) => { if (d) setPreviews((p) => ({ ...p, [m.id]: d })); })
-        .catch(() => {});
+        .then((d) => setPreviews((p) => ({ ...p, [m.id]: d ?? null })))
+        .catch(() => setPreviews((p) => ({ ...p, [m.id]: null })));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matchIds]);
 
+  // Matchs réellement affichables (compos chargées). On ne tourne que sur eux.
+  const usable = todayUpcoming.filter((m) => previews[m.id]);
+  const allTried = todayUpcoming.every((m) => m.id in previews);
+  const list = usable.length ? usable : todayUpcoming;
+
   useEffect(() => {
-    if (todayUpcoming.length <= 1) return;
-    const t = setInterval(() => setIdx((i) => (i + 1) % todayUpcoming.length), 10000);
+    if (list.length <= 1) return;
+    const t = setInterval(() => setIdx((i) => (i + 1) % list.length), 10000);
     return () => clearInterval(t);
-  }, [todayUpcoming.length]);
+  }, [list.length]);
 
   if (todayUpcoming.length === 0) return null;
+  // Toutes les compos tentées et aucune dispo → on saute la slide (pas d'écran vide).
+  if (allTried && usable.length === 0) return null;
 
-  const match = todayUpcoming[idx % todayUpcoming.length];
+  const match = list[idx % list.length];
   const preview = previews[match.id];
 
   return (
@@ -3235,14 +3249,21 @@ export default function TVPage() {
   })();
   // Phase éliminatoire COMMENCÉE = un match hors poule déjà live/terminé.
   // (un simple match "Finale" planifié — ex. match test — ne doit PAS l'activer)
-  const hasEliminationPhase = !!data?.matches?.some(
-    (m) =>
-      m.phase &&
-      !["Groupe", "groupe", "Group Stage", "group"].includes(m.phase) &&
-      ["live", "halftime", "finished"].includes(m.status)
+  // Tableau final affiché : dès qu'un match KO est live/terminé, OU dès que la
+  // PHASE DE GROUPES EST TERMINÉE (les qualifiés sont alors connus → on montre le
+  // tableau pré-rempli, sans attendre le 1er coup d'envoi des 16es).
+  const isGroupPhase = (p?: string) => !p || ["Groupe", "groupe", "Group Stage", "group"].includes(p);
+  const groupMatches = data?.matches?.filter((m) => isGroupPhase(m.phase)) ?? [];
+  const groupStageDone = groupMatches.length > 0 && groupMatches.every((m) => m.status === "finished");
+  const koLiveOrDone = !!data?.matches?.some(
+    (m) => !isGroupPhase(m.phase) && ["live", "halftime", "finished"].includes(m.status)
   );
+  const hasEliminationPhase = groupStageDone || koLiveOrDone;
   // Quiz : seulement si des points quiz ont été attribués
   const hasQuizData = !!data?.individual?.some((r) => r.quiz > 0);
+  // Annonce Quiz : tant que l'événement n'est pas passé (cf. config splash).
+  const hasQuizAnnounce =
+    EVENT_SPLASH.enabled && Date.now() < new Date(EVENT_SPLASH.showUntil).getTime();
   // Galerie Supporters sur la TV : dès qu'il y a des photos approuvées et que les
   // résultats ne sont pas encore publiés. (Indépendant du flag admin "votes_open" :
   // on veut voir défiler les photos même si le vote n'a pas été formellement ouvert.)
@@ -3256,6 +3277,7 @@ export default function TVPage() {
     if (s === "services") return hasServices;
     if (s === "medals") return hasMedals && hasEliminationPhase;
     if (s === "bracket") return hasEliminationPhase;
+    if (s === "quizannounce") return hasQuizAnnounce;
     if (s === "news") return hasNews;
     if (s === "standings") return hasStandings;
     if (s === "officebet") return hasPrematch;
@@ -3371,6 +3393,7 @@ export default function TVPage() {
             {slide === "livematch" && <SlideLiveMatch matches={data.matches} />}
             {slide === "standings" && <SlideStandings standings={data.standings ?? []} />}
             {slide === "bracket" && <SlideBracket />}
+            {slide === "quizannounce" && <SlideQuizAnnounce />}
             {slide === "matinale" && data.brief && <SlideMatinale brief={data.brief} />}
             {slide === "revivez" && <SlideRevivez posts={data.revivezPosts} />}
             {slide === "animations" && <SlideAnimations challenges={data.challenges ?? []} />}
