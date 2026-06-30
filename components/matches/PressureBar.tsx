@@ -1,19 +1,20 @@
 "use client";
 
 // 🔥 Pression par équipe — courbe de momentum divergente (vert = équipe A pousse
-// vers le haut, bleu = équipe B vers le bas). Une barre par tranche de 30 s
-// captée par le cron live. Donnée DÉRIVÉE d'un mix pression + occasions + tirs
-// cadrés (cf. /api/matches/[id]/pressure). Se masque tant qu'on n'a pas ≥ 2
-// snapshots. En live, se rafraîchit toutes les 20 s (le graphe se construit).
+// vers le haut, bleu = équipe B vers le bas). AXE FIXE : tout le match est
+// échantillonné en cellules de 30 s, dès le coup d'envoi (90', étendu à 120' en
+// cas de prolongation). Chaque barre est placée à sa VRAIE minute de jeu.
+// Donnée DÉRIVÉE d'un mix pression + occasions + tirs cadrés
+// (cf. /api/matches/[id]/pressure). En live, se rafraîchit toutes les 20 s.
 
 import { useEffect, useState } from "react";
 import { Flag } from "@/components/shared/Flag";
 
-interface Point { value: number } // value ∈ [-1, 1]
+interface Point { value: number; pos: number } // value ∈ [-1, 1] ; pos = minute de jeu
 interface Data {
   points: Point[];
-  expectedTotal: number; // nb de tranches estimé pour un match de 90'
-  htIndex: number | null; // index de la tranche mi-temps
+  totalMinutes: number; // longueur de l'axe (90, ou 120 en prolongation)
+  nowPos: number;       // minute courante (curseur + frontière zone future)
   live: boolean;
   finished: boolean;
 }
@@ -52,32 +53,23 @@ export function PressureBar({
 
   if (!data) return null;
 
-  // Pas (encore) de barres : en live, on affiche un état « se construit » pour
-  // ne pas donner l'impression que c'est cassé (la 1ʳᵉ barre arrive sous ~30 s,
-  // dès le 2ᵉ snapshot). Hors live sans données : on n'encombre pas.
-  if (data.points.length < 1) {
-    if (!data.live) return null;
-    return (
-      <div className="rounded-2xl bg-canal-gray border border-canal-gray-light p-3 mb-4">
-        <p className="text-[11px] font-black text-canal-yellow uppercase tracking-wider mb-1 px-1">
-          🔥 Pression par équipe
-        </p>
-        <p className="text-xs text-canal-gray-muted px-1 py-3">
-          ⏳ La pression se construit en direct — première barre dans ~30 s.
-        </p>
-      </div>
-    );
-  }
+  // Hors live et sans aucune donnée : on n'encombre pas. En live (même 0 barre),
+  // on montre déjà la GRILLE complète du match (90'/120') qui se remplit en direct.
+  if (!data.live && data.points.length < 1) return null;
 
   // Repère SVG (unités virtuelles, le viewBox s'étire en largeur 100 %).
   const W = 600, H = 180, cy = H / 2, padX = 10;
   const amp = cy - 12; // amplitude max d'une barre
   const pts = data.points;
-  const total = Math.max(data.expectedTotal, pts.length); // dénominateur de l'axe X
+  const totalMin = Math.max(1, data.totalMinutes); // longueur de l'axe (90 ou 120)
   const span = W - padX * 2;
-  const x = (i: number) => padX + (total > 1 ? (i / (total - 1)) * span : 0);
-  const barW = Math.max(1.5, Math.min(8, (span / total) * 0.72));
-  const lastIdx = pts.length - 1;
+  const x = (posMin: number) => padX + (Math.min(posMin, totalMin) / totalMin) * span;
+  const slotW = span / (totalMin * 2);             // largeur d'une cellule de 30 s
+  const barW = Math.max(1.2, slotW * 0.72);
+  const nowX = x(data.nowPos);
+  // Repères verticaux : 45' (mi-temps), 90' (fin du temps réglementaire en
+  // prolongation), 105' (mi-temps de prolongation).
+  const markers = [45, ...(totalMin > 90 ? [90, 105] : [])].filter((m) => m < totalMin);
 
   return (
     <div className="rounded-2xl bg-canal-gray border border-canal-gray-light p-3 mb-4">
@@ -96,24 +88,29 @@ export function PressureBar({
           <rect x={0} y={0} width={W} height={cy} fill="rgba(34,197,94,0.12)" />
           <rect x={0} y={cy} width={W} height={cy} fill="rgba(59,130,246,0.12)" />
 
-          {/* Zone future (match en cours) : de la dernière tranche jusqu'au bout. */}
-          {!data.finished && lastIdx < total - 1 && (
-            <rect x={x(lastIdx)} y={0} width={W - padX - x(lastIdx)} height={H} fill="rgba(255,255,255,0.05)" />
+          {/* Zone future (match en cours) : de la minute courante jusqu'au bout. */}
+          {!data.finished && nowX < W - padX && (
+            <rect x={nowX} y={0} width={W - padX - nowX} height={H} fill="rgba(255,255,255,0.05)" />
           )}
 
-          {/* Mi-temps. */}
-          {data.htIndex != null && (
-            <line x1={x(data.htIndex)} y1={0} x2={x(data.htIndex)} y2={H} stroke="rgba(255,255,255,0.55)" strokeWidth={1.5} />
-          )}
+          {/* Repères de quart d'heure (lecture de l'échelle 90'/120'). */}
+          {[15, 30, 60, 75].filter((m) => m < totalMin).map((m) => (
+            <line key={`g${m}`} x1={x(m)} y1={0} x2={x(m)} y2={H} stroke="rgba(255,255,255,0.06)" strokeWidth={1} />
+          ))}
 
-          {/* Barres signées. */}
+          {/* Repères clés (45' / 90' / 105'). */}
+          {markers.map((m) => (
+            <line key={`m${m}`} x1={x(m)} y1={0} x2={x(m)} y2={H} stroke="rgba(255,255,255,0.5)" strokeWidth={1.5} />
+          ))}
+
+          {/* Barres signées, placées à leur vraie minute de jeu. */}
           {pts.map((p, i) => {
             const h = Math.abs(p.value) * amp;
             const up = p.value >= 0;
             return (
               <rect
                 key={i}
-                x={x(i) - barW / 2}
+                x={x(p.pos) - barW / 2}
                 y={up ? cy - h : cy}
                 width={barW}
                 height={Math.max(h, 0.6)}
@@ -126,13 +123,13 @@ export function PressureBar({
           {/* Ligne centrale. */}
           <line x1={0} y1={cy} x2={W} y2={cy} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
 
-          {/* Coup d'envoi (vert) → tranche courante (rouge). */}
+          {/* Coup d'envoi (vert) → minute courante (rouge). */}
           <circle cx={x(0)} cy={H - 8} r={6} fill="#0e1117" stroke="#22c55e" strokeWidth={3} />
-          <circle cx={x(lastIdx)} cy={8} r={6} fill="#0e1117" stroke="#ef4444" strokeWidth={3} />
+          <circle cx={nowX} cy={8} r={6} fill="#0e1117" stroke="#ef4444" strokeWidth={3} />
         </svg>
       </div>
       <p className="text-[10px] text-canal-gray-muted mt-1.5 px-1">
-        Indice dérivé (tirs cadrés · occasions · possession) — une barre / 30 s, en direct.
+        Indice dérivé (tirs cadrés · occasions · possession) — une cellule / 30 s sur {totalMin}′.
       </p>
     </div>
   );

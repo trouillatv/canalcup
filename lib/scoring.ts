@@ -125,13 +125,22 @@ export const QUIZ_FAST_THRESHOLD_MS = 5000;
 
 // Anti-triche / anti-précharge
 // QUIZ_COUNTDOWN_MS : à chaque start/next, started_at est fixé dans le futur
-// (now + countdown). Le client affiche "3… 2… 1…" et désactive les boutons
-// pendant ce délai. Empêche d'avoir le doigt préchargé sur une lettre.
+// (now + countdown). Le client affiche "5… 4… 3… 2… 1…" et désactive les
+// boutons pendant ce délai. Empêche d'avoir le doigt préchargé sur une lettre.
 // QUIZ_MIN_RESPONSE_MS : sous ce seuil après started_at, le serveur refuse
 // la réponse. Filet anti-bot / anti-clic instantané (un humain ne peut pas
 // lire une question + cliquer en < 250ms).
-export const QUIZ_COUNTDOWN_MS = 3000;
+export const QUIZ_COUNTDOWN_MS = 5000;
 export const QUIZ_MIN_RESPONSE_MS = 250;
+
+// Rythme AUTO du live (plus de clic « question suivante » : le serveur enchaîne
+// tout seul). Après le chrono : court « Temps écoulé », puis la bonne réponse
+// affichée quelques secondes, puis passage automatique à la question suivante.
+//   [countdown] → [question 20s] → [timeup] → [answer] → next…
+export const QUIZ_TIMEUP_MS = 1200;   // « ⏱ Temps écoulé » (grise les réponses)
+export const QUIZ_ANSWER_MS = 4000;   // bonne réponse + courte explication
+// Fin du cycle d'une question : au-delà, on enchaîne automatiquement.
+export const QUIZ_REVEAL_END_MS = QUIZ_TIMER_SECONDS * 1000 + QUIZ_TIMEUP_MS + QUIZ_ANSWER_MS;
 
 export function quizPoints(isCorrect: boolean, responseTimeMs: number): number {
   if (!isCorrect) return 0;

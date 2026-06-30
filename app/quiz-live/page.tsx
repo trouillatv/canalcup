@@ -1,16 +1,16 @@
 "use client";
 
-// Quiz Live SHOW (téléphone joueur). L'animateur pilote depuis /admin/quiz ;
-// l'écran TV maître (/quiz-show) orchestre. Tous les joueurs voient la même
-// question simultanément. Poll /api/quiz/session toutes les ~1s. Le chrono est
-// CALCULÉ depuis session.started_at (UTC serveur) → synchronisé entre joueurs,
-// sans dérive.
+// Quiz Live SHOW (téléphone joueur). Le quiz s'enchaîne TOUT SEUL ; l'écran TV
+// maître (/quiz-show) est le spectacle. Tous les joueurs voient la même question
+// simultanément. Poll /api/quiz/session toutes les ~1s. Le chrono est CALCULÉ
+// depuis session.started_at (UTC serveur) → synchronisé entre joueurs, sans dérive.
 //
 // Déroulé côté joueur :
-//   1. countdown → "3 / 2 / 1"
+//   1. countdown → "5 / 4 / 3 / 2 / 1"
 //   2. question  → 4 réponses ; au clic : "Réponse enregistrée — en attente"
 //      (on NE dit PAS encore si c'est juste : suspense jusqu'au reveal)
-//   3. reveal    → "Temps écoulé", la bonne réponse + ton résultat perso.
+//   3. reveal    → "Temps écoulé", puis ton résultat perso, puis question suivante.
+// L'organisateur (Vincent) ne peut que mettre en PAUSE / REPRENDRE.
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
@@ -37,7 +37,8 @@ type SessionState =
   | { status: "idle" }
   | {
       status: "live";
-      phase: "countdown" | "question" | "timeup" | "stats" | "answer" | "leaderboard";
+      phase: "countdown" | "question" | "timeup" | "answer";
+      paused: boolean;
       question: LiveQuestion;
       started_at: string;
       question_index: number;
@@ -75,6 +76,7 @@ export default function QuizLivePage() {
           setSession({
             status: "live",
             phase: d.phase ?? "question",
+            paused: !!d.paused,
             question: d.question,
             started_at: d.started_at,
             question_index: d.question_index ?? 0,
@@ -97,7 +99,7 @@ export default function QuizLivePage() {
     };
   }, []);
 
-  // Reset l'outcome local quand la question change (animateur a cliqué "suivante")
+  // Reset l'outcome local quand la question change (enchaînement auto)
   useEffect(() => {
     if (session.status !== "live") {
       lastQuestionIdRef.current = null;
@@ -148,7 +150,7 @@ export default function QuizLivePage() {
   // Auto-submit "" (timeout) si l'utilisateur n'a pas répondu à temps.
   useEffect(() => {
     if (session.status !== "live") return;
-    if (outcome) return;
+    if (outcome || session.paused) return; // jamais pendant une pause
     const elapsed = Date.now() - new Date(session.started_at).getTime();
     if (elapsed > TIMER_SECONDS * 1000 + 250) {
       if (autoTimeoutFiredRef.current === session.question.id) return;
@@ -160,7 +162,7 @@ export default function QuizLivePage() {
   // 📳 Vibration de panique : dans les 3 dernières secondes, UNE fois, et
   // seulement si le joueur n'a pas encore répondu (sinon inutile de le stresser).
   useEffect(() => {
-    if (session.status !== "live" || session.phase !== "question" || outcome) return;
+    if (session.status !== "live" || session.phase !== "question" || outcome || session.paused) return;
     const left = TIMER_SECONDS * 1000 - (Date.now() - new Date(session.started_at).getTime());
     if (left <= 3000 && left > 0 && vibratedRef.current !== session.question.id) {
       vibratedRef.current = session.question.id;
@@ -177,7 +179,7 @@ export default function QuizLivePage() {
         <div>
           <h1 className="canal-headline text-2xl">Quiz Live ⚡</h1>
           <p className="text-canal-gray-muted text-sm mt-1">
-            Le quiz est lancé par l&apos;animateur — reste sur cette page.
+            Le quiz est lancé par l&apos;organisateur — reste sur cette page.
           </p>
         </div>
 
@@ -185,7 +187,7 @@ export default function QuizLivePage() {
           <Hourglass className="mx-auto text-canal-yellow mb-3" size={32} />
           <p className="font-black text-white text-lg">En attente du quiz…</p>
           <p className="text-canal-gray-muted text-sm mt-2 leading-relaxed">
-            Quand l&apos;animateur lancera le quiz, les questions apparaîtront ici
+            Quand l&apos;organisateur lancera le quiz, les questions apparaîtront ici
             <br />
             automatiquement. Garde cette page ouverte.
           </p>
@@ -208,12 +210,12 @@ export default function QuizLivePage() {
   }
 
   const q = session.question;
+  const paused = session.paused;
   const rawElapsed = Date.now() - new Date(session.started_at).getTime();
   const inCountdown = session.phase === "countdown" || rawElapsed < 0;
-  // Après la question, le rythme est piloté par l'animateur : timeup/stats =
-  // « regarde l'écran », answer/leaderboard = résultat perso dévoilé.
-  const isReveal = ["timeup", "stats", "answer", "leaderboard"].includes(session.phase);
-  const resultRevealed = session.phase === "answer" || session.phase === "leaderboard";
+  // Après le chrono : timeup = « regarde l'écran », answer = résultat perso dévoilé.
+  const isReveal = ["timeup", "answer"].includes(session.phase);
+  const resultRevealed = session.phase === "answer";
   const countdownLeft = inCountdown ? Math.max(1, Math.ceil(-rawElapsed / 1000)) : 0;
   const elapsedMs = Math.max(0, rawElapsed);
   const timeLeft = Math.max(0, Math.ceil((TIMER_SECONDS * 1000 - elapsedMs) / 1000));
@@ -225,7 +227,27 @@ export default function QuizLivePage() {
     ({ A: q.answer_a, B: q.answer_b, C: q.answer_c, D: q.answer_d }[key] ?? "");
 
   const wasAnswered = !!outcome;
-  const locked = wasAnswered || submitting || isReveal || inCountdown || tooEarly;
+  const locked = wasAnswered || submitting || isReveal || inCountdown || tooEarly || paused;
+
+  // ── Pause : l'organisateur a figé le quiz ──────────────────────────────────
+  if (paused) {
+    return (
+      <div className="px-4 py-8 max-w-2xl mx-auto flex flex-col items-center justify-center gap-5 text-center min-h-[55vh]">
+        <p className="text-6xl">⏸</p>
+        <p className="font-black text-white text-2xl">Pause</p>
+        <p className="text-canal-gray-muted text-sm">
+          L&apos;organisateur a mis le quiz en pause.
+          <br />
+          Ça reprend dans un instant — garde cette page ouverte.
+        </p>
+        <div className="flex gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-canal-yellow/70 animate-pulse" />
+          <span className="w-2.5 h-2.5 rounded-full bg-canal-yellow/40 animate-pulse [animation-delay:150ms]" />
+          <span className="w-2.5 h-2.5 rounded-full bg-canal-yellow/20 animate-pulse [animation-delay:300ms]" />
+        </div>
+      </div>
+    );
+  }
 
   // ── Countdown : "3 / 2 / 1" ────────────────────────────────────────────────
   if (inCountdown) {
@@ -253,7 +275,7 @@ export default function QuizLivePage() {
   //    "Résultat enregistré → Regarde l'écran", puis seulement quand la TV a fini
   //    sa choré (~5s) on dévoile le gain perso "+X pts".
   if (isReveal) {
-    const showPoints = resultRevealed; // dévoilé quand Marie montre la bonne réponse
+    const showPoints = resultRevealed; // dévoilé quand l'écran montre la bonne réponse
     const pts = outcome?.points ?? 0;
     const answered = !!outcome && outcome.selected !== "";
     return (

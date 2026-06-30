@@ -1,22 +1,35 @@
 // GET /api/quiz/session — état du quiz live (joueurs /quiz-live + écran TV maître
-// /quiz-show). Poll ~1s. Pas de session active → status='idle'.
+// /quiz-show + télécommande /quiz-control). Poll ~1s. Pas de session active →
+// status='idle'.
 //
-// Une session active renvoie status='question' (inchangé pour /admin/quiz) PLUS
-// une `phase` dérivée du temps :
-//   - countdown : started_at est dans le futur (anti-précharge du doigt)
-//   - question  : chrono en cours (≤ QUIZ_TIMER_SECONDS)
-//   - reveal    : chrono écoulé → on dévoile la bonne réponse, l'explication et la
-//                 répartition des votes A/B/C/D + le % de participants ayant répondu
+// RYTHME AUTO : il n'y a plus de clic « question suivante ». Le déroulé d'une
+// question est entièrement DÉRIVÉ DU TEMPS (started_at, serveur, sans dérive) :
 //
-// La phase est CALCULÉE ici (aucune écriture en base, donc pas de course entre
-// clients, pas de migration). Anti-triche : correct_answer/explanation ne sont
-// JAMAIS renvoyés avant la phase reveal.
+//   countdown : started_at dans le futur (anti-précharge du doigt)
+//   question  : chrono en cours (≤ QUIZ_TIMER_SECONDS) — réponses ouvertes
+//   timeup    : « ⏱ Temps écoulé » bref, réponses grisées
+//   answer    : bonne réponse + courte explication
+//   → puis, quand le cycle est fini, le serveur enchaîne TOUT SEUL : le premier
+//     poll qui constate la fin du cycle avance la session (UPDATE gardé, donc
+//     idempotent même si plusieurs clients pollent en même temps).
+//
+// PAUSE : si paused_at est posé, on FIGE l'état à cet instant et l'auto-avance
+// est suspendue (l'organisateur a appuyé sur ⏸). Le « Reprendre » décale
+// started_at de la durée de pause (cf. /api/admin/quiz/session).
+//
+// Anti-triche : correct_answer/explanation ne sont JAMAIS renvoyés tant que le
+// chrono n'est pas écoulé (phases countdown/question). Plus aucune statistique
+// par question (répartition, plus rapide, classement) : tout est regroupé dans
+// le grand reveal de fin.
 
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { QUIZ_TIMER_SECONDS } from "@/lib/scoring";
+import { QUIZ_TIMER_SECONDS, QUIZ_TIMEUP_MS, QUIZ_REVEAL_END_MS } from "@/lib/scoring";
+import { advanceQuizSession } from "@/lib/quiz/session";
 
 type Supa = ReturnType<typeof createAdminClient>;
+
+const SESSION_COLS = "id, current_question_id, question_index, started_at, status, paused_at";
 
 // Classement individuel du quiz (somme des points + nb de bonnes réponses),
 // agrégé depuis quiz_answers (vidé au reset → ne contient que la session courante).
@@ -50,11 +63,29 @@ async function computeStandings(
 export async function GET() {
   const supabase = createAdminClient();
 
-  const { data: session } = await supabase
+  let { data: session } = await supabase
     .from("quiz_session")
-    .select("id, current_question_id, question_index, started_at, status, stage")
+    .select(SESSION_COLS)
     .is("ended_at", null)
     .maybeSingle();
+
+  // ── Auto-avance (cœur du rythme auto) ──────────────────────────────────────
+  // Si le cycle de la question courante est entièrement écoulé ET qu'on n'est
+  // pas en pause, on enchaîne (question suivante ou fin). Déclenché par le simple
+  // fait de poller : la TV, les téléphones et la télécommande pollent ~1s, donc
+  // ça avance dans la seconde. UPDATE gardé → pas de course entre clients.
+  if (session && session.status === "question" && session.current_question_id && !session.paused_at) {
+    const elapsed = Date.now() - new Date(session.started_at).getTime();
+    if (elapsed >= QUIZ_REVEAL_END_MS) {
+      await advanceQuizSession(supabase, session.id, session.question_index ?? 0, session.current_question_id);
+      const { data: refreshed } = await supabase
+        .from("quiz_session")
+        .select(SESSION_COLS)
+        .is("ended_at", null)
+        .maybeSingle();
+      session = refreshed ?? null;
+    }
+  }
 
   if (!session || session.status !== "question" || !session.current_question_id) {
     // Pas de session active : si la DERNIÈRE session est terminée et qu'il reste
@@ -90,22 +121,25 @@ export async function GET() {
 
   if (!question) return NextResponse.json({ status: "idle" });
 
-  // Phase = rythme PILOTÉ par l'animateur. Tant que stage='question', countdown/
-  // question/timeup restent dérivés du temps ; dès que Marie « avance », le stage
-  // persisté (stats → answer → leaderboard) prend la main.
-  const elapsed = Date.now() - new Date(session.started_at).getTime();
-  const stage = (session.stage as string) ?? "question";
-  type Phase = "countdown" | "question" | "timeup" | "stats" | "answer" | "leaderboard";
-  const phase: Phase =
-    stage === "stats" || stage === "answer" || stage === "leaderboard"
-      ? (stage as Phase)
-      : elapsed < 0
-        ? "countdown"
-        : elapsed < QUIZ_TIMER_SECONDS * 1000
-          ? "question"
-          : "timeup";
+  // Phase = 100 % dérivée du temps. En PAUSE, l'horloge effective est figée à
+  // paused_at → l'état (et le chrono) ne bouge plus tant qu'on n'a pas repris.
+  const paused = !!session.paused_at;
+  const effectiveNow = paused ? new Date(session.paused_at as string).getTime() : Date.now();
+  const elapsed = effectiveNow - new Date(session.started_at).getTime();
 
-  // On ne renvoie JAMAIS la bonne réponse/explication avant la phase 'answer'.
+  type Phase = "countdown" | "question" | "timeup" | "answer";
+  const phase: Phase =
+    elapsed < 0
+      ? "countdown"
+      : elapsed < QUIZ_TIMER_SECONDS * 1000
+        ? "question"
+        : elapsed < QUIZ_TIMER_SECONDS * 1000 + QUIZ_TIMEUP_MS
+          ? "timeup"
+          : "answer";
+
+  // On ne renvoie JAMAIS la bonne réponse avant que le chrono soit écoulé.
+  const revealed = phase === "timeup" || phase === "answer";
+
   const safeQuestion = {
     id: question.id,
     question: question.question,
@@ -117,88 +151,18 @@ export async function GET() {
     difficulty: question.difficulty,
   };
 
-  const base = {
-    status: "question" as const,
-    phase,
-    question: safeQuestion,
-    started_at: session.started_at,
-    question_index: session.question_index ?? 0,
-    total: total ?? 0,
-  };
-
-  // Phases sans dévoilement de votes (chrono / temps écoulé tenu).
-  if (phase === "countdown" || phase === "question" || phase === "timeup") {
-    return NextResponse.json(base, { headers: { "Cache-Control": "no-store" } });
-  }
-
-  // ── Répartition des votes (stats / answer / leaderboard) ───────────────────
-  const { data: answers } = await supabase
-    .from("quiz_answers")
-    .select("answer")
-    .eq("question_id", question.id);
-  const distribution: Record<"A" | "B" | "C" | "D", number> = { A: 0, B: 0, C: 0, D: 0 };
-  let responded = 0;
-  for (const a of answers ?? []) {
-    const key = a.answer as "A" | "B" | "C" | "D";
-    if (key === "A" || key === "B" || key === "C" || key === "D") {
-      distribution[key] += 1;
-      responded += 1;
-    }
-  }
-  // Participants ≈ la salle (chaque téléphone auto-soumet "" au timeout).
-  // ⚠️ Approximation : un joueur qui rejoint sans avoir répondu n'est pas compté.
-  const { data: allAnswers } = await supabase.from("quiz_answers").select("user_id");
-  const participants = new Set((allAnswers ?? []).map((a) => a.user_id)).size;
-
-  // 📊 STATS : barres + participation, mais PAS la bonne réponse (suspense : la
-  // salle débat avant que Marie ne dévoile).
-  if (phase === "stats") {
-    return NextResponse.json(
-      { ...base, distribution, responded, participants },
-      { headers: { "Cache-Control": "no-store" } }
-    );
-  }
-
-  // ⚡ Le plus rapide = bonne réponse au temps le plus court sur cette question.
-  const { data: fastRows } = await supabase
-    .from("quiz_answers")
-    .select("user_id, response_time_ms")
-    .eq("question_id", question.id)
-    .eq("is_correct", true)
-    .order("response_time_ms", { ascending: true })
-    .limit(1);
-  let fastest: { name: string; ms: number } | null = null;
-  if (fastRows && fastRows.length) {
-    const { data: u } = await supabase
-      .from("users")
-      .select("display_name, name")
-      .eq("id", fastRows[0].user_id)
-      .maybeSingle();
-    fastest = {
-      name: u?.display_name?.trim() || u?.name?.trim() || "Un joueur",
-      ms: fastRows[0].response_time_ms ?? 0,
-    };
-  }
-
-  // 🏆 LEADERBOARD : on ajoute le classement agrégé.
-  if (phase === "leaderboard") {
-    const standings = await computeStandings(supabase);
-    return NextResponse.json(
-      { ...base, distribution, responded, participants, fastest, standings, correct_answer: question.correct_answer },
-      { headers: { "Cache-Control": "no-store" } }
-    );
-  }
-
-  // ✅ ANSWER : bonne réponse + explication + le plus rapide.
   return NextResponse.json(
     {
-      ...base,
-      correct_answer: question.correct_answer,
-      explanation: question.explanation,
-      distribution,
-      responded,
-      participants,
-      fastest,
+      status: "question" as const,
+      phase,
+      paused,
+      question: safeQuestion,
+      started_at: session.started_at,
+      question_index: session.question_index ?? 0,
+      total: total ?? 0,
+      ...(revealed
+        ? { correct_answer: question.correct_answer, explanation: question.explanation }
+        : {}),
     },
     { headers: { "Cache-Control": "no-store" } }
   );

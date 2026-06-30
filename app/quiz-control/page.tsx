@@ -1,8 +1,9 @@
 "use client";
 
-// 🎤 Télécommande PRÉSENTATEUR (Marie). Pilote le rythme du quiz depuis un
-// téléphone : un seul gros bouton contextuel fait avancer l'étape sur le grand
-// écran (countdown → question → timeup → stats → answer → leaderboard → suivante).
+// 🎤 Télécommande ORGANISATEUR (Vincent). Le quiz s'enchaîne TOUT SEUL : plus de
+// clic « question suivante ». La commande de rythme est PAUSE / REPRENDRE —
+// pour commenter, faire une annonce, régler un souci ou attendre un retardataire.
+// Le quiz repart exactement là où il s'était arrêté.
 //
 // Accès par PIN TV (comme /quiz-show). Les actions passent par
 // /api/admin/quiz/session (x-admin-secret), comme le panneau /admin/quiz.
@@ -13,47 +14,22 @@ const ADMIN_SECRET = process.env.NEXT_PUBLIC_ADMIN_SECRET ?? "";
 const POLL_MS = 1000;
 const WARM_BG = "radial-gradient(ellipse at 50% -5%, #2A1E08 0%, #130F08 45%, #0A0906 100%)";
 
-type Phase = "countdown" | "question" | "timeup" | "stats" | "answer" | "leaderboard";
+type Phase = "countdown" | "question" | "timeup" | "answer";
 interface State {
   status: "idle" | "question" | "finished";
   phase?: Phase;
+  paused?: boolean;
   question?: { question: string };
   question_index?: number;
   total?: number;
-  responded?: number;
-  participants?: number;
 }
 
 const PHASE_LABEL: Record<string, string> = {
-  countdown: "Préparation…",
+  countdown: "Lancement…",
   question: "Question en cours",
   timeup: "Temps écoulé",
-  stats: "Répartition affichée",
-  answer: "Réponse affichée",
-  leaderboard: "Classement affiché",
+  answer: "Bonne réponse affichée",
 };
-
-// Bouton principal selon l'état courant.
-function primary(s: State): { label: string; action: string; disabled?: boolean } {
-  if (s.status === "idle") return { label: "▶️  Démarrer le quiz", action: "start" };
-  if (s.status === "finished") return { label: "🔁  Relancer un quiz", action: "start" };
-  switch (s.phase) {
-    case "countdown":
-      return { label: "⏳  Lancement…", action: "advance", disabled: true };
-    case "question":
-      return { label: "👁  Révéler maintenant", action: "advance" };
-    case "timeup":
-      return { label: "📊  Révéler les votes", action: "advance" };
-    case "stats":
-      return { label: "✅  Montrer la réponse", action: "advance" };
-    case "answer":
-      return { label: "🏆  Voir le classement", action: "advance" };
-    case "leaderboard":
-      return { label: "➡️  Question suivante", action: "advance" };
-    default:
-      return { label: "▶️  Démarrer", action: "start" };
-  }
-}
 
 function PinGate({ children }: { children: React.ReactNode }) {
   const [ok, setOk] = useState<boolean | null>(null);
@@ -71,7 +47,7 @@ function PinGate({ children }: { children: React.ReactNode }) {
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center gap-5 px-6 text-center" style={{ background: WARM_BG }}>
         <p className="text-canal-yellow font-black text-3xl">TÉLÉCOMMANDE QUIZ</p>
-        <p className="text-white/60 text-lg">Accès réservé à l&apos;animateur.</p>
+        <p className="text-white/60 text-lg">Accès réservé à l&apos;organisateur.</p>
         <p className="text-white/40">Ajoutez <span className="text-canal-yellow font-mono">?pin=XXXX</span> à l&apos;URL.</p>
       </div>
     );
@@ -118,8 +94,18 @@ export default function QuizControlPage() {
     }
   };
 
-  const btn = primary(state);
   const active = state.status === "question";
+  const paused = active && !!state.paused;
+
+  // Bouton principal selon l'état.
+  const primary: { label: string; action: string } =
+    state.status === "idle"
+      ? { label: "▶️  Démarrer le quiz", action: "start" }
+      : state.status === "finished"
+        ? { label: "🔁  Relancer un quiz", action: "start" }
+        : paused
+          ? { label: "▶️  Reprendre", action: "resume" }
+          : { label: "⏸  Pause", action: "pause" };
 
   return (
     <PinGate>
@@ -138,21 +124,23 @@ export default function QuizControlPage() {
         <div className="flex-1 flex flex-col justify-center px-5 gap-5 min-h-0 overflow-y-auto">
           {active ? (
             <>
-              <span className="self-start text-xs uppercase tracking-widest font-black text-canal-yellow/80 bg-canal-yellow/10 px-3 py-1 rounded-full">
-                {PHASE_LABEL[state.phase ?? "question"] ?? state.phase}
+              <span
+                className={`self-start text-xs uppercase tracking-widest font-black px-3 py-1 rounded-full ${
+                  paused ? "text-orange-300 bg-orange-500/15" : "text-canal-yellow/80 bg-canal-yellow/10"
+                }`}
+              >
+                {paused ? "⏸ En pause" : PHASE_LABEL[state.phase ?? "question"] ?? state.phase}
               </span>
               <p className="text-white font-bold text-xl sm:text-3xl leading-snug">{state.question?.question}</p>
-              {(state.phase === "stats" || state.phase === "answer" || state.phase === "leaderboard") && (
-                <p className="text-white/50 text-sm">
-                  {state.responded ?? 0} / {state.participants ?? 0} ont répondu
-                </p>
-              )}
+              <p className="text-white/40 text-sm">
+                Le quiz avance tout seul. Mets en pause pour commenter ou attendre un retardataire.
+              </p>
             </>
           ) : state.status === "finished" ? (
             <div className="text-center">
               <p className="text-4xl mb-3">🏁</p>
               <p className="text-white font-black text-2xl">Quiz terminé</p>
-              <p className="text-white/50 text-sm mt-2">Le classement final est à l&apos;écran.</p>
+              <p className="text-white/50 text-sm mt-2">Le grand classement est à l&apos;écran.</p>
             </div>
           ) : (
             <div className="text-center">
@@ -166,11 +154,13 @@ export default function QuizControlPage() {
         {/* Boutons */}
         <div className="px-5 pb-8 pt-3 space-y-3 border-t border-white/10">
           <button
-            onClick={() => post(btn.action)}
-            disabled={busy || btn.disabled}
-            className="w-full py-5 rounded-2xl bg-canal-yellow text-canal-black font-black text-xl sm:text-2xl shadow-lg disabled:opacity-40 active:scale-[0.98] transition-transform"
+            onClick={() => post(primary.action)}
+            disabled={busy}
+            className={`w-full py-5 rounded-2xl font-black text-xl sm:text-2xl shadow-lg disabled:opacity-40 active:scale-[0.98] transition-transform ${
+              paused ? "bg-green-500 text-black" : "bg-canal-yellow text-canal-black"
+            }`}
           >
-            {busy ? "…" : btn.label}
+            {busy ? "…" : primary.label}
           </button>
           <div className="flex gap-3">
             {active && (
