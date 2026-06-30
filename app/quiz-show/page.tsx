@@ -110,6 +110,17 @@ function PodiumCol({
   );
 }
 
+// 🤖 Robert, maître de cérémonie : une pique selon le résultat collectif.
+// Déterministe (pas de LLM) et parcimonieux (≈ 1 question sur 3).
+function robertLine(correctCount: number, responded: number, wrongPct: number, difficulty?: string): string {
+  if (responded > 0 && correctCount === 0) return "Vous êtes tombés dans le piège. 🪤";
+  if (responded > 0 && correctCount === responded) return "Trop facile pour vous, visiblement.";
+  if (correctCount === 1) return "Un seul petit génie a trouvé. Chapeau.";
+  if (wrongPct >= 70) return "Cette question était pourtant simple…";
+  if (difficulty === "hard") return "Pas mal, pour une question piège.";
+  return "Intéressant. Très intéressant.";
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function QuizShowPage() {
   const [session, setSession] = useState<LiveSession | null>(null);
@@ -186,9 +197,45 @@ export default function QuizShowPage() {
     if (!soundOnRef.current) return;
     if (p === "timeup") sfx.buzzer();
     else if (p === "stats") sfx.reveal();
-    else if (p === "answer") sfx.correct();
     else if (p === "leaderboard") sfx.rankUp();
+    // 'answer' : le son (arpège) est joué au BOOM, pas à l'entrée (cf. effet ci-dessous).
   }, [phase]);
+
+  // 🥁→💥 Révélation de la réponse : roulement (drumroll) puis boom. Pendant le
+  // drumroll le bon n'est pas encore allumé (micro-attente). Un résultat notable
+  // (personne / 100% / 1 seul) déclenche un événement PLEIN ÉCRAN.
+  const [answerSub, setAnswerSub] = useState<0 | 1>(0); // 0 = drumroll, 1 = boom
+  const [statEvent, setStatEvent] = useState<{ emoji: string; line: string } | null>(null);
+  const answerForQ = useRef<string | null>(null);
+  useEffect(() => {
+    if (phase !== "answer" || !currentQId) {
+      answerForQ.current = null;
+      setAnswerSub(0);
+      setStatEvent(null);
+      return;
+    }
+    if (answerForQ.current === currentQId) return;
+    answerForQ.current = currentQId;
+    setAnswerSub(0);
+    setStatEvent(null);
+    const d = session?.distribution;
+    const corr = session?.correct_answer as "A" | "B" | "C" | "D" | undefined;
+    const resp = session?.responded ?? 0;
+    const cc = corr && d ? d[corr] : 0;
+    let ev: { emoji: string; line: string } | null = null;
+    if (resp > 0 && cc === 0) ev = { emoji: "😱", line: "PERSONNE n'a trouvé !" };
+    else if (resp > 0 && cc === resp) ev = { emoji: "🔥", line: "100 % de bonnes réponses !" };
+    else if (cc === 1) ev = { emoji: "⚡", line: "Une seule personne a trouvé !" };
+    const timers: ReturnType<typeof setTimeout>[] = [
+      setTimeout(() => {
+        setAnswerSub(1);
+        if (soundOnRef.current) sfx.correct();
+        if (ev) setStatEvent(ev);
+      }, 1300),
+    ];
+    if (ev) timers.push(setTimeout(() => setStatEvent(null), 4200));
+    return () => timers.forEach(clearTimeout);
+  }, [phase, currentQId, session]);
 
   // Bouton son flottant, présent sur tous les écrans.
   const soundBtn = (
@@ -443,6 +490,20 @@ export default function QuizShowPage() {
             }}
           />
         )}
+        {/* 💥 Événement plein écran (résultat notable) */}
+        {statEvent && (
+          <div
+            className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center gap-4 sm:gap-8 px-4"
+            style={{ background: "rgba(8,6,4,0.88)", animation: "fadeUp .3s both" }}
+          >
+            <div className="text-4xl sm:text-8xl tracking-widest" style={{ animation: "pop .5s ease-out both" }}>
+              {statEvent.emoji.repeat(5)}
+            </div>
+            <p className="font-black text-4xl sm:text-8xl text-canal-yellow text-center uppercase tracking-wide" style={{ animation: "pop .6s ease-out both", animationDelay: "0.1s" }}>
+              {statEvent.line}
+            </p>
+          </div>
+        )}
         {/* Header */}
         <header className="flex items-center justify-between px-4 sm:px-12 py-3 sm:py-5 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-1.5 sm:gap-3">
@@ -515,7 +576,7 @@ export default function QuizShowPage() {
                 {ANSWER_KEYS.map((key, i) => {
                   const palette = ANSWER_PALETTE[key];
                   const pct = pctOf(key);
-                  const lit = isAnswer && key === correct; // le bon ne s'allume qu'à la phase answer
+                  const lit = isAnswer && answerSub === 1 && key === correct; // s'allume au BOOM
                   return (
                     <div key={key} className="flex items-center gap-3 sm:gap-5" style={{ animation: "fadeUp .4s both", animationDelay: `${i * 0.1}s` }}>
                       <span className={`font-black text-xl sm:text-3xl w-12 sm:w-24 text-center shrink-0 transition-colors ${lit ? "text-green-400" : "text-white/40"}`}>
@@ -523,7 +584,7 @@ export default function QuizShowPage() {
                       </span>
                       <div className="flex-1 h-9 sm:h-14 bg-white/5 rounded-xl overflow-hidden relative">
                         <div
-                          className={`h-full rounded-xl transition-colors duration-300 ${lit ? "bg-green-500" : palette.bar} ${isAnswer && key !== correct ? "opacity-40" : "opacity-80"}`}
+                          className={`h-full rounded-xl transition-colors duration-300 ${lit ? "bg-green-500" : palette.bar} ${isAnswer && answerSub === 1 && key !== correct ? "opacity-40" : "opacity-80"}`}
                           style={{ width: `${Math.max(pct, 3)}%`, transformOrigin: "left", animation: "growX .6s ease-out both", animationDelay: `${i * 0.1}s` }}
                         />
                         <span className="absolute inset-0 flex items-center px-3 sm:px-5">
@@ -536,18 +597,18 @@ export default function QuizShowPage() {
                 })}
               </div>
 
-              {/* Suspense : barres affichées, on attend que Marie dévoile la réponse */}
-              {isStats && (
-                <p className="text-center text-white/55 font-black text-lg sm:text-3xl uppercase tracking-widest animate-pulse">
-                  🥁 La bonne réponse est…
+              {/* Suspense (stats) ou drumroll final (answer avant le boom) */}
+              {(isStats || (isAnswer && answerSub === 0)) && (
+                <p className="text-center text-white/60 font-black text-xl sm:text-4xl uppercase tracking-widest animate-pulse">
+                  🥁🥁🥁 La bonne réponse est…
                 </p>
               )}
 
-              {/* Bonne réponse + explication + punchline (phase answer) */}
-              {isAnswer && correct && (
+              {/* 💥 BOOM : bonne réponse + explication + punchline + Robert */}
+              {isAnswer && answerSub === 1 && correct && (
                 <div className="flex flex-col items-center gap-3 sm:gap-4">
-                  <p className="text-green-400 font-black text-2xl sm:text-5xl inline-flex items-center justify-center gap-3 flex-wrap" style={{ animation: "pop .5s ease-out both" }}>
-                    ✅ <span className="text-white/50">{correct}</span> {answerText(correct)}
+                  <p className="text-green-400 font-black text-3xl sm:text-6xl inline-flex items-center justify-center gap-3 flex-wrap" style={{ animation: "pop .55s ease-out both" }}>
+                    💥 <span className="text-white/50">{correct}</span> {answerText(correct)}
                   </p>
                   {session.explanation && (
                     <p className="text-white/55 text-sm sm:text-2xl italic text-center max-w-3xl mx-auto leading-snug" style={{ animation: "fadeUp .5s both", animationDelay: "0.2s" }}>{session.explanation}</p>
@@ -560,6 +621,16 @@ export default function QuizShowPage() {
                       </span>
                     )}
                   </div>
+                  {/* 🤖 Robert, maître de cérémonie — ≈ 1 question sur 3 */}
+                  {session.question_index % 3 === 2 && (
+                    <div className="mt-1 sm:mt-3 flex items-center gap-3 sm:gap-4 bg-white/5 border border-white/10 rounded-2xl px-4 sm:px-6 py-2.5 sm:py-3 max-w-2xl" style={{ animation: "fadeUp .5s both", animationDelay: "0.6s" }}>
+                      <span className="text-2xl sm:text-4xl shrink-0">🤖</span>
+                      <div className="min-w-0">
+                        <span className="block text-canal-yellow font-black text-xs sm:text-base tracking-wider">ROBERT</span>
+                        <span className="text-white/85 italic text-sm sm:text-2xl">« {robertLine(correctCount, responded, wrongPct, q.difficulty)} »</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
