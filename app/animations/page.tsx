@@ -242,6 +242,19 @@ export default async function AnimationsPage() {
         </p>
       </div>
 
+      {/* Lien vers le programme des grands rendez-vous (quiz, baby-foot, remise des prix) */}
+      <Link
+        href="/programme"
+        className="canal-card flex items-center gap-3 border border-canal-yellow/30 bg-canal-yellow/5 hover:border-canal-yellow/60 transition-colors"
+      >
+        <span className="text-2xl">🗓️</span>
+        <div className="min-w-0 flex-1">
+          <p className="text-white font-bold text-sm">Le programme CanalCup</p>
+          <p className="text-canal-gray-muted text-xs">Les grands rendez-vous pendant la Coupe du Monde</p>
+        </div>
+        <ChevronRight size={18} className="text-canal-yellow shrink-0" />
+      </Link>
+
       {/* CTA si pas d'équipe — les points d'animation vont sur l'équipe. */}
       <NoTeamCTA action="participer à une animation" />
 
