@@ -40,6 +40,7 @@ const EVENTS: EventItem[] = [
   { date: "Ven 3 juil.", time: "midi", title: "Grand Quiz #1", why: "Tout le monde a les matchs en tête", icon: Brain, accent: "star" },
   { date: "Jeu 9 juil.", time: "midi", title: "Baby-foot", why: "Entre les huitièmes et les quarts", icon: Gamepad2 },
   { date: "Lun 13 juil.", time: "midi", title: "Quiz #2 (plus court)", why: "On relance avant les demi-finales", icon: Brain },
+  { date: "Ven 17 juil.", time: "midi", title: "Quiz #3", why: "Dernier quiz avant la clôture du championnat", icon: Brain },
   { date: "Jeu 16 / Ven 17 juil.", title: "Finale Baby-foot & animations", why: "La finale approche", icon: Gamepad2 },
   { date: "Lun 20 juil.", time: "midi", title: "Grande Finale Quiz", why: "Les 5 meilleurs du championnat Quiz s'affrontent en direct", icon: Brain, accent: "star" },
   { date: "Lun 20 juil.", title: "Remise des prix CanalCup", why: "Clôture de l'événement", icon: Trophy, accent: "trophy" },

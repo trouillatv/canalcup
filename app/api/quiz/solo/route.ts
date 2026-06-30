@@ -10,6 +10,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { QUIZ_SOLO_COEFFICIENT } from "@/lib/scoring";
+import { getSoloWindow } from "@/lib/quiz/solo";
 
 export async function GET() {
   const supabase = await createClient();
@@ -18,19 +19,13 @@ export async function GET() {
 
   const admin = createAdminClient();
 
-  // Session quiz la plus récente : le Solo s'ouvre dès qu'un quiz a été LANCÉ
-  // (session créée). On ne se base PAS sur started_at, qui repart dans le futur
-  // à chaque countdown de question en Live (sinon le Solo clignoterait).
-  const { data: session } = await admin
-    .from("quiz_session")
-    .select("id, status, created_at")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (!session) {
-    return NextResponse.json({ available: false, reason: "not_launched" });
+  // Verrou Solo : ouvert UNIQUEMENT après la fin du Live et dans la fenêtre
+  // temporelle (cf. getSoloWindow).
+  const win = await getSoloWindow(admin);
+  if (!win.available || !win.session) {
+    return NextResponse.json({ available: false, reason: win.reason, closesAt: win.closesAt });
   }
+  const session = win.session;
 
   const { data: profile } = await supabase
     .from("users").select("id").eq("auth_id", user.id).single();
@@ -51,6 +46,7 @@ export async function GET() {
       available: true,
       session_id: session.id,
       coefficient: QUIZ_SOLO_COEFFICIENT,
+      closesAt: win.closesAt,
       questions: questions ?? [],
       answered,
     },

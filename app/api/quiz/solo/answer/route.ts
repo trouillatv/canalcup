@@ -9,6 +9,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { quizSoloPoints } from "@/lib/scoring";
+import { getSoloWindow } from "@/lib/quiz/solo";
 
 export async function POST(req: Request) {
   try {
@@ -31,16 +32,14 @@ export async function POST(req: Request) {
 
     const admin = createAdminClient();
 
-    // Le Solo n'est ouvert qu'une fois un quiz LANCÉ (session créée).
-    const { data: session } = await admin
-      .from("quiz_session")
-      .select("id")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (!session) {
-      return NextResponse.json({ ok: false, error: "Le quiz n'est pas encore ouvert." }, { status: 400 });
+    // Verrou Solo : même fenêtre que /api/quiz/solo. On rattache la réponse à la
+    // session CIBLÉE par le Solo (le Live terminé), pas au « plus récent » brut →
+    // indispensable pour que le Reset d'un quiz ultérieur n'efface pas ce Solo.
+    const win = await getSoloWindow(admin);
+    if (!win.available || !win.session) {
+      return NextResponse.json({ ok: false, error: "Le mode Solo n'est pas ouvert." }, { status: 400 });
     }
+    const session = win.session;
 
     const { data: question } = await admin
       .from("quiz_questions")
