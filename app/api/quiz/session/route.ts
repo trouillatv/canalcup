@@ -88,8 +88,31 @@ export async function GET() {
 
   // Participants ≈ la salle : chaque téléphone auto-soumet "" au timeout, donc le
   // nombre de user_id distincts sur l'ensemble de la session est un bon proxy.
+  // ⚠️ Approximation connue : un joueur qui rejoint sans avoir encore répondu
+  // n'est pas compté (pas de présence/roster en V1).
   const { data: allAnswers } = await supabase.from("quiz_answers").select("user_id");
   const participants = new Set((allAnswers ?? []).map((a) => a.user_id)).size;
+
+  // ⚡ Le plus rapide = bonne réponse au temps le plus court sur cette question.
+  const { data: fastRows } = await supabase
+    .from("quiz_answers")
+    .select("user_id, response_time_ms")
+    .eq("question_id", question.id)
+    .eq("is_correct", true)
+    .order("response_time_ms", { ascending: true })
+    .limit(1);
+  let fastest: { name: string; ms: number } | null = null;
+  if (fastRows && fastRows.length) {
+    const { data: u } = await supabase
+      .from("users")
+      .select("display_name, name")
+      .eq("id", fastRows[0].user_id)
+      .maybeSingle();
+    fastest = {
+      name: u?.display_name?.trim() || u?.name?.trim() || "Un joueur",
+      ms: fastRows[0].response_time_ms ?? 0,
+    };
+  }
 
   return NextResponse.json(
     {
@@ -99,6 +122,7 @@ export async function GET() {
       distribution,
       responded,
       participants,
+      fastest,
     },
     { headers: { "Cache-Control": "no-store" } }
   );

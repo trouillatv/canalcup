@@ -53,6 +53,7 @@ interface LiveSession {
   distribution?: Record<"A" | "B" | "C" | "D", number>;
   responded?: number;
   participants?: number;
+  fastest?: { name: string; ms: number } | null;
 }
 
 // ─── PIN Gate ────────────────────────────────────────────────────────────────
@@ -89,6 +90,32 @@ export default function QuizShowPage() {
   const [idle, setIdle] = useState(true);
   const [, forceTick] = useState(0);
   const cancelled = useRef(false);
+
+  // 🎬 Chorégraphie du reveal : un état interne 0→4 qui se déroule au fil de
+  // timers, pour un rythme « émission télé ». La PHASE serveur reste "reveal".
+  //   0 = Temps écoulé · 1 = % de répondants · 2 = barres · 3 = bonne réponse
+  //   4 = explication + stats (le plus rapide, « personne n'a trouvé »…)
+  const [revealStage, setRevealStage] = useState(0);
+  const revealForQ = useRef<string | null>(null);
+  const phase = session?.phase;
+  const currentQId = session?.question.id ?? null;
+  useEffect(() => {
+    if (phase !== "reveal" || !currentQId) {
+      revealForQ.current = null;
+      setRevealStage(0);
+      return;
+    }
+    if (revealForQ.current === currentQId) return; // séquence déjà lancée
+    revealForQ.current = currentQId;
+    setRevealStage(0);
+    const timers = [
+      setTimeout(() => setRevealStage(1), 800),
+      setTimeout(() => setRevealStage(2), 1800),
+      setTimeout(() => setRevealStage(3), 3500),
+      setTimeout(() => setRevealStage(4), 5000),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, [phase, currentQId]);
 
   useEffect(() => {
     cancelled.current = false;
@@ -175,6 +202,20 @@ export default function QuizShowPage() {
   const participants = session.participants ?? 0;
   const respondedPct = participants > 0 ? Math.round((responded / participants) * 100) : 0;
   const pctOf = (key: "A" | "B" | "C" | "D") => (responded > 0 ? Math.round((dist[key] / responded) * 100) : 0);
+  const correctCount = correct ? dist[correct as "A" | "B" | "C" | "D"] ?? 0 : 0;
+  const wrongPct = responded > 0 ? Math.round(((responded - correctCount) / responded) * 100) : 0;
+  const fastest = session.fastest ?? null;
+  // Petite punchline de salle selon le résultat collectif.
+  const funnyStat =
+    responded === 0
+      ? "🦗 Personne n'a répondu…"
+      : correctCount === 0
+        ? "😱 Personne n'a trouvé !"
+        : wrongPct >= 70
+          ? `🎯 ${wrongPct} % se sont trompés`
+          : correctCount === responded
+            ? "🔥 Tout le monde a trouvé !"
+            : `✅ ${correctCount} ${correctCount > 1 ? "ont" : "a"} trouvé`;
 
   return (
     <PinGate>
@@ -223,47 +264,74 @@ export default function QuizShowPage() {
               })}
             </div>
           ) : (
-            // — Phase reveal : répartition + bonne réponse —
+            // — Phase reveal : chorégraphie en plusieurs temps (revealStage) —
             <div className="max-w-5xl mx-auto w-full flex flex-col gap-4 sm:gap-6">
-              <div className="flex items-center justify-center gap-3 sm:gap-6 text-center" style={{ animation: "fadeUp .4s both" }}>
-                <span className="text-white/60 font-bold text-lg sm:text-3xl uppercase tracking-widest">Temps écoulé</span>
-                <span className="text-canal-yellow font-black text-2xl sm:text-5xl tabular-nums">{respondedPct}%</span>
-                <span className="text-white/50 font-bold text-lg sm:text-3xl">ont répondu</span>
+              {/* Stage 0 — Temps écoulé */}
+              <div className="text-center" style={{ animation: "fadeUp .4s both" }}>
+                <span className="text-white/60 font-black text-xl sm:text-4xl uppercase tracking-widest">⏱ Temps écoulé</span>
               </div>
 
-              <div className="flex flex-col gap-2.5 sm:gap-3.5">
-                {ANSWER_KEYS.map((key, i) => {
-                  const palette = ANSWER_PALETTE[key];
-                  const pct = pctOf(key);
-                  const isCorrect = key === correct;
-                  return (
-                    <div key={key} className="flex items-center gap-3 sm:gap-5" style={{ animation: "fadeUp .4s both", animationDelay: `${0.15 + i * 0.12}s` }}>
-                      <span className={`font-black text-xl sm:text-3xl w-8 sm:w-12 text-center shrink-0 ${isCorrect ? "text-green-400" : "text-white/40"}`}>
-                        {isCorrect ? "✓" : key}
-                      </span>
-                      <div className="flex-1 h-9 sm:h-14 bg-white/5 rounded-xl overflow-hidden relative">
-                        <div
-                          className={`h-full rounded-xl transition-all duration-700 ${isCorrect ? "bg-green-500" : palette.bar} ${isCorrect ? "" : "opacity-60"}`}
-                          style={{ width: `${Math.max(pct, 4)}%` }}
-                        />
-                        <span className="absolute inset-0 flex items-center px-3 sm:px-5 gap-2 sm:gap-4">
-                          <span className={`font-bold text-sm sm:text-2xl truncate ${isCorrect ? "text-white" : "text-white/70"}`}>{answerText(key)}</span>
+              {/* Stage 1 — nb de répondants + % */}
+              {revealStage >= 1 && (
+                <div className="flex items-center justify-center gap-3 sm:gap-6 text-center" style={{ animation: "fadeUp .4s both" }}>
+                  <span className="text-white font-black text-xl sm:text-4xl tabular-nums">{responded} / {participants}</span>
+                  <span className="text-white/40 font-bold text-base sm:text-2xl">joueurs</span>
+                  <span className="text-canal-yellow font-black text-2xl sm:text-5xl tabular-nums">{respondedPct}%</span>
+                </div>
+              )}
+
+              {/* Stage 2 — barres séquencées A→B→C→D ; le bon ne s'allume qu'au stage 3 */}
+              {revealStage >= 2 && (
+                <div className="flex flex-col gap-2.5 sm:gap-3.5">
+                  {ANSWER_KEYS.map((key, i) => {
+                    const palette = ANSWER_PALETTE[key];
+                    const pct = pctOf(key);
+                    const isCorrect = key === correct;
+                    const lit = revealStage >= 3 && isCorrect;
+                    return (
+                      <div key={key} className="flex items-center gap-3 sm:gap-5" style={{ animation: "fadeUp .4s both", animationDelay: `${i * 0.12}s` }}>
+                        <span className={`font-black text-xl sm:text-3xl w-12 sm:w-24 text-center shrink-0 transition-colors ${lit ? "text-green-400" : "text-white/40"}`}>
+                          {lit ? `✓ ${key}` : key}
                         </span>
-                        <span className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 font-black text-base sm:text-3xl tabular-nums text-white">{pct}%</span>
+                        <div className="flex-1 h-9 sm:h-14 bg-white/5 rounded-xl overflow-hidden relative">
+                          <div
+                            className={`h-full rounded-xl transition-colors duration-300 ${lit ? "bg-green-500" : palette.bar} ${revealStage >= 3 && !isCorrect ? "opacity-40" : "opacity-80"}`}
+                            style={{ width: `${Math.max(pct, 3)}%`, transformOrigin: "left", animation: "growX .6s ease-out both", animationDelay: `${i * 0.12}s` }}
+                          />
+                          <span className="absolute inset-0 flex items-center px-3 sm:px-5">
+                            <span className="font-bold text-sm sm:text-2xl truncate text-white/80">{answerText(key)}</span>
+                          </span>
+                          <span className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 font-black text-base sm:text-3xl tabular-nums text-white">{pct}%</span>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
 
-              {correct && (
-                <div className="text-center mt-1 sm:mt-3" style={{ animation: "fadeUp .5s both", animationDelay: "0.75s" }}>
-                  <p className="text-green-400 font-black text-2xl sm:text-5xl flex items-center justify-center gap-3">
-                    ✅ {answerText(correct)}
+              {/* Stage 3 — bonne réponse (✓ + lettre + texte) */}
+              {revealStage >= 3 && correct && (
+                <div className="text-center mt-1 sm:mt-3" style={{ animation: "fadeUp .5s both" }}>
+                  <p className="text-green-400 font-black text-2xl sm:text-5xl flex items-center justify-center gap-3 flex-wrap">
+                    ✅ <span className="text-white/50">{correct}</span> {answerText(correct)}
                   </p>
+                </div>
+              )}
+
+              {/* Stage 4 — explication + stats d'ambiance (le plus rapide, punchline) */}
+              {revealStage >= 4 && (
+                <div className="flex flex-col items-center gap-3 sm:gap-4" style={{ animation: "fadeUp .5s both" }}>
                   {session.explanation && (
-                    <p className="text-white/55 text-sm sm:text-2xl italic mt-2 sm:mt-4 max-w-3xl mx-auto leading-snug">{session.explanation}</p>
+                    <p className="text-white/55 text-sm sm:text-2xl italic text-center max-w-3xl mx-auto leading-snug">{session.explanation}</p>
                   )}
+                  <div className="flex items-center justify-center gap-4 sm:gap-10 flex-wrap">
+                    <span className="text-white/70 font-bold text-base sm:text-3xl">{funnyStat}</span>
+                    {fastest && (
+                      <span className="flex items-center gap-2 text-canal-yellow font-black text-base sm:text-3xl">
+                        ⚡ {fastest.name} <span className="text-white/50 tabular-nums">{(fastest.ms / 1000).toFixed(2)}s</span>
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -293,6 +361,10 @@ export default function QuizShowPage() {
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(12px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes growX {
+          from { transform: scaleX(0); }
+          to { transform: scaleX(1); }
         }
       `}</style>
     </PinGate>

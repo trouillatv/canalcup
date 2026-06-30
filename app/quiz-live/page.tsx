@@ -14,7 +14,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { Timer, CheckCircle, XCircle, Zap, Hourglass, Trophy } from "lucide-react";
+import { Timer, CheckCircle, Zap, Hourglass, Trophy } from "lucide-react";
 import { QUIZ_TIMER_SECONDS, QUIZ_MIN_RESPONSE_MS } from "@/lib/scoring";
 
 const ANSWERS = ["A", "B", "C", "D"] as const;
@@ -232,88 +232,55 @@ export default function QuizLivePage() {
     );
   }
 
-  // ── Reveal : "Temps écoulé" + bonne réponse + résultat perso ────────────────
+  // ── Reveal : le téléphone reste SOBRE (la TV est le spectacle). On affiche
+  //    "Résultat enregistré → Regarde l'écran", puis seulement quand la TV a fini
+  //    sa choré (~5s) on dévoile le gain perso "+X pts".
   if (isReveal) {
-    const correct = session.correct_answer;
-    const mine = outcome?.selected ?? "";
-    const gotIt = !!correct && mine === correct;
+    const revealElapsed = elapsedMs - TIMER_SECONDS * 1000;
+    const showPoints = revealElapsed > 5000;
+    const pts = outcome?.points ?? 0;
+    const answered = !!outcome && outcome.selected !== "";
     return (
-      <div className="px-4 py-4 max-w-2xl mx-auto flex flex-col gap-5">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-canal-gray-muted">
-            Question <span className="text-white font-bold">{session.question_index + 1}</span>
-            {session.total > 0 && <span> / {session.total}</span>}
-          </span>
-          <span className="text-xs uppercase tracking-wider text-canal-gray-muted font-black flex items-center gap-1.5">
-            <Hourglass size={12} /> Temps écoulé
-          </span>
-        </div>
-
-        <div className="canal-card">
-          <p className="font-bold text-white text-lg leading-snug">{q.question}</p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-3">
-          {ANSWERS.map((key) => {
-            const text = getAnswerText(key);
-            const isCorrect = key === correct;
-            const isMine = key === mine;
-            let btnClass = "canal-card flex items-center gap-3 w-full text-left transition-all";
-            if (isCorrect) btnClass += " border border-canal-green bg-green-950/30";
-            else if (isMine) btnClass += " border border-red-500 bg-red-950/30";
-            else btnClass += " opacity-40";
-            return (
-              <div key={key} className={btnClass}>
-                <span className="w-8 h-8 rounded-lg bg-canal-gray-light flex items-center justify-center font-black text-sm flex-shrink-0">
-                  {isCorrect ? "✓" : key}
-                </span>
-                <span className="flex-1 text-sm font-medium">{text}</span>
-                {isCorrect && <CheckCircle size={18} className="text-green-400 flex-shrink-0" />}
-                {!isCorrect && isMine && <XCircle size={18} className="text-red-400 flex-shrink-0" />}
-              </div>
-            );
-          })}
-        </div>
-
-        {session.explanation && (
-          <div className="canal-card text-sm text-canal-gray-muted italic border border-canal-gray-light">
-            💡 {session.explanation}
-          </div>
-        )}
-
-        {/* Résultat perso */}
-        <div
-          className={cn(
-            "canal-card text-center",
-            gotIt
-              ? "border border-green-700/40 bg-green-900/20"
-              : mine === ""
-                ? "border border-canal-gray-light"
-                : "border border-red-700/40 bg-red-900/20"
-          )}
-        >
-          {gotIt ? (
-            <p className="text-green-400 font-black text-base flex items-center justify-center gap-2 flex-wrap">
-              <CheckCircle size={16} /> Bonne réponse — +{outcome?.points ?? 0} pts
-              {outcome?.points === 5 && (
-                <span className="flex items-center gap-1 text-canal-yellow text-xs ml-2">
-                  <Zap size={12} /> Bonus rapidité
-                </span>
+      <div className="px-4 py-8 max-w-2xl mx-auto flex flex-col items-center justify-center gap-6 text-center min-h-[55vh]">
+        {!showPoints ? (
+          <>
+            {answered ? (
+              <CheckCircle className="text-canal-yellow" size={52} />
+            ) : (
+              <Hourglass className="text-canal-gray-muted" size={48} />
+            )}
+            <div>
+              <p className="font-black text-white text-xl">
+                {answered ? "Résultat enregistré" : "Temps écoulé"}
+              </p>
+              <p className="text-canal-gray-muted text-sm mt-2">Regarde l&apos;écran 📺</p>
+            </div>
+            <div className="flex gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-canal-yellow/70 animate-pulse" />
+              <span className="w-2.5 h-2.5 rounded-full bg-canal-yellow/40 animate-pulse [animation-delay:150ms]" />
+              <span className="w-2.5 h-2.5 rounded-full bg-canal-yellow/20 animate-pulse [animation-delay:300ms]" />
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-canal-gray-muted text-xs uppercase tracking-wider">Cette question</p>
+            <p
+              className={cn(
+                "font-black tabular-nums leading-none",
+                pts > 0 ? "text-green-400 text-7xl" : "text-canal-gray-muted text-6xl"
               )}
+            >
+              {pts > 0 ? `+${pts}` : "0"}
+              <span className="text-2xl"> pts</span>
             </p>
-          ) : mine === "" ? (
-            <p className="text-canal-gray-muted font-bold text-sm flex items-center justify-center gap-2">
-              <Hourglass size={14} /> Tu n&apos;as pas répondu — 0 pt
-            </p>
-          ) : (
-            <p className="text-red-400 font-black text-base flex items-center justify-center gap-2">
-              <XCircle size={16} /> Raté — 0 pt
-            </p>
-          )}
-          <p className="text-canal-gray-muted text-xs mt-1">
-            Regarde l&apos;écran 📺 — l&apos;animateur passe bientôt à la suite…
-          </p>
-        </div>
+            {pts === 5 && (
+              <p className="flex items-center gap-1.5 text-canal-yellow text-sm font-bold">
+                <Zap size={14} /> Bonus rapidité
+              </p>
+            )}
+            <p className="text-canal-gray-muted text-xs mt-2">En attente de la question suivante…</p>
+          </>
+        )}
       </div>
     );
   }
