@@ -621,8 +621,9 @@ export default function QuizShowPage() {
                       </span>
                     )}
                   </div>
-                  {/* 🤖 Robert, maître de cérémonie — ≈ 1 question sur 3 */}
-                  {session.question_index % 3 === 2 && (
+                  {/* 🤖 Robert, maître de cérémonie — RARE (≈ 3 fois sur 25) pour
+                      qu'on l'attende, pas un gimmick. */}
+                  {session.question_index % 8 === 5 && (
                     <div className="mt-1 sm:mt-3 flex items-center gap-3 sm:gap-4 bg-white/5 border border-white/10 rounded-2xl px-4 sm:px-6 py-2.5 sm:py-3 max-w-2xl" style={{ animation: "fadeUp .5s both", animationDelay: "0.6s" }}>
                       <span className="text-2xl sm:text-4xl shrink-0">🤖</span>
                       <div className="min-w-0">
