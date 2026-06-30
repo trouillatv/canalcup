@@ -35,6 +35,7 @@ interface Outcome {
 
 export default function QuizSoloPage() {
   const [state, setState] = useState<"loading" | "unavailable" | "playing" | "done">("loading");
+  const [reason, setReason] = useState<string | null>(null);
   const [queue, setQueue] = useState<SoloQuestion[]>([]);
   const [i, setI] = useState(0);
   const [coef, setCoef] = useState(0.5);
@@ -53,7 +54,7 @@ export default function QuizSoloPage() {
       .then((r) => r.json())
       .then((d) => {
         if (!alive) return;
-        if (!d.available) { setState("unavailable"); return; }
+        if (!d.available) { setReason(d.reason ?? null); setState("unavailable"); return; }
         setCoef(d.coefficient ?? 0.5);
         const answered = new Set<string>(d.answered ?? []);
         const todo: SoloQuestion[] = (d.questions ?? []).filter((q: SoloQuestion) => !answered.has(q.id));
@@ -139,13 +140,18 @@ export default function QuizSoloPage() {
   }
 
   if (state === "unavailable") {
+    const lockMsg =
+      reason === "live_in_progress"
+        ? "🔒 Le Quiz est actuellement en direct. Le mode Solo ouvrira à la fin du Live."
+        : reason === "window_closed"
+          ? "🔒 La fenêtre du Quiz Solo est fermée pour ce quiz. Rendez-vous au prochain !"
+          : "🔒 Le Quiz Live n'a pas encore commencé. Le mode Solo ouvrira à la fin du Live.";
     return (
       <div className="px-4 py-8 max-w-2xl mx-auto flex flex-col items-center text-center gap-4 min-h-[55vh] justify-center">
         <Hourglass className="text-canal-yellow" size={40} />
         <h1 className="canal-headline text-2xl">Quiz Solo</h1>
         <p className="text-canal-gray-muted text-sm leading-relaxed max-w-md">
-          Le Quiz Solo s&apos;ouvre <b>après le lancement officiel</b> (en salle).
-          Reviens à partir du coup d&apos;envoi du quiz pour jouer à ton rythme.
+          {lockMsg}
         </p>
         <Link href="/quiz" className="mt-2 px-4 py-2 rounded-xl bg-canal-gray-mid border border-canal-gray-light text-white text-sm font-bold inline-flex items-center gap-2">
           <ArrowLeft size={15} /> Retour au Quiz
@@ -178,6 +184,12 @@ export default function QuizSoloPage() {
   const q = current!;
   return (
     <div className="px-4 py-4 max-w-2xl mx-auto flex flex-col gap-5">
+      {/* Bandeau Solo explicite : personne ne doit se croire désavantagé sans le savoir. */}
+      <div className="rounded-xl border border-canal-yellow/30 bg-canal-yellow/5 px-3 py-2.5 text-xs leading-relaxed">
+        <span className="font-black text-canal-yellow">🎮 Mode Solo</span>{" "}
+        <span className="text-white/80">— points réduits à <b>{coefPct}%</b>. Le mode <b>Live</b> reste le meilleur moyen de marquer.</span>
+      </div>
+
       <div className="flex items-center justify-between text-sm">
         <span className="text-canal-gray-muted">
           Solo · <span className="text-white font-bold">{i + 1}</span> / {total}
