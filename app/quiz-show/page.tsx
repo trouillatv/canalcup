@@ -13,7 +13,9 @@
 // Pas de Realtime (V1) : polling 1s, largement suffisant en salle.
 
 import React, { useState, useEffect, useRef } from "react";
+import { Volume2, VolumeX } from "lucide-react";
 import { QUIZ_TIMER_SECONDS } from "@/lib/scoring";
+import { sfx, initAudio } from "@/lib/quiz/sound";
 
 const ANSWER_KEYS = ["A", "B", "C", "D"] as const;
 const POLL_MS = 1000;
@@ -108,14 +110,75 @@ export default function QuizShowPage() {
     if (revealForQ.current === currentQId) return; // séquence déjà lancée
     revealForQ.current = currentQId;
     setRevealStage(0);
+    if (soundOnRef.current) sfx.buzzer(); // fin du temps
     const timers = [
       setTimeout(() => setRevealStage(1), 800),
-      setTimeout(() => setRevealStage(2), 1800),
-      setTimeout(() => setRevealStage(3), 3500),
+      setTimeout(() => { setRevealStage(2); if (soundOnRef.current) sfx.reveal(); }, 1800),
+      setTimeout(() => { setRevealStage(3); if (soundOnRef.current) sfx.correct(); }, 3500),
       setTimeout(() => setRevealStage(4), 5000),
     ];
     return () => timers.forEach(clearTimeout);
   }, [phase, currentQId]);
+
+  // ── 🔊 Son (TV uniquement) ───────────────────────────────────────────────────
+  const [soundOn, setSoundOn] = useState(false);
+  const soundOnRef = useRef(false);
+  useEffect(() => { soundOnRef.current = soundOn; }, [soundOn]);
+  const toggleSound = () => {
+    if (!soundOn) {
+      initAudio(); // débloque l'AudioContext (geste utilisateur obligatoire)
+      sfx.whoosh();
+      setSoundOn(true);
+    } else {
+      setSoundOn(false);
+    }
+  };
+
+  // Whoosh au démarrage de chaque question (passage countdown → question).
+  const whooshRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (phase === "countdown") whooshRef.current = null;
+    if (phase === "question" && currentQId && whooshRef.current !== currentQId) {
+      whooshRef.current = currentQId;
+      if (soundOnRef.current) sfx.whoosh();
+    }
+  }, [phase, currentQId]);
+
+  // Tics du compte à rebours : 3·2·1 (avant la question) puis 5·4·3·2·1 (chrono).
+  const startedAt = session?.started_at;
+  useEffect(() => {
+    if (!startedAt) return;
+    const startMs = new Date(startedAt).getTime();
+    let lastSec = -1;
+    const iv = setInterval(() => {
+      const el = Date.now() - startMs;
+      if (el < 0) {
+        const left = Math.ceil(-el / 1000);
+        if (left >= 1 && left <= 3 && left !== lastSec) {
+          lastSec = left;
+          if (soundOnRef.current) sfx.tick(3 - left);
+        }
+      } else if (el < QUIZ_TIMER_SECONDS * 1000) {
+        const left = Math.ceil((QUIZ_TIMER_SECONDS * 1000 - el) / 1000);
+        if (left >= 1 && left <= 5 && left !== lastSec) {
+          lastSec = left;
+          if (soundOnRef.current) sfx.tick(5 - left);
+        }
+      }
+    }, 100);
+    return () => clearInterval(iv);
+  }, [startedAt]);
+
+  // Bouton son flottant, présent sur tous les écrans.
+  const soundBtn = (
+    <button
+      onClick={toggleSound}
+      title={soundOn ? "Couper le son" : "Activer le son"}
+      className="fixed top-3 right-3 sm:top-5 sm:right-5 z-50 w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-black/40 border border-white/20 backdrop-blur flex items-center justify-center text-white/80 hover:text-white hover:border-canal-yellow/60 transition-colors"
+    >
+      {soundOn ? <Volume2 size={22} /> : <VolumeX size={22} />}
+    </button>
+  );
 
   useEffect(() => {
     cancelled.current = false;
@@ -161,7 +224,13 @@ export default function QuizShowPage() {
             <p className="text-white/50 text-base sm:text-2xl mt-3 sm:mt-6">En attente du lancement par l&apos;animateur…</p>
           </div>
           <div className="w-10 h-10 border-2 border-canal-yellow/60 border-t-transparent rounded-full animate-spin" />
+          {!soundOn && (
+            <button onClick={toggleSound} className="mt-2 px-5 py-2.5 rounded-full bg-canal-yellow text-canal-black font-black text-sm sm:text-lg flex items-center gap-2 shadow-lg">
+              <Volume2 size={18} /> Activer le son
+            </button>
+          )}
         </div>
+        {soundBtn}
       </PinGate>
     );
   }
@@ -174,7 +243,8 @@ export default function QuizShowPage() {
   const elapsedMs = Math.max(0, rawElapsed);
   const timeLeft = Math.max(0, Math.ceil((QUIZ_TIMER_SECONDS * 1000 - elapsedMs) / 1000));
   const timerPct = Math.max(0, (timeLeft / QUIZ_TIMER_SECONDS) * 100);
-  const timerColor = timeLeft <= 5 ? "bg-red-500" : timeLeft <= 10 ? "bg-yellow-400" : "bg-canal-yellow";
+  const timerColor =
+    timeLeft <= 2 ? "bg-red-500" : timeLeft <= 3 ? "bg-orange-500" : timeLeft <= 5 ? "bg-yellow-400" : "bg-canal-yellow";
   const answerText = (key: string) =>
     ({ A: q.answer_a, B: q.answer_b, C: q.answer_c, D: q.answer_d }[key] ?? "");
 
@@ -192,6 +262,7 @@ export default function QuizShowPage() {
           </p>
           <p className="text-white/40 text-lg sm:text-3xl italic">Préparez-vous… 👀</p>
         </div>
+        {soundBtn}
       </PinGate>
     );
   }
@@ -309,10 +380,13 @@ export default function QuizShowPage() {
                 </div>
               )}
 
-              {/* Stage 3 — bonne réponse (✓ + lettre + texte) */}
+              {/* Stage 3 — bonne réponse (✓ + lettre + texte), avec un POP discret */}
               {revealStage >= 3 && correct && (
-                <div className="text-center mt-1 sm:mt-3" style={{ animation: "fadeUp .5s both" }}>
-                  <p className="text-green-400 font-black text-2xl sm:text-5xl flex items-center justify-center gap-3 flex-wrap">
+                <div className="text-center mt-1 sm:mt-3">
+                  <p
+                    className="text-green-400 font-black text-2xl sm:text-5xl inline-flex items-center justify-center gap-3 flex-wrap"
+                    style={{ animation: "pop .5s ease-out both" }}
+                  >
                     ✅ <span className="text-white/50">{correct}</span> {answerText(correct)}
                   </p>
                 </div>
@@ -342,11 +416,17 @@ export default function QuizShowPage() {
         <footer className="shrink-0 px-4 sm:px-12 pb-5 sm:pb-8 pt-3 sm:pt-4 border-t border-white/5">
           {!isReveal ? (
             <div className="flex items-center gap-3 sm:gap-5">
-              <span className={`font-black text-2xl sm:text-5xl tabular-nums w-14 sm:w-24 text-right ${timeLeft <= 5 ? "text-red-400 animate-pulse" : "text-white"}`}>
+              <span
+                key={timeLeft <= 3 ? `t${timeLeft}` : "calm"}
+                className={`font-black text-3xl sm:text-6xl tabular-nums w-16 sm:w-28 text-right ${
+                  timeLeft <= 2 ? "text-red-500" : timeLeft <= 3 ? "text-orange-400" : timeLeft <= 5 ? "text-yellow-300" : "text-white"
+                }`}
+                style={timeLeft <= 3 ? { animation: "popSec .45s ease-out both", transformOrigin: "right center" } : undefined}
+              >
                 {timeLeft}s
               </span>
               <div className="flex-1 h-2.5 sm:h-4 bg-white/10 rounded-full overflow-hidden">
-                <div className={`h-full rounded-full transition-all duration-1000 ${timerColor}`} style={{ width: `${timerPct}%` }} />
+                <div className={`h-full rounded-full transition-all duration-700 ${timerColor}`} style={{ width: `${timerPct}%` }} />
               </div>
             </div>
           ) : (
@@ -356,6 +436,7 @@ export default function QuizShowPage() {
           )}
         </footer>
       </div>
+      {soundBtn}
 
       <style jsx global>{`
         @keyframes fadeUp {
@@ -365,6 +446,15 @@ export default function QuizShowPage() {
         @keyframes growX {
           from { transform: scaleX(0); }
           to { transform: scaleX(1); }
+        }
+        @keyframes pop {
+          0% { transform: scale(0.8); }
+          60% { transform: scale(1.14); }
+          100% { transform: scale(1); }
+        }
+        @keyframes popSec {
+          0% { transform: scale(1.55); opacity: 0.5; }
+          100% { transform: scale(1); opacity: 1; }
         }
       `}</style>
     </PinGate>
