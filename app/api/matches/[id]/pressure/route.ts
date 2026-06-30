@@ -53,16 +53,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const rows = (snaps ?? []) as Snap[];
   const live = match?.status === "live" || match?.status === "halftime";
   const finished = match?.status === "finished";
-
-  const base = { live, finished, minute: match?.minute ?? null };
-  if (rows.length < 2) {
-    return NextResponse.json(
-      { ...base, points: [], expectedTotal: 0, htIndex: null },
-      { headers: { "Cache-Control": "s-maxage=20, stale-while-revalidate=20" } }
-    );
-  }
+  const nowMinute = typeof match?.minute === "number" ? match.minute : null;
 
   // Une barre signée par intervalle. + = home (vert, vers le haut) ; − = away.
+  // On garde la MINUTE DE JEU pour placer chaque barre à sa vraie position sur
+  // l'axe (pas un étalement uniforme).
   const raw = rows.slice(1).map((cur, i) => {
     const prev = rows[i];
     const home = activity(cur.stats.home, prev.stats.home) + W.poss * (cur.stats.home.poss - 50);
@@ -73,19 +68,32 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   // Normalisation : on cale le plus gros pic à 1. Plancher pour ne pas amplifier
   // le bruit d'un match calme.
   const peak = Math.max(1, ...raw.map((p) => Math.abs(p.value)));
-  const points = raw.map((p) => ({ value: Math.round((p.value / peak) * 1000) / 1000 }));
 
-  // Mi-temps : 1ʳᵉ tranche où la minute de jeu atteint 45'.
-  const htIndex = raw.findIndex((p) => (p.minute ?? 0) >= 45);
+  // Position de chaque barre = minute de jeu, en RÉSOLUTION 30 s. La minute du
+  // fournisseur est entière → quand deux snapshots tombent dans la même minute
+  // (cadence ~30 s), on les écarte d'une demi-minute. Garde monotone : robuste
+  // aux minutes manquantes / nulles (anciens snapshots).
+  let prevPos = -1;
+  const points = raw.map((p) => {
+    let pos = typeof p.minute === "number" ? p.minute : prevPos < 0 ? 0 : prevPos + 0.5;
+    if (pos <= prevPos) pos = prevPos + 0.5;
+    prevPos = pos;
+    return { value: Math.round((p.value / peak) * 1000) / 1000, pos: Math.round(pos * 100) / 100 };
+  });
 
-  // Zone « future » (match en cours) : on extrapole le nombre total de tranches
-  // pour un match de 90' à la CADENCE OBSERVÉE (robuste à 30 s comme à 5 min).
-  const lastMin = raw[raw.length - 1].minute ?? 0;
-  const rate = lastMin > 0 ? lastMin / points.length : 1; // minutes de jeu / tranche
-  const expectedTotal = finished ? points.length : Math.max(points.length, Math.round(90 / rate));
+  // Axe FIXE : on échantillonne tout le match en cellules de 30 s, dès le coup
+  // d'envoi. 90' par défaut ; dès qu'on dépasse 90' (prolongation d'un match à
+  // élimination directe), l'axe s'étend à 120'.
+  const REGULATION = 90, EXTRA_TIME = 120;
+  const lastPos = points.length ? points[points.length - 1].pos : 0;
+  const playedMin = Math.max(lastPos, nowMinute ?? 0);
+  const totalMinutes = playedMin > REGULATION ? Math.max(EXTRA_TIME, Math.ceil(playedMin)) : REGULATION;
+
+  // Curseur « instant courant » + frontière de la zone future (match en cours).
+  const nowPos = finished ? totalMinutes : Math.min(totalMinutes, Math.max(lastPos, nowMinute ?? lastPos));
 
   return NextResponse.json(
-    { ...base, points, expectedTotal, htIndex: htIndex < 0 ? null : htIndex },
+    { live, finished, minute: nowMinute, points, totalMinutes, nowPos },
     { headers: { "Cache-Control": `s-maxage=${live ? 20 : 300}, stale-while-revalidate=20` } }
   );
 }
