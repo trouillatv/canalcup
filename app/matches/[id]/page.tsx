@@ -905,6 +905,9 @@ export default function MatchCenterPage() {
               teamB={teamB}
               flagA={match.flag_a}
               flagB={match.flag_b}
+              goals={events
+                .filter((e) => e.type === "goal" || e.type === "penalty")
+                .map((e) => ({ pos: e.minute + (e.extra_minute ?? 0), side: e.team_side }))}
             />
             <Timeline events={events} teamA={teamA} teamB={teamB} players={players} />
           </>

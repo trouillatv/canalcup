@@ -19,18 +19,23 @@ interface Data {
   finished: boolean;
 }
 
+// Buts à signaler sur l'axe : minute + camp (home = haut/équipe A, away = bas).
+export interface PressureGoal { pos: number; side: "home" | "away" }
+
 export function PressureBar({
   matchId,
   teamA,
   teamB,
   flagA,
   flagB,
+  goals = [],
 }: {
   matchId: string;
   teamA: string;
   teamB: string;
   flagA?: string | null;
   flagB?: string | null;
+  goals?: PressureGoal[];
 }) {
   const [data, setData] = useState<Data | null>(null);
 
@@ -67,9 +72,9 @@ export function PressureBar({
   const slotW = span / (totalMin * 2);             // largeur d'une cellule de 30 s
   const barW = Math.max(1.2, slotW * 0.72);
   const nowX = x(data.nowPos);
-  // Repères verticaux : 45' (mi-temps), 90' (fin du temps réglementaire en
-  // prolongation), 105' (mi-temps de prolongation).
-  const markers = [45, ...(totalMin > 90 ? [90, 105] : [])].filter((m) => m < totalMin);
+  // Lignes blanches de repère : 0' (coup d'envoi), 45' (mi-temps), 90' (fin du
+  // temps réglementaire) et 120' (fin de prolongation, si l'axe va jusque-là).
+  const whiteLines = [0, 45, 90, ...(totalMin >= 120 ? [120] : [])].filter((m) => m <= totalMin);
 
   return (
     <div className="rounded-2xl bg-canal-gray border border-canal-gray-light p-3 mb-4">
@@ -94,13 +99,13 @@ export function PressureBar({
           )}
 
           {/* Repères de quart d'heure (lecture de l'échelle 90'/120'). */}
-          {[15, 30, 60, 75].filter((m) => m < totalMin).map((m) => (
+          {[15, 30, 60, 75, 105].filter((m) => m < totalMin).map((m) => (
             <line key={`g${m}`} x1={x(m)} y1={0} x2={x(m)} y2={H} stroke="rgba(255,255,255,0.06)" strokeWidth={1} />
           ))}
 
-          {/* Repères clés (45' / 90' / 105'). */}
-          {markers.map((m) => (
-            <line key={`m${m}`} x1={x(m)} y1={0} x2={x(m)} y2={H} stroke="rgba(255,255,255,0.5)" strokeWidth={1.5} />
+          {/* Lignes blanches : 0' / 45' / 90' / 120'. */}
+          {whiteLines.map((m) => (
+            <line key={`w${m}`} x1={x(m)} y1={0} x2={x(m)} y2={H} stroke="rgba(255,255,255,0.85)" strokeWidth={1.5} />
           ))}
 
           {/* Barres signées, placées à leur vraie minute de jeu. */}
@@ -122,6 +127,20 @@ export function PressureBar({
 
           {/* Ligne centrale. */}
           <line x1={0} y1={cy} x2={W} y2={cy} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
+
+          {/* ⚽ Buts : un ballon au-dessus du camp qui a marqué, à la minute du
+              but (home = haut/équipe A, away = bas/équipe B). */}
+          {goals.map((g, i) => (
+            <text
+              key={`goal${i}`}
+              x={x(g.pos)}
+              y={g.side === "home" ? 16 : H - 6}
+              fontSize={15}
+              textAnchor="middle"
+            >
+              ⚽
+            </text>
+          ))}
 
           {/* Coup d'envoi (vert) → minute courante (rouge). */}
           <circle cx={x(0)} cy={H - 8} r={6} fill="#0e1117" stroke="#22c55e" strokeWidth={3} />
