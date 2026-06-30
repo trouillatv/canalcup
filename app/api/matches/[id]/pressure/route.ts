@@ -82,14 +82,22 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   });
 
   // Axe FIXE : on échantillonne tout le match en cellules de 30 s, dès le coup
-  // d'envoi. 90' par défaut ; dès qu'on dépasse 90' (prolongation d'un match à
-  // élimination directe), l'axe s'étend à 120'.
+  // d'envoi. 90' par défaut ; on n'étend à 120' QUE s'il y a réellement
+  // prolongation. La décision se prend sur la VRAIE minute de jeu (l'elapsed du
+  // fournisseur, qui plafonne à 90' dans le temps additionnel et ne dépasse 90'
+  // qu'en prolongation) — surtout PAS sur les positions étalées des barres, que
+  // l'écart de 30 s peut pousser au-delà de 90' pendant le temps additionnel.
   const REGULATION = 90, EXTRA_TIME = 120;
-  const lastPos = points.length ? points[points.length - 1].pos : 0;
-  const playedMin = Math.max(lastPos, nowMinute ?? 0);
-  const totalMinutes = playedMin > REGULATION ? Math.max(EXTRA_TIME, Math.ceil(playedMin)) : REGULATION;
+  const rawMaxMinute = Math.max(
+    nowMinute ?? 0,
+    ...rows.map((r) => (typeof r.minute === "number" ? r.minute : 0)),
+    0
+  );
+  const totalMinutes =
+    rawMaxMinute > REGULATION ? Math.max(EXTRA_TIME, Math.ceil(rawMaxMinute)) : REGULATION;
 
   // Curseur « instant courant » + frontière de la zone future (match en cours).
+  const lastPos = points.length ? points[points.length - 1].pos : 0;
   const nowPos = finished ? totalMinutes : Math.min(totalMinutes, Math.max(lastPos, nowMinute ?? lastPos));
 
   return NextResponse.json(
