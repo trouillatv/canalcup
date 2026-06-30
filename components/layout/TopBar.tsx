@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, UserPlus, Tv, Inbox, Newspaper, Gamepad2, PartyPopper, MessageCircle, Download, Building2, Globe2, CalendarDays, Target, Medal, Bell, BellRing, Sparkles, Camera, Images } from "lucide-react";
+import { LogOut, ShieldCheck, Menu, X, Home, Calendar, Trophy, Users, UserPlus, Tv, Inbox, Newspaper, Gamepad2, PartyPopper, MessageCircle, Download, Building2, Globe2, CalendarDays, Target, Medal, Bell, BellRing, Sparkles, Camera, Images, Brain } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,7 @@ const MENU_ITEMS = [
   { href: "/schedule",   icon: CalendarDays, label: "Calendrier CdM" },
   { href: "/wc-teams",   icon: Globe2,    label: "Sélections CdM" },
   { href: "/services",   icon: Building2, label: "Services" },
+  { href: "/quiz-live",  icon: Brain,     label: "Quiz Live ⚡" },
   { href: "/babyfoot",   icon: Gamepad2,  label: "Babyfoot" },
   { href: "/animations", icon: PartyPopper, label: "Animations" },
   // BETA : visible seulement pour les comptes de test + admins (cf. access.ts).

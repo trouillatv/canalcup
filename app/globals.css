@@ -206,3 +206,8 @@
   0%, 100% { opacity: 0.35; }
   50%      { opacity: 1; }
 }
+@keyframes fireworkBurst {
+  0%   { transform: scale(0.2); opacity: 0.95; }
+  60%  { opacity: 0.7; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
