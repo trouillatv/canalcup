@@ -168,25 +168,29 @@ export default function QuizShowPage() {
     }
   }, [phase, currentQId]);
 
-  // Tics du compte à rebours : 3·2·1 (avant la question) puis 5·4·3·2·1 (chrono).
+  // Tics : 3·2·1 avant la question, puis chrono 1 tic/s de 5s→2s, et un tic-tac
+  // ACCÉLÉRÉ (toutes les ~300 ms) dans les 2 dernières secondes — mode panique.
   const startedAt = session?.started_at;
   useEffect(() => {
     if (!startedAt) return;
     const startMs = new Date(startedAt).getTime();
-    let lastSec = -1;
+    let lastCountdownSec = -1;
+    let lastTickAt = 0;
     const iv = setInterval(() => {
       const el = Date.now() - startMs;
       if (el < 0) {
         const left = Math.ceil(-el / 1000);
-        if (left >= 1 && left <= 3 && left !== lastSec) {
-          lastSec = left;
+        if (left >= 1 && left <= 3 && left !== lastCountdownSec) {
+          lastCountdownSec = left;
           if (soundOnRef.current) sfx.tick(3 - left);
         }
       } else if (el < QUIZ_TIMER_SECONDS * 1000) {
-        const left = Math.ceil((QUIZ_TIMER_SECONDS * 1000 - el) / 1000);
-        if (left >= 1 && left <= 5 && left !== lastSec) {
-          lastSec = left;
-          if (soundOnRef.current) sfx.tick(5 - left);
+        const remaining = QUIZ_TIMER_SECONDS * 1000 - el;
+        const cadence = remaining <= 2000 ? 300 : remaining <= 5000 ? 1000 : 0;
+        if (cadence && Date.now() - lastTickAt >= cadence) {
+          lastTickAt = Date.now();
+          const level = remaining <= 1000 ? 4 : remaining <= 2000 ? 3 : remaining <= 3500 ? 2 : 1;
+          if (soundOnRef.current) sfx.tick(level);
         }
       }
     }, 100);
@@ -383,6 +387,8 @@ export default function QuizShowPage() {
   const timerPct = Math.max(0, (timeLeft / QUIZ_TIMER_SECONDS) * 100);
   const timerColor =
     timeLeft <= 2 ? "bg-red-500" : timeLeft <= 3 ? "bg-orange-500" : timeLeft <= 5 ? "bg-yellow-400" : "bg-canal-yellow";
+  // 🚨 Mode panique : 10% du temps restant (≤ 2s) → vignette rouge + chrono géant.
+  const panic = !inCountdown && !isReveal && timeLeft > 0 && timeLeft <= 2;
   const answerText = (key: string) =>
     ({ A: q.answer_a, B: q.answer_b, C: q.answer_c, D: q.answer_d }[key] ?? "");
 
@@ -429,6 +435,16 @@ export default function QuizShowPage() {
   return (
     <PinGate>
       <div className="fixed inset-0 flex flex-col select-none" style={{ background: WARM_BG }}>
+        {/* 🚨 Vignette rouge clignotante des 2 dernières secondes */}
+        {panic && (
+          <div
+            className="pointer-events-none fixed inset-0 z-30"
+            style={{
+              animation: "panicFlash .55s ease-in-out infinite",
+              background: "radial-gradient(ellipse at center, rgba(190,0,0,0) 38%, rgba(210,0,0,0.42) 100%)",
+            }}
+          />
+        )}
         {/* Header */}
         <header className="flex items-center justify-between px-4 sm:px-12 py-3 sm:py-5 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-1.5 sm:gap-3">
@@ -518,6 +534,13 @@ export default function QuizShowPage() {
                 </div>
               )}
 
+              {/* Beat de suspense : barres affichées, le bon pas encore allumé */}
+              {revealStage === 2 && (
+                <p className="text-center text-white/55 font-black text-lg sm:text-3xl uppercase tracking-widest animate-pulse">
+                  🥁 La bonne réponse est…
+                </p>
+              )}
+
               {/* Stage 3 — bonne réponse (✓ + lettre + texte), avec un POP discret */}
               {revealStage >= 3 && correct && (
                 <div className="text-center mt-1 sm:mt-3">
@@ -556,7 +579,7 @@ export default function QuizShowPage() {
             <div className="flex items-center gap-3 sm:gap-5">
               <span
                 key={timeLeft <= 3 ? `t${timeLeft}` : "calm"}
-                className={`font-black text-3xl sm:text-6xl tabular-nums w-16 sm:w-28 text-right ${
+                className={`font-black tabular-nums text-right transition-all ${panic ? "text-5xl sm:text-8xl w-20 sm:w-40" : "text-3xl sm:text-6xl w-16 sm:w-28"} ${
                   timeLeft <= 2 ? "text-red-500" : timeLeft <= 3 ? "text-orange-400" : timeLeft <= 5 ? "text-yellow-300" : "text-white"
                 }`}
                 style={timeLeft <= 3 ? { animation: "popSec .45s ease-out both", transformOrigin: "right center" } : undefined}

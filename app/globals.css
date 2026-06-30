@@ -202,3 +202,7 @@
   0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
   100% { transform: translateY(110vh) rotate(540deg); opacity: 0.9; }
 }
+@keyframes panicFlash {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 1; }
+}

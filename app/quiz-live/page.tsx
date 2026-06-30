@@ -60,6 +60,7 @@ export default function QuizLivePage() {
   const [, forceTick] = useState(0);
   const lastQuestionIdRef = useRef<string | null>(null);
   const autoTimeoutFiredRef = useRef<string | null>(null);
+  const vibratedRef = useRef<string | null>(null);
 
   // Poll /api/quiz/session
   useEffect(() => {
@@ -153,6 +154,19 @@ export default function QuizLivePage() {
       if (autoTimeoutFiredRef.current === session.question.id) return;
       autoTimeoutFiredRef.current = session.question.id;
       void submitAnswer("");
+    }
+  });
+
+  // 📳 Vibration de panique : dans les 3 dernières secondes, UNE fois, et
+  // seulement si le joueur n'a pas encore répondu (sinon inutile de le stresser).
+  useEffect(() => {
+    if (session.status !== "live" || session.phase !== "question" || outcome) return;
+    const left = TIMER_SECONDS * 1000 - (Date.now() - new Date(session.started_at).getTime());
+    if (left <= 3000 && left > 0 && vibratedRef.current !== session.question.id) {
+      vibratedRef.current = session.question.id;
+      if (typeof navigator !== "undefined" && navigator.vibrate) {
+        navigator.vibrate([90, 60, 90, 60, 160]);
+      }
     }
   });
 
