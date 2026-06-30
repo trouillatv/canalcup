@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronUp,
   Play,
+  Pause,
   SkipForward,
   Square,
   RotateCcw,
@@ -22,6 +23,7 @@ const ADMIN_SECRET = process.env.NEXT_PUBLIC_ADMIN_SECRET ?? "";
 
 interface LiveSessionState {
   status: "idle" | "question";
+  paused?: boolean;
   question?: { id: string; question: string };
   question_index?: number;
   total?: number;
@@ -114,7 +116,7 @@ export default function AdminQuizPage() {
 
   // Live Show control panel
   const [live, setLive] = useState<LiveSessionState>({ status: "idle" });
-  const [liveActing, setLiveActing] = useState<null | "start" | "next" | "end" | "reset">(null);
+  const [liveActing, setLiveActing] = useState<null | "start" | "pause" | "resume" | "next" | "end" | "reset">(null);
   const [liveError, setLiveError] = useState<string | null>(null);
 
   // Résultats du quiz (live + récap final)
@@ -138,6 +140,7 @@ export default function AdminQuizPage() {
       if (d.status === "question" && d.question) {
         setLive({
           status: "question",
+          paused: !!d.paused,
           question: { id: d.question.id, question: d.question.question },
           question_index: d.question_index ?? 0,
           total: d.total ?? 0,
@@ -176,7 +179,7 @@ export default function AdminQuizPage() {
   }, [fetchLive, fetchResults]);
 
   const callLive = useCallback(
-    async (action: "start" | "next" | "end" | "reset") => {
+    async (action: "start" | "pause" | "resume" | "next" | "end" | "reset") => {
       setLiveActing(action);
       setLiveError(null);
       try {
@@ -206,6 +209,8 @@ export default function AdminQuizPage() {
     callLive("start");
   };
   const onNext = () => callLive("next");
+  const onPause = () => callLive("pause");
+  const onResume = () => callLive("resume");
   const onEnd = () => {
     if (!confirm("Terminer le quiz live ?")) return;
     callLive("end");
@@ -316,13 +321,32 @@ export default function AdminQuizPage() {
             </button>
           ) : (
             <>
+              {live.paused ? (
+                <button
+                  onClick={onResume}
+                  disabled={liveActing !== null}
+                  className="col-span-2 flex items-center justify-center gap-2 py-3 bg-green-500 text-black font-black rounded-xl hover:bg-green-400 transition-colors disabled:opacity-40"
+                >
+                  <Play size={14} />
+                  {liveActing === "resume" ? "…" : "Reprendre"}
+                </button>
+              ) : (
+                <button
+                  onClick={onPause}
+                  disabled={liveActing !== null}
+                  className="col-span-2 flex items-center justify-center gap-2 py-3 bg-canal-yellow text-canal-black font-black rounded-xl hover:bg-canal-yellow-hover transition-colors disabled:opacity-40"
+                >
+                  <Pause size={14} />
+                  {liveActing === "pause" ? "…" : "Pause"}
+                </button>
+              )}
               <button
                 onClick={onNext}
                 disabled={liveActing !== null}
-                className="flex items-center justify-center gap-2 py-3 bg-canal-yellow text-canal-black font-black rounded-xl hover:bg-canal-yellow-hover transition-colors disabled:opacity-40"
+                className="flex items-center justify-center gap-2 py-3 bg-canal-gray-mid text-white font-black rounded-xl border border-canal-gray-light hover:bg-canal-gray-light transition-colors disabled:opacity-40"
               >
                 <SkipForward size={14} />
-                {liveActing === "next" ? "…" : "Question suivante"}
+                {liveActing === "next" ? "…" : "Sauter"}
               </button>
               <button
                 onClick={onEnd}
@@ -348,8 +372,10 @@ export default function AdminQuizPage() {
 
         <p className="text-xs text-canal-gray-muted leading-relaxed">
           Les joueurs voient les questions sur{" "}
-          <code className="text-canal-yellow">/quiz-live</code>. 20s par question.
-          +5 pts si bonne réponse en &lt;5s, +3 sinon, 0 si faux ou timeout.
+          <code className="text-canal-yellow">/quiz-live</code>. Le quiz s&apos;enchaîne
+          tout seul (20s par question, puis la bonne réponse, puis question suivante).
+          La seule commande de rythme est <b>Pause / Reprendre</b>. +5 pts si bonne
+          réponse en &lt;5s, +3 sinon, 0 si faux ou timeout.
         </p>
       </section>
 
