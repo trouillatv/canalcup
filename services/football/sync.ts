@@ -120,6 +120,14 @@ async function syncLiveScoresApiF(): Promise<number> {
     // Sync events in background
     if (apifId) await syncEventsApiF(match.id, apifId, f.teams.home.id);
 
+    // Snapshot pression (momentum) — une barre / tranche pour le graphe live.
+    // Le cron live est un feeder DIRECT : sans ça, match_pressure reste vide et
+    // le graphe ne se construit jamais (le resync on-read de la fiche est
+    // throttlé par le même updated_at qu'on vient de bumper plus haut).
+    if (apifId && (status === "live" || status === "halftime")) {
+      await syncStatsApiF(match.id, apifId, minute).catch(() => []);
+    }
+
     cache.invalidate(`match:${match.id}`);
     synced++;
   }
@@ -355,16 +363,17 @@ async function stampFinishedAt(
 // Retourne l'ID APIF de l'équipe home quand disponible (nécessaire pour
 // assigner team_side correctement dans syncEventsApiF).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function refreshMatchRow(match: any): Promise<{ apifHomeId?: number; tsdbHomeId?: string } | null> {
+async function refreshMatchRow(match: any): Promise<{ apifHomeId?: number; tsdbHomeId?: string; status?: string; minute?: number | null } | null> {
   const supabase = createAdminClient();
   if (match.apif_id && hasApiFootball()) {
     const json = await apifFetch(`/fixtures?id=${match.apif_id}`);
     const f = json?.response?.[0];
     if (!f) return null;
     const status = apifStatus(f.fixture.status.short);
+    const minute = f.fixture.status.elapsed ?? null;
     await supabase.from("matches").update({
       status,
-      minute: f.fixture.status.elapsed ?? null,
+      minute,
       score_a: f.goals.home ?? null,
       score_b: f.goals.away ?? null,
       venue: f.fixture.venue?.name ?? undefined,
@@ -372,7 +381,7 @@ async function refreshMatchRow(match: any): Promise<{ apifHomeId?: number; tsdbH
       updated_at: new Date().toISOString(),
     }).eq("id", match.id);
     await stampFinishedAt(supabase, match.id, status);
-    return { apifHomeId: f.teams.home.id as number };
+    return { apifHomeId: f.teams.home.id as number, status, minute };
   }
   return null;
 }
@@ -537,7 +546,19 @@ export async function refreshLiveMatches(): Promise<number> {
     const lastUpd = m.updated_at ? new Date(m.updated_at).getTime() : 0;
     if (Date.now() - lastUpd < intervalMs) continue;   // throttle adaptatif
     if (!takeResyncSlot(m.id)) continue;               // anti-doublon concurrent
-    try { await refreshMatchRow(m); refreshed++; } catch { /* on continue */ }
+    try {
+      const r = await refreshMatchRow(m);
+      refreshed++;
+      // Snapshot pression (momentum) : ce poll breaking-news (~30 s, toutes
+      // pages) est le feeder le plus FIABLE en prod. refreshMatchRow vient de
+      // bumper updated_at → le resync on-read de la fiche est désormais throttlé
+      // et ne capterait rien. On capte donc ICI, sinon match_pressure reste vide
+      // et le graphe de pression ne se construit jamais.
+      const st = r?.status ?? status;
+      if (m.apif_id && (st === "live" || st === "halftime")) {
+        await syncStatsApiF(m.id, m.apif_id, r?.minute ?? null).catch(() => []);
+      }
+    } catch { /* on continue */ }
   }
   return refreshed;
 }
