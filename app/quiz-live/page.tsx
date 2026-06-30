@@ -1,10 +1,16 @@
 "use client";
 
-// Quiz Live SHOW (mode live) : pas de chrono indépendant côté client.
-// L'admin pilote depuis /admin/quiz ; tous les joueurs voient la même
-// question simultanément. Le client poll /api/quiz/session toutes les
-// 2 secondes. Le chrono est CALCULÉ à partir de session.started_at
-// (UTC serveur) — toujours synchronisé entre joueurs.
+// Quiz Live SHOW (téléphone joueur). L'animateur pilote depuis /admin/quiz ;
+// l'écran TV maître (/quiz-show) orchestre. Tous les joueurs voient la même
+// question simultanément. Poll /api/quiz/session toutes les ~1s. Le chrono est
+// CALCULÉ depuis session.started_at (UTC serveur) → synchronisé entre joueurs,
+// sans dérive.
+//
+// Déroulé côté joueur :
+//   1. countdown → "3 / 2 / 1"
+//   2. question  → 4 réponses ; au clic : "Réponse enregistrée — en attente"
+//      (on NE dit PAS encore si c'est juste : suspense jusqu'au reveal)
+//   3. reveal    → "Temps écoulé", la bonne réponse + ton résultat perso.
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
@@ -12,7 +18,7 @@ import { Timer, CheckCircle, XCircle, Zap, Hourglass, Trophy } from "lucide-reac
 import { QUIZ_TIMER_SECONDS, QUIZ_MIN_RESPONSE_MS } from "@/lib/scoring";
 
 const ANSWERS = ["A", "B", "C", "D"] as const;
-const POLL_INTERVAL_MS = 2000;
+const POLL_INTERVAL_MS = 1000;
 const TIMER_SECONDS = QUIZ_TIMER_SECONDS; // 20s
 const FAST_S = 5;
 
@@ -30,11 +36,14 @@ interface LiveQuestion {
 type SessionState =
   | { status: "idle" }
   | {
-      status: "question";
+      status: "live";
+      phase: "countdown" | "question" | "reveal";
       question: LiveQuestion;
       started_at: string;
       question_index: number;
       total: number;
+      correct_answer?: string;
+      explanation?: string;
     };
 
 interface AnswerOutcome {
@@ -63,11 +72,14 @@ export default function QuizLivePage() {
         if (cancelled) return;
         if (d.status === "question" && d.question) {
           setSession({
-            status: "question",
+            status: "live",
+            phase: d.phase ?? "question",
             question: d.question,
             started_at: d.started_at,
             question_index: d.question_index ?? 0,
             total: d.total ?? 0,
+            correct_answer: d.correct_answer,
+            explanation: d.explanation,
           });
         } else {
           setSession({ status: "idle" });
@@ -84,9 +96,9 @@ export default function QuizLivePage() {
     };
   }, []);
 
-  // Reset l'outcome local quand la question change (admin a cliqué "suivante")
+  // Reset l'outcome local quand la question change (animateur a cliqué "suivante")
   useEffect(() => {
-    if (session.status !== "question") {
+    if (session.status !== "live") {
       lastQuestionIdRef.current = null;
       autoTimeoutFiredRef.current = null;
       return;
@@ -98,16 +110,16 @@ export default function QuizLivePage() {
     }
   }, [session]);
 
-  // Re-render toutes les 500ms pour rafraîchir le chrono
+  // Re-render toutes les 300ms pour rafraîchir le chrono
   useEffect(() => {
-    if (session.status !== "question") return;
-    const t = setInterval(() => forceTick((v) => v + 1), 500);
+    if (session.status !== "live") return;
+    const t = setInterval(() => forceTick((v) => v + 1), 300);
     return () => clearInterval(t);
   }, [session.status]);
 
   const submitAnswer = useCallback(
     async (answer: string) => {
-      if (session.status !== "question") return;
+      if (session.status !== "live") return;
       if (outcome || submitting) return;
       setSubmitting(true);
       try {
@@ -115,10 +127,7 @@ export default function QuizLivePage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "same-origin",
-          body: JSON.stringify({
-            question_id: session.question.id,
-            answer,
-          }),
+          body: JSON.stringify({ question_id: session.question.id, answer }),
         });
         const d = await res.json().catch(() => ({}));
         setOutcome({
@@ -128,24 +137,16 @@ export default function QuizLivePage() {
           points: typeof d.points === "number" ? d.points : 0,
         });
       } catch {
-        setOutcome({
-          questionId: session.question.id,
-          selected: answer,
-          is_correct: false,
-          points: 0,
-        });
+        setOutcome({ questionId: session.question.id, selected: answer, is_correct: false, points: 0 });
       }
       setSubmitting(false);
     },
     [session, outcome, submitting]
   );
 
-  // Auto-submit "" (timeout) si l'utilisateur n'a pas répondu à temps,
-  // pour qu'il voie "Temps écoulé — 0 pt" et qu'on persiste 0 côté DB.
-  // On ne déclenche QUE si on est passé la phase countdown ET qu'on a
-  // dépassé started_at + TIMER_SECONDS.
+  // Auto-submit "" (timeout) si l'utilisateur n'a pas répondu à temps.
   useEffect(() => {
-    if (session.status !== "question") return;
+    if (session.status !== "live") return;
     if (outcome) return;
     const elapsed = Date.now() - new Date(session.started_at).getTime();
     if (elapsed > TIMER_SECONDS * 1000 + 250) {
@@ -155,7 +156,7 @@ export default function QuizLivePage() {
     }
   });
 
-  // Idle : pas de session active
+  // ── Idle : pas de session active ───────────────────────────────────────────
   if (session.status === "idle") {
     return (
       <div className="px-4 py-8 max-w-2xl mx-auto flex flex-col gap-6">
@@ -182,94 +183,147 @@ export default function QuizLivePage() {
           </p>
           <ul className="space-y-1.5 text-canal-gray-muted">
             <li>• <b>{TIMER_SECONDS} secondes</b> pour répondre à chaque question.</li>
-            <li>
-              • Bonne réponse en <b>moins de {FAST_S}s</b> :{" "}
-              <span className="text-canal-yellow font-bold">+5 pts</span>
-            </li>
-            <li>
-              • Bonne réponse plus lente :{" "}
-              <span className="text-canal-yellow font-bold">+3 pts</span>
-            </li>
-            <li>
-              • Mauvaise réponse ou temps écoulé :{" "}
-              <span className="text-canal-gray-muted">0 pt</span>
-            </li>
-            <li>• Les points vont à ton équipe Canal Cup principale.</li>
+            <li>• Bonne réponse en <b>moins de {FAST_S}s</b> : <span className="text-canal-yellow font-bold">+5 pts</span></li>
+            <li>• Bonne réponse plus lente : <span className="text-canal-yellow font-bold">+3 pts</span></li>
+            <li>• Mauvaise réponse ou temps écoulé : <span className="text-canal-gray-muted">0 pt</span></li>
+            <li>• La bonne réponse est dévoilée à l&apos;écran à la fin du chrono.</li>
           </ul>
         </div>
       </div>
     );
   }
 
-  // Question active
   const q = session.question;
   const rawElapsed = Date.now() - new Date(session.started_at).getTime();
-  // rawElapsed < 0 = countdown en cours (started_at est dans le futur)
-  const inCountdown = rawElapsed < 0;
-  const countdownLeft = inCountdown ? Math.ceil(-rawElapsed / 1000) : 0;
+  const inCountdown = session.phase === "countdown" || rawElapsed < 0;
+  const isReveal = session.phase === "reveal";
+  const countdownLeft = inCountdown ? Math.max(1, Math.ceil(-rawElapsed / 1000)) : 0;
   const elapsedMs = Math.max(0, rawElapsed);
   const timeLeft = Math.max(0, Math.ceil((TIMER_SECONDS * 1000 - elapsedMs) / 1000));
-  const timedOut = elapsedMs > TIMER_SECONDS * 1000;
-  // Filet anti-précharge côté UI : on bloque les boutons tant que
-  // QUIZ_MIN_RESPONSE_MS ne s'est pas écoulé. Le serveur fait la vérif
-  // canonique de toute façon.
   const tooEarly = !inCountdown && rawElapsed < QUIZ_MIN_RESPONSE_MS;
   const timerPct = Math.max(0, (timeLeft / TIMER_SECONDS) * 100);
   const timerColor = timeLeft <= 5 ? "bg-red-500" : timeLeft <= 10 ? "bg-yellow-400" : "bg-canal-yellow";
 
-  const getAnswerText = (key: string) => {
-    const map: Record<string, string> = {
-      A: q.answer_a,
-      B: q.answer_b,
-      C: q.answer_c,
-      D: q.answer_d,
-    };
-    return map[key] ?? "";
-  };
+  const getAnswerText = (key: string) =>
+    ({ A: q.answer_a, B: q.answer_b, C: q.answer_c, D: q.answer_d }[key] ?? "");
 
   const wasAnswered = !!outcome;
-  const locked = wasAnswered || submitting || timedOut || inCountdown || tooEarly;
+  const locked = wasAnswered || submitting || isReveal || inCountdown || tooEarly;
 
-  // Phase COUNTDOWN : on cache la question, on affiche un grand "3 / 2 / 1"
-  // au centre. Empêche le doigt préchargé sur une lettre.
+  // ── Countdown : "3 / 2 / 1" ────────────────────────────────────────────────
   if (inCountdown) {
     return (
       <div className="px-4 py-4 max-w-2xl mx-auto flex flex-col gap-5">
         <div className="flex items-center justify-between text-sm">
           <span className="text-canal-gray-muted">
-            Question{" "}
-            <span className="text-white font-bold">{session.question_index + 1}</span>
+            Question <span className="text-white font-bold">{session.question_index + 1}</span>
             {session.total > 0 && <span> / {session.total}</span>}
           </span>
-          <span className="text-xs uppercase tracking-wider text-canal-yellow font-black">
-            Préparation…
-          </span>
+          <span className="text-xs uppercase tracking-wider text-canal-yellow font-black">Préparation…</span>
         </div>
         <div className="canal-card flex flex-col items-center justify-center py-16 gap-3">
-          <p className="text-canal-gray-muted text-sm uppercase tracking-wider">
-            Prochaine question dans
-          </p>
-          <p
-            key={countdownLeft /* relance l'anim à chaque tick */}
-            className="text-canal-yellow font-black text-8xl tabular-nums animate-pulse"
-          >
+          <p className="text-canal-gray-muted text-sm uppercase tracking-wider">Prochaine question dans</p>
+          <p key={countdownLeft} className="text-canal-yellow font-black text-8xl tabular-nums animate-pulse">
             {countdownLeft}
           </p>
-          <p className="text-canal-gray-muted text-xs mt-2 italic">
-            Mains sur les genoux 👀
+          <p className="text-canal-gray-muted text-xs mt-2 italic">Mains sur les genoux 👀</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Reveal : "Temps écoulé" + bonne réponse + résultat perso ────────────────
+  if (isReveal) {
+    const correct = session.correct_answer;
+    const mine = outcome?.selected ?? "";
+    const gotIt = !!correct && mine === correct;
+    return (
+      <div className="px-4 py-4 max-w-2xl mx-auto flex flex-col gap-5">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-canal-gray-muted">
+            Question <span className="text-white font-bold">{session.question_index + 1}</span>
+            {session.total > 0 && <span> / {session.total}</span>}
+          </span>
+          <span className="text-xs uppercase tracking-wider text-canal-gray-muted font-black flex items-center gap-1.5">
+            <Hourglass size={12} /> Temps écoulé
+          </span>
+        </div>
+
+        <div className="canal-card">
+          <p className="font-bold text-white text-lg leading-snug">{q.question}</p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3">
+          {ANSWERS.map((key) => {
+            const text = getAnswerText(key);
+            const isCorrect = key === correct;
+            const isMine = key === mine;
+            let btnClass = "canal-card flex items-center gap-3 w-full text-left transition-all";
+            if (isCorrect) btnClass += " border border-canal-green bg-green-950/30";
+            else if (isMine) btnClass += " border border-red-500 bg-red-950/30";
+            else btnClass += " opacity-40";
+            return (
+              <div key={key} className={btnClass}>
+                <span className="w-8 h-8 rounded-lg bg-canal-gray-light flex items-center justify-center font-black text-sm flex-shrink-0">
+                  {isCorrect ? "✓" : key}
+                </span>
+                <span className="flex-1 text-sm font-medium">{text}</span>
+                {isCorrect && <CheckCircle size={18} className="text-green-400 flex-shrink-0" />}
+                {!isCorrect && isMine && <XCircle size={18} className="text-red-400 flex-shrink-0" />}
+              </div>
+            );
+          })}
+        </div>
+
+        {session.explanation && (
+          <div className="canal-card text-sm text-canal-gray-muted italic border border-canal-gray-light">
+            💡 {session.explanation}
+          </div>
+        )}
+
+        {/* Résultat perso */}
+        <div
+          className={cn(
+            "canal-card text-center",
+            gotIt
+              ? "border border-green-700/40 bg-green-900/20"
+              : mine === ""
+                ? "border border-canal-gray-light"
+                : "border border-red-700/40 bg-red-900/20"
+          )}
+        >
+          {gotIt ? (
+            <p className="text-green-400 font-black text-base flex items-center justify-center gap-2 flex-wrap">
+              <CheckCircle size={16} /> Bonne réponse — +{outcome?.points ?? 0} pts
+              {outcome?.points === 5 && (
+                <span className="flex items-center gap-1 text-canal-yellow text-xs ml-2">
+                  <Zap size={12} /> Bonus rapidité
+                </span>
+              )}
+            </p>
+          ) : mine === "" ? (
+            <p className="text-canal-gray-muted font-bold text-sm flex items-center justify-center gap-2">
+              <Hourglass size={14} /> Tu n&apos;as pas répondu — 0 pt
+            </p>
+          ) : (
+            <p className="text-red-400 font-black text-base flex items-center justify-center gap-2">
+              <XCircle size={16} /> Raté — 0 pt
+            </p>
+          )}
+          <p className="text-canal-gray-muted text-xs mt-1">
+            Regarde l&apos;écran 📺 — l&apos;animateur passe bientôt à la suite…
           </p>
         </div>
       </div>
     );
   }
 
+  // ── Question active ────────────────────────────────────────────────────────
   return (
     <div className="px-4 py-4 max-w-2xl mx-auto flex flex-col gap-5">
-      {/* En-tête : position dans le quiz */}
       <div className="flex items-center justify-between text-sm">
         <span className="text-canal-gray-muted">
-          Question{" "}
-          <span className="text-white font-bold">{session.question_index + 1}</span>
+          Question <span className="text-white font-bold">{session.question_index + 1}</span>
           {session.total > 0 && <span> / {session.total}</span>}
         </span>
         <span
@@ -283,15 +337,10 @@ export default function QuizLivePage() {
         </span>
       </div>
 
-      {/* Barre de progression du chrono */}
       <div className="h-2 bg-canal-gray-mid rounded-full overflow-hidden">
-        <div
-          className={cn("h-full rounded-full transition-all duration-300", timerColor)}
-          style={{ width: `${timerPct}%` }}
-        />
+        <div className={cn("h-full rounded-full transition-all duration-300", timerColor)} style={{ width: `${timerPct}%` }} />
       </div>
 
-      {/* Question */}
       <div className="canal-card">
         {(q.category || q.difficulty) && (
           <span className="text-xs text-canal-gray-muted uppercase tracking-wider">
@@ -303,85 +352,39 @@ export default function QuizLivePage() {
         <p className="font-bold text-white text-lg mt-2 leading-snug">{q.question}</p>
       </div>
 
-      {/* Réponses */}
       <div className="grid grid-cols-1 gap-3">
         {ANSWERS.map((key) => {
           const text = getAnswerText(key);
           const isSelected = outcome?.selected === key;
           let btnClass = "canal-card flex items-center gap-3 w-full text-left transition-all";
           if (wasAnswered) {
-            if (isSelected) {
-              btnClass += outcome?.is_correct
-                ? " border border-canal-green bg-green-950/30"
-                : " border border-red-500 bg-red-950/30";
-            } else {
-              btnClass += " opacity-40";
-            }
+            // On NE révèle PAS si c'est juste : seulement "sélectionné".
+            btnClass += isSelected ? " border border-canal-yellow bg-canal-yellow/10" : " opacity-40";
           } else if (locked) {
             btnClass += " opacity-50";
           } else {
             btnClass += " hover:border-canal-yellow/50 hover:bg-canal-gray-mid active:scale-98";
           }
           return (
-            <button
-              key={key}
-              onClick={() => submitAnswer(key)}
-              disabled={locked}
-              className={btnClass}
-            >
+            <button key={key} onClick={() => submitAnswer(key)} disabled={locked} className={btnClass}>
               <span className="w-8 h-8 rounded-lg bg-canal-gray-light flex items-center justify-center font-black text-sm flex-shrink-0">
                 {key}
               </span>
               <span className="flex-1 text-sm font-medium">{text}</span>
-              {wasAnswered && isSelected && outcome?.is_correct && (
-                <CheckCircle size={18} className="text-green-400 flex-shrink-0" />
-              )}
-              {wasAnswered && isSelected && !outcome?.is_correct && (
-                <XCircle size={18} className="text-red-400 flex-shrink-0" />
-              )}
+              {wasAnswered && isSelected && <CheckCircle size={18} className="text-canal-yellow flex-shrink-0" />}
             </button>
           );
         })}
       </div>
 
-      {/* Bandeau résultat */}
-      {outcome && outcome.selected !== "" && (
-        <div
-          className={cn(
-            "canal-card text-center",
-            outcome.is_correct
-              ? "border border-green-700/40 bg-green-900/20"
-              : "border border-red-700/40 bg-red-900/20"
-          )}
-        >
-          {outcome.is_correct ? (
-            <p className="text-green-400 font-black text-base flex items-center justify-center gap-2 flex-wrap">
-              <CheckCircle size={16} /> Bonne réponse — +{outcome.points} pts
-              {outcome.points === 5 && (
-                <span className="flex items-center gap-1 text-canal-yellow text-xs ml-2">
-                  <Zap size={12} /> Bonus rapidité
-                </span>
-              )}
-            </p>
-          ) : (
-            <p className="text-red-400 font-black text-base flex items-center justify-center gap-2">
-              <XCircle size={16} /> Mauvaise réponse — 0 pt
-            </p>
-          )}
-          <p className="text-canal-gray-muted text-xs mt-1">
-            Attends que l&apos;animateur passe à la question suivante…
-          </p>
-        </div>
-      )}
-
-      {/* Timeout (auto-submit a envoyé "") */}
-      {outcome && outcome.selected === "" && (
-        <div className="canal-card text-center border border-canal-gray-light">
-          <p className="text-canal-gray-muted font-bold text-sm flex items-center justify-center gap-2">
-            <Hourglass size={14} /> Temps écoulé — 0 pt
+      {/* Réponse enregistrée (suspense : pas de correct/faux avant le reveal) */}
+      {wasAnswered && outcome?.selected !== "" && (
+        <div className="canal-card text-center border border-canal-yellow/40 bg-canal-yellow/5">
+          <p className="text-canal-yellow font-black text-base flex items-center justify-center gap-2">
+            <CheckCircle size={16} /> Réponse enregistrée
           </p>
           <p className="text-canal-gray-muted text-xs mt-1">
-            Attends que l&apos;animateur passe à la question suivante…
+            En attente… la bonne réponse s&apos;affiche à la fin du chrono.
           </p>
         </div>
       )}
