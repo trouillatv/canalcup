@@ -1,39 +1,31 @@
-# Ping /api/cron/live-matches EN CONTINU (toutes les 30 s) PENDANT la Coupe.
+# Ping /api/cron/live-matches toutes les 5 min PENDANT la Coupe du Monde.
 #
-# GitHub Actions ne sait pas planifier sous 5 min (`*/5` = cadence mini). Pour
-# obtenir du 30 s SANS laptop, chaque run BOUCLE en interne ~5 min en pingant
-# toutes les 30 s ; le run suivant (planifié +5 min) prend le relais → couverture
-# continue 30 s, 100 % côté serveur (gratuit, pas de machine locale à laisser
-# tournée). C'est ce 30 s qui alimente la barre de pression (1 snapshot / 30 s,
-# table match_pressure) en plus de rafraîchir scores & buts.
-#
-# L'endpoint /api/cron/live-matches est LÉGER et garde-fou : hors fenêtre live
-# d'un match il sort immédiatement, 0 appel API-Football → laisser boucler hors
-# match ne coûte rien.
-#
-# ⚠ Quota API-Football : pendant un match, ~3 appels / ping × 30 s ≈ 360 appels
-# sur 90 min PAR match. Sur plusieurs matchs simultanés, surveille ton plafond ;
-# pour lever le pied, repasse STEP_SECONDS à 60 (ci-dessous).
+# Pourquoi un workflow dédié (en plus de sync-matches.yml @15 min) : pendant
+# un match, on veut des scores/buts frais. */5 est la cadence minimale de
+# GitHub Actions. L'endpoint /api/cron/live-matches est LÉGER et garde-fou :
+# hors fenêtre live d'un match il sort immédiatement, 0 appel API-Football.
+# Pour une cadence plus fine (~90 s) sur un gros match, lancer en local
+# scripts/auto-live.js. Le live "à la lecture" (90 s quand des gens sont sur
+# l'app) complète déjà ce ping de fond.
 #
 # Secrets repo requis (déjà configurés pour sync-matches.yml) :
 #   - CRON_SECRET  : même valeur que la var Vercel CRON_SECRET
 #   - APP_BASE_URL : URL prod (ex. https://canal-cup.vercel.app — sans / final)
 #
 # Fenêtre : 11/06/2026 → 19/07/2026. Hors fenêtre, sortie en succès sans appel.
-# Échec d'appel = NON bloquant (log seulement) — l'endpoint est idempotent.
+# Échec d'appel = NON bloquant (exit 0, log seulement) — l'endpoint est
+# idempotent, le ping suivant rattrape.
 
-name: Live matchs WC2026 (pression 30s, externe)
+name: Live matchs WC2026 (scores, externe)
 
 on:
   schedule:
-    # Toutes les 5 min (UTC) — cadence mini GitHub Actions. Chaque run boucle
-    # ensuite en 30 s pour combler l'intervalle. Best-effort : un déclenchement
-    # peut être différé (acceptable, endpoint idempotent).
+    # Toutes les 5 min (UTC). GitHub Actions = best-effort, déclenchement
+    # parfois différé de quelques minutes (acceptable, endpoint idempotent).
     - cron: "*/5 * * * *"
   workflow_dispatch: {}
 
-# Jamais 2 boucles live concurrentes : le run suivant attend la fin du courant
-# (les boucles ~5 min s'enchaînent donc proprement).
+# Jamais 2 pings live concurrents.
 concurrency:
   group: live-matches
   cancel-in-progress: false
@@ -43,8 +35,6 @@ permissions: {}
 jobs:
   ping:
     runs-on: ubuntu-latest
-    # Boucle ~5 min ; timeout de sécurité au cas où.
-    timeout-minutes: 7
     steps:
       - name: Garde de fenêtre Coupe du Monde
         id: window
@@ -56,42 +46,27 @@ jobs:
             echo "[$TODAY] hors fenêtre CdM ($START → $END) — skip."
             echo "run=false" >> "$GITHUB_OUTPUT"
           else
-            echo "[$TODAY] dans la fenêtre CdM — boucle 30 s."
+            echo "[$TODAY] dans la fenêtre CdM — ping live."
             echo "run=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Ping /api/cron/live-matches en boucle 30 s
+      - name: Ping /api/cron/live-matches
         if: steps.window.outputs.run == 'true'
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
-          # Pas besoin d'une barre toutes les 30 s ? Passe à 60 pour le quota.
-          STEP_SECONDS: "30"
-          # Durée totale de la boucle (un poil < 5 min pour ne pas chevaucher
-          # le run planifié suivant ; la concurrence rattrape de toute façon).
-          LOOP_SECONDS: "285"
         run: |
           if [ -z "$CRON_SECRET" ] || [ -z "$APP_BASE_URL" ]; then
             echo "::warning::CRON_SECRET ou APP_BASE_URL manquant — skip."
             exit 0
           fi
           URL="${APP_BASE_URL%/}/api/cron/live-matches"
-          echo "→ boucle ${STEP_SECONDS}s sur $URL pendant ~${LOOP_SECONDS}s"
-          START=$(date +%s)
-          i=0
-          while :; do
-            ELAPSED=$(( $(date +%s) - START ))
-            [ "$ELAPSED" -ge "$LOOP_SECONDS" ] && break
-            i=$((i + 1))
-            # -m 25 : un ping bloqué ne décale pas la cadence de 30 s.
-            CODE=$(curl -sS -m 25 -o /tmp/live.out -w "%{http_code}" \
-              -H "Authorization: Bearer $CRON_SECRET" "$URL" || echo "000")
-            BODY=$(head -c 300 /tmp/live.out 2>/dev/null)
-            echo "[$(date -u +%H:%M:%SZ)] #$i HTTP $CODE — $BODY"
-            [ "$CODE" != "200" ] && echo "::warning::live HTTP $CODE (non bloquant)"
-            # Pas de sleep final si le prochain pas dépasse la fenêtre.
-            [ $(( $(date +%s) - START + STEP_SECONDS )) -ge "$LOOP_SECONDS" ] && break
-            sleep "$STEP_SECONDS"
-          done
-          echo "fin boucle : $i pings en $(( $(date +%s) - START ))s"
+          echo "→ GET $URL ($(date -u +%H:%M:%SZ))"
+          CODE=$(curl -sS -m 90 -o /tmp/live.out -w "%{http_code}" \
+            -H "Authorization: Bearer $CRON_SECRET" "$URL" || echo "000")
+          echo "HTTP $CODE"
+          echo "--- réponse ---"; cat /tmp/live.out 2>/dev/null | head -c 2000; echo
+          if [ "$CODE" != "200" ]; then
+            echo "::warning::live HTTP $CODE (non bloquant — rattrapé au prochain ping)"
+          fi
           exit 0

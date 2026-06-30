@@ -120,12 +120,6 @@ async function syncLiveScoresApiF(): Promise<number> {
     // Sync events in background
     if (apifId) await syncEventsApiF(match.id, apifId, f.teams.home.id);
 
-    // Pression : snapshot des stats cumulées (1 appel API/poll) tant que le match
-    // tourne. Met aussi match_stats à jour au passage (même payload).
-    if (apifId && (status === "live" || status === "halftime")) {
-      await snapshotPressureApiF(match.id, apifId, minute, f.teams.home.id);
-    }
-
     cache.invalidate(`match:${match.id}`);
     synced++;
   }
@@ -232,7 +226,7 @@ async function syncLineupsTsdb(matchId: string, externalId: number): Promise<Lin
 
 // ─── Stats sync ───────────────────────────────────────────────────────────────
 
-async function syncStatsApiF(matchId: string, apifId: number): Promise<MatchStat[]> {
+async function syncStatsApiF(matchId: string, apifId: number, minute?: number | null): Promise<MatchStat[]> {
   const supabase = createAdminClient();
   const json = await apifFetch(`/fixtures/statistics?fixture=${apifId}`);
   const raw = json?.response ?? [];
@@ -243,6 +237,21 @@ async function syncStatsApiF(matchId: string, apifId: number): Promise<MatchStat
     await supabase.from("match_stats").delete().eq("match_id", matchId);
     await supabase.from("match_stats").insert(stats);
   }
+
+  // Snapshot pression (momentum) : on RÉUTILISE ce même fetch /statistics — 0
+  // appel API en plus. Alimenté par le resync on-read de la fiche match (~30 s
+  // en live). Clé = bucket 30 s → deux snapshots par minute sans collision.
+  // raw[0]=home, raw[1]=away (même convention que apifStats / match_stats).
+  await supabase.from("match_pressure").upsert(
+    {
+      match_id: matchId,
+      t: Math.floor(Date.now() / 30_000),
+      minute: minute ?? null,
+      stats: { home: pressureSide(raw[0].statistics), away: pressureSide(raw[1].statistics) },
+    },
+    { onConflict: "match_id,t" }
+  );
+
   return stats;
 }
 
@@ -266,47 +275,6 @@ function pressureSide(stats: any[]) {
     xg: pick("expected_goals"),       // qualité d'occasion
     poss: pick("Ball Possession"),    // %
   };
-}
-
-// Enregistre un snapshot des stats cumulées pour la courbe de pression. 1 appel
-// API-Football, réutilisé pour rafraîchir match_stats (évite un 2e appel).
-async function snapshotPressureApiF(
-  matchId: string,
-  apifId: number,
-  minute: number | null,
-  homeTeamId: number
-): Promise<void> {
-  if (minute == null) return;
-  const json = await apifFetch(`/fixtures/statistics?fixture=${apifId}`);
-  const raw = json?.response ?? [];
-  if (raw.length < 2) return;
-
-  // Ordre home/away robuste : on s'aligne sur l'id d'équipe, pas sur l'index.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const homeRaw = raw.find((r: any) => r.team?.id === homeTeamId) ?? raw[0];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const awayRaw = raw.find((r: any) => r.team?.id !== homeTeamId) ?? raw[1];
-
-  const supabase = createAdminClient();
-  // Bucket de 30 s : deux polls dans la même minute = deux barres distinctes.
-  const t = Math.floor(Date.now() / 30_000);
-  await supabase.from("match_pressure").upsert(
-    {
-      match_id: matchId,
-      t,
-      minute,
-      stats: { home: pressureSide(homeRaw.statistics), away: pressureSide(awayRaw.statistics) },
-    },
-    { onConflict: "match_id,t" }
-  );
-
-  // Bonus : rafraîchit les stats agrégées affichées dans l'onglet Stats, sans
-  // 2e appel (sinon elles ne bougent qu'à l'ouverture de la fiche).
-  const stats = apifStats(homeRaw.statistics, awayRaw.statistics, matchId);
-  if (stats.length > 0) {
-    await supabase.from("match_stats").delete().eq("match_id", matchId);
-    await supabase.from("match_stats").insert(stats);
-  }
 }
 
 async function loadStatsFromDB(matchId: string): Promise<MatchStat[]> {
@@ -826,7 +794,7 @@ export async function getMatchDetail(matchId: string): Promise<FullMatchDetail |
   // ── Stats ─────────────────────────────────────────────────────────────────
   let stats = await loadStatsFromDB(matchId);
   if ((!stats.length || force) && apifId && hasApiFootball()) {
-    const fresh = await syncStatsApiF(matchId, apifId);
+    const fresh = await syncStatsApiF(matchId, apifId, match.minute);
     if (fresh.length) stats = fresh;
   }
 
