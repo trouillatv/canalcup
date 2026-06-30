@@ -69,9 +69,19 @@ export function PressureBar({
   const totalMin = Math.max(1, data.totalMinutes); // longueur de l'axe (90 ou 120)
   const span = W - padX * 2;
   const x = (posMin: number) => padX + (Math.min(posMin, totalMin) / totalMin) * span;
-  const slotW = span / (totalMin * 2);             // largeur d'une cellule de 30 s
-  const barW = Math.max(1.2, slotW * 0.72);
   const nowX = x(data.nowPos);
+
+  // Largeur d'une barre (en MINUTES) : on remplit ~85 % de l'écart jusqu'à la
+  // barre voisine pour éviter le vide, MAIS au moins 2/3 d'une cellule de 30 s
+  // (⅔ × 0,5'), et au plus ~2' (qu'une barre isolée après une coupure ne devienne
+  // pas un gros bloc).
+  const MIN_W = (2 / 3) * 0.5, MAX_W = 2;
+  const barWidthMin = (i: number) => {
+    if (pts.length < 2) return 0.5;
+    const cur = pts[i].pos;
+    const gap = i < pts.length - 1 ? pts[i + 1].pos - cur : cur - pts[i - 1].pos;
+    return Math.min(Math.max(Math.abs(gap) * 0.85, MIN_W), MAX_W);
+  };
   // Lignes blanches de repère : 0' (coup d'envoi), 45' (mi-temps), 90' (fin du
   // temps réglementaire) et 120' (fin de prolongation, si l'axe va jusque-là).
   const whiteLines = [0, 45, 90, ...(totalMin >= 120 ? [120] : [])].filter((m) => m <= totalMin);
@@ -128,16 +138,20 @@ export function PressureBar({
               <line key={`w${m}`} x1={x(m)} y1={0} x2={x(m)} y2={H} stroke="rgba(255,255,255,0.85)" strokeWidth={1.5} />
             ))}
 
-            {/* Barres signées, placées à leur vraie minute de jeu. */}
+            {/* Barres signées, placées à leur vraie minute de jeu et élargies
+                pour remplir l'espace jusqu'à la barre voisine. */}
             {pts.map((p, i) => {
               const h = Math.abs(p.value) * amp;
               const up = p.value >= 0;
+              const w = barWidthMin(i);
+              const bx = x(p.pos - w / 2);
+              const bw = Math.max(1.2, x(p.pos + w / 2) - bx);
               return (
                 <rect
                   key={i}
-                  x={x(p.pos) - barW / 2}
+                  x={bx}
                   y={up ? cy - h : cy}
-                  width={barW}
+                  width={bw}
                   height={Math.max(h, 0.6)}
                   rx={1}
                   fill={up ? "#22c55e" : "#3b82f6"}
