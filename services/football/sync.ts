@@ -226,7 +226,7 @@ async function syncLineupsTsdb(matchId: string, externalId: number): Promise<Lin
 
 // ─── Stats sync ───────────────────────────────────────────────────────────────
 
-async function syncStatsApiF(matchId: string, apifId: number): Promise<MatchStat[]> {
+async function syncStatsApiF(matchId: string, apifId: number, minute?: number | null): Promise<MatchStat[]> {
   const supabase = createAdminClient();
   const json = await apifFetch(`/fixtures/statistics?fixture=${apifId}`);
   const raw = json?.response ?? [];
@@ -237,7 +237,44 @@ async function syncStatsApiF(matchId: string, apifId: number): Promise<MatchStat
     await supabase.from("match_stats").delete().eq("match_id", matchId);
     await supabase.from("match_stats").insert(stats);
   }
+
+  // Snapshot pression (momentum) : on RÉUTILISE ce même fetch /statistics — 0
+  // appel API en plus. Alimenté par le resync on-read de la fiche match (~30 s
+  // en live). Clé = bucket 30 s → deux snapshots par minute sans collision.
+  // raw[0]=home, raw[1]=away (même convention que apifStats / match_stats).
+  await supabase.from("match_pressure").upsert(
+    {
+      match_id: matchId,
+      t: Math.floor(Date.now() / 30_000),
+      minute: minute ?? null,
+      stats: { home: pressureSide(raw[0].statistics), away: pressureSide(raw[1].statistics) },
+    },
+    { onConflict: "match_id,t" }
+  );
+
   return stats;
+}
+
+// ─── Pression (momentum) ──────────────────────────────────────────────────────
+
+// Extrait les métriques utiles d'un bloc statistics API-Football. Possession =
+// "54%" → 54 ; xG = "1.23" → 1.23 ; reste = entiers cumulés.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function pressureSide(stats: any[]) {
+  const pick = (type: string): number => {
+    const e = (stats ?? []).find((s) => s.type === type);
+    if (!e || e.value == null) return 0;
+    const v = typeof e.value === "string" ? parseFloat(e.value.replace("%", "")) : Number(e.value);
+    return Number.isFinite(v) ? v : 0;
+  };
+  return {
+    sog: pick("Shots on Goal"),       // tirs cadrés
+    shots: pick("Total Shots"),       // tirs totaux
+    inbox: pick("Shots insidebox"),   // occasions (surface)
+    corners: pick("Corner Kicks"),
+    xg: pick("expected_goals"),       // qualité d'occasion
+    poss: pick("Ball Possession"),    // %
+  };
 }
 
 async function loadStatsFromDB(matchId: string): Promise<MatchStat[]> {
@@ -757,7 +794,7 @@ export async function getMatchDetail(matchId: string): Promise<FullMatchDetail |
   // ── Stats ─────────────────────────────────────────────────────────────────
   let stats = await loadStatsFromDB(matchId);
   if ((!stats.length || force) && apifId && hasApiFootball()) {
-    const fresh = await syncStatsApiF(matchId, apifId);
+    const fresh = await syncStatsApiF(matchId, apifId, match.minute);
     if (fresh.length) stats = fresh;
   }
 
