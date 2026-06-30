@@ -120,6 +120,12 @@ async function syncLiveScoresApiF(): Promise<number> {
     // Sync events in background
     if (apifId) await syncEventsApiF(match.id, apifId, f.teams.home.id);
 
+    // Pression : snapshot des stats cumulées (1 appel API/poll) tant que le match
+    // tourne. Met aussi match_stats à jour au passage (même payload).
+    if (apifId && (status === "live" || status === "halftime")) {
+      await snapshotPressureApiF(match.id, apifId, minute, f.teams.home.id);
+    }
+
     cache.invalidate(`match:${match.id}`);
     synced++;
   }
@@ -238,6 +244,69 @@ async function syncStatsApiF(matchId: string, apifId: number): Promise<MatchStat
     await supabase.from("match_stats").insert(stats);
   }
   return stats;
+}
+
+// ─── Pression (momentum) ──────────────────────────────────────────────────────
+
+// Extrait les métriques utiles d'un bloc statistics API-Football. Possession =
+// "54%" → 54 ; xG = "1.23" → 1.23 ; reste = entiers cumulés.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function pressureSide(stats: any[]) {
+  const pick = (type: string): number => {
+    const e = (stats ?? []).find((s) => s.type === type);
+    if (!e || e.value == null) return 0;
+    const v = typeof e.value === "string" ? parseFloat(e.value.replace("%", "")) : Number(e.value);
+    return Number.isFinite(v) ? v : 0;
+  };
+  return {
+    sog: pick("Shots on Goal"),       // tirs cadrés
+    shots: pick("Total Shots"),       // tirs totaux
+    inbox: pick("Shots insidebox"),   // occasions (surface)
+    corners: pick("Corner Kicks"),
+    xg: pick("expected_goals"),       // qualité d'occasion
+    poss: pick("Ball Possession"),    // %
+  };
+}
+
+// Enregistre un snapshot des stats cumulées pour la courbe de pression. 1 appel
+// API-Football, réutilisé pour rafraîchir match_stats (évite un 2e appel).
+async function snapshotPressureApiF(
+  matchId: string,
+  apifId: number,
+  minute: number | null,
+  homeTeamId: number
+): Promise<void> {
+  if (minute == null) return;
+  const json = await apifFetch(`/fixtures/statistics?fixture=${apifId}`);
+  const raw = json?.response ?? [];
+  if (raw.length < 2) return;
+
+  // Ordre home/away robuste : on s'aligne sur l'id d'équipe, pas sur l'index.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const homeRaw = raw.find((r: any) => r.team?.id === homeTeamId) ?? raw[0];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const awayRaw = raw.find((r: any) => r.team?.id !== homeTeamId) ?? raw[1];
+
+  const supabase = createAdminClient();
+  // Bucket de 30 s : deux polls dans la même minute = deux barres distinctes.
+  const t = Math.floor(Date.now() / 30_000);
+  await supabase.from("match_pressure").upsert(
+    {
+      match_id: matchId,
+      t,
+      minute,
+      stats: { home: pressureSide(homeRaw.statistics), away: pressureSide(awayRaw.statistics) },
+    },
+    { onConflict: "match_id,t" }
+  );
+
+  // Bonus : rafraîchit les stats agrégées affichées dans l'onglet Stats, sans
+  // 2e appel (sinon elles ne bougent qu'à l'ouverture de la fiche).
+  const stats = apifStats(homeRaw.statistics, awayRaw.statistics, matchId);
+  if (stats.length > 0) {
+    await supabase.from("match_stats").delete().eq("match_id", matchId);
+    await supabase.from("match_stats").insert(stats);
+  }
 }
 
 async function loadStatsFromDB(matchId: string): Promise<MatchStat[]> {

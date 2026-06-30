@@ -6,7 +6,9 @@
 // on veut des scores plus frais que le ping GitHub Actions (5 min).
 //
 //   node scripts/auto-live.js                      → prod, toutes les 120 s
-//   node scripts/auto-live.js --interval=90        → cadence en secondes (min 60)
+//   node scripts/auto-live.js --interval=30        → cadence en secondes (min 30)
+//        → 30 s = une barre de pression toutes les 30 s (⚠ ~3 appels API/poll,
+//          surveille ton quota API-Football sur un match long)
 //   node scripts/auto-live.js --url=http://localhost:3001
 //        → cible un dev server local (auth désactivée hors production)
 //
@@ -30,7 +32,7 @@ const arg = (n, d) => {
   return v ? v.split("=")[1] : d;
 };
 const BASE = (arg("url", "https://canal-cup.vercel.app")).replace(/\/$/, "");
-const INTERVAL = Math.max(60, Number(arg("interval", "120"))) * 1000;
+const INTERVAL = Math.max(30, Number(arg("interval", "120"))) * 1000;
 const SECRET = process.env.CRON_SECRET;
 const isProd = !BASE.includes("localhost") && !BASE.includes("127.0.0.1");
 

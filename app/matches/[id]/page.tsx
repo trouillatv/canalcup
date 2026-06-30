@@ -18,6 +18,7 @@ import { PlayerSheet } from "@/components/football/PlayerSheet";
 import { HotColdPlayers } from "@/components/football/HotColdPlayers";
 import { MatchRatingsRecap } from "@/components/football/MatchRatingsRecap";
 import { MatchFacts } from "@/components/football/MatchFacts";
+import { PressureBar } from "@/components/matches/PressureBar";
 import type { MatchPerf } from "@/components/football/PlayerCardView";
 import { track } from "@/lib/analytics/track";
 import { buildPlayerResolver } from "@/lib/football/resolve-player";
@@ -897,7 +898,18 @@ export default function MatchCenterPage() {
 
       <div className="px-4 pb-8 max-w-2xl mx-auto">
         {tab === "timeline" && <Timeline events={events} teamA={teamA} teamB={teamB} players={players} />}
-        {tab === "stats" && <Stats stats={stats} teamA={teamA} teamB={teamB} />}
+        {tab === "stats" && (
+          <>
+            <PressureBar
+              matchId={match.id}
+              teamA={teamA}
+              teamB={teamB}
+              flagA={match.flag_a}
+              flagB={match.flag_b}
+            />
+            <Stats stats={stats} teamA={teamA} teamB={teamB} />
+          </>
+        )}
         {tab === "notes" && (
           <div className="py-2">
             <div className="flex gap-1 bg-canal-gray rounded-xl p-1 mb-3 w-fit mx-auto">
