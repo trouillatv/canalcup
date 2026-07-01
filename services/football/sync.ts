@@ -89,6 +89,10 @@ async function syncLiveScoresApiF(): Promise<number> {
     // on garde `score.fulltime` à part : c'est LUI qui juge les pronos KO.
     const scoreRegA = f.score?.fulltime?.home ?? null;
     const scoreRegB = f.score?.fulltime?.away ?? null;
+    // Séance de tirs au but (KO à égalité après prolongation) — départage le
+    // qualifié dans le tableau. `goals` reste à égalité (t.a.b. exclus).
+    const penA = f.score?.penalty?.home ?? null;
+    const penB = f.score?.penalty?.away ?? null;
     const apifId: number = f.fixture.id;
 
     // Match by apif_id first, then by team names
@@ -111,6 +115,7 @@ async function syncLiveScoresApiF(): Promise<number> {
       score_a: scoreA, score_b: scoreB,
       score_ht_a: scoreHtA, score_ht_b: scoreHtB,
       score_reg_a: scoreRegA, score_reg_b: scoreRegB,
+      pen_a: penA, pen_b: penB,
       venue: f.fixture.venue?.name ?? undefined,
       referee: f.fixture.referee ?? undefined,
       updated_at: new Date().toISOString(),
@@ -376,6 +381,10 @@ async function refreshMatchRow(match: any): Promise<{ apifHomeId?: number; tsdbH
       minute,
       score_a: f.goals.home ?? null,
       score_b: f.goals.away ?? null,
+      score_reg_a: f.score?.fulltime?.home ?? null,
+      score_reg_b: f.score?.fulltime?.away ?? null,
+      pen_a: f.score?.penalty?.home ?? null,
+      pen_b: f.score?.penalty?.away ?? null,
       venue: f.fixture.venue?.name ?? undefined,
       referee: f.fixture.referee ?? undefined,
       updated_at: new Date().toISOString(),

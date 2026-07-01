@@ -144,6 +144,9 @@ export interface Match {
   // scoring des pronos KO ; null en phase de groupes (= score_a/score_b).
   score_reg_a?: number | null;
   score_reg_b?: number | null;
+  // Tirs au but (séance) — départage un KO nul après prolongation. null hors t.a.b.
+  pen_a?: number | null;
+  pen_b?: number | null;
   is_match_of_week?: boolean;
   is_settled?: boolean;
   finished_at?: string | null;

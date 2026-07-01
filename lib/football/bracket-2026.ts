@@ -144,6 +144,9 @@ export interface RealKoMatch {
   flag_b?: string | null;
   score_a?: number | null;
   score_b?: number | null;
+  /** Tirs au but — départage un KO nul après prolongation. */
+  pen_a?: number | null;
+  pen_b?: number | null;
   status: string;
   phase?: string | null;
 }
@@ -268,10 +271,20 @@ export function resolveKnockout(
   }
   for (const rm of realMatches) {
     if ((rm.phase ?? "") !== "Seizièmes" || rm.status !== "finished") continue;
-    if (rm.score_a == null || rm.score_b == null || rm.score_a === rm.score_b) continue; // égalité = TAB, indécidable sans données
+    if (rm.score_a == null || rm.score_b == null) continue;
+    // Vainqueur = meilleur score final (prolongation incluse), ou, à égalité,
+    // meilleur total aux tirs au but. Sans t.a.b. connus → indécidable, on saute.
+    let winsA: boolean;
+    if (rm.score_a !== rm.score_b) {
+      winsA = rm.score_a > rm.score_b;
+    } else if (rm.pen_a != null && rm.pen_b != null && rm.pen_a !== rm.pen_b) {
+      winsA = rm.pen_a > rm.pen_b;
+    } else {
+      continue;
+    }
     const no = detTeamToSeize[normName(rm.team_a)] ?? detTeamToSeize[normName(rm.team_b)];
     if (!no) continue;
-    winnerByFeeder[no] = rm.score_a > rm.score_b
+    winnerByFeeder[no] = winsA
       ? { teamName: rm.team_a, teamFlag: rm.flag_a ?? undefined }
       : { teamName: rm.team_b, teamFlag: rm.flag_b ?? undefined };
   }
