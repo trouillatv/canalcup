@@ -62,6 +62,10 @@ export default function QuizLivePage() {
   const lastQuestionIdRef = useRef<string | null>(null);
   const autoTimeoutFiredRef = useRef<string | null>(null);
   const vibratedRef = useRef<string | null>(null);
+  // 🛡 Anti-triche : quitter l'app / changer d'onglet pendant une question.
+  const [cheatWarn, setCheatWarn] = useState(false);
+  const [cheatForfeit, setCheatForfeit] = useState(false);
+  const leaveRef = useRef<{ qId: string | null; count: number }>({ qId: null, count: 0 });
 
   // Poll /api/quiz/session
   useEffect(() => {
@@ -110,6 +114,9 @@ export default function QuizLivePage() {
       lastQuestionIdRef.current = session.question.id;
       autoTimeoutFiredRef.current = null;
       setOutcome(null);
+      setCheatWarn(false);
+      setCheatForfeit(false);
+      leaveRef.current = { qId: session.question.id, count: 0 };
     }
   }, [session]);
 
@@ -172,6 +179,31 @@ export default function QuizLivePage() {
     }
   });
 
+  // 🛡 Anti-triche : quitter l'app ou changer d'onglet pendant une question
+  // OUVERTE (chrono en cours, pas encore répondu, hors pause) = 1er écart →
+  // avertissement, 2e écart → forfait (0 pt). On ne réagit qu'à un VRAI départ
+  // (document.hidden), ce qui écarte les faux positifs d'un simple clic/blur.
+  useEffect(() => {
+    if (session.status !== "live" || session.phase !== "question" || outcome || session.paused) return;
+    const qId = session.question.id;
+    const onHide = () => {
+      if (typeof document === "undefined" || !document.hidden) return;
+      if (leaveRef.current.qId !== qId) leaveRef.current = { qId, count: 0 };
+      leaveRef.current.count += 1;
+      if (leaveRef.current.count >= 2) {
+        if (autoTimeoutFiredRef.current !== qId) {
+          autoTimeoutFiredRef.current = qId;
+          setCheatForfeit(true);
+          void submitAnswer(""); // forfait : 0 pt sur cette question
+        }
+      } else {
+        setCheatWarn(true); // 1er écart : avertissement (visible au retour)
+      }
+    };
+    document.addEventListener("visibilitychange", onHide);
+    return () => document.removeEventListener("visibilitychange", onHide);
+  }, [session, outcome, submitAnswer]);
+
   // ── Idle : pas de session active ───────────────────────────────────────────
   if (session.status === "idle") {
     return (
@@ -203,6 +235,7 @@ export default function QuizLivePage() {
             <li>• Bonne réponse plus lente : <span className="text-canal-yellow font-bold">+3 pts</span></li>
             <li>• Mauvaise réponse ou temps écoulé : <span className="text-canal-gray-muted">0 pt</span></li>
             <li>• La bonne réponse est dévoilée à l&apos;écran à la fin du chrono.</li>
+            <li>• <span className="text-red-300 font-bold">Anti-triche</span> : quitter l&apos;app ou changer d&apos;onglet pendant une question = <b>0 pt</b> (1 avertissement).</li>
           </ul>
         </div>
       </div>
@@ -289,7 +322,7 @@ export default function QuizLivePage() {
             )}
             <div>
               <p className="font-black text-white text-xl">
-                {answered ? "Résultat enregistré" : "Temps écoulé"}
+                {answered ? "Résultat enregistré" : cheatForfeit ? "Écran quitté — 0 pt" : "Temps écoulé"}
               </p>
               <p className="text-canal-gray-muted text-sm mt-2">Regarde l&apos;écran 📺</p>
             </div>
@@ -311,6 +344,9 @@ export default function QuizLivePage() {
               {pts > 0 ? `+${pts}` : "0"}
               <span className="text-2xl"> pts</span>
             </p>
+            {cheatForfeit && (
+              <p className="text-red-300 text-xs font-bold">Tu as quitté l&apos;écran pendant la question.</p>
+            )}
             {pts === 5 && (
               <p className="flex items-center gap-1.5 text-canal-yellow text-sm font-bold">
                 <Zap size={14} /> Bonus rapidité
@@ -319,6 +355,31 @@ export default function QuizLivePage() {
             <p className="text-canal-gray-muted text-xs mt-2">En attente de la question suivante…</p>
           </>
         )}
+      </div>
+    );
+  }
+
+  // ── 🛡 Avertissement anti-triche (1er écart, pas encore répondu) ────────────
+  if (cheatWarn && !wasAnswered) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 px-6 text-center"
+        style={{ background: "rgba(90,0,0,0.96)" }}
+      >
+        <p className="text-6xl">⚠️</p>
+        <p className="font-black text-white text-2xl">Reste sur le quiz !</p>
+        <p className="text-white/85 text-sm leading-relaxed">
+          Quitter l&apos;application ou changer d&apos;onglet pendant une question, c&apos;est interdit.
+          <br />
+          Au prochain écart sur cette question : <b className="text-red-300">0 point</b>.
+        </p>
+        <button
+          onClick={() => setCheatWarn(false)}
+          className="mt-1 px-6 py-3 rounded-xl bg-canal-yellow text-canal-black font-black active:scale-95 transition-transform"
+        >
+          J&apos;ai compris — je réponds
+        </button>
+        <p className="text-white/50 text-xs">Il te reste {timeLeft}s</p>
       </div>
     );
   }
