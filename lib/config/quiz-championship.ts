@@ -3,6 +3,11 @@
 // toute la Coupe du Monde et se termine par une Grande Finale en direct.
 
 export const QUIZ_CHAMPIONSHIP = {
+  // Ouverture du Quiz LIVE (heure Nouvelle-Calédonie, UTC+11) : on ne peut pas
+  // DÉMARRER une session de quiz Live avant cet instant. Garde-fou anti-lancement
+  // accidentel (une session de test oubliée affichait « 🔴 Quiz en direct »).
+  liveOpenAt: "2026-07-03T12:00:00+11:00",
+  liveOpenLabel: "vendredi 3 juillet à 12h00 (heure NC)",
   // Nombre de joueurs qualifiés pour la Grande Finale (badge « Qualifié »).
   finalists: 5,
   // Clôture du classement qualificatif (fin de la période des pronostics).
@@ -31,4 +36,10 @@ export const QUIZ_CHAMPIONSHIP = {
 // La date de clôture est-elle passée ? (classement qualificatif figé)
 export function isQualifClosed(now: number = Date.now()): boolean {
   return now > new Date(QUIZ_CHAMPIONSHIP.qualifCutoff).getTime();
+}
+
+// Le Quiz Live est-il ouvert (date d'ouverture atteinte) ? Sert de garde-fou au
+// DÉMARRAGE d'une session Live (avant : impossible de lancer / de voir « en direct »).
+export function isLiveOpen(now: number = Date.now()): boolean {
+  return now >= new Date(QUIZ_CHAMPIONSHIP.liveOpenAt).getTime();
 }

@@ -10,7 +10,7 @@
 //   - fenêtre dépassée             → verrouillé (reason 'window_closed')
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { QUIZ_CHAMPIONSHIP } from "@/lib/config/quiz-championship";
+import { QUIZ_CHAMPIONSHIP, isLiveOpen } from "@/lib/config/quiz-championship";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -26,6 +26,12 @@ export interface SoloWindow {
 }
 
 export async function getSoloWindow(admin: Admin, now: number = Date.now()): Promise<SoloWindow> {
+  // Verrou global : rien n'ouvre avant l'ouverture officielle du Live
+  // (vendredi 3 juillet 12h00, heure NC). Le Solo n'ouvrira qu'APRÈS le Live.
+  if (!isLiveOpen(now)) {
+    return { available: false, reason: "not_started", session: null, closesAt: null };
+  }
+
   const { data: session } = await admin
     .from("quiz_session")
     .select("id, status, ended_at, created_at")

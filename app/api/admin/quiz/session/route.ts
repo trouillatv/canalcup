@@ -16,6 +16,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminRequest } from "@/lib/auth/admin";
 import { advanceQuizSession, futureStartedAt, listQuestionIds } from "@/lib/quiz/session";
+import { isLiveOpen, QUIZ_CHAMPIONSHIP } from "@/lib/config/quiz-championship";
 
 async function guard(req: Request): Promise<boolean> {
   return await isAdminRequest(req);
@@ -26,7 +27,7 @@ const ACTIONS = ["start", "pause", "resume", "next", "end", "reset"] as const;
 export async function POST(req: Request) {
   if (!(await guard(req))) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let body: { action?: string };
+  let body: { action?: string; force?: boolean };
   try { body = await req.json(); } catch { body = {}; }
   const action = body.action;
   if (!action || !ACTIONS.includes(action as (typeof ACTIONS)[number])) {
@@ -39,6 +40,15 @@ export async function POST(req: Request) {
   const supabase = createAdminClient();
 
   if (action === "start") {
+    // 🔒 Verrou d'ouverture : impossible de démarrer le Live avant l'heure
+    // officielle (vendredi 3 juillet 12h00, heure NC). `force: true` permet une
+    // répétition volontaire de l'organisateur.
+    if (!isLiveOpen() && body.force !== true) {
+      return NextResponse.json(
+        { error: `🔒 Le Quiz Live ouvre le ${QUIZ_CHAMPIONSHIP.liveOpenLabel}. Démarrage impossible avant.` },
+        { status: 403 }
+      );
+    }
     const ids = await listQuestionIds(supabase);
     if (ids.length === 0) {
       return NextResponse.json({ error: "Aucune question quiz en base." }, { status: 400 });
