@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Fragment, useState } from "react";
 import { teamFlag, cn } from "@/lib/utils";
 import { WC2026_GROUPS } from "@/lib/football/groups-2026";
-import { resolveKnockout, type ResolvedSlot, type ResolvedRound } from "@/lib/football/bracket-2026";
+import { resolveKnockout, KNOCKOUT_SCHEDULE, type ResolvedSlot, type ResolvedRound } from "@/lib/football/bracket-2026";
 import { TeamLink } from "@/components/teams/TeamLink";
 import { LocalTime } from "@/components/timezone/LocalTime";
 
@@ -16,6 +16,8 @@ interface MatchRow {
   flag_b?: string;
   score_a?: number | null;
   score_b?: number | null;
+  pen_a?: number | null;
+  pen_b?: number | null;
   status: string;
   starts_at: string;
   phase?: string;
@@ -90,10 +92,19 @@ function BracketTreeCard({ match, big }: { match: MatchRow; big?: boolean }) {
   const isFinished = match.status === "finished";
   const isTbd = !match.team_a || match.team_a === "TBD";
   const hasScore = match.score_a !== null && match.score_a !== undefined;
+  const hasScoreB = match.score_b !== null && match.score_b !== undefined;
+
+  // Match nul départagé aux tirs au but (t.a.b. renseignés et non nuls).
+  const penDecided =
+    isFinished && hasScore && hasScoreB && match.score_a === match.score_b &&
+    match.pen_a != null && match.pen_b != null && match.pen_a !== match.pen_b;
 
   const winner =
-    isFinished && hasScore && match.score_b !== null && match.score_b !== undefined
-      ? match.score_a! > match.score_b! ? "a" : match.score_a! < match.score_b! ? "b" : null
+    isFinished && hasScore && hasScoreB
+      ? match.score_a! > match.score_b! ? "a"
+        : match.score_a! < match.score_b! ? "b"
+        : penDecided ? (match.pen_a! > match.pen_b! ? "a" : "b")
+        : null
       : null;
 
   const card = (
@@ -112,7 +123,7 @@ function BracketTreeCard({ match, big }: { match: MatchRow; big?: boolean }) {
     >
       <div className="flex items-center justify-between px-2.5 pt-1.5">
         <span className="text-[10px] uppercase tracking-wider text-canal-gray-muted font-bold">
-          {isTbd ? "À venir" : isLive ? <span className="text-red-400 animate-pulse">● Live</span> : isFinished ? "Terminé" : <><LocalTime date={match.starts_at} variant="dateShort" /> <LocalTime date={match.starts_at} variant="time" /></>}
+          {isTbd ? "À venir" : isLive ? <span className="text-red-400 animate-pulse">● Live</span> : isFinished ? (penDecided ? <span className="text-canal-yellow/90">T.a.b. {match.pen_a}–{match.pen_b}</span> : "Terminé") : <><LocalTime date={match.starts_at} variant="dateShort" /> <LocalTime date={match.starts_at} variant="time" /></>}
         </span>
       </div>
       <BracketTeamLine
@@ -459,6 +470,9 @@ function ProjSlotLine({ slot, big }: { slot: ResolvedSlot; big?: boolean }) {
 }
 
 function ProjCard({ match, big }: { match: ResolvedRound["matches"][number]; big?: boolean }) {
+  // Heure prévue depuis le calendrier officiel (par n° FIFA), affichée même
+  // avant que les équipes ne soient connues (« Vainqueur Sx »).
+  const scheduled = KNOCKOUT_SCHEDULE[match.fifaNo];
   return (
     <div
       className={cn(
@@ -466,8 +480,13 @@ function ProjCard({ match, big }: { match: ResolvedRound["matches"][number]; big
         big ? "w-64 border-canal-yellow/40 shadow-[0_0_40px_rgba(255,215,0,0.18)]" : "w-52 border-canal-gray-light/40"
       )}
     >
-      <div className="flex items-center justify-between px-2.5 pt-1.5">
-        <span className="text-[10px] uppercase tracking-wider text-canal-gray-muted font-bold">{match.code}</span>
+      <div className="flex items-center justify-between gap-1.5 px-2.5 pt-1.5">
+        <span className="text-[10px] uppercase tracking-wider text-canal-gray-muted font-bold shrink-0">{match.code}</span>
+        {scheduled && (
+          <span className="text-[10px] text-canal-gray-muted font-bold whitespace-nowrap">
+            <LocalTime date={scheduled} variant="dateShort" /> <LocalTime date={scheduled} variant="time" />
+          </span>
+        )}
       </div>
       <ProjSlotLine slot={match.a} big={big} />
       <div className="h-px bg-canal-gray-light/30 mx-2.5" />
