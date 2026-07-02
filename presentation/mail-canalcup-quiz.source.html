@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { background:#000; }
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    width: 640px;
+  }
+  .wrap { width:640px; background:#0d0d0d; }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #1a1a00 0%, #000 60%);
+    border-bottom: 4px solid #FFE500;
+    padding: 34px 34px 30px 34px;
+  }
+  .kicker { color:#FFE500; font-size:14px; letter-spacing:3px; font-weight:800; }
+  .h1 { color:#fff; font-size:40px; font-weight:800; line-height:1.1; margin-top:12px; }
+  .sub { color:#bdbdbd; font-size:18px; margin-top:10px; }
+
+  /* Intro */
+  .intro { color:#e6e6e6; font-size:16px; line-height:1.65; padding:28px 34px 8px 34px; }
+  .intro p { margin-bottom:15px; }
+  .intro b { color:#fff; }
+  .y { color:#FFE500; font-weight:800; }
+
+  /* Section titles */
+  .sect { padding: 22px 34px 2px 34px; }
+  .sect-live .st { color:#ff5b5b; }
+  .sect-solo .st { color:#7ec8ff; }
+  .st { font-size:21px; font-weight:800; }
+  .sd { color:#9a9a9a; font-size:14px; margin-top:5px; }
+
+  /* Cards */
+  .card {
+    margin: 14px 34px 0 34px;
+    background:#1c1c1c;
+    border-left:4px solid #FFE500;
+    border-radius:6px;
+    padding:15px 18px;
+  }
+  .card.live { background:#1d1212; border-left-color:#ff5b5b; }
+  .card.solo { background:#101722; border-left-color:#7ec8ff; }
+  .ct { color:#fff; font-size:18px; font-weight:800; }
+  .badge { font-size:13px; font-weight:800; padding:2px 9px; border-radius:20px; vertical-align:middle; margin-left:8px; }
+  .badge.g { background:#123d1a; color:#7CF29B; }
+  .badge.o { background:#2a1f0a; color:#FFD400; }
+  .cb { color:#dcdcdc; font-size:15px; line-height:1.55; margin-top:7px; }
+  .cb b { color:#fff; }
+  .card.live .cb b { color:#ffbdbd; }
+  .card.solo .cb b { color:#bfe2ff; }
+  .cb .hi { color:#FFE500; font-weight:800; }
+
+  /* Rules box */
+  .rules {
+    margin: 28px 34px 0 34px;
+    background:#12110a;
+    border:2px solid #FFE500;
+    border-radius:10px;
+    padding:18px 20px;
+  }
+  .rules .rt { color:#FFE500; font-size:19px; font-weight:800; }
+  .rules ul { margin:12px 0 0 0; padding:0; list-style:none; }
+  .rules li { color:#e6e6e6; font-size:15px; line-height:1.5; margin-bottom:10px; padding-left:26px; position:relative; }
+  .rules li:before { content:"•"; color:#FFE500; position:absolute; left:6px; top:-1px; font-size:18px; }
+  .rules li b { color:#fff; }
+  .rules .hl { color:#FFE500; font-weight:800; }
+
+  /* Anti-triche box (rouge) */
+  .cheat {
+    margin: 22px 34px 0 34px;
+    background:#1d0f0f;
+    border:2px solid #ff5b5b;
+    border-radius:10px;
+    padding:18px 20px;
+  }
+  .cheat .rt { color:#ff7b7b; font-size:19px; font-weight:800; }
+  .cheat p { color:#f0dede; font-size:15px; line-height:1.55; margin-top:10px; }
+  .cheat p b { color:#fff; }
+  .cheat .hl { color:#ff9a9a; font-weight:800; }
+
+  /* Footer band */
+  .foot {
+    margin-top:30px;
+    background:#000;
+    border-top:4px solid #FFE500;
+    padding:22px 34px;
+  }
+  .foot .ft { color:#fff; font-size:15px; font-weight:800; }
+  .foot .fb { color:#9a9a9a; font-size:14px; margin-top:6px; }
+  .spacer { height:30px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="kicker">CANAL CUP 2026 &nbsp;•&nbsp; LE QUIZ</div>
+    <div class="h1">🧠 Le Quiz Canal Cup</div>
+    <div class="sub">Un vrai jeu télévisé — en salle, en direct, ou en ligne.</div>
+  </div>
+
+  <div class="intro">
+    <p>Salut la team,</p>
+    <p>Après les pronos et les jokers, place au <span class="y">Quiz Canal Cup</span> ! Grand écran, chrono qui défile, répartition des votes en direct, suspense, fous rires… et un <b>classement qui se cumule sur toute la Coupe du Monde</b>. 🔥</p>
+    <p>Rendez-vous <b>vendredi 3 juillet à 11h30</b> (heure Nouvelle-Calédonie). Oui, sur le <b>midi</b> : c'est le créneau où le plus de monde peut être là (certain·e·s collègues ne sont pas dispo autrement). Et oui… <span class="y">on bosse même le midi chez Canal</span> 😅.</p>
+    <p><b>On vous attend nombreux</b>, pour celles et ceux qui peuvent. Plus on est, plus c'est drôle.</p>
+  </div>
+
+  <div class="sect sect-live">
+    <div class="st">🔴 En LIVE — la vraie façon de jouer</div>
+    <div class="sd">L'ambiance, le grand écran, le suspense collectif.</div>
+  </div>
+
+  <div class="card live">
+    <div class="ct">🎬 Le direct <span class="badge g">100% DES POINTS</span></div>
+    <div class="cb">En salle <b>ou</b> en direct sur ton téléphone : tout le monde répond en même temps, sur la même question, avec le chrono qui tourne. C'est là que ça se passe. <span class="hi">100% des points.</span></div>
+  </div>
+  <div class="card live">
+    <div class="ct">🌏 Pacifique / Polynésie / à distance ?</div>
+    <div class="cb">Aucun souci&nbsp;: connecte-toi sur <span class="hi">Quiz Live</span> à l'heure du direct → c'est <b>compté 100%, exactement comme si tu étais dans la salle.</b> Ne prends pas le mode Solo si tu peux être là en live.</div>
+  </div>
+
+  <div class="sect sect-solo">
+    <div class="st">💻 En SOLO — si vraiment tu ne peux pas</div>
+    <div class="sd">Pour participer quand même, mais c'est moins l'ambiance.</div>
+  </div>
+
+  <div class="card solo">
+    <div class="ct">🕒 Le rattrapage <span class="badge o">70% DES POINTS</span></div>
+    <div class="cb">Vraiment pas dispo au moment du direct&nbsp;? Le mode <b>Solo</b> ouvre juste après, pendant quelques heures. Tu joues le même quiz à ton rythme — mais ça rapporte <b>70% des points</b> et il n'y a <b>pas le bonus rapidité</b>. Bref&nbsp;: le Solo dépanne, le <span class="hi">Live reste la meilleure façon de scorer (et de rigoler).</span></div>
+  </div>
+
+  <div class="rules">
+    <div class="rt">📜 Les règles</div>
+    <ul>
+      <li><b>15 secondes</b> par question en Live (10 s en Solo). Le quiz <b>s'enchaîne tout seul</b> — tu réponds, c'est tout.</li>
+      <li>Bonne réponse en <span class="hl">moins de 5 s</span> → <b>+5 pts</b> · plus lente → <b>+3 pts</b> · mauvaise réponse ou temps écoulé → <b>0</b>.</li>
+      <li>Tu peux <b>changer ta réponse</b> tant que le chrono tourne — c'est la dernière qui compte.</li>
+      <li>Championnat <b>cumulé</b> sur toute la Coupe du Monde. Les <span class="hl">5 meilleur·e·s</span> se qualifient pour la <b>Grande Finale</b>. 🏆</li>
+    </ul>
+  </div>
+
+  <div class="cheat">
+    <div class="rt">🚨 Anti-triche IA activé — on ne rigole plus (enfin, un peu quand même)</div>
+    <p>On a déployé des <b>algorithmes anti-triche (LLM)</b>. Concrètement&nbsp;: si vous <b>quittez l'application</b> ou <b>changez d'onglet / d'écran</b> pendant une question (pour aller chercher la réponse ailleurs 👀), l'appli le <b>détecte</b> — <b>1 avertissement</b>, puis au prochain écart la <span class="hl">question est perdue (0 pt)</span>.</p>
+    <p>Bref&nbsp;: <span class="hl">on ne sort pas de l'écran&nbsp;!</span> 😎</p>
+  </div>
+
+  <div class="foot">
+    <div class="ft">👉 Rendez-vous sur le Quiz (lien juste sous l'image)</div>
+    <div class="fb">On vous attend nombreux — que le·la plus fort·e (et le·la plus honnête 😏) gagne.</div>
+    <div class="fb" style="margin-top:10px;color:#fff;font-weight:800;">CANAL CUP 2026</div>
+    <div class="fb">Un souci&nbsp;? Réponds directement à ce mail.</div>
+  </div>
+
+  <div class="spacer"></div>
+</div>
+</body>
+</html>

@@ -29,7 +29,7 @@ export const EVENT_SPLASH: EventSplashConfig = {
   emoji: "🎆",
   title: "Grand Quiz CanalCup",
   dateLabel: "Vendredi 3 juillet",
-  timeLabel: "12h00",
+  timeLabel: "11h30",
   location: "Salle de réunion · ou sur votre téléphone",
   body: [
     "Le quiz pourra se tenir en salle de réunion pour ceux qui sont présents.",

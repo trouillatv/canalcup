@@ -55,7 +55,7 @@ export async function POST(req: Request) {
 
   if (action === "start") {
     // 🔒 Verrou d'ouverture : impossible de démarrer le Live avant l'heure
-    // officielle (vendredi 3 juillet 12h00, heure NC). `force: true` permet une
+    // officielle (vendredi 3 juillet 11h30, heure NC). `force: true` permet une
     // répétition volontaire de l'organisateur.
     if (!isLiveOpen() && body.force !== true) {
       return NextResponse.json(
