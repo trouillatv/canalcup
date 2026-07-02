@@ -57,7 +57,6 @@ export default function QuizHubPage() {
 
   const finale = board?.finale;
   const finalists = board?.finalists ?? 5;
-  const remaining = board ? Math.max(0, board.plannedQuizzes - board.finishedSessions) : null;
   const qualifiers = (board?.ranking ?? []).filter((r) => r.qualified);
 
   return (
@@ -147,12 +146,6 @@ export default function QuizHubPage() {
               </div>
             )}
           </div>
-
-          {!board?.qualifClosed && remaining != null && (
-            <p className="text-center text-canal-yellow/90 text-sm font-bold">
-              {remaining > 0 ? `⏳ Encore ${remaining} quiz avant la clôture` : "⏳ Dernière ligne droite avant la clôture"}
-            </p>
-          )}
         </section>
       )}
 
