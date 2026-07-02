@@ -16,8 +16,15 @@ const NAV_ITEMS = [
 export function BottomNav() {
   const pathname = usePathname();
 
-  // Pages "écran" sans chrome : TV et pages publiques /p/* (QR codes).
-  if (pathname === "/tv" || pathname.startsWith("/p/")) return null;
+  // Pages "écran" sans chrome : TV, quiz plein écran (show/télécommande) et
+  // pages publiques /p/* (QR codes). La nav masquait les boutons de la télécommande.
+  if (
+    pathname === "/tv" ||
+    pathname === "/quiz-show" ||
+    pathname === "/quiz-control" ||
+    pathname.startsWith("/p/")
+  )
+    return null;
 
   return (
     <nav className="bottom-nav z-50">

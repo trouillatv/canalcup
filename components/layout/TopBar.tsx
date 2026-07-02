@@ -113,8 +113,15 @@ export function TopBar() {
     router.refresh();
   };
 
-  // Pages "écran" sans chrome : TV et pages publiques /p/* (QR codes).
-  if (pathname === "/tv" || pathname.startsWith("/p/")) return null;
+  // Pages "écran" sans chrome : TV, quiz plein écran (show/télécommande) et
+  // pages publiques /p/* (QR codes).
+  if (
+    pathname === "/tv" ||
+    pathname === "/quiz-show" ||
+    pathname === "/quiz-control" ||
+    pathname.startsWith("/p/")
+  )
+    return null;
 
   const userInitial = user?.email?.[0]?.toUpperCase() ?? "?";
 
