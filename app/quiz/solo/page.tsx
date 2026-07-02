@@ -55,7 +55,7 @@ export default function QuizSoloPage() {
       .then((d) => {
         if (!alive) return;
         if (!d.available) { setReason(d.reason ?? null); setState("unavailable"); return; }
-        setCoef(d.coefficient ?? 0.5);
+        setCoef(d.coefficient ?? 0.7);
         const answered = new Set<string>(d.answered ?? []);
         const todo: SoloQuestion[] = (d.questions ?? []).filter((q: SoloQuestion) => !answered.has(q.id));
         setQueue(todo);

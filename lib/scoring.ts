@@ -154,11 +154,13 @@ export function quizPoints(isCorrect: boolean, responseTimeMs: number): number {
 // pour récompenser la participation à l'animation collective. Coefficient
 // configurable. En Solo on N'ACCORDE PAS le bonus rapidité (pas de chrono
 // serveur partagé → non triché) : bonne réponse = points de base × coefficient.
-export const QUIZ_SOLO_COEFFICIENT = 0.5;
+// 0,7 = le Solo rapporte 70 % des points (assez bas pour valoriser le Live,
+// assez haut pour que les absents aient encore intérêt à jouer — pas punitif).
+export const QUIZ_SOLO_COEFFICIENT = 0.7;
 
 export function quizSoloPoints(isCorrect: boolean): number {
   if (!isCorrect) return 0;
-  return Math.round(3 * QUIZ_SOLO_COEFFICIENT); // base (3) sans bonus, × coefficient
+  return Math.round(3 * QUIZ_SOLO_COEFFICIENT); // base (3) sans bonus rapidité, × 0,7 ≈ 2
 }
 
 // Recalculate and update points for all predictions on a finished match
