@@ -144,7 +144,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           <p className="text-canal-yellow font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
             <Target size={13} /> Pronostics
           </p>
-          <span className="text-xs text-canal-gray-muted">{ps.count} pronos · {ps.pronoOnlyPoints} pts</span>
+          <span className="text-xs text-canal-gray-muted">{ps.finishedCount} pronos · {ps.pronoOnlyPoints} pts</span>
         </div>
 
         {ps.finishedCount > 0 ? (
