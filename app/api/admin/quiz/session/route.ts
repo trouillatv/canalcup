@@ -15,8 +15,9 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminRequest } from "@/lib/auth/admin";
-import { advanceQuizSession, futureStartedAt, listQuestionIds } from "@/lib/quiz/session";
+import { advanceQuizSession, futureStartedAt, listQuestionIds, pickRandomQuestionIds } from "@/lib/quiz/session";
 import { isLiveOpen, QUIZ_CHAMPIONSHIP } from "@/lib/config/quiz-championship";
+import { QUIZ_LIVE_QUESTION_COUNT } from "@/lib/scoring";
 
 // La télécommande /quiz-control s'authentifie par le PIN TV (qu'elle a déjà pour
 // l'accès), envoyé dans l'en-tête x-tv-pin. On l'accepte pour les commandes de
@@ -34,10 +35,10 @@ async function guard(req: Request, action: string): Promise<boolean> {
   return tvPinOk(req);
 }
 
-const ACTIONS = ["start", "pause", "resume", "next", "end", "reset"] as const;
+const ACTIONS = ["start", "pause", "resume", "next", "end", "reset", "extend"] as const;
 
 export async function POST(req: Request) {
-  let body: { action?: string; force?: boolean };
+  let body: { action?: string; force?: boolean; count?: number };
   try { body = await req.json(); } catch { body = {}; }
   const action = body.action;
   if (!action || !ACTIONS.includes(action as (typeof ACTIONS)[number])) {
@@ -62,8 +63,10 @@ export async function POST(req: Request) {
         { status: 403 }
       );
     }
-    const ids = await listQuestionIds(supabase);
-    if (ids.length === 0) {
+    // Tirage aléatoire d'un sous-ensemble (60 par défaut) — on ne pose pas TOUTES
+    // les questions, et l'ordre change à chaque quiz.
+    const chosen = await pickRandomQuestionIds(supabase, QUIZ_LIVE_QUESTION_COUNT);
+    if (chosen.length === 0) {
       return NextResponse.json({ error: "Aucune question quiz en base." }, { status: 400 });
     }
     await supabase
@@ -73,8 +76,9 @@ export async function POST(req: Request) {
     const { data, error } = await supabase
       .from("quiz_session")
       .insert({
-        current_question_id: ids[0],
+        current_question_id: chosen[0],
         question_index: 0,
+        question_ids: chosen,
         started_at: futureStartedAt(),
         status: "question",
         stage: "question",
@@ -83,7 +87,33 @@ export async function POST(req: Request) {
       .select("*")
       .single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ ok: true, session: data, total: ids.length });
+    return NextResponse.json({ ok: true, session: data, total: chosen.length });
+  }
+
+  // ➕ Ajouter N questions à la session en cours (l'organisateur prolonge le quiz).
+  // On pioche parmi les questions PAS encore dans la liste (pas de doublon).
+  if (action === "extend") {
+    const n = Math.max(1, Math.min(50, Math.round(body.count ?? 10)));
+    const { data: session } = await supabase
+      .from("quiz_session")
+      .select("id, question_ids")
+      .is("ended_at", null)
+      .maybeSingle();
+    if (!session) return NextResponse.json({ error: "Pas de session active." }, { status: 400 });
+    const current = (session.question_ids as string[] | null) ?? (await listQuestionIds(supabase));
+    const used = new Set(current);
+    const pool = (await listQuestionIds(supabase)).filter((id) => !used.has(id));
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    const added = pool.slice(0, n);
+    if (!added.length) {
+      return NextResponse.json({ ok: true, added: 0, total: current.length, note: "Plus de question disponible." });
+    }
+    const next = [...current, ...added];
+    await supabase.from("quiz_session").update({ question_ids: next }).eq("id", session.id);
+    return NextResponse.json({ ok: true, added: added.length, total: next.length });
   }
 
   if (action === "end") {

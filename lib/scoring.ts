@@ -123,6 +123,9 @@ export function getPredictionOutcome(
 export const QUIZ_TIMER_SECONDS = 15;
 export const QUIZ_SOLO_TIMER_SECONDS = 10;
 export const QUIZ_FAST_THRESHOLD_MS = 5000;
+// Nombre de questions tirées au hasard par session Live (on ne pose pas TOUTES
+// les questions). L'organisateur peut en rajouter en cours (action "extend").
+export const QUIZ_LIVE_QUESTION_COUNT = 60;
 
 // Anti-triche / anti-précharge
 // QUIZ_COUNTDOWN_MS : à chaque start/next, started_at est fixé dans le futur

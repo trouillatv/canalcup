@@ -29,7 +29,7 @@ import { advanceQuizSession } from "@/lib/quiz/session";
 
 type Supa = ReturnType<typeof createAdminClient>;
 
-const SESSION_COLS = "id, current_question_id, question_index, started_at, status, paused_at";
+const SESSION_COLS = "id, current_question_id, question_index, started_at, status, paused_at, question_ids";
 
 // Classement individuel du quiz (somme des points + nb de bonnes réponses),
 // agrégé depuis quiz_answers (vidé au reset → ne contient que la session courante).
@@ -108,18 +108,23 @@ export async function GET() {
     return NextResponse.json({ status: "idle" });
   }
 
-  const [{ data: question }, { count: total }] = await Promise.all([
-    supabase
-      .from("quiz_questions")
-      .select(
-        "id, question, answer_a, answer_b, answer_c, answer_d, category, difficulty, correct_answer, explanation"
-      )
-      .eq("id", session.current_question_id)
-      .maybeSingle(),
-    supabase.from("quiz_questions").select("*", { count: "exact", head: true }),
-  ]);
+  const { data: question } = await supabase
+    .from("quiz_questions")
+    .select(
+      "id, question, answer_a, answer_b, answer_c, answer_d, category, difficulty, correct_answer, explanation"
+    )
+    .eq("id", session.current_question_id)
+    .maybeSingle();
 
   if (!question) return NextResponse.json({ status: "idle" });
+
+  // Total = taille du sous-ensemble tiré pour CETTE session (fallback : nb total).
+  const qIds = session.question_ids as string[] | null | undefined;
+  let total = Array.isArray(qIds) ? qIds.length : 0;
+  if (!total) {
+    const { count } = await supabase.from("quiz_questions").select("*", { count: "exact", head: true });
+    total = count ?? 0;
+  }
 
   // Phase = 100 % dérivée du temps. En PAUSE, l'horloge effective est figée à
   // paused_at → l'état (et le chrono) ne bouge plus tant qu'on n'a pas repris.

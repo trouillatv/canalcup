@@ -21,6 +21,29 @@ export async function listQuestionIds(supabase: Supa): Promise<string[]> {
   return (data ?? []).map((q) => q.id as string);
 }
 
+// Tire `count` ids de questions AU HASARD (ordre aléatoire). Sert au démarrage
+// d'une session : on ne pose pas toutes les questions, mais un sous-ensemble.
+export async function pickRandomQuestionIds(supabase: Supa, count: number): Promise<string[]> {
+  const all = await listQuestionIds(supabase);
+  for (let i = all.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [all[i], all[j]] = [all[j], all[i]];
+  }
+  return all.slice(0, Math.max(1, Math.min(count, all.length)));
+}
+
+// La liste de passage d'une session = sa colonne question_ids (sous-ensemble
+// tiré au start). Fallback : toutes les questions (anciennes sessions sans set).
+export async function sessionQuestionIds(supabase: Supa, sessionId: string): Promise<string[]> {
+  const { data } = await supabase
+    .from("quiz_session")
+    .select("question_ids")
+    .eq("id", sessionId)
+    .maybeSingle();
+  const ids = data?.question_ids as string[] | null | undefined;
+  return Array.isArray(ids) && ids.length ? ids : await listQuestionIds(supabase);
+}
+
 // Passe à la question suivante (ou termine le quiz). Idempotent sous appels
 // CONCURRENTS : l'UPDATE est gardé sur la question qu'on quitte, donc si deux
 // clients déclenchent l'avancement auto en même temps, seul le premier écrit —
@@ -31,7 +54,7 @@ export async function advanceQuizSession(
   currentIndex: number,
   currentQuestionId: string | null
 ): Promise<{ finished: boolean; total: number }> {
-  const ids = await listQuestionIds(supabase);
+  const ids = await sessionQuestionIds(supabase, sessionId);
   const nextIndex = currentIndex + 1;
 
   if (nextIndex >= ids.length) {

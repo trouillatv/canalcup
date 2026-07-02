@@ -31,13 +31,23 @@ export async function GET() {
     .from("users").select("id").eq("auth_id", user.id).single();
   if (!profile) return NextResponse.json({ available: false, reason: "profile" }, { status: 404 });
 
-  const [{ data: questions }, { data: mine }] = await Promise.all([
+  const [{ data: allQuestions }, { data: mine }, { data: sessRow }] = await Promise.all([
     admin
       .from("quiz_questions")
       .select("id, question, answer_a, answer_b, answer_c, answer_d, category, difficulty")
       .order("created_at", { ascending: true }),
     admin.from("quiz_answers").select("question_id").eq("user_id", profile.id),
+    admin.from("quiz_session").select("question_ids").eq("id", session.id).maybeSingle(),
   ]);
+
+  // Le Solo joue EXACTEMENT le même sous-ensemble (et ordre) que le Live de cette
+  // session. Fallback (ancienne session sans set) : toutes les questions.
+  const setIds = (sessRow?.question_ids as string[] | null) ?? null;
+  let questions = allQuestions ?? [];
+  if (setIds && setIds.length) {
+    const byId = new Map((allQuestions ?? []).map((q) => [q.id, q]));
+    questions = setIds.map((id) => byId.get(id)).filter((q): q is NonNullable<typeof q> => !!q);
+  }
 
   const answered = [...new Set((mine ?? []).map((a) => a.question_id as string))];
 

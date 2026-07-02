@@ -59,6 +59,7 @@ export default function QuizControlPage() {
   const [state, setState] = useState<State>({ status: "idle" });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [addN, setAddN] = useState(10);
   const cancelled = useRef(false);
 
   const load = useCallback(async () => {
@@ -82,7 +83,7 @@ export default function QuizControlPage() {
     };
   }, [load]);
 
-  const post = async (action: string) => {
+  const post = async (action: string, extra?: Record<string, unknown>) => {
     setBusy(true);
     setErr(null);
     try {
@@ -90,7 +91,7 @@ export default function QuizControlPage() {
       const res = await fetch("/api/admin/quiz/session", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-admin-secret": ADMIN_SECRET, "x-tv-pin": pin },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, ...(extra ?? {}) }),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
@@ -177,6 +178,26 @@ export default function QuizControlPage() {
           >
             {busy ? "…" : primary.label}
           </button>
+          {/* Prolonger le quiz : ajouter N questions à la volée */}
+          {active && (
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                max={50}
+                value={addN}
+                onChange={(e) => setAddN(Math.max(1, Math.min(50, Math.round(Number(e.target.value) || 1))))}
+                className="w-16 py-3 rounded-xl bg-white/10 text-white text-center font-bold tabular-nums border border-white/10"
+              />
+              <button
+                onClick={() => post("extend", { count: addN })}
+                disabled={busy}
+                className="flex-1 py-3 rounded-xl bg-white/10 text-white/90 font-bold text-sm disabled:opacity-40"
+              >
+                ➕ Ajouter {addN} questions
+              </button>
+            </div>
+          )}
           <div className="flex gap-3">
             {active && (
               <button
