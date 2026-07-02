@@ -119,8 +119,9 @@ export function getPredictionOutcome(
 
 // Quiz Live — barème : +5 si bonne réponse en moins de 5s, +3 sinon,
 // 0 si fausse réponse ou timeout. Source unique partagée client + serveur.
-// 20s par question (passé de 15 → 20 pour le live show, mai 2026).
-export const QUIZ_TIMER_SECONDS = 20;
+// Live = 15s par question (rythme salle). Solo = 10s (plus court, self-paced).
+export const QUIZ_TIMER_SECONDS = 15;
+export const QUIZ_SOLO_TIMER_SECONDS = 10;
 export const QUIZ_FAST_THRESHOLD_MS = 5000;
 
 // Anti-triche / anti-précharge

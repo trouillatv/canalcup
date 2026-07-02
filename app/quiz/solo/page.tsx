@@ -1,7 +1,7 @@
 "use client";
 
 // 🧠 Quiz SOLO — le même quiz, jouable seul depuis son écran après le lancement
-// officiel. Chrono normal (20s/question), score RÉDUIT (coefficient). Anti-rejeu :
+// officiel. Chrono court (10s/question), score RÉDUIT (coefficient). Anti-rejeu :
 // les questions déjà jouées (Live ou Solo) ne réapparaissent pas. La bonne
 // réponse est dévoilée après chaque question (un seul joueur, pas de triche
 // collective). Le classement championnat cumule ces points.
@@ -10,10 +10,10 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Timer, CheckCircle, XCircle, Hourglass, Trophy, ArrowLeft } from "lucide-react";
-import { QUIZ_TIMER_SECONDS } from "@/lib/scoring";
+import { QUIZ_SOLO_TIMER_SECONDS } from "@/lib/scoring";
 
 const ANSWERS = ["A", "B", "C", "D"] as const;
-const TIMER_MS = QUIZ_TIMER_SECONDS * 1000;
+const TIMER_MS = QUIZ_SOLO_TIMER_SECONDS * 1000;
 
 interface SoloQuestion {
   id: string;
