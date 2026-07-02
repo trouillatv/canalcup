@@ -18,15 +18,25 @@ import { isAdminRequest } from "@/lib/auth/admin";
 import { advanceQuizSession, futureStartedAt, listQuestionIds } from "@/lib/quiz/session";
 import { isLiveOpen, QUIZ_CHAMPIONSHIP } from "@/lib/config/quiz-championship";
 
-async function guard(req: Request): Promise<boolean> {
-  return await isAdminRequest(req);
+// La télécommande /quiz-control s'authentifie par le PIN TV (qu'elle a déjà pour
+// l'accès), envoyé dans l'en-tête x-tv-pin. On l'accepte pour les commandes de
+// RYTHME (start/pause/resume/next/end) → n'importe quel organisateur avec le PIN
+// peut lancer/piloter, sans être admin global. Le reset (destructif) reste admin.
+function tvPinOk(req: Request): boolean {
+  const expected = process.env.TV_PIN ?? "";
+  if (!expected) return true; // dev sans PIN configuré
+  return (req.headers.get("x-tv-pin") ?? "") === expected;
+}
+
+async function guard(req: Request, action: string): Promise<boolean> {
+  if (await isAdminRequest(req)) return true;
+  if (action === "reset") return false; // destructif → réservé aux vrais admins
+  return tvPinOk(req);
 }
 
 const ACTIONS = ["start", "pause", "resume", "next", "end", "reset"] as const;
 
 export async function POST(req: Request) {
-  if (!(await guard(req))) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   let body: { action?: string; force?: boolean };
   try { body = await req.json(); } catch { body = {}; }
   const action = body.action;
@@ -35,6 +45,9 @@ export async function POST(req: Request) {
       { error: `action requise (${ACTIONS.join("|")})` },
       { status: 400 }
     );
+  }
+  if (!(await guard(req, action))) {
+    return NextResponse.json({ error: "Non autorisé (PIN ou compte admin requis)." }, { status: 401 });
   }
 
   const supabase = createAdminClient();

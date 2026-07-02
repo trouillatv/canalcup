@@ -58,6 +58,7 @@ function PinGate({ children }: { children: React.ReactNode }) {
 export default function QuizControlPage() {
   const [state, setState] = useState<State>({ status: "idle" });
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   const cancelled = useRef(false);
 
   const load = useCallback(async () => {
@@ -83,13 +84,21 @@ export default function QuizControlPage() {
 
   const post = async (action: string) => {
     setBusy(true);
+    setErr(null);
     try {
-      await fetch("/api/admin/quiz/session", {
+      const pin = new URLSearchParams(window.location.search).get("pin") ?? "";
+      const res = await fetch("/api/admin/quiz/session", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-admin-secret": ADMIN_SECRET },
+        headers: { "Content-Type": "application/json", "x-admin-secret": ADMIN_SECRET, "x-tv-pin": pin },
         body: JSON.stringify({ action }),
       });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setErr(d?.error ?? `Échec (HTTP ${res.status})`);
+      }
       await load();
+    } catch {
+      setErr("Réseau indisponible.");
     } finally {
       setBusy(false);
     }
@@ -154,6 +163,11 @@ export default function QuizControlPage() {
 
         {/* Boutons */}
         <div className="px-5 pb-8 pt-3 space-y-3 border-t border-white/10">
+          {err && (
+            <p className="text-red-300 text-sm text-center bg-red-950/30 border border-red-900/40 rounded-lg py-2 px-3">
+              {err}
+            </p>
+          )}
           <button
             onClick={() => post(primary.action)}
             disabled={busy}
