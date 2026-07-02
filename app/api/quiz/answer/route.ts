@@ -103,20 +103,37 @@ export async function POST(req: Request) {
     // Quiz = individuel : on persiste même sans équipe (team_id null). Le score
     // compte au classement individuel, sans créditer d'équipe.
 
-    // Anti-farming : si la question a déjà été répondue, on ne réinsère rien.
-    const { count: existing } = await supabase
+    // Modification autorisée TANT QUE LE CHRONO TOURNE : si une réponse existe
+    // déjà, on la MET À JOUR (nouveau choix, temps recalculé). Deux garde-fous :
+    //  - un timeout "" ne doit jamais écraser une réponse déjà donnée ;
+    //  - une fois le temps écoulé, la réponse enregistrée est DÉFINITIVE.
+    const { data: existingRow } = await supabase
       .from("quiz_answers")
-      .select("id", { count: "exact", head: true })
+      .select("id")
       .eq("user_id", profile.id)
-      .eq("question_id", question_id);
-    if ((existing ?? 0) > 0) {
-      return NextResponse.json({
-        ok: true,
-        persisted: false,
-        alreadyAnswered: true,
-        is_correct,
-        points,
-      });
+      .eq("question_id", question_id)
+      .maybeSingle();
+
+    if (existingRow) {
+      if (isTimeoutAnswer || timedOut) {
+        return NextResponse.json({
+          ok: true,
+          persisted: false,
+          alreadyAnswered: true,
+          locked: timedOut,
+          is_correct,
+          points,
+        });
+      }
+      // Chrono en cours + nouveau choix → on remplace.
+      await supabase
+        .from("quiz_answers")
+        .update({ answer, is_correct, response_time_ms, points_awarded: points })
+        .eq("id", existingRow.id);
+      return NextResponse.json(
+        { ok: true, persisted: true, updated: true, is_correct, points },
+        { headers: { "Cache-Control": "no-store" } }
+      );
     }
 
     await supabase.from("quiz_answers").insert({

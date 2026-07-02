@@ -130,7 +130,12 @@ export default function QuizLivePage() {
   const submitAnswer = useCallback(
     async (answer: string) => {
       if (session.status !== "live") return;
-      if (outcome || submitting) return;
+      if (submitting || cheatForfeit) return;
+      if (outcome) {
+        // Modification autorisée : un AUTRE choix, et UNIQUEMENT pendant le chrono
+        // (phase "question"). Le timeout "" ne modifie jamais une réponse donnée.
+        if (answer === "" || answer === outcome.selected || session.phase !== "question") return;
+      }
       setSubmitting(true);
       try {
         const res = await fetch("/api/quiz/answer", {
@@ -151,7 +156,7 @@ export default function QuizLivePage() {
       }
       setSubmitting(false);
     },
-    [session, outcome, submitting]
+    [session, outcome, submitting, cheatForfeit]
   );
 
   // Auto-submit "" (timeout) si l'utilisateur n'a pas répondu à temps.
@@ -260,7 +265,10 @@ export default function QuizLivePage() {
     ({ A: q.answer_a, B: q.answer_b, C: q.answer_c, D: q.answer_d }[key] ?? "");
 
   const wasAnswered = !!outcome;
-  const locked = wasAnswered || submitting || isReveal || inCountdown || tooEarly || paused;
+  // On NE verrouille PAS sur wasAnswered : tant que le chrono tourne (phase
+  // "question"), on peut CHANGER sa réponse. Verrouillé au reveal / countdown /
+  // pause / trop tôt / forfait anti-triche.
+  const locked = submitting || isReveal || inCountdown || tooEarly || paused || cheatForfeit;
 
   // ── Pause : l'organisateur a figé le quiz ──────────────────────────────────
   if (paused) {
@@ -424,8 +432,11 @@ export default function QuizLivePage() {
           const isSelected = outcome?.selected === key;
           let btnClass = "canal-card flex items-center gap-3 w-full text-left transition-all";
           if (wasAnswered) {
-            // On NE révèle PAS si c'est juste : seulement "sélectionné".
-            btnClass += isSelected ? " border border-canal-yellow bg-canal-yellow/10" : " opacity-40";
+            // On NE révèle PAS si c'est juste : "sélectionné". Les autres restent
+            // CLIQUABLES (on peut changer tant que le chrono tourne).
+            btnClass += isSelected
+              ? " border border-canal-yellow bg-canal-yellow/10"
+              : " opacity-60 hover:opacity-100 hover:border-canal-yellow/40 hover:bg-canal-gray-mid active:scale-98";
           } else if (locked) {
             btnClass += " opacity-50";
           } else {
@@ -450,7 +461,7 @@ export default function QuizLivePage() {
             <CheckCircle size={16} /> Réponse enregistrée
           </p>
           <p className="text-canal-gray-muted text-xs mt-1">
-            En attente… la bonne réponse s&apos;affiche à la fin du chrono.
+            Tu peux encore <b className="text-white">changer</b> tant que le chrono tourne.
           </p>
         </div>
       )}
