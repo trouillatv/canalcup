@@ -14,7 +14,7 @@ const ADMIN_SECRET = process.env.NEXT_PUBLIC_ADMIN_SECRET ?? "";
 const POLL_MS = 1000;
 const WARM_BG = "radial-gradient(ellipse at 50% -5%, #2A1E08 0%, #130F08 45%, #0A0906 100%)";
 
-type Phase = "countdown" | "question" | "timeup" | "answer";
+type Phase = "countdown" | "question" | "timeup" | "stats" | "answer";
 interface State {
   status: "idle" | "question" | "finished";
   phase?: Phase;
@@ -28,6 +28,7 @@ const PHASE_LABEL: Record<string, string> = {
   countdown: "Lancement…",
   question: "Question en cours",
   timeup: "Temps écoulé",
+  stats: "Répartition des votes",
   answer: "Bonne réponse affichée",
 };
 

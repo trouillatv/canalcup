@@ -49,7 +49,7 @@ interface SessionQuestion {
 }
 interface LiveSession {
   status: "question";
-  phase: "countdown" | "question" | "timeup" | "answer";
+  phase: "countdown" | "question" | "timeup" | "stats" | "answer";
   paused?: boolean;
   question: SessionQuestion;
   started_at: string;
@@ -57,6 +57,8 @@ interface LiveSession {
   total: number;
   correct_answer?: string;
   explanation?: string;
+  distribution?: Record<"A" | "B" | "C" | "D", number>;
+  responded?: number;
 }
 interface Standing {
   name: string;
@@ -424,8 +426,28 @@ export default function QuizShowPage() {
   const rawElapsed = Date.now() - new Date(session.started_at).getTime();
   const inCountdown = ph === "countdown" || rawElapsed < 0;
   const isTimeup = ph === "timeup";
+  const isStats = ph === "stats";
   const isAnswer = ph === "answer";
   const correct = session.correct_answer;
+  // Répartition des votes (phases stats + answer) + taux de réussite (answer).
+  const dist = session.distribution ?? { A: 0, B: 0, C: 0, D: 0 };
+  const responded = session.responded ?? 0;
+  const pctOf = (key: "A" | "B" | "C" | "D") => (responded > 0 ? Math.round((dist[key] / responded) * 100) : 0);
+  const correctCount = correct ? dist[correct as "A" | "B" | "C" | "D"] ?? 0 : 0;
+  const successPct = responded > 0 ? Math.round((correctCount / responded) * 100) : 0;
+  // Punchline courte, NON nominative (pas de mise en avant de personne).
+  const successLine =
+    responded === 0
+      ? ""
+      : correctCount === 0
+        ? "😱 Personne n'a trouvé !"
+        : correctCount === responded
+          ? "🔥 Tout le monde a trouvé !"
+          : successPct <= 15
+            ? `😱 Seulement ${successPct}% ont trouvé`
+            : successPct >= 80
+              ? `🔥 ${successPct}% de bonnes réponses`
+              : `✅ ${successPct}% de bonnes réponses`;
   const countdownLeft = Math.max(1, Math.ceil(-rawElapsed / 1000));
   const elapsedMs = Math.max(0, rawElapsed);
   const timeLeft = Math.max(0, Math.ceil((QUIZ_TIMER_SECONDS * 1000 - elapsedMs) / 1000));
@@ -539,42 +561,72 @@ export default function QuizShowPage() {
             {q.question}
           </p>
 
-          {/* 4 cartouches. Question = pleine couleur ; Temps écoulé = grisées ;
-              Réponse = la bonne en vert, les autres estompées. */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4 max-w-6xl mx-auto w-full">
-            {ANSWER_KEYS.map((key) => {
-              const palette = ANSWER_PALETTE[key];
-              const isCorrect = isAnswer && key === correct;
-              let cls: string;
-              if (isAnswer) {
-                cls = isCorrect
-                  ? "bg-green-500 text-white ring-4 ring-green-300/60 scale-[1.02]"
-                  : "bg-white/5 text-white/40";
-              } else if (isTimeup) {
-                cls = `${palette.bg} ${palette.text} opacity-40`;
-              } else {
-                cls = `${palette.bg} ${palette.text}`;
-              }
-              return (
-                <div
-                  key={key}
-                  className={`rounded-2xl sm:rounded-3xl p-3.5 sm:p-7 flex items-center gap-3 sm:gap-6 shadow-lg transition-all duration-300 ${cls}`}
-                  style={isCorrect ? { animation: "pop .5s ease-out both" } : undefined}
-                >
-                  <span className={`font-black text-2xl sm:text-4xl xl:text-5xl w-8 sm:w-14 text-center shrink-0`}>
-                    {isCorrect ? "✓" : key}
-                  </span>
-                  <span className="font-bold text-base sm:text-2xl xl:text-3xl leading-snug min-w-0 break-words">{answerText(key)}</span>
-                </div>
-              );
-            })}
-          </div>
+          {isStats ? (
+            /* Phase RÉPARTITION : barres A/B/C/D SANS dévoiler la bonne réponse. */
+            <div className="max-w-4xl mx-auto w-full flex flex-col gap-2.5 sm:gap-4">
+              {ANSWER_KEYS.map((key, i) => {
+                const palette = ANSWER_PALETTE[key];
+                const pct = pctOf(key);
+                return (
+                  <div key={key} className="flex items-center gap-3 sm:gap-5" style={{ animation: "fadeUp .4s both", animationDelay: `${i * 0.08}s` }}>
+                    <span className="font-black text-xl sm:text-4xl w-8 sm:w-16 text-center shrink-0 text-white/70">{key}</span>
+                    <div className="flex-1 h-11 sm:h-16 bg-white/5 rounded-xl overflow-hidden relative">
+                      <div
+                        className={`h-full rounded-xl ${palette.bg} opacity-80`}
+                        style={{ width: `${Math.max(pct, 3)}%`, transformOrigin: "left", animation: "growX .6s ease-out both" }}
+                      />
+                      <span className="absolute inset-0 flex items-center px-3 sm:px-5">
+                        <span className="font-bold text-sm sm:text-2xl truncate text-white/85">{answerText(key)}</span>
+                      </span>
+                      <span className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 font-black text-lg sm:text-3xl tabular-nums text-white">{pct}%</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            /* 4 cartouches. Question = pleine couleur ; Temps écoulé = grisées ;
+               Réponse = la bonne en vert, les autres estompées. */
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4 max-w-6xl mx-auto w-full">
+              {ANSWER_KEYS.map((key) => {
+                const palette = ANSWER_PALETTE[key];
+                const isCorrect = isAnswer && key === correct;
+                let cls: string;
+                if (isAnswer) {
+                  cls = isCorrect
+                    ? "bg-green-500 text-white ring-4 ring-green-300/60 scale-[1.02]"
+                    : "bg-white/5 text-white/40";
+                } else if (isTimeup) {
+                  cls = `${palette.bg} ${palette.text} opacity-40`;
+                } else {
+                  cls = `${palette.bg} ${palette.text}`;
+                }
+                return (
+                  <div
+                    key={key}
+                    className={`rounded-2xl sm:rounded-3xl p-3.5 sm:p-7 flex items-center gap-3 sm:gap-6 shadow-lg transition-all duration-300 ${cls}`}
+                    style={isCorrect ? { animation: "pop .5s ease-out both" } : undefined}
+                  >
+                    <span className={`font-black text-2xl sm:text-4xl xl:text-5xl w-8 sm:w-14 text-center shrink-0`}>
+                      {isCorrect ? "✓" : key}
+                    </span>
+                    <span className="font-bold text-base sm:text-2xl xl:text-3xl leading-snug min-w-0 break-words">{answerText(key)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
-          {/* Courte explication (uniquement à la révélation). */}
-          {isAnswer && session.explanation && (
-            <p className="text-white/55 text-sm sm:text-2xl italic text-center max-w-3xl mx-auto leading-snug" style={{ animation: "fadeUp .5s both", animationDelay: "0.2s" }}>
-              {session.explanation}
-            </p>
+          {/* Révélation : explication + taux de réussite (punchline courte, non nominatif). */}
+          {isAnswer && (
+            <div className="flex flex-col items-center gap-2 sm:gap-3" style={{ animation: "fadeUp .5s both", animationDelay: "0.2s" }}>
+              {successLine && (
+                <p className="font-black text-xl sm:text-4xl text-canal-yellow text-center">{successLine}</p>
+              )}
+              {session.explanation && (
+                <p className="text-white/55 text-sm sm:text-2xl italic text-center max-w-3xl mx-auto leading-snug">{session.explanation}</p>
+              )}
+            </div>
           )}
         </div>
 
@@ -588,6 +640,10 @@ export default function QuizShowPage() {
           ) : isTimeup ? (
             <p className="text-center font-black text-2xl sm:text-5xl text-red-400 uppercase tracking-widest" style={{ animation: "pop .5s both" }}>
               ⏱ Temps écoulé
+            </p>
+          ) : isStats ? (
+            <p className="text-center font-black text-xl sm:text-4xl text-white/70 uppercase tracking-widest">
+              📊 Vos réponses…
             </p>
           ) : (
             <p className="text-center font-black text-xl sm:text-4xl text-green-400 uppercase tracking-widest">

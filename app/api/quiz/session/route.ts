@@ -24,7 +24,7 @@
 
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { QUIZ_TIMER_SECONDS, QUIZ_TIMEUP_MS, QUIZ_REVEAL_END_MS } from "@/lib/scoring";
+import { QUIZ_TIMER_SECONDS, QUIZ_TIMEUP_MS, QUIZ_STATS_MS, QUIZ_REVEAL_END_MS } from "@/lib/scoring";
 import { advanceQuizSession } from "@/lib/quiz/session";
 
 type Supa = ReturnType<typeof createAdminClient>;
@@ -127,18 +127,23 @@ export async function GET() {
   const effectiveNow = paused ? new Date(session.paused_at as string).getTime() : Date.now();
   const elapsed = effectiveNow - new Date(session.started_at).getTime();
 
-  type Phase = "countdown" | "question" | "timeup" | "answer";
+  // Cycle : countdown → question → timeup → stats (répartition, SANS la bonne
+  // réponse : suspense) → answer (bonne réponse + taux). Tout dérivé du temps.
+  const Q = QUIZ_TIMER_SECONDS * 1000;
+  type Phase = "countdown" | "question" | "timeup" | "stats" | "answer";
   const phase: Phase =
     elapsed < 0
       ? "countdown"
-      : elapsed < QUIZ_TIMER_SECONDS * 1000
+      : elapsed < Q
         ? "question"
-        : elapsed < QUIZ_TIMER_SECONDS * 1000 + QUIZ_TIMEUP_MS
+        : elapsed < Q + QUIZ_TIMEUP_MS
           ? "timeup"
-          : "answer";
+          : elapsed < Q + QUIZ_TIMEUP_MS + QUIZ_STATS_MS
+            ? "stats"
+            : "answer";
 
-  // On ne renvoie JAMAIS la bonne réponse avant que le chrono soit écoulé.
-  const revealed = phase === "timeup" || phase === "answer";
+  // La bonne réponse n'est dévoilée QU'À la phase answer (jamais avant).
+  const revealed = phase === "answer";
 
   const safeQuestion = {
     id: question.id,
@@ -151,15 +156,42 @@ export async function GET() {
     difficulty: question.difficulty,
   };
 
+  const base = {
+    status: "question" as const,
+    phase,
+    paused,
+    question: safeQuestion,
+    started_at: session.started_at,
+    question_index: session.question_index ?? 0,
+    total: total ?? 0,
+  };
+
+  // Phases sans votes (countdown / question / timeup) → question seule.
+  if (phase !== "stats" && phase !== "answer") {
+    return NextResponse.json(base, { headers: { "Cache-Control": "no-store" } });
+  }
+
+  // ── Répartition des votes (stats + answer) ─────────────────────────────────
+  const { data: answers } = await supabase
+    .from("quiz_answers")
+    .select("answer")
+    .eq("question_id", question.id);
+  const distribution: Record<"A" | "B" | "C" | "D", number> = { A: 0, B: 0, C: 0, D: 0 };
+  let responded = 0;
+  for (const a of answers ?? []) {
+    const key = a.answer as "A" | "B" | "C" | "D";
+    if (key === "A" || key === "B" || key === "C" || key === "D") {
+      distribution[key] += 1;
+      responded += 1;
+    }
+  }
+
   return NextResponse.json(
     {
-      status: "question" as const,
-      phase,
-      paused,
-      question: safeQuestion,
-      started_at: session.started_at,
-      question_index: session.question_index ?? 0,
-      total: total ?? 0,
+      ...base,
+      distribution,
+      responded,
+      // answer : on ajoute la bonne réponse + explication (pour le taux de réussite).
       ...(revealed
         ? { correct_answer: question.correct_answer, explanation: question.explanation }
         : {}),

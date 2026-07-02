@@ -37,7 +37,7 @@ type SessionState =
   | { status: "idle" }
   | {
       status: "live";
-      phase: "countdown" | "question" | "timeup" | "answer";
+      phase: "countdown" | "question" | "timeup" | "stats" | "answer";
       paused: boolean;
       question: LiveQuestion;
       started_at: string;
@@ -252,7 +252,7 @@ export default function QuizLivePage() {
   const rawElapsed = Date.now() - new Date(session.started_at).getTime();
   const inCountdown = session.phase === "countdown" || rawElapsed < 0;
   // Après le chrono : timeup = « regarde l'écran », answer = résultat perso dévoilé.
-  const isReveal = ["timeup", "answer"].includes(session.phase);
+  const isReveal = ["timeup", "stats", "answer"].includes(session.phase);
   const resultRevealed = session.phase === "answer";
   const countdownLeft = inCountdown ? Math.max(1, Math.ceil(-rawElapsed / 1000)) : 0;
   const elapsedMs = Math.max(0, rawElapsed);

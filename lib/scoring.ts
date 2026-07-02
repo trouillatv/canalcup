@@ -136,11 +136,13 @@ export const QUIZ_MIN_RESPONSE_MS = 250;
 // Rythme AUTO du live (plus de clic « question suivante » : le serveur enchaîne
 // tout seul). Après le chrono : court « Temps écoulé », puis la bonne réponse
 // affichée quelques secondes, puis passage automatique à la question suivante.
-//   [countdown] → [question 20s] → [timeup] → [answer] → next…
+//   [countdown] → [question 20s] → [timeup] → [stats] → [answer] → next…
 export const QUIZ_TIMEUP_MS = 1200;   // « ⏱ Temps écoulé » (grise les réponses)
-export const QUIZ_ANSWER_MS = 4000;   // bonne réponse + courte explication
+export const QUIZ_STATS_MS = 2200;    // répartition A/B/C/D (suspense : sans la bonne réponse)
+export const QUIZ_ANSWER_MS = 4000;   // bonne réponse + courte explication + taux
 // Fin du cycle d'une question : au-delà, on enchaîne automatiquement.
-export const QUIZ_REVEAL_END_MS = QUIZ_TIMER_SECONDS * 1000 + QUIZ_TIMEUP_MS + QUIZ_ANSWER_MS;
+export const QUIZ_REVEAL_END_MS =
+  QUIZ_TIMER_SECONDS * 1000 + QUIZ_TIMEUP_MS + QUIZ_STATS_MS + QUIZ_ANSWER_MS;
 
 export function quizPoints(isCorrect: boolean, responseTimeMs: number): number {
   if (!isCorrect) return 0;
