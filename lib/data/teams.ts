@@ -429,7 +429,10 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
           pronos, quiz, babyfoot, animations,
           pronosCount: pronosCount.get(u.id) ?? 0,
           quizCount: quizCount.get(u.id) ?? 0,
-          total: pronos + quiz + babyfoot + animations,
+          // Le quiz contribue au classement GLOBAL au maximum à hauteur de 50 pts
+          // (le championnat quiz peut cumuler plus, mais il ne doit pas écraser le
+          // total). Le classement Quiz dédié affiche, lui, les points réels (r.quiz).
+          total: pronos + Math.min(50, quiz) + babyfoot + animations,
           rank: 0,
         };
       })

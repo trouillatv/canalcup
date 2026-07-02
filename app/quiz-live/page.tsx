@@ -240,7 +240,7 @@ export default function QuizLivePage() {
             <li>• Bonne réponse plus lente : <span className="text-canal-yellow font-bold">+3 pts</span></li>
             <li>• Mauvaise réponse ou temps écoulé : <span className="text-canal-gray-muted">0 pt</span></li>
             <li>• La bonne réponse est dévoilée à l&apos;écran à la fin du chrono.</li>
-            <li>• <span className="text-red-300 font-bold">Anti-triche</span> : quitter l&apos;app ou changer d&apos;onglet pendant une question = <b>0 pt</b> (1 avertissement).</li>
+            <li>• <span className="text-red-300 font-bold">🚫 Anti-triche</span> : si vous <b>changez d&apos;application ou d&apos;écran</b> pendant une question, l&apos;appli le détecte — 1 avertissement, puis la <b>question est perdue</b> (0 pt).</li>
           </ul>
         </div>
       </div>

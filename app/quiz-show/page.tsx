@@ -409,6 +409,18 @@ export default function QuizShowPage() {
             <p className="font-black text-2xl sm:text-5xl text-white uppercase tracking-wide">CANAL CUP</p>
             <p className="text-white/50 text-base sm:text-2xl mt-3 sm:mt-6">En attente du lancement par l&apos;organisateur…</p>
           </div>
+
+          {/* Rappel des règles (la salle le lit avant le départ) */}
+          <div className="max-w-2xl w-full rounded-2xl bg-white/5 border border-white/10 px-5 sm:px-8 py-4 sm:py-6 space-y-2 sm:space-y-3 text-center">
+            <p className="text-canal-yellow font-black text-sm sm:text-2xl uppercase tracking-widest">Les règles</p>
+            <p className="text-white/85 text-sm sm:text-2xl">
+              ⏱ <b>{QUIZ_TIMER_SECONDS} s</b> par question · réponse <b>&lt; 5 s → +5 pts</b>, sinon <b>+3 pts</b>
+            </p>
+            <p className="text-white/85 text-sm sm:text-2xl">
+              🚫 Changer d&apos;application ou d&apos;écran pendant une question = <b>question perdue</b> (1 avertissement)
+            </p>
+          </div>
+
           <div className="w-10 h-10 border-2 border-canal-yellow/60 border-t-transparent rounded-full animate-spin" />
           {!soundOn && (
             <button onClick={toggleSound} className="mt-2 px-5 py-2.5 rounded-full bg-canal-yellow text-canal-black font-black text-sm sm:text-lg flex items-center gap-2 shadow-lg">
