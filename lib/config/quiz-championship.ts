@@ -6,8 +6,8 @@ export const QUIZ_CHAMPIONSHIP = {
   // Ouverture du Quiz LIVE (heure Nouvelle-Calédonie, UTC+11) : on ne peut pas
   // DÉMARRER une session de quiz Live avant cet instant. Garde-fou anti-lancement
   // accidentel (une session de test oubliée affichait « 🔴 Quiz en direct »).
-  liveOpenAt: "2026-07-03T11:30:00+11:00",
-  liveOpenLabel: "vendredi 3 juillet à 11h30 (heure NC)",
+  liveOpenAt: "2026-07-03T12:00:00+11:00",
+  liveOpenLabel: "vendredi 3 juillet à 12h00 (heure NC)",
   // Nombre de joueurs qualifiés pour la Grande Finale (badge « Qualifié »).
   finalists: 5,
   // Clôture du classement qualificatif (fin de la période des pronostics).

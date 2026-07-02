@@ -128,7 +128,7 @@ export default async function ProgrammePage() {
             <Star size={18} className="fill-canal-yellow" /> Grand Quiz #1
           </span>
         </div>
-        <p className="text-white font-bold text-xl">Vendredi 3 juillet · 11h30</p>
+        <p className="text-white font-bold text-xl">Vendredi 3 juillet · 12h00</p>
         <p className="text-canal-gray-muted text-sm">Le meilleur créneau de toute la compétition pour le quiz :</p>
         <ul className="text-sm text-white/90 space-y-1.5">
           <li className="flex gap-2"><span className="text-canal-yellow">•</span> les gens viennent de regarder plusieurs matchs ;</li>
@@ -208,7 +208,7 @@ export default async function ProgrammePage() {
           <li className="flex gap-2"><span>⚽</span> les résultats de la veille ;</li>
           <li className="flex gap-2"><span>📈</span> les évolutions du classement CanalCup ;</li>
           <li className="flex gap-2"><span>🤖</span> une phrase humoristique de Robert ;</li>
-          <li className="flex gap-2"><Clock size={16} className="text-canal-yellow shrink-0" /> « Aujourd&apos;hui, 11h30 : Quiz » ou « Aujourd&apos;hui : Baby-foot ».</li>
+          <li className="flex gap-2"><Clock size={16} className="text-canal-yellow shrink-0" /> « Aujourd&apos;hui, 12h00 : Quiz » ou « Aujourd&apos;hui : Baby-foot ».</li>
         </ul>
         <p className="text-white/70 text-sm italic">
           Un rendez-vous quotidien très léger qui donne l&apos;impression que CanalCup « vit » pendant toute la compétition.
