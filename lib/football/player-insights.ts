@@ -98,10 +98,12 @@ function watchIndex(p: SquadPlayer, f: FormAgg | undefined): RankedPlayer {
   const wcGoals = f?.goals ?? 0, wcAssists = f?.assists ?? 0;
   const startsRatio = f && f.played ? f.starts / f.played : 0;
 
-  const ratingComp = avgR != null ? clamp01((avgR - 5) / 4) * 25 : 8;                 // note WC (ou base)
-  const goalsComp = clamp01((wcGoals + (p.selectionGoals ?? 0) * 0.12) / 4) * 22;     // buts tournoi + sélection
-  const assistsComp = clamp01(wcAssists / 3) * 12;                                    // passes décisives
-  const valueComp = clamp01(parseMarketValue(p.value) / 120_000_000) * 23;            // valeur (proxy saison)
+  // Seuils recalibrés (moins sévères) : note pleine dès ~8 (et non 9), buts dès 3,
+  // passes dès 2, valeur dès 80 M€, base sans note relevée à 12.
+  const ratingComp = avgR != null ? clamp01((avgR - 4) / 4) * 25 : 12;                // note WC (ou base)
+  const goalsComp = clamp01((wcGoals + (p.selectionGoals ?? 0) * 0.12) / 3) * 22;     // buts tournoi + sélection
+  const assistsComp = clamp01(wcAssists / 2) * 12;                                    // passes décisives
+  const valueComp = clamp01(parseMarketValue(p.value) / 80_000_000) * 23;             // valeur (proxy saison)
   const posComp = POS_WEIGHT[p.positionFr ?? ""] ?? 4;                                // poste
   const playComp = clamp01(startsRatio) * 8;                                          // temps de jeu
   const watch = Math.round(ratingComp + goalsComp + assistsComp + valueComp + posComp + playComp);

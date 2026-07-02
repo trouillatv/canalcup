@@ -272,7 +272,7 @@ export function computeDanger(played: PlayerFormMatch[]): DangerIndex | null {
   const shots = played.reduce((a, m) => a + m.shots, 0);
   const keyPasses = played.reduce((a, m) => a + (m.keyPasses ?? 0), 0);
   const attackRaw = (goals + assists * 0.6 + shots * 0.15 + keyPasses * 0.1) / n;
-  const attack01 = clamp01(attackRaw); // 1 implication décisive/match ≈ plafond
+  const attack01 = clamp01(attackRaw / 0.7); // ~0,7 implication décisive/match ≈ plafond (recalibré, moins sévère)
 
   const minutesVals = played.map((m) => m.minutes).filter((x): x is number => x != null);
   const avgMinutes = minutesVals.length ? minutesVals.reduce((a, b) => a + b, 0) / minutesVals.length : 60;
@@ -282,7 +282,7 @@ export function computeDanger(played: PlayerFormMatch[]): DangerIndex | null {
   let score: number;
   let confident: boolean;
   if (avgRating != null) {
-    const note = clamp01((avgRating - 5) / 4) * 45;
+    const note = clamp01((avgRating - 4) / 4) * 45; // recalibré : un 7,5 remplit ~88 % au lieu de 63 %
     score = note + attack01 * 40 + play01 * 15;
     confident = ratings.length >= 2;
   } else {
