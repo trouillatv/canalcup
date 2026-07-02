@@ -52,6 +52,7 @@ interface AnswerOutcome {
   selected: string; // "" si timeout
   is_correct: boolean;
   points: number;
+  responseTimeMs?: number; // temps mis pour répondre (serveur) — pour justifier 3 vs 5
 }
 
 export default function QuizLivePage() {
@@ -150,6 +151,7 @@ export default function QuizLivePage() {
           selected: answer,
           is_correct: !!d.is_correct,
           points: typeof d.points === "number" ? d.points : 0,
+          responseTimeMs: typeof d.response_time_ms === "number" ? d.response_time_ms : undefined,
         });
       } catch {
         setOutcome({ questionId: session.question.id, selected: answer, is_correct: false, points: 0 });
@@ -354,6 +356,17 @@ export default function QuizLivePage() {
             </p>
             {cheatForfeit && (
               <p className="text-red-300 text-xs font-bold">Tu as quitté l&apos;écran pendant la question.</p>
+            )}
+            {/* Temps de réponse (transparence sur le 3 vs 5) */}
+            {outcome && outcome.selected !== "" && typeof outcome.responseTimeMs === "number" && (
+              <p className="text-white/70 text-sm">
+                ⏱ Répondu en <b className="text-white">{(outcome.responseTimeMs / 1000).toFixed(1)} s</b>
+                {outcome.is_correct && (
+                  <span className="text-white/45">
+                    {" "}— {outcome.responseTimeMs <= FAST_S * 1000 ? `sous ${FAST_S} s → +5` : `${FAST_S} s ou plus → +3`}
+                  </span>
+                )}
+              </p>
             )}
             {pts === 5 && (
               <p className="flex items-center gap-1.5 text-canal-yellow text-sm font-bold">

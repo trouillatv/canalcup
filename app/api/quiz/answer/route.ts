@@ -107,7 +107,11 @@ export async function POST(req: Request) {
     // déjà, on la MET À JOUR (nouveau choix, temps recalculé). Deux garde-fous :
     //  - un timeout "" ne doit jamais écraser une réponse déjà donnée ;
     //  - une fois le temps écoulé, la réponse enregistrée est DÉFINITIVE.
-    const { data: existingRow } = await supabase
+    // ⚠️ On utilise le client ADMIN (bypass RLS) pour lire/écrire quiz_answers :
+    // sinon la recherche de la réponse existante peut ne pas « voir » la ligne du
+    // joueur → la modification créait une 2e ligne au lieu de remplacer la 1re,
+    // et la répartition comptait l'ancienne réponse.
+    const { data: existingRow } = await admin
       .from("quiz_answers")
       .select("id")
       .eq("user_id", profile.id)
@@ -126,17 +130,17 @@ export async function POST(req: Request) {
         });
       }
       // Chrono en cours + nouveau choix → on remplace.
-      await supabase
+      await admin
         .from("quiz_answers")
         .update({ answer, is_correct, response_time_ms, points_awarded: points })
         .eq("id", existingRow.id);
       return NextResponse.json(
-        { ok: true, persisted: true, updated: true, is_correct, points },
+        { ok: true, persisted: true, updated: true, is_correct, points, response_time_ms },
         { headers: { "Cache-Control": "no-store" } }
       );
     }
 
-    await supabase.from("quiz_answers").insert({
+    await admin.from("quiz_answers").insert({
       user_id: profile.id,
       team_id: profile.team_id ?? null,
       question_id,
@@ -149,7 +153,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(
-      { ok: true, persisted: true, is_correct, points },
+      { ok: true, persisted: true, is_correct, points, response_time_ms },
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch {
