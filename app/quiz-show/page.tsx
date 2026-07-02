@@ -469,6 +469,16 @@ export default function QuizShowPage() {
   return (
     <PinGate>
       <div className={`fixed inset-0 flex flex-col select-none${cursorClass}`} style={{ background: WARM_BG }}>
+        {/* Barre de progression du quiz (où on en est : question N / total) */}
+        {session.total > 0 && (
+          <div className="h-1.5 sm:h-2 w-full bg-white/10 shrink-0">
+            <div
+              className="h-full bg-canal-yellow transition-all duration-500"
+              style={{ width: `${((session.question_index + 1) / session.total) * 100}%` }}
+            />
+          </div>
+        )}
+
         {/* 🚨 Vignette rouge clignotante des dernières secondes */}
         {panic && !paused && (
           <div
