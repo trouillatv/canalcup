@@ -16,7 +16,7 @@ import { QuizReview } from "@/components/quiz/QuizReview";
 
 interface RankRow {
   user_id: string; name: string; points: number; correct: number; answered: number;
-  rank: number; qualified?: boolean; isMe: boolean;
+  rank: number; qualified?: boolean; horsConcours?: boolean; isMe: boolean;
 }
 interface SchedItem { n: number; label: string; dateLabel: string }
 interface Board {
@@ -265,6 +265,11 @@ export default function QuizHubPage() {
                   {r.qualified && (
                     <span className="flex items-center gap-1 text-[10px] font-black text-canal-yellow bg-canal-yellow/10 border border-canal-yellow/30 px-1.5 py-0.5 rounded-full uppercase shrink-0">
                       <Medal size={11} /> {board.qualifClosed ? "Finaliste" : "Qualifié"}
+                    </span>
+                  )}
+                  {r.horsConcours && (
+                    <span className="text-[10px] font-black text-white/50 bg-white/10 border border-white/15 px-1.5 py-0.5 rounded-full uppercase shrink-0">
+                      Hors concours
                     </span>
                   )}
                   <span className="text-white/40 text-xs tabular-nums hidden sm:inline">{r.correct}✓</span>

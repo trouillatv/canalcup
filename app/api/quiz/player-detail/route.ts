@@ -15,7 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminRequest } from "@/lib/auth/admin";
 import { buildQuizAudit } from "@/lib/quiz/audit";
-import { QUIZ_CHAMPIONSHIP, isQualifClosed } from "@/lib/config/quiz-championship";
+import { QUIZ_CHAMPIONSHIP, isQualifClosed, isFinalsExcluded } from "@/lib/config/quiz-championship";
 
 export async function GET(req: Request) {
   const supabase = await createClient();
@@ -58,7 +58,9 @@ export async function GET(req: Request) {
       : "quiz_live"; // moi, mais quiz en cours → après la fin
 
   const finalists = QUIZ_CHAMPIONSHIP.finalists;
-  const qualified = summary.quiz_rank != null && summary.quiz_rank <= finalists;
+  const { data: targetUser } = await admin.from("users").select("email").eq("id", targetId).maybeSingle();
+  const horsConcours = isFinalsExcluded(targetUser?.email);
+  const qualified = !horsConcours && summary.quiz_rank != null && summary.quiz_rank <= finalists;
 
   return NextResponse.json(
     {
@@ -69,6 +71,7 @@ export async function GET(req: Request) {
       },
       summary,
       qualified,
+      horsConcours,
       finalists,
       qualifClosed: isQualifClosed(),
       questions: canSeeDetail ? audit.answers : [],

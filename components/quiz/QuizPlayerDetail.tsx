@@ -56,6 +56,7 @@ interface Payload {
   summary: Summary | null;
   questions: QRow[];
   qualified?: boolean;
+  horsConcours?: boolean;
   finalists?: number;
   qualifClosed?: boolean;
   canSeeDetail?: boolean;
@@ -170,6 +171,11 @@ export function QuizPlayerDetail({
                 {data?.qualified && (
                   <span className="flex items-center gap-1 text-[11px] font-black text-canal-yellow bg-canal-yellow/10 border border-canal-yellow/30 px-2.5 py-1 rounded-full uppercase">
                     <Medal size={12} /> {data?.qualifClosed ? "Finaliste" : "Qualifié"}
+                  </span>
+                )}
+                {data?.horsConcours && (
+                  <span className="text-[11px] font-black text-white/50 bg-white/10 border border-white/15 px-2.5 py-1 rounded-full uppercase">
+                    Hors concours
                   </span>
                 )}
               </div>

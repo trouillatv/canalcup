@@ -10,6 +10,10 @@ export const QUIZ_CHAMPIONSHIP = {
   liveOpenLabel: "vendredi 3 juillet à 12h00 (heure NC)",
   // Nombre de joueurs qualifiés pour la Grande Finale (badge « Qualifié »).
   finalists: 5,
+  // Comptes « hors concours » : ils peuvent avoir un score quiz (organisateurs,
+  // démos), mais ne prennent JAMAIS une place de finaliste — les 5 places vont
+  // aux vrais joueurs. (Ex. le compte participant de l'organisateur.)
+  finalsExcludedEmails: ["vincent.trouillat@canal-plus.com"] as string[],
   // Clôture du classement qualificatif (fin de la période des pronostics).
   // Après cette date, le top N est figé : ce sont les finalistes.
   qualifCutoff: "2026-07-17T23:59:00+11:00",
@@ -36,6 +40,13 @@ export const QUIZ_CHAMPIONSHIP = {
 // La date de clôture est-elle passée ? (classement qualificatif figé)
 export function isQualifClosed(now: number = Date.now()): boolean {
   return now > new Date(QUIZ_CHAMPIONSHIP.qualifCutoff).getTime();
+}
+
+// Ce compte est-il « hors concours » (jamais finaliste, même avec un gros score) ?
+export function isFinalsExcluded(email?: string | null): boolean {
+  if (!email) return false;
+  const list = QUIZ_CHAMPIONSHIP.finalsExcludedEmails.map((e) => e.toLowerCase());
+  return list.includes(email.toLowerCase());
 }
 
 // Le Quiz Live est-il ouvert (date d'ouverture atteinte) ? Sert de garde-fou au

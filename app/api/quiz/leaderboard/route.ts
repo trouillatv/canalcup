@@ -13,7 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminRequest } from "@/lib/auth/admin";
 import { selectAll } from "@/lib/data/select-all";
-import { QUIZ_CHAMPIONSHIP, isQualifClosed } from "@/lib/config/quiz-championship";
+import { QUIZ_CHAMPIONSHIP, isQualifClosed, isFinalsExcluded } from "@/lib/config/quiz-championship";
 
 type Tally = { points: number; correct: number; answered: number };
 
@@ -58,10 +58,14 @@ export async function GET(req: Request) {
   const rows = allRows ?? [];
   const ids = [...new Set(rows.map((r) => r.user_id))];
   const { data: users } = ids.length
-    ? await admin.from("users").select("id, display_name, name").in("id", ids)
-    : { data: [] as { id: string; display_name: string | null; name: string | null }[] };
+    ? await admin.from("users").select("id, display_name, name, email").in("id", ids)
+    : { data: [] as { id: string; display_name: string | null; name: string | null; email: string | null }[] };
   const nameById = new Map(
     (users ?? []).map((u) => [u.id, u.display_name?.trim() || u.name?.trim() || "Joueur"])
+  );
+  // Comptes « hors concours » (organisateurs) : score visible mais jamais finaliste.
+  const excludedIds = new Set(
+    (users ?? []).filter((u) => isFinalsExcluded(u.email)).map((u) => u.id)
   );
 
   let myId: string | null = null;
@@ -70,10 +74,18 @@ export async function GET(req: Request) {
     myId = me?.id ?? null;
   }
 
-  const championship = rank(rows, nameById, myId).map((r) => ({
-    ...r,
-    qualified: r.rank <= QUIZ_CHAMPIONSHIP.finalists,
-  }));
+  // Qualification : on ne compte QUE les vrais joueurs vers les places de finaliste
+  // (un hors-concours en tête ne « vole » pas une place au top 5).
+  let finalPos = 0;
+  const championship = rank(rows, nameById, myId).map((r) => {
+    const horsConcours = excludedIds.has(r.user_id);
+    if (!horsConcours) finalPos += 1;
+    return {
+      ...r,
+      horsConcours,
+      qualified: !horsConcours && finalPos <= QUIZ_CHAMPIONSHIP.finalists,
+    };
+  });
 
   const currentRows = recent?.id ? rows.filter((r) => r.quiz_session_id === recent.id) : [];
   const current = rank(currentRows, nameById, myId);
