@@ -31,6 +31,18 @@ export async function GET() {
     .from("users").select("id").eq("auth_id", user.id).single();
   if (!profile) return NextResponse.json({ available: false, reason: "profile" }, { status: 404 });
 
+  // 🔒 Le Solo est un RATTRAPAGE : réservé à ceux qui n'ont PAS joué le Live.
+  // Si le joueur a ≥1 réponse Live sur cette session, le Solo lui est fermé.
+  const { count: liveCount } = await admin
+    .from("quiz_answers")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", profile.id)
+    .eq("quiz_session_id", session.id)
+    .eq("mode", "live");
+  if ((liveCount ?? 0) > 0) {
+    return NextResponse.json({ available: false, reason: "played_live" });
+  }
+
   const [{ data: allQuestions }, { data: mine }, { data: sessRow }] = await Promise.all([
     admin
       .from("quiz_questions")

@@ -141,7 +141,9 @@ export default function QuizSoloPage() {
 
   if (state === "unavailable") {
     const lockMsg =
-      reason === "live_in_progress"
+      reason === "played_live"
+        ? "✅ Tu as déjà joué le Live de ce quiz ! Le mode Solo est un rattrapage réservé à celles et ceux qui n'ont pas pu participer en direct."
+        : reason === "live_in_progress"
         ? "🔒 Le Quiz est actuellement en direct. Le mode Solo ouvrira à la fin du Live."
         : reason === "window_closed"
           ? "🔒 La fenêtre du Quiz Solo est fermée pour ce quiz. Rendez-vous au prochain !"

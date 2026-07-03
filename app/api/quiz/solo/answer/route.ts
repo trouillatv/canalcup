@@ -41,6 +41,21 @@ export async function POST(req: Request) {
     }
     const session = win.session;
 
+    // 🔒 Solo = rattrapage : interdit à ceux qui ont déjà joué le Live de cette
+    // session (anti-farming : ils ne cumulent pas les questions du complément).
+    const { count: liveCount } = await admin
+      .from("quiz_answers")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", profile.id)
+      .eq("quiz_session_id", session.id)
+      .eq("mode", "live");
+    if ((liveCount ?? 0) > 0) {
+      return NextResponse.json(
+        { ok: false, error: "Le Solo est réservé aux personnes qui n'ont pas joué le Live." },
+        { status: 403 }
+      );
+    }
+
     const { data: question } = await admin
       .from("quiz_questions")
       .select("correct_answer, explanation")

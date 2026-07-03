@@ -36,6 +36,7 @@ const SOLO_LOCK: Record<string, string> = {
   not_started: "🔒 Le Quiz Live n'a pas encore commencé.",
   live_in_progress: "🔒 Le Quiz est actuellement en direct.",
   window_closed: "🔒 Le mode Solo de ce quiz est terminé.",
+  played_live: "✅ Tu as joué le Live — le Solo est réservé à ceux qui n'ont pas pu participer.",
 };
 const MEDALS = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣"];
 
