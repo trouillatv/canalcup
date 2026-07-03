@@ -28,5 +28,35 @@
       "purpose": "maskable"
     }
   ],
-  "categories": ["sports", "entertainment"]
+  "categories": ["sports", "entertainment"],
+  "shortcuts": [
+    {
+      "name": "Pronostics",
+      "short_name": "Pronos",
+      "description": "Parier les prochains matchs",
+      "url": "/matches",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Quiz Canal Cup",
+      "short_name": "Quiz",
+      "description": "Jouer au Quiz",
+      "url": "/quiz",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Classement",
+      "short_name": "Classement",
+      "description": "Voir le classement general",
+      "url": "/leaderboard",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Mes Jokers",
+      "short_name": "Jokers",
+      "description": "Jouer un joker",
+      "url": "/jokers",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
 }

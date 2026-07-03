@@ -7,6 +7,7 @@ import { BreakingNews } from "@/components/matches/BreakingNews";
 import { PwaSetup } from "@/components/pwa/PwaSetup";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { PushNotifications } from "@/components/pwa/PushNotifications";
+import { AppBadge } from "@/components/pwa/AppBadge";
 import { TimezoneProvider } from "@/components/timezone/TimezoneProvider";
 import { EventSplash } from "@/components/events/EventSplash";
 import { PageTracker } from "@/components/analytics/PageTracker";
@@ -102,6 +103,7 @@ export default async function RootLayout({
           <PwaSetup />
           <InstallPrompt />
           {isAuthenticated && <PushNotifications />}
+          {isAuthenticated && <AppBadge />}
           {isAuthenticated && <PageTracker />}
         </TimezoneProvider>
       </body>
