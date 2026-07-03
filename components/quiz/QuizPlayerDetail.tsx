@@ -9,7 +9,7 @@
 // Accès (API) : chaque joueur voit le sien ; l'admin voit tout le monde.
 
 import { useEffect, useState } from "react";
-import { X, Check, Minus, Lock } from "lucide-react";
+import { X, Check, Minus, Lock, Medal, Flame, Zap } from "lucide-react";
 
 interface Summary {
   display_name: string;
@@ -23,6 +23,9 @@ interface Summary {
   normal_correct_count: number;
   solo_correct_count: number;
   avg_response_time_ms: number | null;
+  fastest_ms: number | null;
+  best_streak: number;
+  sessions: { title: string; played: boolean }[];
   championship_quiz_points: number;
   quiz_rank: number | null;
   participants_count: number;
@@ -47,6 +50,9 @@ interface Payload {
   player: { user_id: string; display_name: string; team_name: string } | null;
   summary: Summary | null;
   questions: QRow[];
+  qualified?: boolean;
+  finalists?: number;
+  qualifClosed?: boolean;
   canSeeDetail?: boolean;
   restrictedReason?: "other_player" | "quiz_live" | null;
   error?: string;
@@ -146,6 +152,41 @@ export function QuizPlayerDetail({
 
           {s && (
             <>
+              {/* Profil : position championnat + qualification */}
+              <div className="flex items-center justify-between gap-2 bg-white/5 rounded-xl px-3 py-2.5">
+                <div>
+                  <p className="text-[10px] text-canal-gray-muted uppercase tracking-wide">Position championnat</p>
+                  <p className="font-black text-white text-xl leading-none mt-0.5">
+                    {s.quiz_rank ? `${s.quiz_rank}${s.quiz_rank === 1 ? "er" : "e"}` : "—"}
+                    <span className="text-canal-gray-muted text-xs font-normal"> / {s.participants_count}</span>
+                  </p>
+                </div>
+                {data?.qualified && (
+                  <span className="flex items-center gap-1 text-[11px] font-black text-canal-yellow bg-canal-yellow/10 border border-canal-yellow/30 px-2.5 py-1 rounded-full uppercase">
+                    <Medal size={12} /> {data?.qualifClosed ? "Finaliste" : "Qualifié"}
+                  </span>
+                )}
+              </div>
+
+              {/* Participation par quiz */}
+              {s.sessions.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] text-canal-gray-muted">Participation :</span>
+                  {s.sessions.map((q) => (
+                    <span
+                      key={q.title}
+                      className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+                        q.played
+                          ? "bg-green-500/10 border-green-500/30 text-green-300"
+                          : "bg-white/5 border-canal-gray-light text-canal-gray-muted"
+                      }`}
+                    >
+                      {q.title} {q.played ? "✅" : "❌"}
+                    </span>
+                  ))}
+                </div>
+              )}
+
               {/* Résumé */}
               <div className="grid grid-cols-3 gap-2">
                 {[
@@ -167,6 +208,8 @@ export function QuizPlayerDetail({
                   <span className="text-canal-gray-muted">🕒 +2 solo : <b className="text-white">{s.solo_correct_count}</b></span>
                 )}
                 <span className="text-canal-gray-muted">⏱ Temps moyen : <b className="text-white">{secs(s.avg_response_time_ms)}</b></span>
+                <span className="text-canal-gray-muted flex items-center gap-1"><Flame size={11} className="text-orange-400" /> Meilleure série : <b className="text-white">{s.best_streak}</b></span>
+                <span className="text-canal-gray-muted flex items-center gap-1"><Zap size={11} className="text-canal-yellow" /> Plus rapide : <b className="text-white">{secs(s.fastest_ms)}</b></span>
               </div>
 
               {/* Points réels vs comptés au général */}

@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminRequest } from "@/lib/auth/admin";
 import { buildQuizAudit } from "@/lib/quiz/audit";
+import { QUIZ_CHAMPIONSHIP, isQualifClosed } from "@/lib/config/quiz-championship";
 
 export async function GET(req: Request) {
   const supabase = await createClient();
@@ -56,6 +57,9 @@ export async function GET(req: Request) {
       ? "other_player" // résumé public seulement
       : "quiz_live"; // moi, mais quiz en cours → après la fin
 
+  const finalists = QUIZ_CHAMPIONSHIP.finalists;
+  const qualified = summary.quiz_rank != null && summary.quiz_rank <= finalists;
+
   return NextResponse.json(
     {
       player: {
@@ -64,6 +68,9 @@ export async function GET(req: Request) {
         team_name: summary.team_name,
       },
       summary,
+      qualified,
+      finalists,
+      qualifClosed: isQualifClosed(),
       questions: canSeeDetail ? audit.answers : [],
       canSeeDetail,
       restrictedReason,

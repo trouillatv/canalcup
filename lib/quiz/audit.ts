@@ -81,6 +81,9 @@ export interface AuditPlayerSummary {
   normal_correct_count: number;
   solo_correct_count: number;
   avg_response_time_ms: number | null;
+  fastest_ms: number | null; // réponse la plus rapide (toutes réponses données)
+  best_streak: number; // plus longue série de bonnes réponses consécutives (dans une session)
+  sessions: { title: string; played: boolean }[]; // participation par quiz
   raw_quiz_points: number;
   championship_quiz_points: number; // = classement Quiz réel (points comptés au championnat)
   // Classement GÉNÉRAL : contribution normalisée entre 5 et 50 selon le SCORE.
@@ -314,12 +317,33 @@ export async function buildQuizAudit(onlyUserId?: string): Promise<QuizAudit> {
     else rankByUser.set(uid, idx + 1);
   });
 
+  // Liste ordonnée des vrais quiz (#1, #2…) pour la participation.
+  const allSessionTitles = [...sessionMeta.values()].map((m) => m.title);
+
   const summaries: AuditPlayerSummary[] = [];
   for (const [uid, rs] of byUser) {
     const info = userInfo.get(uid) ?? { display_name: "Joueur", team_name: "" };
     const answered = rs.filter((r) => r.answered);
     const rtVals = answered.map((r) => r.response_time_ms).filter((v): v is number => v != null);
     const championship = championshipAll.get(uid) ?? rs.reduce((s, r) => s + r.championship_points, 0);
+
+    // Plus longue série de bonnes réponses consécutives (par session, dans l'ordre).
+    const bySess = new Map<string, AuditAnswerRow[]>();
+    for (const r of rs) {
+      if (!bySess.has(r.quiz_session_id)) bySess.set(r.quiz_session_id, []);
+      bySess.get(r.quiz_session_id)!.push(r);
+    }
+    let bestStreak = 0;
+    for (const srows of bySess.values()) {
+      const ordered = [...srows].sort((a, b) => a.question_index - b.question_index);
+      let cur = 0;
+      for (const r of ordered) {
+        if (r.is_correct) { cur += 1; if (cur > bestStreak) bestStreak = cur; }
+        else cur = 0;
+      }
+    }
+    const playedTitles = new Set(rs.map((r) => r.quiz_title));
+
     summaries.push({
       user_id: uid,
       display_name: info.display_name,
@@ -333,6 +357,9 @@ export async function buildQuizAudit(onlyUserId?: string): Promise<QuizAudit> {
       normal_correct_count: rs.filter((r) => r.points_type === "live_normal").length,
       solo_correct_count: rs.filter((r) => r.points_type === "solo_correct").length,
       avg_response_time_ms: rtVals.length ? Math.round(rtVals.reduce((s, v) => s + v, 0) / rtVals.length) : null,
+      fastest_ms: rtVals.length ? Math.min(...rtVals) : null,
+      best_streak: bestStreak,
+      sessions: allSessionTitles.map((t) => ({ title: t, played: playedTitles.has(t) })),
       raw_quiz_points: rs.reduce((s, r) => s + r.points_awarded_raw, 0),
       championship_quiz_points: championship,
       quiz_rank: rankByUser.get(uid) ?? null,
