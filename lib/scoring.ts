@@ -145,7 +145,7 @@ export const QUIZ_MIN_RESPONSE_MS = 250;
 // affichée quelques secondes, puis passage automatique à la question suivante.
 //   [countdown] → [question 20s] → [timeup] → [stats] → [answer] → next…
 export const QUIZ_TIMEUP_MS = 1200;   // « ⏱ Temps écoulé » (grise les réponses)
-export const QUIZ_STATS_MS = 2200;    // répartition A/B/C/D (suspense : sans la bonne réponse)
+export const QUIZ_STATS_MS = 4000;    // répartition A/B/C/D (suspense) — assez long pour lire les %
 export const QUIZ_ANSWER_MS = 4000;   // bonne réponse + courte explication + taux
 // Fin du cycle d'une question : au-delà, on enchaîne automatiquement.
 export const QUIZ_REVEAL_END_MS =

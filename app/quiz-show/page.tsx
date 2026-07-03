@@ -59,11 +59,17 @@ interface LiveSession {
   explanation?: string;
   distribution?: Record<"A" | "B" | "C" | "D", number>;
   responded?: number;
+  callout?: { names: string[]; correct: number } | null;
 }
 interface Standing {
   name: string;
   points: number;
   correct: number;
+  answered?: number;
+  wrong?: number;
+  fast?: number;
+  normal?: number;
+  avgMs?: number | null;
 }
 
 // ─── PIN Gate ────────────────────────────────────────────────────────────────
@@ -299,7 +305,10 @@ export default function QuizShowPage() {
           setFinished(null);
           setIdle(false);
         } else if (d.status === "finished" && Array.isArray(d.standings) && d.standings.length) {
-          setFinished({ standings: d.standings as Standing[] });
+          // ⚠️ On ne remplace PAS l'objet à chaque poll : sinon la dépendance
+          // [finished] de l'effet cérémonie change chaque seconde → React nettoie
+          // les timers de révélation (🥈/🥇) et le podium se fige sur le 🥉.
+          setFinished((prev) => prev ?? { standings: d.standings as Standing[] });
           setSession(null);
           setIdle(false);
         } else {
@@ -366,27 +375,39 @@ export default function QuizShowPage() {
               )}
             </div>
           ) : (
-            <div className="relative w-full max-w-2xl flex flex-col gap-3" style={{ animation: "fadeUp .5s both" }}>
-              <p className="font-black text-2xl sm:text-5xl text-canal-yellow text-center uppercase tracking-widest mb-1">Classement final</p>
-              <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[62vh]">
+            <div className="relative w-full max-w-3xl flex flex-col gap-2" style={{ animation: "fadeUp .5s both" }}>
+              <p className="font-black text-2xl sm:text-5xl text-canal-yellow text-center uppercase tracking-widest">Classement final</p>
+              <p className="text-center text-white/45 text-[11px] sm:text-lg">
+                ✅ bonnes · ❌ fausses · 📝 répondu · ⚡ +5 (&lt;7s) · 🧠 +3 (≥7s) · ⏱ temps moyen
+              </p>
+              <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[60vh]">
                 {s.map((p, i) => (
                   <div
                     key={i}
-                    className={`flex items-center gap-3 sm:gap-4 rounded-xl px-3 sm:px-5 py-2 sm:py-3 ${i === 0 ? "bg-canal-yellow/15 border border-canal-yellow/40" : "bg-white/5"}`}
+                    className={`flex items-center gap-2 sm:gap-4 rounded-xl px-3 sm:px-5 py-1.5 sm:py-2.5 ${i === 0 ? "bg-canal-yellow/15 border border-canal-yellow/40" : "bg-white/5"}`}
                   >
-                    <span className={`font-black tabular-nums w-7 sm:w-12 text-center text-lg sm:text-3xl ${i === 0 ? "text-canal-yellow" : i < 3 ? "text-white" : "text-white/40"}`}>
+                    <span className={`font-black tabular-nums w-6 sm:w-10 text-center text-lg sm:text-3xl ${i === 0 ? "text-canal-yellow" : i < 3 ? "text-white" : "text-white/40"}`}>
                       {i + 1}
                     </span>
-                    <span className="flex-1 font-bold text-white text-base sm:text-2xl truncate">
-                      {i < 3 ? `${["🥇", "🥈", "🥉"][i]} ` : ""}
-                      {p.name}
-                    </span>
-                    <span className="text-white/40 text-xs sm:text-lg tabular-nums">{p.correct} ✓</span>
-                    <span className="font-black text-canal-yellow tabular-nums text-base sm:text-2xl w-16 sm:w-24 text-right">{p.points} pts</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-white text-base sm:text-2xl truncate leading-tight">
+                        {i < 3 ? `${["🥇", "🥈", "🥉"][i]} ` : ""}
+                        {p.name}
+                      </p>
+                      <p className="text-white/45 text-[11px] sm:text-lg tabular-nums flex flex-wrap gap-x-2 sm:gap-x-3 leading-tight">
+                        <span className="text-green-300/80">✅ {p.correct}</span>
+                        <span className="text-red-300/70">❌ {p.wrong ?? 0}</span>
+                        <span>📝 {p.answered ?? 0}</span>
+                        <span className="text-canal-yellow/70">⚡ {p.fast ?? 0}</span>
+                        <span>🧠 {p.normal ?? 0}</span>
+                        {p.avgMs != null && <span>⏱ {(p.avgMs / 1000).toFixed(1).replace(".", ",")} s</span>}
+                      </p>
+                    </div>
+                    <span className="font-black text-canal-yellow tabular-nums text-base sm:text-2xl w-14 sm:w-24 text-right shrink-0">{p.points} pts</span>
                   </div>
                 ))}
               </div>
-              <p className="text-center text-white/60 text-base sm:text-3xl font-bold mt-2">Merci à tous 🙏</p>
+              <p className="text-center text-white/60 text-base sm:text-2xl font-bold">Merci à tous 🙏</p>
             </div>
           )}
           {controls}
@@ -460,6 +481,25 @@ export default function QuizShowPage() {
             : successPct >= 80
               ? `🔥 ${successPct}% de bonnes réponses`
               : `✅ ${successPct}% de bonnes réponses`;
+  // 😜 Dénonciation bon enfant : 1 ou 2 personnes seules à s'être trompées.
+  const callout = session.callout ?? null;
+  const CALLOUT_1 = [
+    (n: string) => `🙈 ${n}, tout le monde avait bon… sauf toi !`,
+    (n: string) => `😜 Seul·e ${n} s'est trompé·e sur celle-là !`,
+    (n: string) => `🎯 La honte pour ${n} : seul·e dans l'erreur !`,
+    (n: string) => `😅 On t'a vu·e ${n} — seul·e à côté de la plaque !`,
+  ];
+  const CALLOUT_2 = [
+    (a: string, b: string) => `🙈 ${a} et ${b} : les deux seul·e·s à s'être trompé·e·s !`,
+    (a: string, b: string) => `😜 ${a} & ${b}, bien seul·e·s dans l'erreur…`,
+    (a: string, b: string) => `😅 Duo perdant : ${a} et ${b} !`,
+  ];
+  const calloutLine =
+    callout && callout.names.length === 1
+      ? CALLOUT_1[session.question_index % CALLOUT_1.length](callout.names[0])
+      : callout && callout.names.length >= 2
+        ? CALLOUT_2[session.question_index % CALLOUT_2.length](callout.names[0], callout.names[1])
+        : "";
   const countdownLeft = Math.max(1, Math.ceil(-rawElapsed / 1000));
   const elapsedMs = Math.max(0, rawElapsed);
   const timeLeft = Math.max(0, Math.ceil((QUIZ_TIMER_SECONDS * 1000 - elapsedMs) / 1000));
@@ -634,6 +674,11 @@ export default function QuizShowPage() {
             <div className="flex flex-col items-center gap-2 sm:gap-3" style={{ animation: "fadeUp .5s both", animationDelay: "0.2s" }}>
               {successLine && (
                 <p className="font-black text-xl sm:text-4xl text-canal-yellow text-center">{successLine}</p>
+              )}
+              {calloutLine && (
+                <p className="font-black text-lg sm:text-3xl text-orange-300 text-center max-w-3xl mx-auto leading-snug" style={{ animation: "pop .5s both", animationDelay: "0.5s" }}>
+                  {calloutLine}
+                </p>
               )}
               {session.explanation && (
                 <p className="text-white/55 text-sm sm:text-2xl italic text-center max-w-3xl mx-auto leading-snug">{session.explanation}</p>

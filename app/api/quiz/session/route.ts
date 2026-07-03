@@ -36,19 +36,47 @@ const SESSION_COLS = "id, current_question_id, question_index, started_at, statu
 // agrégé depuis quiz_answers (vidé au reset → ne contient que la session courante).
 async function computeStandings(
   supabase: Supa
-): Promise<{ name: string; points: number; correct: number }[]> {
+): Promise<
+  {
+    name: string;
+    points: number;
+    correct: number;
+    answered: number;
+    wrong: number;
+    fast: number; // bonnes réponses < seuil (+5)
+    normal: number; // bonnes réponses ≥ seuil (+3)
+    avgMs: number | null;
+  }[]
+> {
   // selectAll : paginé (sinon >1000 réponses → classement final tronqué/sous-compté).
-  const rows = await selectAll<{ user_id: string; points_awarded: number | null; is_correct: boolean }>(
-    supabase,
-    "quiz_answers",
-    "user_id, points_awarded, is_correct"
-  );
+  const rows = await selectAll<{
+    user_id: string;
+    points_awarded: number | null;
+    is_correct: boolean;
+    answer: string | null;
+    response_time_ms: number | null;
+  }>(supabase, "quiz_answers", "user_id, points_awarded, is_correct, answer, response_time_ms");
   if (!rows.length) return [];
-  const byUser = new Map<string, { points: number; correct: number }>();
+  type Agg = { points: number; correct: number; answered: number; wrong: number; fast: number; normal: number; sumMs: number; nMs: number };
+  const byUser = new Map<string, Agg>();
   for (const r of rows) {
-    const e = byUser.get(r.user_id) ?? { points: 0, correct: 0 };
-    e.points += r.points_awarded ?? 0;
-    if (r.is_correct) e.correct += 1;
+    const e =
+      byUser.get(r.user_id) ?? { points: 0, correct: 0, answered: 0, wrong: 0, fast: 0, normal: 0, sumMs: 0, nMs: 0 };
+    const pts = r.points_awarded ?? 0;
+    const hasAns = (r.answer ?? "") !== "";
+    e.points += pts;
+    if (hasAns) e.answered += 1;
+    if (r.is_correct) {
+      e.correct += 1;
+      if (pts >= 5) e.fast += 1; // dérivé des points → juste même si le seuil change
+      else if (pts === 3) e.normal += 1;
+    } else if (hasAns) {
+      e.wrong += 1;
+    }
+    if (hasAns && r.response_time_ms != null) {
+      e.sumMs += r.response_time_ms;
+      e.nMs += 1;
+    }
     byUser.set(r.user_id, e);
   }
   const ids = [...byUser.keys()];
@@ -60,7 +88,16 @@ async function computeStandings(
     (users ?? []).map((u) => [u.id, u.display_name?.trim() || u.name?.trim() || "Joueur"])
   );
   return [...byUser.entries()]
-    .map(([uid, e]) => ({ name: nameById.get(uid) ?? "Joueur", points: e.points, correct: e.correct }))
+    .map(([uid, e]) => ({
+      name: nameById.get(uid) ?? "Joueur",
+      points: e.points,
+      correct: e.correct,
+      answered: e.answered,
+      wrong: e.wrong,
+      fast: e.fast,
+      normal: e.normal,
+      avgMs: e.nMs ? Math.round(e.sumMs / e.nMs) : null,
+    }))
     .sort((a, b) => b.points - a.points || b.correct - a.correct);
 }
 
@@ -183,7 +220,7 @@ export async function GET() {
   // ── Répartition des votes (stats + answer) ─────────────────────────────────
   const { data: answers } = await supabase
     .from("quiz_answers")
-    .select("answer")
+    .select("answer, user_id")
     .eq("question_id", question.id);
   const distribution: Record<"A" | "B" | "C" | "D", number> = { A: 0, B: 0, C: 0, D: 0 };
   let responded = 0;
@@ -195,6 +232,30 @@ export async function GET() {
     }
   }
 
+  // 😜 « Callout » : en phase answer, si SEULEMENT 1 ou 2 personnes ont donné une
+  // MAUVAISE réponse alors que la majorité a trouvé, on les nomme (dénonciation
+  // bon enfant sur l'écran). On ne nomme jamais les non-répondants.
+  let callout: { names: string[]; correct: number } | null = null;
+  if (revealed) {
+    const correctLetter = question.correct_answer;
+    const wrong = (answers ?? []).filter(
+      (a) => a.answer && a.answer !== "" && a.answer !== correctLetter
+    );
+    const correctCount = (answers ?? []).filter((a) => a.answer === correctLetter).length;
+    if (wrong.length >= 1 && wrong.length <= 2 && correctCount >= 3) {
+      const wrongIds = wrong.map((a) => a.user_id);
+      const { data: us } = await supabase
+        .from("users")
+        .select("id, display_name, name")
+        .in("id", wrongIds);
+      const names = wrongIds.map((id) => {
+        const u = (us ?? []).find((x) => x.id === id);
+        return u?.display_name?.trim() || u?.name?.trim() || "Quelqu'un";
+      });
+      callout = { names, correct: correctCount };
+    }
+  }
+
   return NextResponse.json(
     {
       ...base,
@@ -202,7 +263,7 @@ export async function GET() {
       responded,
       // answer : on ajoute la bonne réponse + explication (pour le taux de réussite).
       ...(revealed
-        ? { correct_answer: question.correct_answer, explanation: question.explanation }
+        ? { correct_answer: question.correct_answer, explanation: question.explanation, callout }
         : {}),
     },
     { headers: { "Cache-Control": "no-store" } }
