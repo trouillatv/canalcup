@@ -117,12 +117,15 @@ export function getPredictionOutcome(
   return "wrong";
 }
 
-// Quiz Live — barème : +5 si bonne réponse en moins de 5s, +3 sinon,
-// 0 si fausse réponse ou timeout. Source unique partagée client + serveur.
+// Quiz Live — barème : +5 si bonne réponse rapide, +3 sinon, 0 si fausse
+// réponse ou timeout. Source unique partagée client + serveur.
 // Live = 15s par question (rythme salle). Solo = 10s (plus court, self-paced).
+// Seuil rapidité = 7s : en salle il faut ~2-4s juste pour LIRE la question sur
+// la TV puis basculer sur le téléphone → 5s était trop court (médiane des bonnes
+// réponses à ~7,4s). 7s récompense encore la rapidité sans pénaliser ce va-et-vient.
 export const QUIZ_TIMER_SECONDS = 15;
 export const QUIZ_SOLO_TIMER_SECONDS = 10;
-export const QUIZ_FAST_THRESHOLD_MS = 5000;
+export const QUIZ_FAST_THRESHOLD_MS = 7000;
 // Nombre de questions tirées au hasard par session Live (on ne pose pas TOUTES
 // les questions). L'organisateur peut en rajouter en cours (action "extend").
 export const QUIZ_LIVE_QUESTION_COUNT = 60;

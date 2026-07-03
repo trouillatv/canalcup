@@ -402,9 +402,9 @@ export default function AdminQuizPage() {
         <p className="text-xs text-canal-gray-muted leading-relaxed">
           Les joueurs voient les questions sur{" "}
           <code className="text-canal-yellow">/quiz-live</code>. Le quiz s&apos;enchaîne
-          tout seul (20s par question, puis la bonne réponse, puis question suivante).
+          tout seul (15s par question, puis la bonne réponse, puis question suivante).
           La seule commande de rythme est <b>Pause / Reprendre</b>. +5 pts si bonne
-          réponse en &lt;5s, +3 sinon, 0 si faux ou timeout.
+          réponse en &le;7s, +3 sinon, 0 si faux ou timeout.
         </p>
       </section>
 

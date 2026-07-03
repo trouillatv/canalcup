@@ -18,7 +18,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Volume2, VolumeX, Maximize2, Minimize2 } from "lucide-react";
-import { QUIZ_TIMER_SECONDS } from "@/lib/scoring";
+import { QUIZ_TIMER_SECONDS, QUIZ_FAST_THRESHOLD_MS } from "@/lib/scoring";
 import { sfx, initAudio } from "@/lib/quiz/sound";
 
 const ANSWER_KEYS = ["A", "B", "C", "D"] as const;
@@ -414,7 +414,7 @@ export default function QuizShowPage() {
           <div className="max-w-2xl w-full rounded-2xl bg-white/5 border border-white/10 px-5 sm:px-8 py-4 sm:py-6 space-y-2 sm:space-y-3 text-center">
             <p className="text-canal-yellow font-black text-sm sm:text-2xl uppercase tracking-widest">Les règles</p>
             <p className="text-white/85 text-sm sm:text-2xl">
-              ⏱ <b>{QUIZ_TIMER_SECONDS} s</b> par question · réponse <b>&lt; 5 s → +5 pts</b>, sinon <b>+3 pts</b>
+              ⏱ <b>{QUIZ_TIMER_SECONDS} s</b> par question · réponse <b>&le; {QUIZ_FAST_THRESHOLD_MS / 1000} s → +5 pts</b>, sinon <b>+3 pts</b>
             </p>
             <p className="text-white/85 text-sm sm:text-2xl">
               🚫 Changer d&apos;application ou d&apos;écran pendant une question = <b>question perdue</b> (1 avertissement)

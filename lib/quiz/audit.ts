@@ -18,7 +18,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { selectAll } from "@/lib/data/select-all";
-import { QUIZ_FAST_THRESHOLD_MS, QUIZ_SOLO_COEFFICIENT, quizGlobalPoints } from "@/lib/scoring";
+import { QUIZ_SOLO_COEFFICIENT, quizGlobalPoints } from "@/lib/scoring";
 
 // Base d'un point Solo AVANT coefficient (sert à expliquer 3 × 0,7 ≈ 2).
 const SOLO_BASE = 3;
@@ -144,7 +144,9 @@ function classify(a: RawAnswer | undefined): {
   if (solo) {
     return { answered: true, type: "solo_correct", raw: SOLO_BASE, championship, speedBonus: false, solo: true };
   }
-  const fast = (a.response_time_ms ?? Infinity) <= QUIZ_FAST_THRESHOLD_MS;
+  // Live : on déduit « rapide/normal » des POINTS RÉELLEMENT attribués (5 vs 3),
+  // pas du temps + seuil courant → l'audit reste juste même si le seuil change.
+  const fast = championship >= 5;
   return {
     answered: true,
     type: fast ? "live_fast" : "live_normal",

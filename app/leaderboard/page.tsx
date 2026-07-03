@@ -51,7 +51,7 @@ export default async function LeaderboardPage() {
             { label: "Animation / défi RSE", pts: "≥ 5 pts", tag: "équipe" },
             { label: "Pronostic correct (V/N/D)", pts: "+5 pts", tag: "perso" },
             { label: "Score exact", pts: "+10 pts", tag: "perso" },
-            { label: "Quiz rapide (< 5s)", pts: "+5 pts", tag: "perso" },
+            { label: "Quiz rapide (≤ 7s)", pts: "+5 pts", tag: "perso" },
             { label: "Quiz correct", pts: "+3 pts", tag: "perso" },
             { label: "Vote reçu sur Revivez", pts: "+1 pt", tag: "social" },
           ].map(({ label, pts, tag }) => (

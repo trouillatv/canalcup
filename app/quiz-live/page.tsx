@@ -15,12 +15,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Timer, CheckCircle, Zap, Hourglass, Trophy } from "lucide-react";
-import { QUIZ_TIMER_SECONDS, QUIZ_MIN_RESPONSE_MS } from "@/lib/scoring";
+import { QUIZ_TIMER_SECONDS, QUIZ_MIN_RESPONSE_MS, QUIZ_FAST_THRESHOLD_MS } from "@/lib/scoring";
 
 const ANSWERS = ["A", "B", "C", "D"] as const;
 const POLL_INTERVAL_MS = 1000;
-const TIMER_SECONDS = QUIZ_TIMER_SECONDS; // 20s
-const FAST_S = 5;
+const TIMER_SECONDS = QUIZ_TIMER_SECONDS;
+const FAST_S = QUIZ_FAST_THRESHOLD_MS / 1000; // seuil bonus rapidité (dérivé, source unique)
 
 interface LiveQuestion {
   id: string;
