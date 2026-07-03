@@ -1,10 +1,10 @@
 // GET /api/quiz/solo — état du mode SOLO pour le joueur courant.
 //
-// Le Solo rend « le même quiz » jouable individuellement APRÈS le lancement
-// officiel (started_at de la session la plus récente passé). Le joueur enchaîne
-// les questions à son rythme (chrono normal côté client), score réduit
-// (cf. quizSoloPoints). Anti-rejeu : une question déjà répondue (Live OU Solo)
-// ne se rejoue pas. On ne renvoie JAMAIS la bonne réponse ici.
+// Le Solo propose les questions NON posées pendant le Live (complément du tirage)
+// jouables individuellement APRÈS le Live. Le joueur enchaîne les questions à son
+// rythme (chrono normal côté client), score réduit (cf. quizSoloPoints).
+// Anti-rejeu : une question déjà répondue (Live OU Solo) ne se rejoue pas.
+// On ne renvoie JAMAIS la bonne réponse ici.
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -40,13 +40,14 @@ export async function GET() {
     admin.from("quiz_session").select("question_ids").eq("id", session.id).maybeSingle(),
   ]);
 
-  // Le Solo joue EXACTEMENT le même sous-ensemble (et ordre) que le Live de cette
-  // session. Fallback (ancienne session sans set) : toutes les questions.
+  // Le Solo pose les questions NON posées pendant le Live (le complément du
+  // tirage Live) → les absents découvrent d'autres questions, pas un rejeu du
+  // quiz projeté. Fallback (ancienne session sans set) : toutes les questions.
   const setIds = (sessRow?.question_ids as string[] | null) ?? null;
   let questions = allQuestions ?? [];
   if (setIds && setIds.length) {
-    const byId = new Map((allQuestions ?? []).map((q) => [q.id, q]));
-    questions = setIds.map((id) => byId.get(id)).filter((q): q is NonNullable<typeof q> => !!q);
+    const liveSet = new Set(setIds);
+    questions = (allQuestions ?? []).filter((q) => !liveSet.has(q.id));
   }
 
   const answered = [...new Set((mine ?? []).map((a) => a.question_id as string))];
