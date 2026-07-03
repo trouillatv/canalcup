@@ -54,6 +54,7 @@ export interface AuditAnswerRow {
   answer_c: string;
   answer_d: string;
   correct_answer: string;
+  explanation: string; // explication affichée pendant le quiz (peut être vide)
   user_answer: string; // "" si aucune
   is_correct: boolean;
   answered: boolean;
@@ -116,6 +117,7 @@ type RawQuestion = {
   answer_c: string;
   answer_d: string;
   correct_answer: string;
+  explanation: string | null;
 };
 type RawSession = { id: string; created_at: string | null; question_ids: unknown };
 
@@ -170,7 +172,7 @@ export async function buildQuizAudit(onlyUserId?: string): Promise<QuizAudit> {
     selectAll<RawQuestion>(
       admin,
       "quiz_questions",
-      "id, question, answer_a, answer_b, answer_c, answer_d, correct_answer"
+      "id, question, answer_a, answer_b, answer_c, answer_d, correct_answer, explanation"
     ),
     selectAll<RawSession>(admin, "quiz_session", "id, created_at, question_ids"),
     selectAll<{ id: string; display_name: string | null; name: string | null; team_id: string | null }>(
@@ -264,6 +266,7 @@ export async function buildQuizAudit(onlyUserId?: string): Promise<QuizAudit> {
           answer_c: q?.answer_c ?? "",
           answer_d: q?.answer_d ?? "",
           correct_answer: q?.correct_answer ?? "",
+          explanation: q?.explanation ?? "",
           user_answer: a?.answer ?? "",
           is_correct: c.type === "live_fast" || c.type === "live_normal" || c.type === "solo_correct",
           answered: c.answered,

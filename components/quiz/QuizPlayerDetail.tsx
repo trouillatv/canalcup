@@ -36,7 +36,12 @@ interface QRow {
   mode: string;
   question_index: number;
   question_text: string;
+  answer_a: string;
+  answer_b: string;
+  answer_c: string;
+  answer_d: string;
   correct_answer: string;
+  explanation: string;
   user_answer: string;
   is_correct: boolean;
   answered: boolean;
@@ -94,6 +99,7 @@ export function QuizPlayerDetail({
   const [data, setData] = useState<Payload | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -281,13 +287,15 @@ export function QuizPlayerDetail({
                           {q.quiz_title}
                         </p>
                       )}
-                      <div
-                        className={`rounded-xl px-3 py-2.5 border ${
+                      <button
+                        type="button"
+                        onClick={() => setOpenIdx(openIdx === i ? null : i)}
+                        className={`w-full text-left rounded-xl px-3 py-2.5 border transition-colors ${
                           state === "ok"
-                            ? "bg-green-950/20 border-green-900/40"
+                            ? "bg-green-950/20 border-green-900/40 hover:bg-green-950/30"
                             : state === "ko"
-                              ? "bg-red-950/20 border-red-900/40"
-                              : "bg-white/5 border-canal-gray-light"
+                              ? "bg-red-950/20 border-red-900/40 hover:bg-red-950/30"
+                              : "bg-white/5 border-canal-gray-light hover:bg-white/10"
                         }`}
                       >
                         <div className="flex items-start gap-2">
@@ -312,12 +320,47 @@ export function QuizPlayerDetail({
                           {q.answered && <span className="text-canal-gray-muted">⏱ {secs(q.response_time_ms)}</span>}
                           <span className="text-white/40 uppercase text-[10px] font-bold">{q.was_solo ? "Solo" : "Live"}</span>
                         </div>
-                      </div>
+
+                        {/* Détail déplié : les 4 propositions + explication */}
+                        {openIdx === i && (
+                          <div className="mt-2.5 pl-10 space-y-1">
+                            {(["A", "B", "C", "D"] as const).map((letter) => {
+                              const text = (q[`answer_${letter.toLowerCase()}` as "answer_a" | "answer_b" | "answer_c" | "answer_d"]) || "";
+                              const isUser = q.user_answer === letter;
+                              const isRight = q.correct_answer === letter;
+                              return (
+                                <div
+                                  key={letter}
+                                  className={`flex items-center gap-2 px-2 py-1 rounded-lg text-[12px] ${
+                                    isRight
+                                      ? "bg-green-600/20 text-green-200"
+                                      : isUser
+                                        ? "bg-red-600/20 text-red-200"
+                                        : "text-canal-gray-muted"
+                                  }`}
+                                >
+                                  <span className={`w-5 h-5 rounded font-black text-[10px] flex items-center justify-center shrink-0 ${isRight ? "bg-green-600 text-white" : isUser ? "bg-red-600 text-white" : "bg-canal-gray-light text-canal-gray-muted"}`}>{letter}</span>
+                                  <span className="flex-1 min-w-0">{text}</span>
+                                  {isUser && <span className="text-[10px] font-bold shrink-0">← ta réponse</span>}
+                                  {isRight && <span className="text-[10px] font-bold shrink-0">✓ bonne</span>}
+                                </div>
+                              );
+                            })}
+                            {q.explanation && (
+                              <p className="text-[11px] text-canal-gray-muted/90 italic pt-1">💡 {q.explanation}</p>
+                            )}
+                          </div>
+                        )}
+                      </button>
                     </div>
                   );
                 })}
               </div>
               )}
+
+              <p className="text-[11px] text-canal-gray-muted/80 text-center italic pt-1">
+                Le détail des réponses est visible uniquement par toi et les organisateurs.
+              </p>
             </>
           )}
         </div>

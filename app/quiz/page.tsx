@@ -210,6 +210,20 @@ export default function QuizHubPage() {
           Les <b className="text-white">{finalists} premiers</b> seront qualifiés pour la Grande Finale Quiz.
         </p>
 
+        {/* Accès direct à SON propre détail (transparence : vérifier son score). */}
+        {(() => {
+          const me = board?.ranking.find((r) => r.isMe);
+          return me ? (
+            <button
+              type="button"
+              onClick={() => setDetail({ id: me.user_id, name: me.name })}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-canal-yellow/10 border border-canal-yellow/30 text-canal-yellow font-black text-sm hover:bg-canal-yellow/15 transition-colors"
+            >
+              📋 Mes résultats — le détail de mon score
+            </button>
+          ) : null;
+        })()}
+
         {!board ? (
           <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-canal-yellow border-t-transparent rounded-full animate-spin" /></div>
         ) : board.ranking.length === 0 ? (
