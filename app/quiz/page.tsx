@@ -12,6 +12,7 @@ import Link from "next/link";
 import { Brain, Trophy, Radio, Medal, Crown, ChevronRight, Sparkles, Lock, CheckCircle2, Hourglass } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuizPlayerDetail } from "@/components/quiz/QuizPlayerDetail";
+import { QuizReview } from "@/components/quiz/QuizReview";
 
 interface RankRow {
   user_id: string; name: string; points: number; correct: number; answered: number;
@@ -43,6 +44,7 @@ export default function QuizHubPage() {
   const [solo, setSolo] = useState<{ available: boolean; reason: string | null }>({ available: false, reason: null });
   const [board, setBoard] = useState<Board | null>(null);
   const [detail, setDetail] = useState<{ id: string; name: string } | null>(null);
+  const [review, setReview] = useState(false);
 
   useEffect(() => {
     const load = () => {
@@ -224,6 +226,17 @@ export default function QuizHubPage() {
           ) : null;
         })()}
 
+        {/* Revoir le quiz (public, après la fin) : questions + répartition + titres. */}
+        {board && board.finishedSessions > 0 && (
+          <button
+            type="button"
+            onClick={() => setReview(true)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 border border-canal-gray-light text-white font-bold text-sm hover:bg-white/10 transition-colors"
+          >
+            🔁 Revoir le dernier quiz (questions & réponses)
+          </button>
+        )}
+
         {!board ? (
           <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-canal-yellow border-t-transparent rounded-full animate-spin" /></div>
         ) : board.ranking.length === 0 ? (
@@ -264,6 +277,7 @@ export default function QuizHubPage() {
         {detail && (
           <QuizPlayerDetail userId={detail.id} userName={detail.name} onClose={() => setDetail(null)} />
         )}
+        {review && <QuizReview onClose={() => setReview(false)} />}
 
         <div className="rounded-xl bg-white/5 border border-canal-gray-light p-3 space-y-1.5">
           <p className="text-canal-gray-muted text-[11px] leading-relaxed flex items-start gap-1.5">
