@@ -167,6 +167,45 @@ export function quizSoloPoints(isCorrect: boolean): number {
   return Math.round(3 * QUIZ_SOLO_COEFFICIENT); // base (3) sans bonus rapidité, × 0,7 ≈ 2
 }
 
+// ─── Contribution du Quiz au classement GÉNÉRAL (pondérée par SCORE) ──────────
+// Le CHAMPIONNAT Quiz garde les points RÉELS. Mais au classement général
+// CanalCup, on n'injecte PAS les points quiz bruts (ils écraseraient le reste) :
+// on les normalise entre 5 et 50 selon le SCORE quiz réel.
+//   - meilleur score quiz   → QUIZ_GLOBAL_TOP (50)
+//   - plus faible score parmi les PARTICIPANTS → QUIZ_GLOBAL_BOTTOM (5)
+//   - les autres            → interpolation linéaire entre 5 et 50 selon le score
+//   - non-participant (0 pt) → 0
+// Interpolation par SCORE (pas par rang) → les ex æquo (même score) reçoivent
+// automatiquement la MÊME valeur : aucune contestation possible sur une égalité.
+export const QUIZ_GLOBAL_TOP = 50;
+export const QUIZ_GLOBAL_BOTTOM = 5;
+
+export function quizGlobalPoints(
+  championshipByUser: Map<string, number>
+): Map<string, number> {
+  const out = new Map<string, number>();
+  // Non-participants (0 pt quiz) → 0 au global.
+  for (const [uid, pts] of championshipByUser) if ((pts ?? 0) <= 0) out.set(uid, 0);
+
+  const participants = [...championshipByUser.entries()].filter(([, p]) => (p ?? 0) > 0);
+  if (participants.length === 0) return out;
+
+  const scores = participants.map(([, p]) => p);
+  const max = Math.max(...scores);
+  const min = Math.min(...scores);
+  for (const [uid, p] of participants) {
+    if (max === min) {
+      // Tous à égalité (ou 1 seul participant) → tous au maximum.
+      out.set(uid, QUIZ_GLOBAL_TOP);
+      continue;
+    }
+    const v =
+      QUIZ_GLOBAL_BOTTOM + ((p - min) / (max - min)) * (QUIZ_GLOBAL_TOP - QUIZ_GLOBAL_BOTTOM);
+    out.set(uid, Math.round(v));
+  }
+  return out;
+}
+
 // Recalculate and update points for all predictions on a finished match
 // Called by the cron after match finishes
 export function scoreLabel(points: number): string {

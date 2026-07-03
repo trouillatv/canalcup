@@ -66,6 +66,11 @@ function PlayerList({ rows, metric }: { rows: IndividualRow[]; metric: PlayerMet
             <div className="text-right shrink-0">
               <p className="font-black text-canal-yellow text-lg tabular-nums">{val(r)}</p>
               <p className="text-[10px] text-canal-gray-muted">{unit}</p>
+              {metric === "quiz" && r.quiz > 0 && (
+                <p className="text-[10px] text-canal-gray-muted/80 mt-0.5">
+                  → <b className="text-white/80">{r.quizGlobal}</b> au général
+                </p>
+              )}
             </div>
           </Link>
         );
@@ -111,6 +116,7 @@ export function LeaderboardTabs({
         <div>
           <p className="text-canal-gray-muted text-xs mb-3">
             Tous les points confondus : pronos + quiz + babyfoot + animations du binôme.
+            <span className="block mt-1 text-canal-gray-muted/80">🧠 Le quiz compte ici <b className="text-white/80">pondéré (5→50) selon le score</b> (meilleur = 50 pts, plus faible participant = 5) — voir l&apos;onglet Quiz pour le détail.</span>
           </p>
           <PlayerList rows={individualRows} metric="general" />
         </div>
@@ -186,7 +192,14 @@ export function LeaderboardTabs({
 
       {tab === "quiz" && (
         <div>
-          <p className="text-canal-gray-muted text-xs mb-3">Classement sur les seuls points de <span className="text-white font-bold">quiz</span>.</p>
+          <p className="text-canal-gray-muted text-xs mb-2">Classement du <span className="text-white font-bold">Championnat Quiz</span> — points <span className="text-white font-bold">réels</span> (Live 100 %, Solo réduit).</p>
+          <div className="canal-card mb-3 text-[11px] text-canal-gray-muted leading-relaxed">
+            🧠 <b className="text-white">Deux comptes distincts.</b> Le <b className="text-white">championnat quiz</b> (ci-dessous)
+            garde les points réels et qualifie pour la finale. Au <b className="text-white">classement général</b>, la
+            contribution quiz est <b className="text-white">normalisée entre 5 et 50 selon le score</b> (meilleur = 50 pts,
+            plus faible participant = 5, absent = 0) pour ne pas écraser pronos / babyfoot / animations. La mention
+            « → X au général » indique cette contribution pondérée.
+          </div>
           <PlayerList rows={individualRows} metric="quiz" />
         </div>
       )}

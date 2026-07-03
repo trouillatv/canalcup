@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Brain, Trophy, Radio, Medal, Crown, ChevronRight, Sparkles, Lock, CheckCircle2, Hourglass } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { QuizPlayerDetail } from "@/components/quiz/QuizPlayerDetail";
 
 interface RankRow {
   user_id: string; name: string; points: number; correct: number; answered: number;
@@ -27,6 +28,7 @@ interface Board {
   qualifClosed: boolean;
   finale: { enabled: boolean; dateLabel: string; timeLabel: string; title: string };
   schedule: SchedItem[];
+  viewerIsAdmin?: boolean;
 }
 
 const SOLO_LOCK: Record<string, string> = {
@@ -40,6 +42,7 @@ export default function QuizHubPage() {
   const [liveActive, setLiveActive] = useState(false);
   const [solo, setSolo] = useState<{ available: boolean; reason: string | null }>({ available: false, reason: null });
   const [board, setBoard] = useState<Board | null>(null);
+  const [detail, setDetail] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     const load = () => {
@@ -215,29 +218,37 @@ export default function QuizHubPage() {
           </p>
         ) : (
           <div className="flex flex-col gap-1.5">
-            {board.ranking.slice(0, 30).map((r) => (
-              <div
-                key={r.user_id}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5",
-                  r.isMe ? "bg-canal-yellow/15 border border-canal-yellow/40" : r.qualified ? "bg-canal-yellow/5 border border-canal-yellow/20" : "bg-white/5"
-                )}
-              >
-                <span className={cn("font-black tabular-nums w-7 text-center", r.rank === 1 ? "text-canal-yellow" : r.rank <= 3 ? "text-white" : "text-white/40")}>{r.rank}</span>
-                <span className="flex-1 font-bold text-white text-sm truncate">
-                  {r.rank <= 3 ? `${["🥇", "🥈", "🥉"][r.rank - 1]} ` : ""}{r.name}
-                  {r.isMe && <span className="text-canal-yellow text-xs"> · toi</span>}
-                </span>
-                {r.qualified && (
-                  <span className="flex items-center gap-1 text-[10px] font-black text-canal-yellow bg-canal-yellow/10 border border-canal-yellow/30 px-1.5 py-0.5 rounded-full uppercase shrink-0">
-                    <Medal size={11} /> {board.qualifClosed ? "Finaliste" : "Qualifié"}
+            {board.ranking.slice(0, 30).map((r) => {
+              return (
+                <button
+                  key={r.user_id}
+                  type="button"
+                  onClick={() => setDetail({ id: r.user_id, name: r.name })}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-left w-full transition-colors hover:bg-white/10 cursor-pointer",
+                    r.isMe ? "bg-canal-yellow/15 border border-canal-yellow/40" : r.qualified ? "bg-canal-yellow/5 border border-canal-yellow/20" : "bg-white/5"
+                  )}
+                >
+                  <span className={cn("font-black tabular-nums w-7 text-center", r.rank === 1 ? "text-canal-yellow" : r.rank <= 3 ? "text-white" : "text-white/40")}>{r.rank}</span>
+                  <span className="flex-1 font-bold text-white text-sm truncate">
+                    {r.rank <= 3 ? `${["🥇", "🥈", "🥉"][r.rank - 1]} ` : ""}{r.name}
+                    {r.isMe && <span className="text-canal-yellow text-xs"> · toi</span>}
                   </span>
-                )}
-                <span className="text-white/40 text-xs tabular-nums hidden sm:inline">{r.correct}✓</span>
-                <span className="font-black text-canal-yellow tabular-nums text-sm w-14 text-right">{r.points} pts</span>
-              </div>
-            ))}
+                  {r.qualified && (
+                    <span className="flex items-center gap-1 text-[10px] font-black text-canal-yellow bg-canal-yellow/10 border border-canal-yellow/30 px-1.5 py-0.5 rounded-full uppercase shrink-0">
+                      <Medal size={11} /> {board.qualifClosed ? "Finaliste" : "Qualifié"}
+                    </span>
+                  )}
+                  <span className="text-white/40 text-xs tabular-nums hidden sm:inline">{r.correct}✓</span>
+                  <span className="font-black text-canal-yellow tabular-nums text-sm w-14 text-right">{r.points} pts</span>
+                </button>
+              );
+            })}
           </div>
+        )}
+
+        {detail && (
+          <QuizPlayerDetail userId={detail.id} userName={detail.name} onClose={() => setDetail(null)} />
         )}
 
         <div className="rounded-xl bg-white/5 border border-canal-gray-light p-3 space-y-1.5">
@@ -248,6 +259,10 @@ export default function QuizHubPage() {
           <p className="text-canal-gray-muted text-[11px] leading-relaxed flex items-start gap-1.5">
             <Trophy size={13} className="text-canal-yellow shrink-0 mt-0.5" />
             <span>Live = 100 % des points · Solo = points réduits.</span>
+          </p>
+          <p className="text-canal-gray-muted text-[11px] leading-relaxed flex items-start gap-1.5">
+            <Sparkles size={13} className="text-canal-yellow shrink-0 mt-0.5" />
+            <span><b className="text-white">Clique sur un joueur</b> pour voir le détail : le tien question par question (réponse, bon/faux, temps, points), et le résumé public des autres.</span>
           </p>
         </div>
       </section>

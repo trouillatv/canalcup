@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Team, LeaderboardRow } from "@/lib/supabase/types";
 import { SCORE_EVENT_CATEGORIES_IN_TOTAL, weightedContribution } from "@/lib/scoring/config";
+import { quizGlobalPoints } from "@/lib/scoring";
 import { getAdminEmails } from "@/lib/data/roles";
 import { selectAll } from "@/lib/data/select-all";
 
@@ -304,7 +305,8 @@ export interface IndividualRow {
   display_name: string | null;
   team_name: string | null;
   pronos: number; // brut (perso)
-  quiz: number; // brut (perso)
+  quiz: number; // brut (perso) = points RÉELS du championnat quiz
+  quizGlobal: number; // contribution PONDÉRÉE par rang au classement général (0 ou 5..50)
   babyfoot: number; // brut (binôme, crédité aux 2)
   animations: number; // brut (binôme, crédité aux 2)
   pronosCount: number;
@@ -413,6 +415,11 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
     // 🎰 Casino : points perso pliés dans le pilier pronostics (jeu de pronos).
     for (const [uid, pts] of casinoByUser) add(pronosRaw, uid, pts);
 
+    // Contribution QUIZ au classement GÉNÉRAL : normalisée entre 5 et 50 selon le
+    // SCORE quiz (meilleur = 50, plus faible participant = 5, absent = 0) — les
+    // points bruts n'écrasent plus le total. Le championnat quiz garde r.quiz réel.
+    const quizGlobalMap = quizGlobalPoints(quizRaw);
+
     type URow = { id: string; display_name: string | null; name: string | null; team_id: string | null; email: string | null };
     const rows: IndividualRow[] = (users as URow[])
       .filter((u) => !adminEmails.has((u.email ?? "").toLowerCase())) // admins hors classement
@@ -420,19 +427,21 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
         const tb = u.team_id ? teamAgg.get(u.team_id) : undefined;
         const pronos = Math.round(pronosRaw.get(u.id) ?? 0);
         const quiz = Math.round(quizRaw.get(u.id) ?? 0);
+        const quizGlobal = quizGlobalMap.get(u.id) ?? 0;
         const babyfoot = Math.round(tb?.babyRaw ?? 0);
         const animations = Math.round(tb?.animRaw ?? 0);
         return {
           user_id: u.id,
           display_name: u.display_name ?? u.name ?? null,
           team_name: u.team_id ? teamName.get(u.team_id) ?? null : null,
-          pronos, quiz, babyfoot, animations,
+          pronos, quiz, quizGlobal, babyfoot, animations,
           pronosCount: pronosCount.get(u.id) ?? 0,
           quizCount: quizCount.get(u.id) ?? 0,
-          // Le quiz contribue au classement GLOBAL au maximum à hauteur de 50 pts
-          // (le championnat quiz peut cumuler plus, mais il ne doit pas écraser le
-          // total). Le classement Quiz dédié affiche, lui, les points réels (r.quiz).
-          total: pronos + Math.min(50, quiz) + babyfoot + animations,
+          // Classement GÉNÉRAL : la contribution quiz est PONDÉRÉE par rang
+          // (quizGlobal : 1er=50, dernier participant=5, absent=0) → les points
+          // bruts n'écrasent plus le total. Le classement Quiz dédié affiche,
+          // lui, les points RÉELS (r.quiz).
+          total: pronos + quizGlobal + babyfoot + animations,
           rank: 0,
         };
       })

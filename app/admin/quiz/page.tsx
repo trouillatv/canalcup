@@ -15,6 +15,7 @@ import {
   Radio,
   Trophy,
   Users,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { QuizQuestion, QuizCategory, QuizDifficulty } from "@/lib/supabase/types";
@@ -263,6 +264,34 @@ export default function AdminQuizPage() {
           <Play size={14} /> Diaporama
         </Link>
       </div>
+
+      {/* ─── Audit / Export CSV ─── */}
+      <section className="canal-card space-y-3 border border-canal-yellow/20">
+        <div className="flex items-center gap-2">
+          <Download size={16} className="text-canal-yellow" />
+          <h2 className="font-bold text-white">Audit &amp; export</h2>
+        </div>
+        <p className="text-xs text-canal-gray-muted leading-relaxed">
+          Chaque point est explicable. Export <b className="text-white">détaillé</b> = 1 ligne par
+          (joueur × question), Live <b>et</b> Solo, avec temps de réponse, bon/faux, points bruts,
+          points championnat et point global (plafonné à 50). Export <b className="text-white">résumé</b> =
+          bilan par joueur.
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <a
+            href="/api/admin/quiz/export?type=detail"
+            className="flex items-center justify-center gap-2 py-2.5 bg-canal-yellow text-canal-black font-black text-sm rounded-xl hover:bg-canal-yellow-hover transition-colors"
+          >
+            <Download size={14} /> CSV détaillé
+          </a>
+          <a
+            href="/api/admin/quiz/export?type=summary"
+            className="flex items-center justify-center gap-2 py-2.5 bg-canal-gray-mid text-white font-black text-sm rounded-xl border border-canal-gray-light hover:bg-canal-gray-light transition-colors"
+          >
+            <Download size={14} /> CSV résumé
+          </a>
+        </div>
+      </section>
 
       {/* ─── Live Show — pilotage ─── */}
       <section className="canal-card space-y-4 border border-canal-yellow/30">

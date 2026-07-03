@@ -11,6 +11,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isAdminRequest } from "@/lib/auth/admin";
 import { QUIZ_CHAMPIONSHIP, isQualifClosed } from "@/lib/config/quiz-championship";
 
 type Tally = { points: number; correct: number; answered: number };
@@ -34,10 +35,11 @@ function rank(
     .map((r, i) => ({ ...r, rank: i + 1, isMe: r.user_id === myId }));
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const admin = createAdminClient();
+  const viewerIsAdmin = await isAdminRequest(req);
 
   const [{ data: allRows }, { data: recent }, { count: finishedSessions }] = await Promise.all([
     admin.from("quiz_answers").select("user_id, points_awarded, is_correct, quiz_session_id"),
@@ -79,6 +81,7 @@ export async function GET() {
       qualifClosed: isQualifClosed(),
       finale: QUIZ_CHAMPIONSHIP.finale,
       schedule: QUIZ_CHAMPIONSHIP.schedule,
+      viewerIsAdmin,
     },
     { headers: { "Cache-Control": "no-store" } }
   );
