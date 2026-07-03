@@ -12,6 +12,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminRequest } from "@/lib/auth/admin";
+import { selectAll } from "@/lib/data/select-all";
 import { QUIZ_CHAMPIONSHIP, isQualifClosed } from "@/lib/config/quiz-championship";
 
 type Tally = { points: number; correct: number; answered: number };
@@ -41,8 +42,15 @@ export async function GET(req: Request) {
   const admin = createAdminClient();
   const viewerIsAdmin = await isAdminRequest(req);
 
-  const [{ data: allRows }, { data: recent }, { count: finishedSessions }] = await Promise.all([
-    admin.from("quiz_answers").select("user_id, points_awarded, is_correct, quiz_session_id"),
+  // ⚠️ selectAll (paginé) : PostgREST tronque chaque réponse à 1000 lignes. Avec
+  // >1000 réponses quiz, un `.select()` simple SOUS-COMPTAIT les points (un joueur
+  // affichait 92 au lieu de 121). On lit TOUTES les lignes.
+  const [allRows, { data: recent }, { count: finishedSessions }] = await Promise.all([
+    selectAll<{ user_id: string; points_awarded: number | null; is_correct: boolean; quiz_session_id: string | null }>(
+      admin,
+      "quiz_answers",
+      "user_id, points_awarded, is_correct, quiz_session_id"
+    ),
     admin.from("quiz_session").select("id, status").order("created_at", { ascending: false }).limit(1).maybeSingle(),
     admin.from("quiz_session").select("id", { count: "exact", head: true }).eq("status", "finished"),
   ]);

@@ -17,6 +17,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminRequest } from "@/lib/auth/admin";
+import { selectAll } from "@/lib/data/select-all";
 
 export async function GET(req: Request) {
   if (!(await isAdminRequest(req))) {
@@ -47,13 +48,21 @@ export async function GET(req: Request) {
     .from("quiz_questions")
     .select("*", { count: "exact", head: true });
 
-  // 2. Toutes les réponses depuis le début de la session.
-  const { data: answers } = await supabase
-    .from("quiz_answers")
-    .select("user_id, team_id, question_id, is_correct, points_awarded, created_at")
-    .gte("created_at", session.created_at);
-
-  const list = answers ?? [];
+  // 2. Toutes les réponses depuis le début de la session (paginé : une grosse
+  //    session dépasse 1000 réponses → sans selectAll, le récap était tronqué).
+  const list = await selectAll<{
+    user_id: string;
+    team_id: string;
+    question_id: string;
+    is_correct: boolean;
+    points_awarded: number | null;
+    created_at: string;
+  }>(
+    supabase,
+    "quiz_answers",
+    "user_id, team_id, question_id, is_correct, points_awarded, created_at",
+    (q) => q.gte("created_at", session.created_at)
+  );
 
   // 3. Enrichit avec name (users) et name (teams).
   const userIds = Array.from(new Set(list.map((a) => a.user_id)));

@@ -26,6 +26,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { QUIZ_TIMER_SECONDS, QUIZ_TIMEUP_MS, QUIZ_STATS_MS, QUIZ_REVEAL_END_MS } from "@/lib/scoring";
 import { advanceQuizSession } from "@/lib/quiz/session";
+import { selectAll } from "@/lib/data/select-all";
 
 type Supa = ReturnType<typeof createAdminClient>;
 
@@ -36,10 +37,13 @@ const SESSION_COLS = "id, current_question_id, question_index, started_at, statu
 async function computeStandings(
   supabase: Supa
 ): Promise<{ name: string; points: number; correct: number }[]> {
-  const { data: rows } = await supabase
-    .from("quiz_answers")
-    .select("user_id, points_awarded, is_correct");
-  if (!rows?.length) return [];
+  // selectAll : paginé (sinon >1000 réponses → classement final tronqué/sous-compté).
+  const rows = await selectAll<{ user_id: string; points_awarded: number | null; is_correct: boolean }>(
+    supabase,
+    "quiz_answers",
+    "user_id, points_awarded, is_correct"
+  );
+  if (!rows.length) return [];
   const byUser = new Map<string, { points: number; correct: number }>();
   for (const r of rows) {
     const e = byUser.get(r.user_id) ?? { points: 0, correct: 0 };
