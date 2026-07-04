@@ -8,17 +8,19 @@ import { useState } from "react";
 import Link from "next/link";
 import { track } from "@/lib/analytics/track";
 import { LeaderboardTable } from "./LeaderboardTable";
+import { RecentForm } from "./RecentForm";
 import type { LeaderboardRow } from "@/lib/supabase/types";
 import type { IndividualRow } from "@/lib/data/teams";
 import type { ServiceLeaderboardRow } from "@/lib/data/users";
 
-type Tab = "general" | "teams" | "individual" | "pronos" | "quiz" | "services";
+type Tab = "general" | "teams" | "individual" | "pronos" | "forme" | "quiz" | "services";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "general", label: "🏆 Général" },
   { id: "teams", label: "👥 Binômes" },
   { id: "individual", label: "🧍 Individuel" },
   { id: "pronos", label: "🎯 Pronos" },
+  { id: "forme", label: "🔥 Forme" },
   { id: "quiz", label: "🧠 Quiz" },
   { id: "services", label: "🏢 Services" },
 ];
@@ -189,6 +191,8 @@ export function LeaderboardTabs({
           <PlayerList rows={individualRows} metric="pronos" />
         </div>
       )}
+
+      {tab === "forme" && <RecentForm />}
 
       {tab === "quiz" && (
         <div>
