@@ -28,19 +28,19 @@ export interface EventSplashConfig {
 
 export const EVENT_SPLASH: EventSplashConfig = {
   enabled: true,
-  // N'apparaît qu'à partir de la VEILLE (dimanche 12 juil.) — avant, l'accueil
+  // N'apparaît qu'à partir de la VEILLE (mardi 14 juil.) — avant, l'accueil
   // reste sur matchs/pronos.
-  showFrom: "2026-07-12T00:00:00+11:00",
-  showUntil: "2026-07-13T13:00:00+11:00", // après le quiz #2 du 13 juil. midi (heure NC)
+  showFrom: "2026-07-14T00:00:00+11:00",
+  showUntil: "2026-07-15T13:00:00+11:00", // après le quiz #2 du 15 juil. midi (heure NC)
   emoji: "🎆",
   title: "Grand Quiz CanalCup #2",
-  dateLabel: "Lundi 13 juillet",
+  dateLabel: "Mercredi 15 juillet",
   timeLabel: "12h00",
   location: "Salle de réunion · ou sur votre téléphone",
   body: [
-    "2e (et dernière) manche de qualification avant la Grande Finale du 17 juillet !",
+    "Le 2e (et dernier) quiz du championnat — le premier a cartonné, on remet ça !",
     "En salle de réunion pour les présents, ou depuis votre téléphone sur la page Quiz.",
-    "📱 Connectez-vous, répondez en direct — les 5 meilleurs du championnat filent en finale.",
+    "📱 Connectez-vous, répondez en direct — les points s'ajoutent au classement cumulé des 2 quiz.",
   ],
   primaryCta: { label: "Participer au quiz", href: "/quiz" },
   secondaryLabel: "Entrer dans CanalCup",

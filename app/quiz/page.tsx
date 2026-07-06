@@ -169,9 +169,11 @@ export default function QuizHubPage() {
                 </span>
               );
             })}
-            <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black border bg-canal-yellow/10 border-canal-yellow/30 text-canal-yellow">
-              🏆 Grande Finale
-            </span>
+            {board.finale?.enabled && (
+              <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black border bg-canal-yellow/10 border-canal-yellow/30 text-canal-yellow">
+                🏆 Grande Finale
+              </span>
+            )}
           </div>
         </section>
       )}
@@ -205,12 +207,14 @@ export default function QuizHubPage() {
           <Trophy size={16} className="text-canal-yellow" />
           <h2 className="font-black text-white">Championnat Quiz</h2>
           <span className="text-[10px] font-black text-white/50 bg-white/10 px-1.5 py-0.5 rounded-full uppercase">Classement individuel</span>
-          {board?.qualifClosed && (
+          {board?.finale?.enabled && board?.qualifClosed && (
             <span className="text-[10px] font-black text-canal-yellow bg-canal-yellow/10 px-1.5 py-0.5 rounded-full uppercase">Qualifs closes</span>
           )}
         </div>
         <p className="text-canal-gray-muted text-xs -mt-1">
-          Les <b className="text-white">{finalists} premiers</b> seront qualifiés pour la Grande Finale Quiz.
+          {board?.finale?.enabled
+            ? <>Les <b className="text-white">{finalists} premiers</b> seront qualifiés pour la Grande Finale Quiz.</>
+            : <>Classement <b className="text-white">cumulé sur les 2 quiz</b> — le plus de points l&apos;emporte.</>}
         </p>
 
         {/* Accès direct à SON propre détail (transparence : vérifier son score). */}
@@ -288,7 +292,7 @@ export default function QuizHubPage() {
         <div className="rounded-xl bg-white/5 border border-canal-gray-light p-3 space-y-1.5">
           <p className="text-canal-gray-muted text-[11px] leading-relaxed flex items-start gap-1.5">
             <Sparkles size={13} className="text-canal-yellow shrink-0 mt-0.5" />
-            <span><b className="text-white">Deux objectifs, sans conflit :</b> tes points de quiz comptent <b className="text-white">aussi</b> pour ton équipe au classement général CanalCup. Et ce <b className="text-white">classement individuel</b> sert à entrer dans le Top {finalists} pour la finale.</span>
+            <span><b className="text-white">Deux objectifs, sans conflit :</b> tes points de quiz comptent <b className="text-white">aussi</b> pour ton équipe au classement général CanalCup. Et ce <b className="text-white">classement individuel</b> {board?.finale?.enabled ? <>désigne le Top {finalists} pour la finale.</> : <>récompense le·la meilleur·e sur le cumul des 2 quiz.</>}</span>
           </p>
           <p className="text-canal-gray-muted text-[11px] leading-relaxed flex items-start gap-1.5">
             <Trophy size={13} className="text-canal-yellow shrink-0 mt-0.5" />

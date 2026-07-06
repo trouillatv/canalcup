@@ -6,19 +6,19 @@ export const QUIZ_CHAMPIONSHIP = {
   // Ouverture du Quiz LIVE (heure Nouvelle-Calédonie, UTC+11) : on ne peut pas
   // DÉMARRER une session de quiz Live avant cet instant. Garde-fou anti-lancement
   // accidentel (une session de test oubliée affichait « 🔴 Quiz en direct »).
-  // Re-armé pour la 2e phase de qualif (Quiz #2) : impossible de lancer un Live
-  // avant le lundi 13 juillet midi (heure NC).
-  liveOpenAt: "2026-07-13T12:00:00+11:00",
-  liveOpenLabel: "lundi 13 juillet à 12h00 (heure NC)",
+  // Re-armé pour le 2e quiz : impossible de lancer un Live avant le mercredi
+  // 15 juillet midi (heure NC).
+  liveOpenAt: "2026-07-15T12:00:00+11:00",
+  liveOpenLabel: "mercredi 15 juillet à 12h00 (heure NC)",
   // Nombre de joueurs qualifiés pour la Grande Finale (badge « Qualifié »).
   finalists: 5,
   // Comptes « hors concours » : ils peuvent avoir un score quiz (organisateurs,
   // démos), mais ne prennent JAMAIS une place de finaliste — les 5 places vont
   // aux vrais joueurs. (Ex. le compte participant de l'organisateur.)
   finalsExcludedEmails: ["vincent.trouillat@canal-plus.com"] as string[],
-  // Clôture du classement qualificatif : après le 2e quiz (13 juil) + sa fenêtre
-  // Solo. Le top 5 est alors figé (les finalistes de la Grande Finale du 17).
-  qualifCutoff: "2026-07-14T23:59:00+11:00",
+  // Pas de finale : le championnat = classement CUMULÉ sur les 2 quiz. On fige
+  // l'affichage après le 2e quiz (15 juil) + sa fenêtre Solo.
+  qualifCutoff: "2026-07-16T23:59:00+11:00",
   // Fenêtre du mode Solo : il N'OUVRE qu'à la FIN du Live, et se referme ce
   // nombre d'heures plus tard (pour que personne n'ait les réponses 3 jours
   // après par les collègues). 12 h ≈ « le soir même / le lendemain matin ».
@@ -27,13 +27,13 @@ export const QUIZ_CHAMPIONSHIP = {
   // dynamiquement (nb de quiz Live terminés).
   schedule: [
     { n: 1, label: "Quiz #1", dateLabel: "Ven 3 juil." },
-    { n: 2, label: "Quiz #2", dateLabel: "Lun 13 juil." },
+    { n: 2, label: "Quiz #2", dateLabel: "Mer 15 juil." },
   ],
-  // Grande Finale Quiz (top 5) — inscrite au programme/calendrier.
+  // Pas de Grande Finale : le championnat se joue sur le CUMUL des 2 quiz.
   finale: {
-    enabled: true,
-    dateLabel: "Vendredi 17 juillet",
-    timeLabel: "12h00",
+    enabled: false,
+    dateLabel: "",
+    timeLabel: "",
     title: "Grande Finale Quiz",
   },
 };

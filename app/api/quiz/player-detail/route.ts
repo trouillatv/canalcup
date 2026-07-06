@@ -60,7 +60,8 @@ export async function GET(req: Request) {
   const finalists = QUIZ_CHAMPIONSHIP.finalists;
   const { data: targetUser } = await admin.from("users").select("email").eq("id", targetId).maybeSingle();
   const horsConcours = isFinalsExcluded(targetUser?.email);
-  const qualified = !horsConcours && summary.quiz_rank != null && summary.quiz_rank <= finalists;
+  const qualified =
+    QUIZ_CHAMPIONSHIP.finale.enabled && !horsConcours && summary.quiz_rank != null && summary.quiz_rank <= finalists;
 
   return NextResponse.json(
     {

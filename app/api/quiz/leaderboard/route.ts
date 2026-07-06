@@ -76,6 +76,8 @@ export async function GET(req: Request) {
 
   // Qualification : on ne compte QUE les vrais joueurs vers les places de finaliste
   // (un hors-concours en tête ne « vole » pas une place au top 5).
+  // Pas de finale (finale.enabled=false) → aucune qualification, juste le cumul.
+  const finaleOn = QUIZ_CHAMPIONSHIP.finale.enabled;
   let finalPos = 0;
   const championship = rank(rows, nameById, myId).map((r) => {
     const horsConcours = excludedIds.has(r.user_id);
@@ -83,7 +85,7 @@ export async function GET(req: Request) {
     return {
       ...r,
       horsConcours,
-      qualified: !horsConcours && finalPos <= QUIZ_CHAMPIONSHIP.finalists,
+      qualified: finaleOn && !horsConcours && finalPos <= QUIZ_CHAMPIONSHIP.finalists,
     };
   });
 
