@@ -8,6 +8,9 @@
 
 export interface EventSplashConfig {
   enabled: boolean;
+  /** ISO : AVANT cet instant, l'annonce ne s'affiche pas encore (ex. « la veille »).
+   *  Optionnel — absent = affichable dès maintenant. */
+  showFrom?: string;
   /** ISO : après cet instant, l'annonce ne s'affiche plus automatiquement. */
   showUntil: string;
   emoji: string;
@@ -25,6 +28,9 @@ export interface EventSplashConfig {
 
 export const EVENT_SPLASH: EventSplashConfig = {
   enabled: true,
+  // N'apparaît qu'à partir de la VEILLE (dimanche 12 juil.) — avant, l'accueil
+  // reste sur matchs/pronos.
+  showFrom: "2026-07-12T00:00:00+11:00",
   showUntil: "2026-07-13T13:00:00+11:00", // après le quiz #2 du 13 juil. midi (heure NC)
   emoji: "🎆",
   title: "Grand Quiz CanalCup #2",

@@ -27,6 +27,7 @@ export function EventSplash() {
   useEffect(() => {
     const c = EVENT_SPLASH;
     if (!c.enabled) return;
+    if (c.showFrom && Date.now() < new Date(c.showFrom).getTime()) return; // pas encore la veille
     if (Date.now() > new Date(c.showUntil).getTime()) return; // date passée
     try {
       if (sessionStorage.getItem(SESSION_KEY)) return; // déjà fermé cette session
