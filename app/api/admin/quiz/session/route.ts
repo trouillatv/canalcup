@@ -15,7 +15,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminRequest } from "@/lib/auth/admin";
-import { advanceQuizSession, futureStartedAt, listQuestionIds, pickRandomQuestionIds } from "@/lib/quiz/session";
+import { advanceQuizSession, futureStartedAt, listQuestionIds, pickRandomQuestionIds, usedQuestionIds } from "@/lib/quiz/session";
 import { isLiveOpen, QUIZ_CHAMPIONSHIP } from "@/lib/config/quiz-championship";
 import { QUIZ_LIVE_QUESTION_COUNT } from "@/lib/scoring";
 
@@ -55,17 +55,19 @@ export async function POST(req: Request) {
 
   if (action === "start") {
     // 🔒 Verrou d'ouverture : impossible de démarrer le Live avant l'heure
-    // officielle (vendredi 3 juillet 12h00, heure NC). `force: true` permet une
-    // répétition volontaire de l'organisateur.
+    // officielle (cf. liveOpenLabel). `force: true` permet une répétition
+    // volontaire de l'organisateur.
     if (!isLiveOpen() && body.force !== true) {
       return NextResponse.json(
         { error: `🔒 Le Quiz Live ouvre le ${QUIZ_CHAMPIONSHIP.liveOpenLabel}. Démarrage impossible avant.` },
         { status: 403 }
       );
     }
-    // Tirage aléatoire d'un sous-ensemble (60 par défaut) — on ne pose pas TOUTES
-    // les questions, et l'ordre change à chaque quiz.
-    const chosen = await pickRandomQuestionIds(supabase, QUIZ_LIVE_QUESTION_COUNT);
+    // Tirage aléatoire d'un sous-ensemble (60 par défaut), en EXCLUANT les
+    // questions déjà posées dans les quiz précédents → pas de répétition, et pas
+    // de collision anti-rejeu (reposer une question écraserait l'ancienne réponse).
+    const already = await usedQuestionIds(supabase);
+    const chosen = await pickRandomQuestionIds(supabase, QUIZ_LIVE_QUESTION_COUNT, already);
     if (chosen.length === 0) {
       return NextResponse.json({ error: "Aucune question quiz en base." }, { status: 400 });
     }

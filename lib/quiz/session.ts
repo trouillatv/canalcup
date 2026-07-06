@@ -23,13 +23,35 @@ export async function listQuestionIds(supabase: Supa): Promise<string[]> {
 
 // Tire `count` ids de questions AU HASARD (ordre aléatoire). Sert au démarrage
 // d'une session : on ne pose pas toutes les questions, mais un sous-ensemble.
-export async function pickRandomQuestionIds(supabase: Supa, count: number): Promise<string[]> {
+// `exclude` (ex. les questions des quiz précédents) est évité en priorité — pas
+// de répétition d'un quiz à l'autre, et surtout pas de collision anti-rejeu
+// (reposer une question déjà répondue écraserait l'ancienne réponse). Si tout
+// est exclu, garde-fou : on retombe sur l'ensemble complet.
+export async function pickRandomQuestionIds(
+  supabase: Supa,
+  count: number,
+  exclude?: Set<string>
+): Promise<string[]> {
   const all = await listQuestionIds(supabase);
-  for (let i = all.length - 1; i > 0; i--) {
+  const filtered = exclude && exclude.size ? all.filter((id) => !exclude.has(id)) : all;
+  const pool = filtered.length ? filtered : all;
+  for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [all[i], all[j]] = [all[j], all[i]];
+    [pool[i], pool[j]] = [pool[j], pool[i]];
   }
-  return all.slice(0, Math.max(1, Math.min(count, all.length)));
+  return pool.slice(0, Math.max(1, Math.min(count, pool.length)));
+}
+
+// Toutes les questions déjà utilisées dans des sessions passées (union des
+// question_ids) → à exclure du tirage d'un nouveau quiz.
+export async function usedQuestionIds(supabase: Supa): Promise<Set<string>> {
+  const { data } = await supabase.from("quiz_session").select("question_ids");
+  const set = new Set<string>();
+  for (const s of data ?? []) {
+    const ids = (s as { question_ids: unknown }).question_ids;
+    if (Array.isArray(ids)) for (const id of ids) set.add(id as string);
+  }
+  return set;
 }
 
 // La liste de passage d'une session = sa colonne question_ids (sous-ensemble

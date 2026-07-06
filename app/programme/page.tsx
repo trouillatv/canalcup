@@ -39,10 +39,9 @@ const EVENTS: EventItem[] = [
   { date: "Mer 1 juil.", title: "Ouverture des pronostics des 16es", why: "Les gens reviennent des poules", icon: Target },
   { date: "Ven 3 juil.", time: "midi", title: "Grand Quiz #1", why: "Tout le monde a les matchs en tête", icon: Brain, accent: "star" },
   { date: "Jeu 9 juil.", time: "midi", title: "Baby-foot", why: "Entre les huitièmes et les quarts", icon: Gamepad2 },
-  { date: "Lun 13 juil.", time: "midi", title: "Quiz #2 (plus court)", why: "On relance avant les demi-finales", icon: Brain },
-  { date: "Ven 17 juil.", time: "midi", title: "Quiz #3", why: "Dernier quiz avant la clôture du championnat", icon: Brain },
+  { date: "Lun 13 juil.", time: "midi", title: "Grand Quiz #2 — qualif", why: "Dernière manche de qualification avant la finale", icon: Brain, accent: "star" },
   { date: "Jeu 16 / Ven 17 juil.", title: "Finale Baby-foot & animations", why: "La finale approche", icon: Gamepad2 },
-  { date: "Lun 20 juil.", time: "midi", title: "Grande Finale Quiz", why: "Les 5 meilleurs du championnat Quiz s'affrontent en direct", icon: Brain, accent: "star" },
+  { date: "Ven 17 juil.", time: "midi", title: "Grande Finale Quiz", why: "Les 5 meilleurs du championnat Quiz s'affrontent en direct", icon: Brain, accent: "star" },
   { date: "Lun 20 juil.", title: "Remise des prix CanalCup", why: "Clôture de l'événement", icon: Trophy, accent: "trophy" },
 ];
 
@@ -120,23 +119,23 @@ export default async function ProgrammePage() {
         </div>
       </section>
 
-      {/* À la une : Grand Quiz #1 */}
+      {/* À la une : Grand Quiz #2 */}
       <section className="rounded-2xl border border-canal-yellow/40 bg-gradient-to-b from-canal-yellow/10 to-transparent p-4 space-y-3">
         <div className="flex items-center gap-2">
           <span className="canal-badge">À la une</span>
           <span className="text-canal-yellow font-black text-lg flex items-center gap-1.5">
-            <Star size={18} className="fill-canal-yellow" /> Grand Quiz #1
+            <Star size={18} className="fill-canal-yellow" /> Grand Quiz #2 — qualif
           </span>
         </div>
-        <p className="text-white font-bold text-xl">Vendredi 3 juillet · 12h00</p>
-        <p className="text-canal-gray-muted text-sm">Le meilleur créneau de toute la compétition pour le quiz :</p>
+        <p className="text-white font-bold text-xl">Lundi 13 juillet · 12h00</p>
+        <p className="text-canal-gray-muted text-sm">Le premier quiz a cartonné — on remet ça ! Dernière manche pour se qualifier :</p>
         <ul className="text-sm text-white/90 space-y-1.5">
-          <li className="flex gap-2"><span className="text-canal-yellow">•</span> les gens viennent de regarder plusieurs matchs ;</li>
-          <li className="flex gap-2"><span className="text-canal-yellow">•</span> ils parlent encore des surprises ;</li>
-          <li className="flex gap-2"><span className="text-canal-yellow">•</span> les éliminations des 16es sont fraîches ;</li>
-          <li className="flex gap-2"><span className="text-canal-yellow">•</span> les questions peuvent porter sur les matchs des jours d&apos;avant.</li>
+          <li className="flex gap-2"><span className="text-canal-yellow">•</span> 2e (et dernière) phase de qualification ;</li>
+          <li className="flex gap-2"><span className="text-canal-yellow">•</span> de nouvelles questions (pas celles du Quiz #1) ;</li>
+          <li className="flex gap-2"><span className="text-canal-yellow">•</span> les points s&apos;ajoutent au championnat cumulé ;</li>
+          <li className="flex gap-2"><span className="text-canal-yellow">•</span> les <b className="text-white">5 meilleurs</b> filent en Grande Finale le 17.</li>
         </ul>
-        <p className="text-white/70 text-sm italic">Le quiz devient le prolongement naturel de la Coupe du Monde.</p>
+        <p className="text-white/70 text-sm italic">La Grande Finale se joue le vendredi 17 juillet à midi.</p>
       </section>
 
       {/* Calendrier idéal — timeline */}
