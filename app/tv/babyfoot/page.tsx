@@ -18,7 +18,7 @@ interface State {
     registration_open: boolean; target_teams: number; draw_at: string | null; kickoff_at: string | null;
   } | null;
   registeredCount?: number;
-  entries?: { id: string; label: string }[];
+  entries?: { id: string; label: string; pool_label?: string | null }[];
   standings?: Standing[];
   matches?: PublicMatch[];
   podium?: { rank: number; label: string }[];
@@ -53,7 +53,10 @@ export default function TvBabyfootPage() {
   }, []);
 
   const shell = (children: React.ReactNode) => (
-    <div className="w-full min-h-screen bg-canal-black text-white overflow-hidden flex flex-col p-10">{children}</div>
+    <div className="w-full min-h-screen bg-canal-black text-white overflow-hidden flex flex-col p-10">
+      <style>{"@keyframes pop{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}"}</style>
+      {children}
+    </div>
   );
 
   if (!s?.tournament) return shell(<Center><h1 className="canal-headline text-7xl">🎮 Tournoi Baby-foot</h1><p className="text-3xl text-canal-gray-muted mt-4">Bientôt…</p></Center>);
@@ -71,7 +74,7 @@ export default function TvBabyfootPage() {
       </header>
       <div className="flex-1 min-h-0">
         {eff === "inscriptions" && <Inscriptions s={s} t={t} />}
-        {eff === "tirage" && <Tirage t={t} />}
+        {eff === "tirage" && <Tirage t={t} entries={s.entries ?? []} />}
         {eff === "pools" && <Pools s={s} />}
         {eff === "bracket" && <Bracket s={s} />}
         {eff === "matches" && <Matches s={s} />}
@@ -131,13 +134,76 @@ function countdownLabel(iso: string | null): string | null {
   return min > 0 ? `${min} min` : `${sec} s`;
 }
 
-function Tirage({ t }: { t: NonNullable<State["tournament"]> }) {
+// Tirage au sort : compte à rebours PUIS révélation animée des binômes dans les
+// poules, un par un (round-robin entre poules), avec un pop sur le dernier tiré.
+function Tirage({ t, entries }: { t: NonNullable<State["tournament"]>; entries: NonNullable<State["entries"]> }) {
+  const pooled = entries.filter((e) => e.pool_label);
   const cd = countdownLabel(t.draw_at);
-  return <Center>
-    <p className="text-9xl mb-6">🎲</p>
-    <h2 className="canal-headline text-7xl">Tirage au sort</h2>
-    {cd ? <p className="text-5xl text-canal-yellow font-black mt-6">dans {cd}</p> : <p className="text-4xl text-canal-gray-muted mt-6">Préparez-vous&nbsp;!</p>}
-  </Center>;
+
+  // Ordre de révélation : round-robin A,B,C,D,A,B… (remplissage "en parallèle").
+  const pools = [...new Set(pooled.map((e) => e.pool_label!))].sort();
+  const byPool = new Map(pools.map((p) => [p, pooled.filter((e) => e.pool_label === p)]));
+  const order: { pool: string; label: string }[] = [];
+  let more = true;
+  for (let i = 0; more; i++) {
+    more = false;
+    for (const p of pools) {
+      const list = byPool.get(p)!;
+      if (list[i]) { order.push({ pool: p, label: list[i].label }); more = true; }
+    }
+  }
+
+  const [revealed, setRevealed] = useState(0);
+  useEffect(() => {
+    if (!pooled.length) return;
+    setRevealed(0);
+    const iv = setInterval(() => setRevealed((v) => (v >= order.length ? v : v + 1)), 1600);
+    return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pooled.length]);
+
+  // Pas encore de tirage généré → compte à rebours / attente.
+  if (!pooled.length) {
+    return <Center>
+      <p className="text-9xl mb-6">🎲</p>
+      <h2 className="canal-headline text-7xl">Tirage au sort</h2>
+      {cd ? <p className="text-5xl text-canal-yellow font-black mt-6">dans {cd}</p> : <p className="text-4xl text-canal-gray-muted mt-6">Préparez-vous&nbsp;!</p>}
+    </Center>;
+  }
+
+  const done = revealed >= order.length;
+  const lastLabel = revealed > 0 ? order[revealed - 1].label : null;
+  return (
+    <div className="h-full flex flex-col">
+      <div className="text-center mb-6">
+        <h2 className="canal-headline text-6xl">🎲 Tirage au sort</h2>
+        {!done && lastLabel && <p key={revealed} className="text-4xl text-canal-yellow font-black mt-3 animate-[pop_0.5s_ease]">{lastLabel} !</p>}
+        {done && <p className="text-4xl text-green-400 font-black mt-3">Poules complètes — que le meilleur gagne&nbsp;! 👏</p>}
+      </div>
+      <div className="grid gap-5 flex-1" style={{ gridTemplateColumns: `repeat(${pools.length || 1}, minmax(0,1fr))` }}>
+        {pools.map((p) => {
+          const list = byPool.get(p)!;
+          return (
+            <div key={p} className="canal-card bg-canal-gray-dark/40">
+              <h3 className="text-3xl font-black text-canal-yellow mb-3">Poule {p}</h3>
+              <div className="space-y-2">
+                {list.map((e) => {
+                  const idx = order.findIndex((o) => o.pool === p && o.label === e.label);
+                  const shown = idx < revealed;
+                  const isLast = idx === revealed - 1;
+                  return (
+                    <div key={e.id} className={`text-2xl font-bold rounded-lg px-3 py-2 transition-all duration-500 ${shown ? (isLast ? "bg-canal-yellow text-canal-black scale-105" : "bg-canal-gray-mid text-white") : "bg-canal-gray-mid/30 text-transparent"}`}>
+                      {shown ? e.label : "•••"}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function Pools({ s }: { s: State }) {

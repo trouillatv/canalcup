@@ -10,7 +10,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminRequest } from "@/lib/auth/admin";
 import { BABYFOOT } from "@/lib/config/babyfoot";
 import {
-  getActiveOfficialTournament, getEntries, getMatches, getAwards,
+  getActiveOfficialTournament, getEntries, getMatches, getAwards, getTeamMembersMap,
 } from "@/lib/data/babyfoot";
 import { projectBoth, planPools, structureFor } from "@/lib/babyfoot/format";
 import { generatePools, generateKnockout } from "@/lib/babyfoot/generate";
@@ -29,7 +29,17 @@ export async function GET(req: Request) {
     getEntries(admin, t.id), getMatches(admin, t.id), getAwards(admin, t.id),
   ]);
   const projection = projectBoth(entries.length, BABYFOOT.avgMatchMinutes);
-  return NextResponse.json({ tournament: t, entries, matches, awards, projection }, no);
+
+  // Équipes (binômes CanalCup) pas encore inscrites → pour l'ajout manuel par l'orga.
+  const entered = new Set(entries.map((e) => e.team_id));
+  const { data: allTeams } = await admin.from("teams").select("id, name");
+  const members = await getTeamMembersMap(admin, (allTeams ?? []).map((x: { id: string }) => x.id));
+  const availableTeams = (allTeams ?? [])
+    .filter((x: { id: string }) => !entered.has(x.id))
+    .map((x: { id: string; name: string }) => ({ id: x.id, name: x.name, members: members.get(x.id) ?? [] }))
+    .sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name));
+
+  return NextResponse.json({ tournament: t, entries, matches, awards, projection, availableTeams }, no);
 }
 
 export async function POST(req: Request) {
@@ -59,6 +69,27 @@ export async function POST(req: Request) {
       const open = !!body.open;
       await admin.from("babyfoot_tournaments").update({ registration_open: open }).eq("id", t.id);
       return NextResponse.json({ ok: true, registration_open: open }, no);
+    }
+
+    case "open_registration": {
+      await admin.from("babyfoot_tournaments").update({ registration_open: true, status: "registration" }).eq("id", t.id);
+      return NextResponse.json({ ok: true }, no);
+    }
+
+    case "close_registration": {
+      await admin.from("babyfoot_tournaments").update({ registration_open: false, status: "draw" }).eq("id", t.id);
+      return NextResponse.json({ ok: true }, no);
+    }
+
+    case "add_entry": {
+      // L'orga inscrit un binôme (équipe) qui ne s'est pas inscrit lui-même.
+      const teamId = String(body.team_id ?? "");
+      if (!teamId) return NextResponse.json({ error: "team_id requis." }, { status: 400 });
+      const { data: existing } = await admin.from("babyfoot_entries").select("id").eq("tournament_id", t.id).eq("team_id", teamId).maybeSingle();
+      if (existing) return NextResponse.json({ error: "Binôme déjà inscrit." }, { status: 409 });
+      const { error } = await admin.from("babyfoot_entries").insert({ tournament_id: t.id, team_id: teamId });
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ ok: true }, no);
     }
 
     case "status": {

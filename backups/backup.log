@@ -66,3 +66,7 @@
 [backup] conservés : canalcup-2026-07-05.json, canalcup-2026-07-04.json, canalcup-2026-07-03.json, canalcup-2026-07-02.json, canalcup-2026-06-30.json, canalcup-2026-06-29.json, canalcup-2026-06-28.json
 [backup] démarrage 2026-07-06T12:01:27.264Z — projet qmkbnafilhdhnsdupgzd
 [backup] ❌ getaddrinfo ENOTFOUND api.supabase.com
+[backup] démarrage 2026-07-07T12:00:02.139Z — projet qmkbnafilhdhnsdupgzd
+[backup] ✅ 66 tables, 38315 lignes, 14362 KB → canalcup-2026-07-07.json
+[backup] 🗑️  purge canalcup-2026-06-28.json (hors fenêtre 7 j)
+[backup] conservés : canalcup-2026-07-07.json, canalcup-2026-07-05.json, canalcup-2026-07-04.json, canalcup-2026-07-03.json, canalcup-2026-07-02.json, canalcup-2026-06-30.json, canalcup-2026-06-29.json
