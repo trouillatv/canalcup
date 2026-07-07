@@ -147,7 +147,7 @@ export default function AdminBabyfootPage() {
       )}
 
       {step === 4 && (
-        <StepCard title="Générer le tournoi" hint={`${entries.length} binômes — voici ce qui va se passer.`}>
+        <StepCard title="🎲 Le tournoi est prêt" hint="Voici ce qui va se passer — un dernier coup d'œil, puis on lance.">
           <AvailabilityPanel entries={entries} showBestSlot />
           <FormatChooser t={t} projection={projection} busy={busy} act={act} entriesCount={entries.length} />
         </StepCard>

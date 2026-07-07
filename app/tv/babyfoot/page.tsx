@@ -336,23 +336,38 @@ function computeSpeakerLines(s: State): string[] {
   } else if (t.status === "draw") {
     lines.push("🎲 Le tirage au sort va commencer — tout le monde regarde !");
   } else if (t.status === "pools" || t.status === "knockout") {
-    // Matchs en cours (avec table).
+    const played = matches.filter((m) => m.status === "finished").length;
+
+    // Matchs en cours (avec table) — on convoque les joueurs.
     for (const m of matches) {
       if (m.status !== "finished" && m.table_no != null && m.labelA !== "à venir" && m.labelB !== "à venir") {
-        lines.push(`🔔 Table ${m.table_no} : ${m.labelA} attendus contre ${m.labelB} !`);
+        lines.push(`🔔 Table ${m.table_no} — ${m.labelA} et ${m.labelB} sont attendus !`);
       }
     }
-    // Qualifiés pour les demies.
-    const semiTeams = new Set<string>();
-    for (const m of matches) if (m.phase === "semi") { if (m.labelA !== "à venir") semiTeams.add(m.labelA); if (m.labelB !== "à venir") semiTeams.add(m.labelB); }
-    for (const lbl of semiTeams) lines.push(`🏆 ${lbl} en demi-finale !`);
-    // Faits marquants.
+
+    // Le récit : on raconte, on ne liste pas.
     const h = s.highlights;
-    if (h?.biggestWin) lines.push(`🔥 ${h.biggestWin.winner} écrase ${h.biggestWin.loser} ${h.biggestWin.sa}-${h.biggestWin.sb} !`);
-    if (h?.bestStreak) lines.push(`📈 ${h.bestStreak.label} : ${h.bestStreak.streak} victoires d'affilée !`);
-    if (h?.upset) lines.push(`😱 Surprise : ${h.upset.winner} sort ${h.upset.loser} !`);
-    if (matches.some((m) => m.phase === "final" && m.labelA !== "à venir" && m.labelB !== "à venir" && m.status !== "finished")) lines.push("👀 La finale est lancée — silence dans la salle !");
-    if (!lines.length) lines.push("🔥 Ça joue dur sur les tables !");
+    if (h?.upset) lines.push(`🔥 Première surprise de la journée : ${h.upset.winner} éliminent ${h.upset.loser} !`);
+    if (h?.biggestWin && h.biggestWin.margin >= 5) lines.push(`💥 Quelle démonstration ! ${h.biggestWin.winner} l'emportent ${h.biggestWin.sa}-${h.biggestWin.sb}.`);
+    if (h?.bestStreak && h.bestStreak.streak >= 3) lines.push(`📈 ${h.bestStreak.label} enchaînent : ${h.bestStreak.streak} victoires d'affilée, personne ne les arrête !`);
+    if (played >= 4) lines.push(`👏 Déjà ${played} matchs disputés — la tension monte dans la salle !`);
+
+    // Demi-finales : combien de places restent ?
+    const semiSlots = matches.filter((m) => m.phase === "semi").flatMap((m) => [m.labelA, m.labelB]);
+    if (semiSlots.length) {
+      const filled = semiSlots.filter((l) => l !== "à venir").length;
+      const left = semiSlots.length - filled;
+      if (filled > 0 && left === 1) lines.push("🏆 Plus qu'une place à prendre pour les demi-finales !");
+      else if (filled >= 1) {
+        const names = [...new Set(semiSlots.filter((l) => l !== "à venir"))];
+        for (const n of names) lines.push(`🎟️ ${n} sont en demi-finale !`);
+      }
+    }
+
+    const finalLive = matches.some((m) => m.phase === "final" && m.labelA !== "à venir" && m.labelB !== "à venir" && m.status !== "finished");
+    if (finalLive) lines.push("🤫 La finale est lancée — silence dans la salle !");
+
+    if (!lines.length) lines.push("🔥 Ça chauffe sur les tables — que le meilleur binôme gagne !");
   } else if (t.status === "finished") {
     const champ = (s.podium ?? []).find((p) => p.rank === 1);
     if (champ) lines.push(`🏆 Champions : ${champ.label} ! 👏👏👏`);

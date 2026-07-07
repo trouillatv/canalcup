@@ -22,7 +22,7 @@ interface State {
   standings?: Standing[];
   matches?: PublicMatch[];
   podium?: { rank: number; label: string }[];
-  stats?: { entry_id: string; label: string; played: number; won: number; lost: number; gf: number; ga: number; gd: number; final_rank: number | null }[];
+  stats?: { entry_id: string; team_id: string; label: string; played: number; won: number; lost: number; gf: number; ga: number; gd: number; final_rank: number | null }[];
   highlights?: Highlights;
   photos?: { id: string; photo_url: string; caption: string | null; author_name: string }[];
   champions?: { season: number; name: string; champion: string | null }[];
@@ -161,7 +161,7 @@ export default function BabyfootPage() {
               <tbody>
                 {s!.stats!.filter((x) => x.played > 0).sort((a, b) => b.won - a.won || b.gd - a.gd).map((r) => (
                   <tr key={r.entry_id} className="border-b border-canal-gray-mid">
-                    <td className="py-1.5 font-bold text-white">{r.label}</td>
+                    <td className="py-1.5 font-bold text-white"><Link href={`/babyfoot/binome/${r.team_id}`} className="hover:text-canal-yellow">{r.label}</Link></td>
                     <td className="text-center">{r.played}</td>
                     <td className="text-center font-bold text-green-400">{r.won}</td>
                     <td className="text-center text-canal-gray-muted">{r.lost}</td>

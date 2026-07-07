@@ -181,7 +181,7 @@ export async function buildPublicState(admin: DbClient, tournamentId: string) {
       played++; gf += mine!; ga += theirs!;
       if (mine! > theirs!) won++; else lost++;
     }
-    return { entry_id: e.id, label: e.label, played, won, lost, gf, ga, gd: gf - ga, final_rank: e.final_rank };
+    return { entry_id: e.id, team_id: e.team_id, label: e.label, played, won, lost, gf, ga, gd: gf - ga, final_rank: e.final_rank };
   });
 
   // Faits marquants en direct (dérivés des matchs terminés).
@@ -230,6 +230,102 @@ export async function getChampionsHistory(admin?: DbClient): Promise<{ season: n
     out.push({ season: t.season, name: t.name, champion: label });
   }
   return out;
+}
+
+// ── Fiche d'un binôme (mémoire : historique, stats, palmarès) ────────────────
+export interface BinomeFiche {
+  teamId: string;
+  label: string;
+  members: string[];
+  current: {
+    season: number;
+    entered: boolean;
+    poolLabel: string | null;
+    resultLabel: string | null; // Champion / Finaliste / Demi-finaliste / …
+    played: number; won: number; lost: number; gf: number; ga: number; gd: number;
+    bestWin: { score: string; opponent: string } | null;
+    eliminatedBy: string | null;
+    availability: string[];
+  } | null;
+  history: { season: number; name: string; resultLabel: string }[];
+}
+
+const rankLabel = (r: number | null | undefined): string => {
+  if (r === 1) return "Champion 🏆";
+  if (r === 2) return "Finaliste";
+  if (r === 3) return "3e place";
+  if (r === 4) return "4e place";
+  return "Participation";
+};
+
+export async function getBinomeFiche(teamId: string, admin?: DbClient): Promise<BinomeFiche | null> {
+  const db = admin ?? createAdminClient();
+  const { data: team } = await db.from("teams").select("name").eq("id", teamId).maybeSingle();
+  if (!team) return null;
+  const membersMap = await getTeamMembersMap(db, [teamId]);
+  const members = membersMap.get(teamId) ?? [];
+  const label = members.length ? members.join(" & ") : team.name;
+
+  // Toutes les éditions où ce binôme s'est engagé.
+  const { data: entriesRaw } = await db
+    .from("babyfoot_entries")
+    .select("id, tournament_id, final_rank, pool_label, tournament:babyfoot_tournaments!tournament_id(season, name, is_active, kind)")
+    .eq("team_id", teamId);
+  const entries = (entriesRaw ?? []) as Array<{
+    id: string; tournament_id: string; final_rank: number | null; pool_label: string | null;
+    tournament: { season: number; name: string; is_active: boolean; kind: string } | null;
+  }>;
+
+  const history = entries
+    .filter((e) => e.tournament && e.tournament.kind === "official" && !e.tournament.is_active)
+    .map((e) => ({ season: e.tournament!.season, name: e.tournament!.name, resultLabel: rankLabel(e.final_rank) }))
+    .sort((a, b) => b.season - a.season);
+
+  // Édition en cours.
+  const activeEntry = entries.find((e) => e.tournament?.is_active);
+  let current: BinomeFiche["current"] = null;
+  if (activeEntry) {
+    const [{ data: matchesRaw }, { data: availRaw }] = await Promise.all([
+      db.from("babyfoot_matches")
+        .select("id, phase, team_a_id, team_b_id, score_a, score_b, status")
+        .eq("tournament_id", activeEntry.tournament_id)
+        .or(`team_a_id.eq.${teamId},team_b_id.eq.${teamId}`),
+      db.from("babyfoot_entry_availability").select("slot_key").eq("entry_id", activeEntry.id),
+    ]);
+    const matches = (matchesRaw ?? []) as BabyFootMatch[];
+    const otherLabels = await getTeamMembersMap(db, matches.flatMap((m) => [m.team_a_id, m.team_b_id]).filter((x): x is string => !!x && x !== teamId));
+    const oppLabel = (id?: string | null) => (id ? (otherLabels.get(id)?.join(" & ") ?? "?") : "?");
+
+    let played = 0, won = 0, lost = 0, gf = 0, ga = 0;
+    let bestWin: { score: string; opponent: string } | null = null;
+    let bestMargin = 0;
+    let eliminatedBy: string | null = null;
+    for (const m of matches) {
+      if (m.status !== "finished" || m.score_a == null || m.score_b == null) continue;
+      const isA = m.team_a_id === teamId;
+      const mine = isA ? m.score_a : m.score_b;
+      const theirs = isA ? m.score_b : m.score_a;
+      const oppId = isA ? m.team_b_id : m.team_a_id;
+      played++; gf += mine; ga += theirs;
+      if (mine > theirs) {
+        won++;
+        if (mine - theirs >= bestMargin) { bestMargin = mine - theirs; bestWin = { score: `${mine}-${theirs}`, opponent: oppLabel(oppId) }; }
+      } else {
+        lost++;
+        if (m.phase && m.phase !== "pool") eliminatedBy = oppLabel(oppId); // éliminé en phase finale
+      }
+    }
+    current = {
+      season: activeEntry.tournament!.season,
+      entered: true,
+      poolLabel: activeEntry.pool_label,
+      resultLabel: activeEntry.final_rank ? rankLabel(activeEntry.final_rank) : null,
+      played, won, lost, gf, ga, gd: gf - ga, bestWin, eliminatedBy,
+      availability: (availRaw ?? []).map((a: { slot_key: string }) => a.slot_key),
+    };
+  }
+
+  return { teamId, label, members, current, history };
 }
 
 export interface UserBinome {
