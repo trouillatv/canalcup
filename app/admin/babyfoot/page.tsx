@@ -1,396 +1,298 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Plus, Trash2, Check, X, Edit2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import type { BabyFootMatch, Team } from "@/lib/supabase/types";
+// /admin/babyfoot — pilotage complet du Tournoi Baby-foot (édition active).
+// Protégé par app/admin/layout.tsx (requireRole event_admin). Les appels API
+// passent par la session cookie (isAdminRequest) — aucun secret côté client.
+//
+// Sections : statut/cérémonial · config (format, scores, dates) · inscriptions
+// (toggle + matrice dispos + suppression) · projection des 2 formats · génération
+// & publication · saisie des résultats · points attribués.
 
-const ADMIN_SECRET = process.env.NEXT_PUBLIC_ADMIN_SECRET ?? "";
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { BABYFOOT, type BabyfootStage } from "@/lib/config/babyfoot";
+import type { BabyfootTournament, BabyFootMatch, BabyfootAward } from "@/lib/supabase/types";
+import type { BabyfootEntryView } from "@/lib/data/babyfoot";
+import type { BothProjections } from "@/lib/babyfoot/format";
 
-const ROUNDS = ["Groupes", "Quarts", "Demis", "3ème place", "Finale"];
-const ROUND_ICONS: Record<string, string> = {
-  Groupes: "⚽", Quarts: "⚡", Demis: "🌟", "3ème place": "🥉", Finale: "🏆",
+interface State {
+  tournament: BabyfootTournament;
+  entries: BabyfootEntryView[];
+  matches: BabyFootMatch[];
+  awards: BabyfootAward[];
+  projection: BothProjections;
+}
+
+const STATUS_FLOW: { key: string; label: string }[] = [
+  { key: "draft", label: "Brouillon" },
+  { key: "registration", label: "Inscriptions" },
+  { key: "draw", label: "Tirage" },
+  { key: "pools", label: "Poules" },
+  { key: "knockout", label: "Phase finale" },
+  { key: "finished", label: "Terminé" },
+];
+
+const PHASE_ORDER = ["pool", "prelim", "quarter", "semi", "final", "third"];
+const PHASE_LABEL: Record<string, string> = {
+  pool: "Poules", prelim: "Barrages", quarter: "Quarts", semi: "Demi-finales", final: "Finale", third: "Petite finale",
 };
 
-function headers() {
-  return { "Content-Type": "application/json", "x-admin-secret": ADMIN_SECRET };
-}
-
-// ─── Score editor (inline) ───────────────────────────────────────────────────
-
-function ScoreEditor({
-  match,
-  onSaved,
-}: {
-  match: BabyFootMatch;
-  onSaved: (updated: BabyFootMatch) => void;
-}) {
-  const [scoreA, setScoreA] = useState(match.score_a ?? 0);
-  const [scoreB, setScoreB] = useState(match.score_b ?? 0);
-  const [saving, setSaving] = useState(false);
-
-  const save = async () => {
-    setSaving(true);
-    const res = await fetch("/api/admin/babyfoot", {
-      method: "PATCH",
-      headers: headers(),
-      body: JSON.stringify({ id: match.id, score_a: scoreA, score_b: scoreB, status: "finished" }),
-    });
-    if (res.ok) onSaved(await res.json());
-    setSaving(false);
-  };
-
-  const reset = async () => {
-    setSaving(true);
-    const res = await fetch("/api/admin/babyfoot", {
-      method: "PATCH",
-      headers: headers(),
-      body: JSON.stringify({ id: match.id, score_a: null, score_b: null, status: "upcoming" }),
-    });
-    if (res.ok) onSaved(await res.json());
-    setSaving(false);
-  };
-
-  return (
-    <div className="flex items-center gap-2">
-      <input
-        type="number"
-        min={0}
-        max={99}
-        value={scoreA}
-        onChange={(e) => setScoreA(Number(e.target.value))}
-        className="w-12 bg-canal-gray-mid border border-canal-gray-light rounded-lg px-2 py-1.5 text-center text-white font-black text-base"
-      />
-      <span className="text-canal-gray-muted font-bold">–</span>
-      <input
-        type="number"
-        min={0}
-        max={99}
-        value={scoreB}
-        onChange={(e) => setScoreB(Number(e.target.value))}
-        className="w-12 bg-canal-gray-mid border border-canal-gray-light rounded-lg px-2 py-1.5 text-center text-white font-black text-base"
-      />
-      <button
-        onClick={save}
-        disabled={saving}
-        className="p-1.5 bg-canal-green/20 text-canal-green rounded-lg hover:bg-canal-green/30 transition-colors disabled:opacity-50"
-      >
-        <Check size={14} />
-      </button>
-      {match.status === "finished" && (
-        <button
-          onClick={reset}
-          disabled={saving}
-          className="p-1.5 bg-red-900/20 text-red-400 rounded-lg hover:bg-red-900/30 transition-colors disabled:opacity-50"
-          title="Annuler le résultat"
-        >
-          <X size={14} />
-        </button>
-      )}
-    </div>
-  );
-}
-
-// ─── Match row ───────────────────────────────────────────────────────────────
-
-function MatchRow({
-  match,
-  onUpdate,
-  onDelete,
-}: {
-  match: BabyFootMatch;
-  onUpdate: (m: BabyFootMatch) => void;
-  onDelete: (id: string) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const winner =
-    match.status === "finished" && match.score_a !== undefined && match.score_b !== undefined
-      ? match.score_a > match.score_b ? "a" : match.score_a < match.score_b ? "b" : null
-      : null;
-
-  return (
-    <div className={cn(
-      "canal-card flex items-center gap-3",
-      match.status === "finished" ? "opacity-80" : ""
-    )}>
-      {/* Round badge */}
-      <span className="text-xs font-bold text-canal-gray-muted shrink-0 w-14 text-center">
-        {(match.round ? ROUND_ICONS[match.round] : undefined) ?? "⚽"} {match.round}
-      </span>
-
-      {/* Teams */}
-      <div className={cn("flex-1 text-sm font-bold text-right truncate", winner === "b" ? "text-canal-gray-muted" : "text-white")}>
-        {match.team_a?.name}
-      </div>
-
-      {/* Score / Editor */}
-      <div className="shrink-0">
-        {editing ? (
-          <ScoreEditor
-            match={match}
-            onSaved={(m) => { onUpdate(m); setEditing(false); }}
-          />
-        ) : match.status === "finished" ? (
-          <div className="flex items-center gap-2">
-            <span className={cn("font-black text-base", winner === "a" ? "text-canal-yellow" : "text-white")}>{match.score_a}</span>
-            <span className="text-canal-gray-muted">–</span>
-            <span className={cn("font-black text-base", winner === "b" ? "text-canal-yellow" : "text-white")}>{match.score_b}</span>
-            <button
-              onClick={() => setEditing(true)}
-              className="p-1 text-canal-gray-muted hover:text-white transition-colors ml-1"
-            >
-              <Edit2 size={12} />
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setEditing(true)}
-            className="flex items-center gap-1 px-3 py-1.5 bg-canal-yellow/10 border border-canal-yellow/30 text-canal-yellow text-xs font-bold rounded-lg hover:bg-canal-yellow/20 transition-colors"
-          >
-            <Edit2 size={11} /> Saisir score
-          </button>
-        )}
-      </div>
-
-      <div className={cn("flex-1 text-sm font-bold truncate", winner === "a" ? "text-canal-gray-muted" : "text-white")}>
-        {match.team_b?.name}
-      </div>
-
-      {/* Delete */}
-      <button
-        onClick={() => onDelete(match.id)}
-        className="p-1.5 text-canal-gray-muted hover:text-red-400 transition-colors shrink-0"
-      >
-        <Trash2 size={14} />
-      </button>
-    </div>
-  );
-}
-
-// ─── Create match form ────────────────────────────────────────────────────────
-
-function CreateMatchForm({ teams, onCreate }: { teams: Team[]; onCreate: (m: BabyFootMatch) => void }) {
-  const [teamA, setTeamA] = useState("");
-  const [teamB, setTeamB] = useState("");
-  const [round, setRound] = useState("Groupes");
-  const [startsAt, setStartsAt] = useState(() => {
-    const d = new Date();
-    d.setMinutes(0, 0, 0);
-    return d.toISOString().slice(0, 16);
+async function post(body: Record<string, unknown>, path = "tournament") {
+  const res = await fetch(`/api/admin/babyfoot/${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify(body),
   });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  return res.json().catch(() => ({}));
+}
 
-  const save = async () => {
-    if (!teamA || !teamB) { setError("Sélectionne les deux équipes."); return; }
-    if (teamA === teamB) { setError("Même équipe des deux côtés."); return; }
-    setSaving(true);
-    setError("");
-    const res = await fetch("/api/admin/babyfoot", {
-      method: "POST",
-      headers: headers(),
-      body: JSON.stringify({ team_a_id: teamA, team_b_id: teamB, round, starts_at: new Date(startsAt).toISOString() }),
-    });
-    if (res.ok) {
-      onCreate(await res.json());
-      setTeamA(""); setTeamB("");
-    } else {
-      const d = await res.json();
-      setError(d.error ?? "Erreur serveur.");
-    }
-    setSaving(false);
+export default function AdminBabyfootPage() {
+  const [state, setState] = useState<State | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    fetch("/api/admin/babyfoot/tournament", { credentials: "same-origin" })
+      .then((r) => r.json())
+      .then((d) => { if (!d.error) setState(d); else setMsg(d.error); })
+      .catch(() => setMsg("Chargement impossible."));
+  }, []);
+  useEffect(load, [load]);
+
+  const act = async (body: Record<string, unknown>, path = "tournament") => {
+    setBusy(true); setMsg(null);
+    const d = await post(body, path);
+    if (d.error) setMsg(d.error);
+    setBusy(false);
+    load();
+    return d;
   };
 
+  if (!state) {
+    return <div className="px-4 py-8 max-w-3xl mx-auto text-canal-gray-muted">{msg ?? "Chargement…"}</div>;
+  }
+  const { tournament: t, entries, matches, awards, projection } = state;
+
+  const matchesByPhase = PHASE_ORDER
+    .map((ph) => ({ ph, list: matches.filter((m) => m.phase === ph) }))
+    .filter((g) => g.list.length);
+
   return (
-    <div className="canal-card space-y-4">
-      <p className="text-canal-yellow font-bold text-sm flex items-center gap-2">
-        <Plus size={14} /> Nouveau match
+    <div className="px-4 py-6 max-w-3xl mx-auto space-y-8">
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="canal-headline text-2xl">🎮 Admin Baby-foot</h1>
+        <Link href="/babyfoot" className="text-xs text-canal-yellow underline">Voir côté joueur →</Link>
+      </div>
+      <p className="text-canal-gray-muted text-sm -mt-4">
+        {t.name} · saison {t.season} · {entries.length} binôme{entries.length > 1 ? "s" : ""} inscrit{entries.length > 1 ? "s" : ""}
       </p>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs text-canal-gray-muted mb-1 block">Équipe A</label>
-          <select
-            value={teamA}
-            onChange={(e) => setTeamA(e.target.value)}
-            className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-lg px-3 py-2 text-sm text-white"
-          >
-            <option value="">— Choisir —</option>
-            {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
+      {msg && <p className="text-red-400 text-sm font-bold">{msg}</p>}
+
+      {/* ── Cérémonial / statut ─────────────────────────────────────────── */}
+      <section className="canal-card space-y-3">
+        <h2 className="text-sm font-bold uppercase text-canal-yellow">Étape en cours</h2>
+        <div className="flex flex-wrap gap-2">
+          {STATUS_FLOW.map((s) => (
+            <button
+              key={s.key}
+              disabled={busy}
+              onClick={() => act({ action: "status", status: s.key })}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
+                t.status === s.key
+                  ? "bg-canal-yellow text-canal-black border-canal-yellow"
+                  : "bg-canal-gray-mid text-white border-canal-gray-light hover:border-canal-yellow/50"
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
         </div>
-        <div>
-          <label className="text-xs text-canal-gray-muted mb-1 block">Équipe B</label>
-          <select
-            value={teamB}
-            onChange={(e) => setTeamB(e.target.value)}
-            className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-lg px-3 py-2 text-sm text-white"
-          >
-            <option value="">— Choisir —</option>
-            {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs text-canal-gray-muted mb-1 block">Tour</label>
-          <select
-            value={round}
-            onChange={(e) => setRound(e.target.value)}
-            className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-lg px-3 py-2 text-sm text-white"
-          >
-            {ROUNDS.map((r) => <option key={r} value={r}>{ROUND_ICONS[r]} {r}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="text-xs text-canal-gray-muted mb-1 block">Date / Heure</label>
-          <input
-            type="datetime-local"
-            value={startsAt}
-            onChange={(e) => setStartsAt(e.target.value)}
-            className="w-full bg-canal-gray-mid border border-canal-gray-light rounded-lg px-3 py-2 text-sm text-white"
-          />
-        </div>
-      </div>
-
-      {error && <p className="text-red-400 text-xs">{error}</p>}
-
-      <button
-        onClick={save}
-        disabled={saving}
-        className="w-full py-2.5 bg-canal-yellow text-canal-black font-black rounded-xl hover:bg-canal-yellow-hover transition-colors disabled:opacity-50 text-sm"
-      >
-        {saving ? "Enregistrement…" : "Créer le match"}
-      </button>
-    </div>
-  );
-}
-
-// ─── Live toggle ──────────────────────────────────────────────────────────────
-
-function BabyFootLiveToggle() {
-  const [live, setLive] = useState<boolean | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/admin/settings")
-      .then((r) => r.json())
-      .then((data: { key: string; value: unknown }[]) => {
-        const row = data.find((s) => s.key === "babyfoot_live");
-        setLive(row ? row.value === true : false);
-      });
-  }, []);
-
-  const toggle = async () => {
-    const next = !live;
-    setSaving(true);
-    const res = await fetch("/api/admin/settings", {
-      method: "PATCH",
-      headers: headers(),
-      body: JSON.stringify({ key: "babyfoot_live", value: next }),
-    });
-    if (res.ok) setLive(next);
-    setSaving(false);
-  };
-
-  if (live === null) return null;
-
-  return (
-    <div className="canal-card flex items-center justify-between gap-4">
-      <div>
-        <p className="font-bold text-white text-sm">Tournoi babyfoot</p>
-        <p className={cn("text-xs mt-0.5", live ? "text-canal-yellow" : "text-canal-gray-muted")}>
-          {live ? "✅ Activé — visible par les joueurs" : "⏸ Désactivé — affiche « À venir »"}
+        <p className="text-[11px] text-canal-gray-muted">
+          Le statut pilote les écrans TV (inscriptions → tirage → poules → phase finale → remise des prix).
         </p>
-      </div>
-      <button
-        onClick={toggle}
-        disabled={saving}
-        className={cn(
-          "px-4 py-2 rounded-xl font-black text-sm transition-all disabled:opacity-50",
-          live
-            ? "bg-canal-yellow text-canal-black hover:bg-canal-yellow-hover"
-            : "bg-canal-gray-mid text-canal-gray-muted border border-canal-gray-light hover:text-white"
-        )}
-      >
-        {saving ? "…" : live ? "Désactiver" : "Activer"}
-      </button>
+      </section>
+
+      {/* ── Inscriptions ────────────────────────────────────────────────── */}
+      <section className="canal-card space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold uppercase text-canal-yellow">Inscriptions</h2>
+          <button
+            disabled={busy}
+            onClick={() => act({ action: "registration", open: !t.registration_open })}
+            className={`px-3 py-1.5 rounded-lg text-xs font-black ${t.registration_open ? "bg-green-600 text-white" : "bg-canal-gray-mid text-canal-gray-muted"}`}
+          >
+            {t.registration_open ? "Ouvertes ✓ (fermer)" : "Fermées (ouvrir)"}
+          </button>
+        </div>
+
+        {/* Matrice binôme × créneaux */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-canal-gray-muted border-b border-canal-gray-light">
+                <th className="text-left py-1.5 pr-2">Binôme</th>
+                <th className="py-1.5 px-1 text-center">Poule</th>
+                {BABYFOOT.slots.map((s) => <th key={s.key} className="py-1.5 px-1 text-center">{s.label}</th>)}
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {entries.map((e) => (
+                <tr key={e.id} className="border-b border-canal-gray-mid">
+                  <td className="py-1.5 pr-2 font-bold text-white">{e.label}</td>
+                  <td className="text-center text-canal-yellow font-bold">{e.pool_label ?? "—"}</td>
+                  {BABYFOOT.slots.map((s) => (
+                    <td key={s.key} className="text-center">
+                      {e.availability.includes(s.key) ? <span className="text-green-400">✓</span> : <span className="text-canal-gray-muted">·</span>}
+                    </td>
+                  ))}
+                  <td className="text-right">
+                    <button
+                      disabled={busy}
+                      onClick={() => { if (confirm(`Supprimer ${e.label} ?`)) act({ action: "delete_entry", entry_id: e.id }); }}
+                      className="text-red-400 text-xs hover:underline"
+                    >✕</button>
+                  </td>
+                </tr>
+              ))}
+              {!entries.length && <tr><td colSpan={3 + BABYFOOT.slots.length} className="py-3 text-center text-canal-gray-muted">Aucun binôme inscrit.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* ── Configuration ───────────────────────────────────────────────── */}
+      <ConfigCard t={t} busy={busy} onSave={(patch) => act({ action: "config", ...patch })} />
+
+      {/* ── Projection & génération ─────────────────────────────────────── */}
+      <section className="canal-card space-y-4">
+        <h2 className="text-sm font-bold uppercase text-canal-yellow">Format & durée estimée ({entries.length} binômes)</h2>
+        <div className="grid grid-cols-2 gap-3">
+          {(["ko", "poolsKo"] as const).map((k) => {
+            const p = k === "ko" ? projection.ko : projection.poolsKo;
+            const fmt = k === "ko" ? "ko" : "pools_ko";
+            const isReco = projection.recommended === fmt;
+            const isChosen = t.format === fmt;
+            return (
+              <button
+                key={k}
+                disabled={busy}
+                onClick={() => act({ action: "config", format: fmt })}
+                className={`text-left p-3 rounded-xl border transition-colors ${isChosen ? "border-canal-yellow bg-canal-yellow/10" : "border-canal-gray-light bg-canal-gray-mid"}`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-black text-white text-sm">{k === "ko" ? "Élimination directe" : "Poules + élim."}</span>
+                  {isReco && <span className="text-[9px] font-black text-canal-black bg-canal-yellow px-1.5 py-0.5 rounded">💡 RECO</span>}
+                </div>
+                <p className="text-xs text-canal-gray-muted mt-1">{p.totalMatches} matchs{p.pools.length ? ` · ${p.pools.length} poules` : ""}</p>
+                <p className="text-[11px] text-canal-gray-muted mt-1">1 table : <span className="text-white font-bold">{p.durationOneTableLabel}</span></p>
+                <p className="text-[11px] text-canal-gray-muted">2 tables : <span className="text-white font-bold">{p.durationTwoTablesLabel}</span></p>
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-canal-gray-muted">{projection.reason}</p>
+        <div className="flex flex-wrap gap-2">
+          <button disabled={busy || entries.length < 2} onClick={() => { if (confirm("Générer le tableau ? (efface les matchs existants)")) act({ action: "generate" }); }}
+            className="px-3 py-2 rounded-lg bg-canal-yellow text-canal-black font-black text-sm disabled:opacity-50">
+            ⚙️ Générer le tableau
+          </button>
+          {matches.some((m) => m.phase === "pool") && (
+            <button disabled={busy} onClick={() => { if (confirm("Générer la phase finale depuis les qualifiés des poules ?")) act({ action: "generate_ko" }); }}
+              className="px-3 py-2 rounded-lg bg-canal-gray-mid text-white font-bold text-sm border border-canal-yellow/40">
+              🏆 Générer la phase finale
+            </button>
+          )}
+          <button disabled={busy || !matches.length} onClick={() => act({ action: "publish" })}
+            className="px-3 py-2 rounded-lg bg-green-700 text-white font-bold text-sm disabled:opacity-50">
+            📢 Publier
+          </button>
+          <button disabled={busy} onClick={() => act({ action: "recompute" })}
+            className="px-3 py-2 rounded-lg bg-canal-gray-mid text-canal-gray-muted text-sm">↻ Recalculer points</button>
+          <button disabled={busy} onClick={() => { if (confirm("Tout réinitialiser (matchs + points) ?")) act({ action: "reset" }); }}
+            className="px-3 py-2 rounded-lg bg-red-900/40 text-red-300 text-sm">Réinitialiser</button>
+        </div>
+      </section>
+
+      {/* ── Matchs & saisie ─────────────────────────────────────────────── */}
+      {matchesByPhase.map(({ ph, list }) => (
+        <section key={ph} className="space-y-2">
+          <h2 className="text-sm font-bold uppercase text-canal-yellow">{PHASE_LABEL[ph]}</h2>
+          <div className="space-y-2">
+            {list.map((m) => <MatchRow key={m.id} m={m} busy={busy} onResult={(b) => act(b, "result")} onTable={(no) => act({ action: "set_table", match_id: m.id, table_no: no })} />)}
+          </div>
+        </section>
+      ))}
+
+      {/* ── Points attribués ────────────────────────────────────────────── */}
+      {awards.length > 0 && (
+        <section className="canal-card space-y-2">
+          <h2 className="text-sm font-bold uppercase text-canal-yellow">Points attribués</h2>
+          {[...awards].sort((a, b) => b.points - a.points).map((a) => {
+            const e = entries.find((x) => x.id === a.entry_id);
+            return (
+              <div key={a.id} className="flex items-center justify-between text-sm border-b border-canal-gray-mid py-1">
+                <span className="text-white font-bold">{e?.label ?? "—"}</span>
+                <span className="text-canal-gray-muted">{BABYFOOT.stageLabel[a.stage as BabyfootStage]}</span>
+                <span className="text-canal-yellow font-black">+{a.points}</span>
+              </div>
+            );
+          })}
+        </section>
+      )}
     </div>
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
-export default function AdminBabyFootPage() {
-  const [matches, setMatches] = useState<BabyFootMatch[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const [mRes, tRes] = await Promise.all([
-      fetch("/api/admin/babyfoot", { headers: { "x-admin-secret": ADMIN_SECRET } }),
-      fetch("/api/teams"),
-    ]);
-    if (mRes.ok) setMatches(await mRes.json());
-    if (tRes.ok) { const d = await tRes.json(); setTeams(d.teams ?? d); }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
-
-  const handleUpdate = (updated: BabyFootMatch) =>
-    setMatches((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
-
-  const handleDelete = async (id: string) => {
-    await fetch(`/api/admin/babyfoot?id=${id}`, { method: "DELETE", headers: { "x-admin-secret": ADMIN_SECRET } });
-    setMatches((prev) => prev.filter((m) => m.id !== id));
-  };
-
-  const handleCreate = (m: BabyFootMatch) => setMatches((prev) => [...prev, m]);
-
-  // Group by round for display
-  const byRound = ROUNDS.reduce<Record<string, BabyFootMatch[]>>((acc, r) => {
-    acc[r] = matches.filter((m) => m.round === r);
-    return acc;
-  }, {});
-
+function ConfigCard({ t, busy, onSave }: { t: BabyfootTournament; busy: boolean; onSave: (p: Record<string, unknown>) => void }) {
+  const [tables, setTables] = useState(t.tables_count);
+  const [poolT, setPoolT] = useState(t.pool_target);
+  const [koT, setKoT] = useState(t.ko_target);
+  const [finalT, setFinalT] = useState(t.final_target);
+  const [target, setTarget] = useState(t.target_teams);
+  const num = "w-16 px-2 py-1 rounded bg-canal-gray-mid border border-canal-gray-light text-white text-sm text-center";
   return (
-    <div className="px-4 py-6 max-w-2xl mx-auto space-y-8">
-      <div>
-        <h1 className="canal-headline text-2xl">Admin — Tournoi Babyfoot</h1>
-        <p className="text-canal-gray-muted text-sm mt-1">{matches.length} match(s) · {matches.filter(m => m.status === "finished").length} terminé(s)</p>
+    <section className="canal-card space-y-3">
+      <h2 className="text-sm font-bold uppercase text-canal-yellow">Réglages</h2>
+      <div className="grid grid-cols-2 gap-3 text-sm">
+        <label className="flex items-center justify-between">Tables <input type="number" min={1} max={4} value={tables} onChange={(e) => setTables(+e.target.value)} className={num} /></label>
+        <label className="flex items-center justify-between">Objectif équipes <input type="number" min={2} value={target} onChange={(e) => setTarget(+e.target.value)} className={num} /></label>
+        <label className="flex items-center justify-between">Score poule <input type="number" min={1} value={poolT} onChange={(e) => setPoolT(+e.target.value)} className={num} /></label>
+        <label className="flex items-center justify-between">Score élim. <input type="number" min={1} value={koT} onChange={(e) => setKoT(+e.target.value)} className={num} /></label>
+        <label className="flex items-center justify-between">Score finale <input type="number" min={1} value={finalT} onChange={(e) => setFinalT(+e.target.value)} className={num} /></label>
       </div>
+      <button disabled={busy} onClick={() => onSave({ tables_count: tables, pool_target: poolT, ko_target: koT, final_target: finalT, target_teams: target })}
+        className="px-3 py-1.5 rounded-lg bg-canal-gray-mid text-white text-sm font-bold border border-canal-gray-light">Enregistrer les réglages</button>
+    </section>
+  );
+}
 
-      <BabyFootLiveToggle />
-
-      <CreateMatchForm teams={teams} onCreate={handleCreate} />
-
-      {loading ? (
-        <p className="text-canal-gray-muted text-sm text-center py-8">Chargement…</p>
-      ) : matches.length === 0 ? (
-        <p className="text-canal-gray-muted text-sm text-center py-8">Aucun match. Créez le premier match ci-dessus.</p>
-      ) : (
-        ROUNDS.map((round) => {
-          const roundMatches = byRound[round] ?? [];
-          if (!roundMatches.length) return null;
-          return (
-            <section key={round}>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-xl">{ROUND_ICONS[round] ?? "⚽"}</span>
-                <h2 className="font-black text-white uppercase tracking-wide text-sm">{round}</h2>
-                <span className="text-xs text-canal-gray-muted">({roundMatches.length} match{roundMatches.length > 1 ? "s" : ""})</span>
-              </div>
-              <div className="space-y-2">
-                {roundMatches.map((m) => (
-                  <MatchRow key={m.id} match={m} onUpdate={handleUpdate} onDelete={handleDelete} />
-                ))}
-              </div>
-            </section>
-          );
-        })
-      )}
+function MatchRow({ m, busy, onResult, onTable }: {
+  m: BabyFootMatch; busy: boolean;
+  onResult: (b: Record<string, unknown>) => void;
+  onTable: (n: number | null) => void;
+}) {
+  const [a, setA] = useState<string>(m.score_a?.toString() ?? "");
+  const [b, setB] = useState<string>(m.score_b?.toString() ?? "");
+  const finished = m.status === "finished";
+  const nameA = m.team_a?.name ?? (m.team_a_id ? "?" : "à venir");
+  const nameB = m.team_b?.name ?? (m.team_b_id ? "?" : "à venir");
+  const ready = !!m.team_a_id && !!m.team_b_id;
+  return (
+    <div className={`canal-card flex items-center gap-2 ${finished ? "opacity-80" : ""}`}>
+      {m.pool_label && <span className="text-[10px] font-black text-canal-yellow w-5">{m.pool_label}</span>}
+      <span className="flex-1 text-sm font-bold text-right truncate text-white">{nameA}</span>
+      <input value={a} onChange={(e) => setA(e.target.value)} disabled={!ready} inputMode="numeric"
+        className="w-9 px-1 py-1 rounded bg-canal-gray-mid border border-canal-gray-light text-white text-center text-sm" />
+      <span className="text-canal-gray-muted">-</span>
+      <input value={b} onChange={(e) => setB(e.target.value)} disabled={!ready} inputMode="numeric"
+        className="w-9 px-1 py-1 rounded bg-canal-gray-mid border border-canal-gray-light text-white text-center text-sm" />
+      <span className="flex-1 text-sm font-bold truncate text-white">{nameB}</span>
+      <button disabled={busy || !ready} onClick={() => onResult({ match_id: m.id, score_a: +a, score_b: +b })}
+        className="px-2 py-1 rounded bg-canal-yellow text-canal-black text-xs font-black disabled:opacity-40">OK</button>
+      {finished && <button disabled={busy} onClick={() => onResult({ match_id: m.id, clear: true })} className="text-red-400 text-xs">↺</button>}
     </div>
   );
 }

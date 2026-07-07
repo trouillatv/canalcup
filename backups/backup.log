@@ -1,0 +1,68 @@
+[backup] démarrage 2026-06-17T00:16:11.370Z — projet qmkbnafilhdhnsdupgzd
+[backup] ✅ 44 tables, 5737 lignes, 2651 KB → canalcup-2026-06-17.json
+[backup] conservés : canalcup-2026-06-17.json
+[backup] démarrage 2026-06-17T12:00:02.522Z — projet qmkbnafilhdhnsdupgzd
+[backup] ✅ 44 tables, 6272 lignes, 2888 KB → canalcup-2026-06-17.json
+[backup] conservés : canalcup-2026-06-17.json
+[backup] démarrage 2026-06-18T12:00:02.645Z — projet qmkbnafilhdhnsdupgzd
+[backup] ✅ 45 tables, 7082 lignes, 3244 KB → canalcup-2026-06-18.json
+[backup] conservés : canalcup-2026-06-18.json, canalcup-2026-06-17.json
+[backup] démarrage 2026-06-19T12:00:02.501Z — projet qmkbnafilhdhnsdupgzd
+[backup] ✅ 51 tables, 8253 lignes, 3720 KB → canalcup-2026-06-19.json
+[backup] conservés : canalcup-2026-06-19.json, canalcup-2026-06-18.json, canalcup-2026-06-17.json
+[backup] démarrage 2026-06-20T12:00:05.505Z — projet qmkbnafilhdhnsdupgzd
+[backup] ❌ 
+[backup] démarrage 2026-06-21T12:00:02.451Z — projet qmkbnafilhdhnsdupgzd
+[backup] ✅ 53 tables, 9821 lignes, 4604 KB → canalcup-2026-06-21.json
+[backup] conservés : canalcup-2026-06-21.json, canalcup-2026-06-19.json, canalcup-2026-06-18.json, canalcup-2026-06-17.json
+[backup] démarrage 2026-06-22T12:00:02.566Z — projet qmkbnafilhdhnsdupgzd
+[backup] ✅ 56 tables, 11314 lignes, 5023 KB → canalcup-2026-06-22.json
+[backup] conservés : canalcup-2026-06-22.json, canalcup-2026-06-21.json, canalcup-2026-06-19.json, canalcup-2026-06-18.json, canalcup-2026-06-17.json
+[backup] démarrage 2026-06-23T12:00:02.831Z — projet qmkbnafilhdhnsdupgzd
+[backup] ✅ 59 tables, 13382 lignes, 5650 KB → canalcup-2026-06-23.json
+[backup] conservés : canalcup-2026-06-23.json, canalcup-2026-06-22.json, canalcup-2026-06-21.json, canalcup-2026-06-19.json, canalcup-2026-06-18.json, canalcup-2026-06-17.json
+[backup] démarrage 2026-06-24T12:00:02.707Z — projet qmkbnafilhdhnsdupgzd
+[backup] ✅ 59 tables, 14890 lignes, 6165 KB → canalcup-2026-06-24.json
+[backup] conservés : canalcup-2026-06-24.json, canalcup-2026-06-23.json, canalcup-2026-06-22.json, canalcup-2026-06-21.json, canalcup-2026-06-19.json, canalcup-2026-06-18.json, canalcup-2026-06-17.json
+[backup] démarrage 2026-06-25T12:01:06.606Z — projet qmkbnafilhdhnsdupgzd
+[backup] ❌ getaddrinfo ENOTFOUND api.supabase.com
+[backup] démarrage 2026-06-26T12:00:03.065Z — projet qmkbnafilhdhnsdupgzd
+[backup] ✅ 59 tables, 18895 lignes, 7496 KB → canalcup-2026-06-26.json
+[backup] 🗑️  purge canalcup-2026-06-17.json (hors fenêtre 7 j)
+[backup] conservés : canalcup-2026-06-26.json, canalcup-2026-06-24.json, canalcup-2026-06-23.json, canalcup-2026-06-22.json, canalcup-2026-06-21.json, canalcup-2026-06-19.json, canalcup-2026-06-18.json
+[backup] démarrage 2026-06-27T12:00:02.643Z — projet qmkbnafilhdhnsdupgzd
+[backup] ✅ 59 tables, 20629 lignes, 8117 KB → canalcup-2026-06-27.json
+[backup] 🗑️  purge canalcup-2026-06-18.json (hors fenêtre 7 j)
+[backup] conservés : canalcup-2026-06-27.json, canalcup-2026-06-26.json, canalcup-2026-06-24.json, canalcup-2026-06-23.json, canalcup-2026-06-22.json, canalcup-2026-06-21.json, canalcup-2026-06-19.json
+[backup] démarrage 2026-06-28T12:00:02.615Z — projet qmkbnafilhdhnsdupgzd
+[backup] ✅ 59 tables, 22216 lignes, 8720 KB → canalcup-2026-06-28.json
+[backup] 🗑️  purge canalcup-2026-06-19.json (hors fenêtre 7 j)
+[backup] conservés : canalcup-2026-06-28.json, canalcup-2026-06-27.json, canalcup-2026-06-26.json, canalcup-2026-06-24.json, canalcup-2026-06-23.json, canalcup-2026-06-22.json, canalcup-2026-06-21.json
+[backup] démarrage 2026-06-29T12:01:59.933Z — projet qmkbnafilhdhnsdupgzd
+[backup] ✅ 59 tables, 23338 lignes, 9079 KB → canalcup-2026-06-29.json
+[backup] 🗑️  purge canalcup-2026-06-21.json (hors fenêtre 7 j)
+[backup] conservés : canalcup-2026-06-29.json, canalcup-2026-06-28.json, canalcup-2026-06-27.json, canalcup-2026-06-26.json, canalcup-2026-06-24.json, canalcup-2026-06-23.json, canalcup-2026-06-22.json
+[backup] démarrage 2026-06-30T12:00:02.281Z — projet qmkbnafilhdhnsdupgzd
+[backup] ✅ 60 tables, 25209 lignes, 9661 KB → canalcup-2026-06-30.json
+[backup] 🗑️  purge canalcup-2026-06-22.json (hors fenêtre 7 j)
+[backup] conservés : canalcup-2026-06-30.json, canalcup-2026-06-29.json, canalcup-2026-06-28.json, canalcup-2026-06-27.json, canalcup-2026-06-26.json, canalcup-2026-06-24.json, canalcup-2026-06-23.json
+[backup] démarrage 2026-07-01T12:02:21.905Z — projet qmkbnafilhdhnsdupgzd
+[backup] ❌ getaddrinfo ENOTFOUND api.supabase.com
+[backup] démarrage 2026-07-02T12:00:03.138Z — projet qmkbnafilhdhnsdupgzd
+[backup] ✅ 60 tables, 29351 lignes, 11021 KB → canalcup-2026-07-02.json
+[backup] 🗑️  purge canalcup-2026-06-23.json (hors fenêtre 7 j)
+[backup] conservés : canalcup-2026-07-02.json, canalcup-2026-06-30.json, canalcup-2026-06-29.json, canalcup-2026-06-28.json, canalcup-2026-06-27.json, canalcup-2026-06-26.json, canalcup-2026-06-24.json
+[backup] démarrage 2026-07-03T12:00:03.394Z — projet qmkbnafilhdhnsdupgzd
+[backup] ✅ 60 tables, 33591 lignes, 12577 KB → canalcup-2026-07-03.json
+[backup] 🗑️  purge canalcup-2026-06-24.json (hors fenêtre 7 j)
+[backup] conservés : canalcup-2026-07-03.json, canalcup-2026-07-02.json, canalcup-2026-06-30.json, canalcup-2026-06-29.json, canalcup-2026-06-28.json, canalcup-2026-06-27.json, canalcup-2026-06-26.json
+[backup] démarrage 2026-07-04T12:00:02.923Z — projet qmkbnafilhdhnsdupgzd
+[backup] ✅ 60 tables, 34868 lignes, 13076 KB → canalcup-2026-07-04.json
+[backup] 🗑️  purge canalcup-2026-06-26.json (hors fenêtre 7 j)
+[backup] conservés : canalcup-2026-07-04.json, canalcup-2026-07-03.json, canalcup-2026-07-02.json, canalcup-2026-06-30.json, canalcup-2026-06-29.json, canalcup-2026-06-28.json, canalcup-2026-06-27.json
+[backup] démarrage 2026-07-05T12:00:03.522Z — projet qmkbnafilhdhnsdupgzd
+[backup] ✅ 60 tables, 35738 lignes, 13382 KB → canalcup-2026-07-05.json
+[backup] 🗑️  purge canalcup-2026-06-27.json (hors fenêtre 7 j)
+[backup] conservés : canalcup-2026-07-05.json, canalcup-2026-07-04.json, canalcup-2026-07-03.json, canalcup-2026-07-02.json, canalcup-2026-06-30.json, canalcup-2026-06-29.json, canalcup-2026-06-28.json
+[backup] démarrage 2026-07-06T12:01:27.264Z — projet qmkbnafilhdhnsdupgzd
+[backup] ❌ getaddrinfo ENOTFOUND api.supabase.com

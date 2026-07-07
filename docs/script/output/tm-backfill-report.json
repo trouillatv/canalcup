@@ -1,0 +1,927 @@
+{
+  "generated_at": "2026-06-15T21:27:53.591Z",
+  "apply": true,
+  "backup_file": "docs\\script\\output\\auto-scrape-2350239.backup.json",
+  "teams": 59,
+  "players_total": 1449,
+  "players_already_had_tm": 1232,
+  "players_recovered": 0,
+  "players_unmatched": 208,
+  "players_ambiguous": 9,
+  "teams_no_backup": [],
+  "unmatched": [
+    {
+      "team": "Afrique du Sud",
+      "player": "B. Cross"
+    },
+    {
+      "team": "Afrique du Sud",
+      "player": "O. Makhanya"
+    },
+    {
+      "team": "Afrique du Sud",
+      "player": "I. Okon"
+    },
+    {
+      "team": "Afrique du Sud",
+      "player": "T. Zwane"
+    },
+    {
+      "team": "Afrique du Sud",
+      "player": "T. Maseko"
+    },
+    {
+      "team": "Algérie",
+      "player": "O. Benbot"
+    },
+    {
+      "team": "Algérie",
+      "player": "M. Mastil"
+    },
+    {
+      "team": "Algérie",
+      "player": "A. Benbouali"
+    },
+    {
+      "team": "Algérie",
+      "player": "F. Ghedjemis"
+    },
+    {
+      "team": "Allemagne",
+      "player": "M. Neuer"
+    },
+    {
+      "team": "Allemagne",
+      "player": "L. Karl"
+    },
+    {
+      "team": "Allemagne",
+      "player": "K. Havertz"
+    },
+    {
+      "team": "Angleterre",
+      "player": "N. Oreilly"
+    },
+    {
+      "team": "Angleterre",
+      "player": "K. Mainoo"
+    },
+    {
+      "team": "Arabie Saoudite",
+      "player": "Mohammed Al Owais"
+    },
+    {
+      "team": "Arabie Saoudite",
+      "player": "Ala Al Haji"
+    },
+    {
+      "team": "Arabie Saoudite",
+      "player": "Khalid Al Ghannam"
+    },
+    {
+      "team": "Arabie Saoudite",
+      "player": "Feras Al Brikan"
+    },
+    {
+      "team": "Argentine",
+      "player": "J. Musso"
+    },
+    {
+      "team": "Australie",
+      "player": "L. Herrington"
+    },
+    {
+      "team": "Australie",
+      "player": "H. Souttar"
+    },
+    {
+      "team": "Australie",
+      "player": "C. Volpato"
+    },
+    {
+      "team": "Australie",
+      "player": "M. Leckie"
+    },
+    {
+      "team": "Australie",
+      "player": "A. Mabil"
+    },
+    {
+      "team": "Autriche",
+      "player": "F. Wiegele"
+    },
+    {
+      "team": "Autriche",
+      "player": "D. Affengruber"
+    },
+    {
+      "team": "Autriche",
+      "player": "M. Svoboda"
+    },
+    {
+      "team": "Autriche",
+      "player": "C. Chukwuemeka"
+    },
+    {
+      "team": "Autriche",
+      "player": "P. Wanner"
+    },
+    {
+      "team": "Autriche",
+      "player": "S. Kalajdzic"
+    },
+    {
+      "team": "Belgique",
+      "player": "N. Ngoy"
+    },
+    {
+      "team": "Belgique",
+      "player": "M. Fernandez-Pardo"
+    },
+    {
+      "team": "Bosnie-Herzégovine",
+      "player": "M. Jurkas"
+    },
+    {
+      "team": "Bosnie-Herzégovine",
+      "player": "N. Celik"
+    },
+    {
+      "team": "Bosnie-Herzégovine",
+      "player": "Ermin Mahmic"
+    },
+    {
+      "team": "Bosnie-Herzégovine",
+      "player": "J. Lukic"
+    },
+    {
+      "team": "Brésil",
+      "player": "Alisson Becker"
+    },
+    {
+      "team": "Brésil",
+      "player": "Bremer"
+    },
+    {
+      "team": "Brésil",
+      "player": "Gabriel Magalhães"
+    },
+    {
+      "team": "Brésil",
+      "player": "Ibañez"
+    },
+    {
+      "team": "Brésil",
+      "player": "Neymar"
+    },
+    {
+      "team": "Brésil",
+      "player": "Rayan"
+    },
+    {
+      "team": "Brésil",
+      "player": "Thiago"
+    },
+    {
+      "team": "Canada",
+      "player": "M. Flores"
+    },
+    {
+      "team": "Cap-Vert",
+      "player": "C. dos Santos"
+    },
+    {
+      "team": "Cap-Vert",
+      "player": "Pico"
+    },
+    {
+      "team": "Corée du Sud",
+      "player": "Cho Wi-Je"
+    },
+    {
+      "team": "Corée du Sud",
+      "player": "Kim Tae-Hyeon"
+    },
+    {
+      "team": "Corée du Sud",
+      "player": "Park Jin-Seop"
+    },
+    {
+      "team": "Corée du Sud",
+      "player": "Lee Gi-Hyuk"
+    },
+    {
+      "team": "Côte d'Ivoire",
+      "player": "A. Bonny"
+    },
+    {
+      "team": "Côte d'Ivoire",
+      "player": "E. Wahi"
+    },
+    {
+      "team": "Écosse",
+      "player": "D. Hyam"
+    },
+    {
+      "team": "Écosse",
+      "player": "T. Fletcher"
+    },
+    {
+      "team": "Écosse",
+      "player": "R. Stewart"
+    },
+    {
+      "team": "Écosse",
+      "player": "Findlay Curtis"
+    },
+    {
+      "team": "Égypte",
+      "player": "M. Alaa"
+    },
+    {
+      "team": "Égypte",
+      "player": "Al Mahdi Soliman"
+    },
+    {
+      "team": "Égypte",
+      "player": "Karim Hafez"
+    },
+    {
+      "team": "Égypte",
+      "player": "T. Alaa"
+    },
+    {
+      "team": "Égypte",
+      "player": "Marwan Attia"
+    },
+    {
+      "team": "Égypte",
+      "player": "Mostafa Zico"
+    },
+    {
+      "team": "Égypte",
+      "player": "H. Abdelkarim"
+    },
+    {
+      "team": "Équateur",
+      "player": "J. Porozo"
+    },
+    {
+      "team": "Espagne",
+      "player": "Pau Cubarsí Paredes"
+    },
+    {
+      "team": "Espagne",
+      "player": "Marc Pubill"
+    },
+    {
+      "team": "Espagne",
+      "player": "Víctor Muñoz"
+    },
+    {
+      "team": "France",
+      "player": "R. Risser"
+    },
+    {
+      "team": "France",
+      "player": "M. Lacroix"
+    },
+    {
+      "team": "Ghana",
+      "player": "D. Luckassen"
+    },
+    {
+      "team": "Ghana",
+      "player": "A. Mumin"
+    },
+    {
+      "team": "Ghana",
+      "player": "M. Senaya"
+    },
+    {
+      "team": "Ghana",
+      "player": "A. Baba"
+    },
+    {
+      "team": "Ghana",
+      "player": "A. Boakye"
+    },
+    {
+      "team": "Haïti",
+      "player": "D. Simon"
+    },
+    {
+      "team": "Haïti",
+      "player": "D. Etienne"
+    },
+    {
+      "team": "Haïti",
+      "player": "W. Isidor"
+    },
+    {
+      "team": "Irak",
+      "player": "Ahmed Basil"
+    },
+    {
+      "team": "Irak",
+      "player": "Jalal Hassan Hachim"
+    },
+    {
+      "team": "Irak",
+      "player": "Mustafa Saadoun"
+    },
+    {
+      "team": "Irak",
+      "player": "Rebin Solaka"
+    },
+    {
+      "team": "Irak",
+      "player": "Munaf Younus"
+    },
+    {
+      "team": "Irak",
+      "player": "Akam Rahman"
+    },
+    {
+      "team": "Irak",
+      "player": "Z. Ismaeel"
+    },
+    {
+      "team": "Irak",
+      "player": "Meme"
+    },
+    {
+      "team": "Irak",
+      "player": "A. Qasem"
+    },
+    {
+      "team": "Irak",
+      "player": "A. Y. Hashim"
+    },
+    {
+      "team": "Iran",
+      "player": "A. Beiranvand"
+    },
+    {
+      "team": "Iran",
+      "player": "H. Hosseini"
+    },
+    {
+      "team": "Iran",
+      "player": "P. Niazmand"
+    },
+    {
+      "team": "Iran",
+      "player": "D. Eiri"
+    },
+    {
+      "team": "Iran",
+      "player": "R. Rezaeian"
+    },
+    {
+      "team": "Iran",
+      "player": "E. Hajisafi"
+    },
+    {
+      "team": "Iran",
+      "player": "Saleh Hardani"
+    },
+    {
+      "team": "Iran",
+      "player": "H. Kanani"
+    },
+    {
+      "team": "Iran",
+      "player": "S. Khalilzadeh"
+    },
+    {
+      "team": "Iran",
+      "player": "M. Mohammadi"
+    },
+    {
+      "team": "Iran",
+      "player": "A. Nemati"
+    },
+    {
+      "team": "Iran",
+      "player": "A. Yousefi"
+    },
+    {
+      "team": "Iran",
+      "player": "A. Jahanbakhsh"
+    },
+    {
+      "team": "Iran",
+      "player": "R. Cheshmi"
+    },
+    {
+      "team": "Iran",
+      "player": "S. Ezatolahi"
+    },
+    {
+      "team": "Iran",
+      "player": "S. Ghoddos"
+    },
+    {
+      "team": "Iran",
+      "player": "A. Razzaghinia"
+    },
+    {
+      "team": "Iran",
+      "player": "M. Ghorbani"
+    },
+    {
+      "team": "Iran",
+      "player": "M. Mohebi"
+    },
+    {
+      "team": "Iran",
+      "player": "M. Torabi"
+    },
+    {
+      "team": "Iran",
+      "player": "M. Ghaedi"
+    },
+    {
+      "team": "Iran",
+      "player": "A. Hosseinzadeh"
+    },
+    {
+      "team": "Iran",
+      "player": "A. Alipour"
+    },
+    {
+      "team": "Iran",
+      "player": "S. Moghanlou"
+    },
+    {
+      "team": "Iran",
+      "player": "D. Eckert Ayensa"
+    },
+    {
+      "team": "Iran",
+      "player": "M. Taremi"
+    },
+    {
+      "team": "Japon",
+      "player": "T. Tomiyasu"
+    },
+    {
+      "team": "Japon",
+      "player": "K. Shiogai"
+    },
+    {
+      "team": "Jordanie",
+      "player": "Yazid Abu Layla"
+    },
+    {
+      "team": "Jordanie",
+      "player": "Noureddin Zaid"
+    },
+    {
+      "team": "Jordanie",
+      "player": "H. Abu Al Dahab"
+    },
+    {
+      "team": "Jordanie",
+      "player": "A. Badawi"
+    },
+    {
+      "team": "Jordanie",
+      "player": "Abdallah Naseeb"
+    },
+    {
+      "team": "Jordanie",
+      "player": "M. Al Daoud"
+    },
+    {
+      "team": "Jordanie",
+      "player": "Ibrahim Sa'deh"
+    },
+    {
+      "team": "Jordanie",
+      "player": "Mohammed Abu Zurayq"
+    },
+    {
+      "team": "Maroc",
+      "player": "M. Mohamedi"
+    },
+    {
+      "team": "Maroc",
+      "player": "A. Tagnaouti"
+    },
+    {
+      "team": "Maroc",
+      "player": "R. Halhal"
+    },
+    {
+      "team": "Maroc",
+      "player": "C. Riad"
+    },
+    {
+      "team": "Maroc",
+      "player": "A. Bouaddi"
+    },
+    {
+      "team": "Maroc",
+      "player": "S. El Mourabet"
+    },
+    {
+      "team": "Maroc",
+      "player": "Gessime Yassine"
+    },
+    {
+      "team": "Maroc",
+      "player": "A. Amaimouni"
+    },
+    {
+      "team": "Mexique",
+      "player": "Álvaro Fidalgo"
+    },
+    {
+      "team": "Mexique",
+      "player": "G. Martínez"
+    },
+    {
+      "team": "Norvège",
+      "player": "H. Falchener"
+    },
+    {
+      "team": "Norvège",
+      "player": "F. Aursnes"
+    },
+    {
+      "team": "Nouvelle-Zélande",
+      "player": "M. Woud"
+    },
+    {
+      "team": "Nouvelle-Zélande",
+      "player": "L. Bayliss"
+    },
+    {
+      "team": "Ouzbékistan",
+      "player": "K. Alijonov"
+    },
+    {
+      "team": "Ouzbékistan",
+      "player": "B. Karimov"
+    },
+    {
+      "team": "Ouzbékistan",
+      "player": "S. Nasrullayev"
+    },
+    {
+      "team": "Ouzbékistan",
+      "player": "A. Ganiyev"
+    },
+    {
+      "team": "Ouzbékistan",
+      "player": "O. Hamrobekov"
+    },
+    {
+      "team": "Ouzbékistan",
+      "player": "S. Esanov"
+    },
+    {
+      "team": "Ouzbékistan",
+      "player": "O. Orunov"
+    },
+    {
+      "team": "Ouzbékistan",
+      "player": "A. Amonov"
+    },
+    {
+      "team": "Panama",
+      "player": "R. Miller"
+    },
+    {
+      "team": "Paraguay",
+      "player": "G. Olveira"
+    },
+    {
+      "team": "Paraguay",
+      "player": "A. Maidana"
+    },
+    {
+      "team": "Paraguay",
+      "player": "J. Canale"
+    },
+    {
+      "team": "Paraguay",
+      "player": "G. Caballero"
+    },
+    {
+      "team": "Paraguay",
+      "player": "Maurício"
+    },
+    {
+      "team": "Pays-Bas",
+      "player": "G. Til"
+    },
+    {
+      "team": "Pays-Bas",
+      "player": "M. de Roon"
+    },
+    {
+      "team": "Pays-Bas",
+      "player": "C. Summerville"
+    },
+    {
+      "team": "Portugal",
+      "player": "Tomás Araújo"
+    },
+    {
+      "team": "Portugal",
+      "player": "Gonçalo Guedes"
+    },
+    {
+      "team": "Qatar",
+      "player": "Mahmud Abunada"
+    },
+    {
+      "team": "Qatar",
+      "player": "Meshaal Barsham"
+    },
+    {
+      "team": "Qatar",
+      "player": "Salah Zakaria"
+    },
+    {
+      "team": "Qatar",
+      "player": "Homam Ahmed"
+    },
+    {
+      "team": "Qatar",
+      "player": "Sultan Al Braik"
+    },
+    {
+      "team": "Qatar",
+      "player": "A. Al Oui"
+    },
+    {
+      "team": "Qatar",
+      "player": "Jassem Gaber"
+    },
+    {
+      "team": "Qatar",
+      "player": "Boualem Khoukhi"
+    },
+    {
+      "team": "Qatar",
+      "player": "Lucas Mendes"
+    },
+    {
+      "team": "Qatar",
+      "player": "Pedro Miguel"
+    },
+    {
+      "team": "Qatar",
+      "player": "Assim Madibo"
+    },
+    {
+      "team": "Qatar",
+      "player": "Ahmed Al Ganehi"
+    },
+    {
+      "team": "Qatar",
+      "player": "Abdulaziz Hatem"
+    },
+    {
+      "team": "Qatar",
+      "player": "Karim Boudiaf"
+    },
+    {
+      "team": "Qatar",
+      "player": "Hassan Al Haydos"
+    },
+    {
+      "team": "Qatar",
+      "player": "Mohamed Al Manai"
+    },
+    {
+      "team": "Qatar",
+      "player": "Y. Abdurisag"
+    },
+    {
+      "team": "Qatar",
+      "player": "Akram Afif"
+    },
+    {
+      "team": "Qatar",
+      "player": "Ahmed Alaa"
+    },
+    {
+      "team": "Qatar",
+      "player": "Almoez Ali"
+    },
+    {
+      "team": "Qatar",
+      "player": "Edmilson Junior"
+    },
+    {
+      "team": "Qatar",
+      "player": "Tahsin Jamshid"
+    },
+    {
+      "team": "Qatar",
+      "player": "Mohammed Muntari"
+    },
+    {
+      "team": "RD Congo",
+      "player": "L. Mpasi"
+    },
+    {
+      "team": "Sénégal",
+      "player": "B. Dieng"
+    },
+    {
+      "team": "Suède",
+      "player": "E. Smith"
+    },
+    {
+      "team": "Suède",
+      "player": "E. Stroud"
+    },
+    {
+      "team": "Suède",
+      "player": "T. Ali"
+    },
+    {
+      "team": "Suisse",
+      "player": "N. Okafor"
+    },
+    {
+      "team": "Tchéquie",
+      "player": "V. Darida"
+    },
+    {
+      "team": "Tchéquie",
+      "player": "H. Sochurek"
+    },
+    {
+      "team": "Tchéquie",
+      "player": "A. Sojka"
+    },
+    {
+      "team": "Tchéquie",
+      "player": "D. Visinský"
+    },
+    {
+      "team": "Tunisie",
+      "player": "S. Ben Hsan"
+    },
+    {
+      "team": "Tunisie",
+      "player": "C. Abdelmouhib"
+    },
+    {
+      "team": "Tunisie",
+      "player": "A. Ben Hmida"
+    },
+    {
+      "team": "Tunisie",
+      "player": "R. Chikhaoui"
+    },
+    {
+      "team": "Tunisie",
+      "player": "O. Rekik"
+    },
+    {
+      "team": "Tunisie",
+      "player": "R. Khedira"
+    },
+    {
+      "team": "Tunisie",
+      "player": "H. Mejbri"
+    },
+    {
+      "team": "Tunisie",
+      "player": "R. Elloumi"
+    },
+    {
+      "team": "Turquie",
+      "player": "A. Bayindir"
+    },
+    {
+      "team": "Turquie",
+      "player": "U. Çakir"
+    },
+    {
+      "team": "Turquie",
+      "player": "A. Bardakci"
+    },
+    {
+      "team": "Turquie",
+      "player": "E. Elmali"
+    },
+    {
+      "team": "Turquie",
+      "player": "O. Kabak"
+    },
+    {
+      "team": "Turquie",
+      "player": "F. Kadioglu"
+    },
+    {
+      "team": "Turquie",
+      "player": "O. Aydin"
+    },
+    {
+      "team": "Turquie",
+      "player": "K. Yildiz"
+    },
+    {
+      "team": "Turquie",
+      "player": "B. Yilmaz"
+    },
+    {
+      "team": "Uruguay",
+      "player": "F. Muslera"
+    },
+    {
+      "team": "Uruguay",
+      "player": "A. Canobbio"
+    }
+  ],
+  "ambiguous": [
+    {
+      "team": "Cap-Vert",
+      "player": "Kevin Pina",
+      "candidates": [
+        "Wagner Pina",
+        "Rúben Pina"
+      ]
+    },
+    {
+      "team": "Croatie",
+      "player": "M. Pasalic",
+      "candidates": [
+        "Mario Pašalić",
+        "Marco Pašalić"
+      ]
+    },
+    {
+      "team": "Croatie",
+      "player": "M. Pasalic",
+      "candidates": [
+        "Mario Pašalić",
+        "Marco Pašalić"
+      ]
+    },
+    {
+      "team": "Haïti",
+      "player": "W. Pierre",
+      "candidates": [
+        "Alexandre Pierre",
+        "Leverton Pierre"
+      ]
+    },
+    {
+      "team": "Japon",
+      "player": "K. Sano",
+      "candidates": [
+        "Kaishu Sano",
+        "Kodai Sano"
+      ]
+    },
+    {
+      "team": "Japon",
+      "player": "T. Kubo",
+      "candidates": [
+        "Tojiro Kubo",
+        "Takefusa Kubo"
+      ]
+    },
+    {
+      "team": "Mexique",
+      "player": "E. Álvarez",
+      "candidates": [
+        "Kevin Álvarez",
+        "Edson Álvarez",
+        "Efraín Álvarez"
+      ]
+    },
+    {
+      "team": "Sénégal",
+      "player": "I. Gueye",
+      "candidates": [
+        "Idrissa Gueye",
+        "Pape Gueye",
+        "Libasse Gueye",
+        "Idrissa Gueye"
+      ]
+    },
+    {
+      "team": "Sénégal",
+      "player": "Bara Ndiaye",
+      "candidates": [
+        "Seyni Mbaye Ndiaye",
+        "Moussa Ndiaye",
+        "Mbaye Ndiaye",
+        "Rassoul Ndiaye",
+        "Iliman Ndiaye",
+        "Cherif Ndiaye"
+      ]
+    }
+  ]
+}

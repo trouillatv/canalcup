@@ -1,0 +1,160 @@
+####################################################
+BULK IMPORT
+####################################################
+
+Pour ton cas ADA, le coût IA est probablement beaucoup plus faible que tu l'imagines.
+
+Prenons un scénario réaliste :
+
+### Volume ADA
+
+* 200 factures / mois
+* 1 à 3 pages par facture
+* Majoritairement PDF générés par ordinateur
+* Quelques scans photo
+
+---
+
+# Stratégie intelligente (celle que je ferais)
+
+## Niveau 1 : OCR classique
+
+Pour 70 à 90 % des factures :
+
+* extraction PDF
+* regex
+* recherche immatriculation
+* recherche montant TTC
+* recherche date
+
+Coût :
+
+```text
+0 €
+```
+
+ou quasi nul.
+
+---
+
+## Niveau 2 : IA uniquement si besoin
+
+Tu envoies à Gemini uniquement :
+
+* scans photo
+* PDF mal structurés
+* immatriculation introuvable
+* facture ambiguë
+
+Supposons :
+
+```text
+200 factures
+↓
+30 factures nécessitent l'IA
+```
+
+---
+
+# Coût Gemini Flash
+
+Ordre de grandeur actuel :
+
+30 factures :
+
+```text
+< 0,10 €
+à
+0,50 €
+```
+
+soit :
+
+```text
+12 à 60 F CFP
+```
+
+---
+
+# Si tu envoies tout à l'IA
+
+200 factures complètes :
+
+```text
+1 à 5 €
+```
+
+environ
+
+```text
+120 à 600 F CFP
+```
+
+---
+
+# Cas extrême
+
+Imaginons :
+
+* 1000 factures
+* toutes scannées
+* OCR IA complet
+
+On reste souvent sous :
+
+```text
+10 à 20 €
+```
+
+soit :
+
+```text
+1200 à 2400 F CFP
+```
+
+---
+
+# Le vrai coût n'est pas l'IA
+
+Le vrai coût est :
+
+### Développement
+
+* upload ZIP
+* traitement asynchrone
+* suivi d'avancement
+* matching immatriculation
+* écran de validation
+* gestion des erreurs
+
+C'est facilement :
+
+```text
+2 à 5 jours de développement
+```
+
+Alors que l'IA coûtera souvent moins qu'un café par import.
+
+---
+
+# Pour EquipPass
+
+Je mettrais même un indicateur :
+
+```text
+200 factures importées
+
+174 reconnues automatiquement
+21 à vérifier
+5 rejetées
+
+Coût IA estimé :
+43 F CFP
+```
+
+Ça rassure énormément les clients.
+
+---
+
+Pour ADA, avec 200 factures mensuelles, je serais surpris que la facture IA dépasse **500 F CFP par mois** avec une architecture optimisée. Le coût est tellement faible que ce n'est pas un critère de décision produit. Le vrai enjeu est la qualité de reconnaissance et l'automatisation du rattachement aux véhicules.
+

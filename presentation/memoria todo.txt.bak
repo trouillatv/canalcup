@@ -1,0 +1,3484 @@
+A chaque création de lie on doit obligatoirement chosir un siit GPS soit carte avec un Pin a deplacer sur lecra,n mobile puis sauvegrder
+pour definir ce lieu. A chaque ouverture de l'application, on capte notre position GPS et suivant le lieu 
+de notre posuition capté, si on est dns un rayon de 200mdu lieu aors ouvrir par defaut  lappli mobile sur la page chantier mobile (intervention)
+sinon par defaut (loin ou positionGPs marche pas alors ovuverture par defaut sur le mode bureau)
+Lenregistremet peut se fare par appel IA (exemple si je me college magenta l'iA peut me mettre par defaut lemplacement ou ce lieu est sur la carte)
+Se souvenir a chaque connexion deconnexion de la preference de lutuslateur sur le bascul de mode 
+-> roadmap
+
+
+sur , si on clique sur Ajouter une note sur ce site : une fois validé,on ne la voie pas saffiher
+
+
+si on rentre u signalemet, on voit  Signalements (1)
+mmais on ne voit pas en cliquant dessu ce quon vient de déclarer, possibilité de supprimer rapidement si le problème nes pluslà et quon est toujours en cous dintervention
+
+
+Agrémanter le bouton feedback de capture decran posisble, ajout de photo. A chaque fois que je recois un feedbavk je dois 
+recevoir un email sur mon hotmail pour me prévenir
+
+
+sur l'appli Terrain, on ne voit pas linterventiondu lendemein : exmple si on est le 14 juin, on ne voit pas celle du 15 juin
+
+
+le logo  memoria, centré transparent sur le PWA
+
+
+
+Renommer Appel d'Offre par préparation Memeoire ou autre chsoe de ce type? Ca ne orrespond pas a reponde à un appel doffre Financoer mais 
+
+
+
+Historique des QR codes, revaqué, regenérés, scannés
+
+
+
+
+Sur le /m rajouter lorsque l'on démmare une tache et quon fait un signalement ne le fait pas apparaitre dans la fche aptes lavoir enregistré
+
+
+
+Daans intervention du jur, on ne voit pas le titre de lintervention sur mobile
+
+
+
+sur /m pour la vue dashboard, dans Missions, lorsque l'on clique sur une mission , ca ne fait que deéployer, 
+du coup on ne oeut pas cliquer a partir de cet écran sur la mission, juste lintervention, troues un moyen
+Tooltip sur les anomalies découvettes des missions
+
+
+
+sur telephone, dans les dashboard je pense a la dashbard du site, il faudtait faire des onglets, activité recente, memoire du lien, documents ...
+
+la page contrat est reduite en largeur elle devrait etre cimme les autres
+
+
+
+
+
+
+A partir due page  site comment fait on pour avoir le QR code dun chantier, 
+Pour le QR d'un chantier, comment fait on poour le créer, le revoquer, voir ses historiques
+Journal du chantier → A etoffer , notes? details interventions ? 
+http://localhost:3001/qr/TPbykKgSLp6FshLN5-OlFFII
+Atelier mémoire → Explique 
+QR Code
+Tout ca en bas e page dun site, trop petit, evrait remettre en haut
+
+
+
+
+Misison : si on rentrer une note a savoir sur ce lieu , elle ne senregistre pas, on ne la voit paas
+
+
+
+
+
+
+
+
+####################################################
+ROADMAP
+####################################################
+Après l’entretien Adrien/Fred, on ajuste les priorités.
+
+Objectif court terme :
+préparer une démo BTP fiable, visible, compréhensible en 5 secondes. Pas de feature IA fragile avant la démo.
+
+Priorité 1 — home_preference
+Ajouter une préférence d’accueil utilisateur, sans changer les rôles ni les permissions.
+
+Exemple :
+
+dashboard : accueil manager / pilotage
+terrain : accueil terrain / action immédiate
+
+Règle :
+
+Guillaume reste manager avec accueil dashboard
+Adrien reste manager mais avec accueil terrain
+Fred / chef chantier avec accueil terrain
+aucun nouveau rôle
+aucune restriction nouvelle
+
+But :
+ne pas mélanger droits et expérience d’accueil.
+
+Priorité 2 — Home terrain BTP
+Adapter /m pour devenir une vraie home terrain utile à Adrien/Fred :
+
+Mes chantiers du jour
+Démarrer
+Ajouter photo
+Ajouter note
+Signaler incident
+Voir journal chantier
+Accès rapide QR / preuve si déjà disponible
+
+Ne pas faire une refonte lourde. Garder l’existant, mais rendre l’entrée immédiate et claire.
+
+Priorité 3 — QR chantier
+Finaliser le QR chantier si ce n’est pas terminé :
+
+token public lecture seule
+/qr/[token]
+journal chantier sans login
+pas d’actions
+pas de données sensibles
+compteur accès
+bouton depuis le site/journal
+
+Priorité 4 — PDF journal chantier
+Vérifier que l’export PDF fonctionne vraiment :
+
+bouton visible
+PDF téléchargeable
+contenu utile : dates, interventions, photos, anomalies, sous-traitants, notes
+usage : preuve, litige, décennale, passation
+
+
+
+
+
+
+
+
+
+
+
+
+####################################################
+EMPLOYE PAS ASSIGNE A UN CHANTIER
+####################################################
+
+
+Oui. Et c’est exactement une demande qu’Adrien a formulée implicitement pendant l’entretien :
+
+> “Est-ce qu’on voit si un mec n’est pas assigné sur un chantier ?”
+
+Donc je le mettrais dans MemorIA, mais avec le bon vocabulaire : **pas “employé non utilisé”**, plutôt :
+
+> **Personnes sans affectation**
+> ou
+> **Disponibles / non planifiées**
+
+C’est moins froid, moins RH, et plus opérationnel.
+
+---
+
+## Où l’afficher ?
+
+### 1. Briefing du soir / préparation du lendemain
+
+C’est le meilleur endroit.
+
+Objectif :
+
+> “Demain, qui n’a rien de prévu ?”
+
+Bloc :
+
+```text
+Disponibles demain
+
+- Lucas Martin
+- Joël Wamytan
+
+Aucune équipe assignée sur les chantiers du 14 juin.
+```
+
+Avec action :
+
+```text
+Affecter à un chantier
+```
+
+---
+
+### 2. Briefing de la semaine
+
+Vue plus globale :
+
+```text
+Personnes sans affectation cette semaine
+
+Lucas : mardi, jeudi
+Joël : mercredi
+Mathieu : vendredi après-midi
+```
+
+Très utile pour planning.
+
+---
+
+### 3. Dashboard manager
+
+Plus léger :
+
+```text
+2 personnes disponibles demain
+```
+
+Cliquable vers le briefing.
+
+---
+
+## Ce qu’il ne faut PAS faire
+
+Éviter :
+
+```text
+Employés non utilisés
+```
+
+Ça sonne comme :
+
+* contrôle RH ;
+* productivité individuelle ;
+* surveillance.
+
+Préférer :
+
+```text
+Capacité disponible
+```
+
+ou
+
+```text
+Personnes sans affectation
+```
+
+---
+
+## À dire à Claude
+
+Claude,
+
+Nouvelle amélioration issue de l’entretien Adrien/Fred.
+
+Besoin :
+dans le briefing du jour, du soir ou de la semaine, on doit voir les personnes sans affectation.
+
+Contexte métier :
+Adrien a demandé s’il pouvait voir rapidement si quelqu’un n’était pas assigné sur un chantier. En PME BTP, c’est important pour préparer le lendemain et éviter qu’un salarié ou sous-traitant reste sans mission claire.
+
+Vocabulaire :
+ne pas utiliser “employé non utilisé”.
+Utiliser plutôt :
+
+* “Personnes sans affectation”
+* “Disponibles demain”
+* “Capacité disponible”
+
+Où l’afficher :
+
+1. Priorité : briefing du soir / préparation du lendemain
+
+   * afficher les personnes sans intervention/mission planifiée le lendemain ;
+   * action possible : “Affecter à un chantier”.
+
+2. Ensuite : briefing de la semaine
+
+   * afficher les jours où une personne n’a aucune affectation ;
+   * exemple : Lucas libre mardi / jeudi.
+
+3. Optionnel : dashboard manager
+
+   * petit signal “2 personnes disponibles demain”.
+
+Règle de calcul :
+
+* prendre les membres actifs des équipes ;
+* comparer avec les interventions/missions planifiées sur la période ;
+* si aucune affectation sur la journée, afficher la personne comme disponible ;
+* inclure salariés internes et, si déjà modélisés, sous-traitants réguliers.
+
+Contraintes :
+
+* ne pas faire de scoring individuel ;
+* ne pas faire de classement RH ;
+* ne pas parler de performance ;
+* rester sur une logique planning/capacité ;
+* ne pas créer une usine à gaz RH.
+
+Objectif :
+aider Adrien à préparer demain, pas surveiller les personnes.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+####################################################
+QR CODE CHANTIER - LIVRAISON
+####################################################
+
+Tu as raison. J'ai répondu à la vision produit, mais pas à la question concrète :
+
+> **Adrien a un problème de livraison aujourd'hui. Comment le résoudre sans créer un module "Livraison" spécifique au BTP ?**
+
+La réponse est : **il faut modéliser la livraison comme une mission/intervention**, pas comme un nouveau produit.
+
+---
+
+## Ce qu'Adrien décrit
+
+Aujourd'hui :
+
+```text
+Camion
+↓
+2 personnes
+↓
+10 livraisons dans la journée
+↓
+Photos WhatsApp
+↓
+Impossible de savoir précisément :
+- ce qui a été livré
+- ce qui manque
+- ce qui a été refusé
+- quand
+- par qui
+```
+
+---
+
+## Mauvaise solution
+
+Créer :
+
+```text
+Menu Livraison
+Menu Bon de livraison
+Menu Transport
+Menu Camion
+```
+
+Ça résout Adrien.
+
+Mais pas Guillaume.
+
+Pas ADA.
+
+Pas le prochain client.
+
+---
+
+## Bonne solution
+
+Considérer qu'une livraison est simplement :
+
+```text
+Mission
+```
+
+ou
+
+```text
+Intervention
+```
+
+avec une checklist.
+
+---
+
+### Exemple
+
+Mission :
+
+```text
+Livraison Médipôle
+```
+
+Checklist :
+
+```text
+☐ 12 plaques BA13
+☐ 4 rails
+☐ 3 montants
+☐ 2 boîtes de vis
+```
+
+Puis :
+
+```text
+Photo
+Commentaire
+Validation
+```
+
+---
+
+### Résultat
+
+Le chauffeur ouvre MemorIA :
+
+```text
+Mission du jour
+
+Livraison Médipôle
+```
+
+Il coche :
+
+```text
+✓ BA13 livré
+✓ Rails livrés
+✗ Montants manquants
+```
+
+Photo.
+
+Valider.
+
+Terminé.
+
+---
+
+## Pourquoi c'est transversal ?
+
+Parce que demain la même structure devient :
+
+### Nettoyage
+
+```text
+Mission
+
+Nettoyage salle 12
+
+☐ Sol
+☐ Vitres
+☐ Poubelles
+```
+
+---
+
+### BTP
+
+```text
+Mission
+
+Livraison chantier
+
+☐ BA13
+☐ Rails
+☐ Vis
+```
+
+---
+
+### ADA
+
+```text
+Mission
+
+Retour véhicule
+
+☐ Carburant
+☐ Kilométrage
+☐ Photos
+```
+
+Même moteur.
+
+---
+
+# Ce qui manque aujourd'hui dans MemorIA
+
+Pas un module livraison.
+
+Mais :
+
+## Des checklists beaucoup plus flexibles
+
+Aujourd'hui elles sont plutôt :
+
+```text
+Tâche A
+Tâche B
+Tâche C
+```
+
+Demain elles devraient permettre :
+
+```text
+Type : Quantité
+
+BA13 : 12
+Rails : 4
+Montants : 3
+```
+
+et éventuellement :
+
+```text
+Livré
+Partiel
+Refusé
+```
+
+---
+
+# Le vrai besoin d'Adrien
+
+En réalité il ne cherche pas :
+
+> "un outil de livraison"
+
+Il cherche :
+
+> "une preuve que quelque chose a été réalisé"
+
+Donc la structure générique devient :
+
+```text
+Intervention
+↓
+Checklist
+↓
+Preuves
+↓
+Photos
+↓
+Validation
+↓
+Historique
+```
+
+Et ça marche pour :
+
+* une livraison ;
+* une porte posée ;
+* un nettoyage ;
+* une inspection ;
+* un retour de véhicule ;
+* un contrôle qualité.
+
+---
+
+# Si j'étais Claude Code
+
+Je ne développerais pas :
+
+```text
+Sprint Livraison
+```
+
+Je développerais :
+
+```text
+Sprint Interventions structurées
+```
+
+avec :
+
+* checklist enrichie ;
+* quantités ;
+* photos ;
+* validation ;
+* statut partiel/complet ;
+* export PDF.
+
+Adrien y verra ses livraisons.
+
+Guillaume y verra ses prestations.
+
+ADA y verra ses restitutions de véhicules.
+
+Et MemorIA restera un produit transversal. C'est ça qui te permet de résoudre le problème d'Adrien sans t'enfermer dans le BTP.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+####################################################
+Vraie Mission
+####################################################
+ Je pense que vous êtes en train de toucher à un vrai problème de modélisation qui va devenir critique avec Adrien.
+
+  Aujourd'hui, dans MemorIA, il y a une ambiguïté :
+
+  ```text
+  Mission
+  =
+  modèle de travail
+  ```
+
+  et
+
+  ```text
+  Mission
+  =
+  travail planifié à une date
+  ```
+
+  Or ce sont deux objets différents.
+
+  ---
+
+  # Comment je vois le modèle
+
+  ## Contrat
+
+  ```text
+  CHT
+  ```
+
+  contient :
+
+  ## Sites
+
+  ```text
+  Pédiatrie
+  Urgences
+  Bloc opératoire
+  ```
+
+  contiennent :
+
+  ## Missions
+
+  ```text
+  Nettoyage quotidien
+  Contrôle sécurité
+  Livraison matériaux
+  Contrôle ferraillage
+  Pose portes
+  ```
+
+  Les missions sont des modèles.
+
+  ---
+
+  Puis ces missions génèrent :
+
+  ## Interventions
+
+  ```text
+  15 juin 8h
+  Contrôle ferraillage
+
+  16 juin 14h
+  Contrôle ferraillage
+
+  23 juin 10h
+  Contrôle ferraillage
+  ```
+
+  Les interventions sont les occurrences.
+
+  ---
+
+  # Donc pour moi
+
+  Le menu actuel :
+
+  ```text
+  Missions
+  ```
+
+  n'est pas un menu Missions.
+
+  C'est :
+
+  ```text
+  Planning des interventions
+  ```
+
+  ---
+
+  # Et Adrien va te le faire exploser
+
+  Parce que dans le BTP il va avoir :
+
+  ```text
+  Mission :
+  Contrôle coulage dalle
+  ```
+
+  mais :
+
+  ```text
+  Intervention 1
+  Avant coulage
+
+  Intervention 2
+  Pendant coulage
+
+  Intervention 3
+  Après coulage
+  ```
+
+  Il a besoin de voir la mission globale.
+
+  Pas seulement les interventions.
+
+  ---
+
+  # Ce que je construirais
+
+  ## Menu
+
+  ```text
+  Dashboard
+
+  Sites
+
+  Contrats
+
+  Missions
+
+  Planning
+
+  Documents
+
+  Passations
+  ```
+
+  ---
+
+  ## Missions
+
+  Vrai cockpit métier.
+
+  Colonnes :
+
+  ```text
+  Mission
+
+  Site
+
+  Equipe
+
+  Dernière intervention
+
+  Prochaine intervention
+
+  Anomalies
+
+  Statut
+  ```
+
+  ---
+
+  Exemple :
+
+  | Mission              | Site        | Dernière       | Prochaine | Statut |
+  | -------------------- | ----------- | -------------- | --------- | ------ |
+  | Contrôle ferraillage | Médipôle    | Hier           | Demain    |      |
+  | Livraison matériaux  | Médipôle    | Il y a 5 jours | Aucune    |      |
+  | Contrôle accès       | Lycée Païta | Aujourd'hui    | Vendredi  |      |
+
+  ---
+
+  # KPI en haut
+
+  Très utiles pour Adrien :
+
+  ```text
+  87 missions actives
+
+  12 sans prochaine intervention
+
+  4 sans équipe
+
+  7 avec anomalies
+
+  3 en retard
+  ```
+
+  ---
+
+  # Et là il y a une idée intéressante
+
+  Tu pourrais même avoir :
+
+  ## Vue capacité
+
+  ```text
+  Missions sans équipe
+
+  - Livraison matériaux
+  - Contrôle accès
+  ```
+
+  ---
+
+  ## Vue couverture
+
+  ```text
+  Missions sans prochaine intervention
+
+  - Contrôle échafaudage
+  - Réception béton
+  ```
+
+  ---
+
+  ## Vue charge
+
+  ```text
+  Fred
+  12 missions
+
+  Lucas
+  4 missions
+
+  Joël
+  0 mission
+  ```
+
+  Là tu retrouves ta réflexion précédente sur :
+
+  > "qui n'est pas utilisé demain ?"
+
+  ---
+
+  # Ce que je dirais à Claude
+
+  Je ne partirais pas sur :
+
+  ```text
+  /mission/referentiel
+  ```
+
+  ni
+
+  ```text
+  /mission/catalogue
+  ```
+
+  car ça fait très technique.
+
+  Je créerais simplement :
+
+  ```text
+  /missions
+  ```
+
+  pour le vrai cockpit Missions.
+
+  Et je renommerais l'actuel :
+  /planning
+  ```
+
+  ou
+
+  ```text
+  /planning-interventions
+  ```
+
+  avec redirection pour compatibilité.
+
+  Parce qu'à terme, quand Adrien dira :
+
+  > "Montre-moi mes missions du Médipôle"
+
+  il s'attendra à voir :
+
+  ```text
+  Contrôle dalle
+  Livraison matériaux
+  Contrôle sécurité
+  Contrôle accès
+  ```
+
+  pas une liste d'interventions datées.
+
+  Et je pense que cette séparation **Mission = modèle de travail** / **Intervention = occurrence réalisée** va devenir fondamentale dès que tu
+  auras plusieurs métiers (Guillaume, Adrien, ADA, etc.).
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+####################################################
+QR CODE CHANTIER
+####################################################
+
+Tu as raison. J'ai répondu à la vision produit, mais pas à la question concrète :
+
+> **Adrien a un problème de livraison aujourd'hui. Comment le résoudre sans créer un module "Livraison" spécifique au BTP ?**
+
+La réponse est : **il faut modéliser la livraison comme une mission/intervention**, pas comme un nouveau produit.
+
+---
+
+## Ce qu'Adrien décrit
+
+Aujourd'hui :
+
+```text
+Camion
+↓
+2 personnes
+↓
+10 livraisons dans la journée
+↓
+Photos WhatsApp
+↓
+Impossible de savoir précisément :
+- ce qui a été livré
+- ce qui manque
+- ce qui a été refusé
+- quand
+- par qui
+```
+
+---
+
+## Mauvaise solution
+
+Créer :
+
+```text
+Menu Livraison
+Menu Bon de livraison
+Menu Transport
+Menu Camion
+```
+
+Ça résout Adrien.
+
+Mais pas Guillaume.
+
+Pas ADA.
+
+Pas le prochain client.
+
+---
+
+## Bonne solution
+
+Considérer qu'une livraison est simplement :
+
+```text
+Mission
+```
+
+ou
+
+```text
+Intervention
+```
+
+avec une checklist.
+
+---
+
+### Exemple
+
+Mission :
+
+```text
+Livraison Médipôle
+```
+
+Checklist :
+
+```text
+☐ 12 plaques BA13
+☐ 4 rails
+☐ 3 montants
+☐ 2 boîtes de vis
+```
+
+Puis :
+
+```text
+Photo
+Commentaire
+Validation
+```
+
+---
+
+### Résultat
+
+Le chauffeur ouvre MemorIA :
+
+```text
+Mission du jour
+
+Livraison Médipôle
+```
+
+Il coche :
+
+```text
+✓ BA13 livré
+✓ Rails livrés
+✗ Montants manquants
+```
+
+Photo.
+
+Valider.
+
+Terminé.
+
+---
+
+## Pourquoi c'est transversal ?
+
+Parce que demain la même structure devient :
+
+### Nettoyage
+
+```text
+Mission
+
+Nettoyage salle 12
+
+☐ Sol
+☐ Vitres
+☐ Poubelles
+```
+
+---
+
+### BTP
+
+```text
+Mission
+
+Livraison chantier
+
+☐ BA13
+☐ Rails
+☐ Vis
+```
+
+---
+
+### ADA
+
+```text
+Mission
+
+Retour véhicule
+
+☐ Carburant
+☐ Kilométrage
+☐ Photos
+```
+
+Même moteur.
+
+---
+
+# Ce qui manque aujourd'hui dans MemorIA
+
+Pas un module livraison.
+
+Mais :
+
+## Des checklists beaucoup plus flexibles
+
+Aujourd'hui elles sont plutôt :
+
+```text
+Tâche A
+Tâche B
+Tâche C
+```
+
+Demain elles devraient permettre :
+
+```text
+Type : Quantité
+
+BA13 : 12
+Rails : 4
+Montants : 3
+```
+
+et éventuellement :
+
+```text
+Livré
+Partiel
+Refusé
+```
+
+---
+
+# Le vrai besoin d'Adrien
+
+En réalité il ne cherche pas :
+
+> "un outil de livraison"
+
+Il cherche :
+
+> "une preuve que quelque chose a été réalisé"
+
+Donc la structure générique devient :
+
+```text
+Intervention
+↓
+Checklist
+↓
+Preuves
+↓
+Photos
+↓
+Validation
+↓
+Historique
+```
+
+Et ça marche pour :
+
+* une livraison ;
+* une porte posée ;
+* un nettoyage ;
+* une inspection ;
+* un retour de véhicule ;
+* un contrôle qualité.
+
+---
+
+# Si j'étais Claude Code
+
+Je ne développerais pas :
+
+```text
+Sprint Livraison
+```
+
+Je développerais :
+
+```text
+Sprint Interventions structurées
+```
+
+avec :
+
+* checklist enrichie ;
+* quantités ;
+* photos ;
+* validation ;
+* statut partiel/complet ;
+* export PDF.
+
+Adrien y verra ses livraisons.
+
+Guillaume y verra ses prestations.
+
+ADA y verra ses restitutions de véhicules.
+
+Et MemorIA restera un produit transversal. C'est ça qui te permet de résoudre le problème d'Adrien sans t'enfermer dans le BTP.
+
+
+
+
+
+
+####################################################
+QR CODE CHANTIER
+####################################################
+
+Là, je pense qu'on touche peut-être à quelque chose de beaucoup plus fort que le QR chantier.
+
+Parce qu'en y réfléchissant, le QR chantier reste statique :
+
+```text
+QR Chantier Médipôle
+↓
+ouvre le chantier
+```
+
+C'est utile.
+
+Mais ce n'est pas forcément un réflexe métier quotidien.
+
+---
+
+## Ce qu'Adrien t'a montré
+
+Il parle de :
+
+* portes
+* appartements
+* livraisons
+* réserves
+* équipes
+* sous-traitants
+
+Jamais du chantier entier.
+
+Toujours d'un élément précis.
+
+Exemples :
+
+> Qui a posé cette porte ?
+
+> Cette livraison a-t-elle été faite ?
+
+> Qui a fait cet appartement ?
+
+---
+
+# QR Intervention Structurée
+
+Et si le QR ne représentait pas un lieu...
+
+Mais une action à réaliser.
+
+Exemple :
+
+```text
+QR #INT-2457
+
+Pose porte RF30
+Appartement A203
+```
+
+Le compagnon scanne.
+
+Il arrive directement sur :
+
+```text
+Mission
+
+Pose porte RF30
+
+Appartement A203
+
+☐ Pose réalisée
+
+☐ Réglage effectué
+
+☐ Contrôle fermeture
+
+☐ Photos avant
+
+☐ Photos après
+
+☐ Signature
+```
+
+Puis :
+
+```text
+Valider
+```
+
+---
+
+# Pourquoi c'est beaucoup plus puissant
+
+Parce que c'est transverse.
+
+---
+
+## Nettoyage
+
+QR :
+
+```text
+Salle 204
+```
+
+ouvre :
+
+```text
+Nettoyage quotidien
+
+☐ Sol
+☐ Vitres
+☐ Corbeilles
+☐ Photos
+```
+
+---
+
+## BTP
+
+QR :
+
+```text
+Porte A203
+```
+
+ouvre :
+
+```text
+Pose porte
+
+☐ Pose
+☐ Réglage
+☐ Contrôle
+```
+
+---
+
+## Livraison
+
+QR :
+
+```text
+Livraison BA13
+```
+
+ouvre :
+
+```text
+☐ 12 plaques reçues
+
+☐ 4 rails reçus
+
+☐ Photos
+```
+
+---
+
+## ADA
+
+QR :
+
+```text
+Véhicule 8472
+```
+
+ouvre :
+
+```text
+Retour véhicule
+
+☐ Carburant
+
+☐ Kilométrage
+
+☐ Photos
+```
+
+---
+
+# Ce qui devient intéressant
+
+Le QR n'est plus lié à un métier.
+
+Il est lié à :
+
+```text
+Action
+```
+
+---
+
+# Et encore plus loin
+
+Imagine.
+
+Adrien prépare demain.
+
+MemorIA génère :
+
+```text
+12 interventions
+```
+
+Chaque intervention possède :
+
+```text
+ID
+QR
+URL
+```
+
+Le soir il envoie WhatsApp.
+
+---
+
+Le compagnon reçoit :
+
+```text
+Bonjour Lucas
+
+Demain :
+
+08h00
+Appartement A203
+
+[Ouvrir]
+
+ou
+
+[Scanner QR]
+```
+
+---
+
+# La vraie question
+
+Faut-il un QR physique ?
+
+Pas forcément.
+
+Je pense qu'il existe 3 niveaux.
+
+---
+
+### Niveau 1
+
+Lien WhatsApp
+
+```text
+Ouvrir intervention
+```
+
+Probablement le plus utile.
+
+---
+
+### Niveau 2
+
+QR imprimable
+
+Pour les endroits fixes :
+
+* appartement
+* porte
+* local technique
+* machine
+
+---
+
+### Niveau 3
+
+QR permanent
+
+Pour des actifs :
+
+* camion
+* engin
+* échafaudage
+* véhicule ADA
+
+---
+
+# Ce que je demanderais à Claude
+
+Je ne lui demanderais pas :
+
+> Faire un QR chantier.
+
+Je lui demanderais :
+
+> Réfléchis à un modèle générique "Intervention Access Token".
+
+Structure :
+
+```text
+Intervention
+↓
+Token
+↓
+URL courte
+↓
+QR optionnel
+```
+
+L'utilisateur peut :
+
+```text
+- ouvrir via URL
+- ouvrir via QR
+- ouvrir via WhatsApp
+```
+
+Tous les trois pointent vers :
+
+```text
+Intervention
+Checklist
+Preuves
+Photos
+Validation
+```
+
+---
+
+Et honnêtement, après Adrien, je trouve cette idée plus alignée avec la vision MemorIA que le QR chantier.
+
+Le QR chantier répond à :
+
+> Où suis-je ?
+
+Le QR intervention répond à :
+
+> Qu'est-ce que je dois faire maintenant ?
+
+Et c'est généralement une question beaucoup plus fréquente sur le terrain.
+Exactement.
+
+Et c'est là où il faut faire très attention.
+
+Je pense que plusieurs idées se mélangent actuellement :
+
+### 1. QR Chantier Public
+
+```text
+QR
+↓
+ouvre chantier
+↓
+sans login
+```
+
+Ça, je suis plutôt contre.
+
+Parce que demain tu exposes :
+
+* nom du client
+* photos
+* anomalies
+* historique
+* documents
+
+C'est potentiellement catastrophique.
+
+---
+
+### 2. QR avec token permanent
+
+```text
+QR
+↓
+token
+↓
+accès chantier
+```
+
+C'est déjà mieux.
+
+Mais si quelqu'un prend une photo du QR :
+
+```text
+photo
+↓
+accès éternel
+```
+
+Pas idéal.
+
+---
+
+# Je pense que le bon modèle n'est pas QR → Chantier
+
+Mais :
+
+```text
+QR
+↓
+Action précise
+↓
+Durée limitée
+↓
+Permissions limitées
+```
+
+---
+
+## Exemple
+
+Adrien crée :
+
+```text
+Livraison BA13
+```
+
+MemorIA génère :
+
+```text
+INT-2457
+```
+
+Puis :
+
+```text
+token
+```
+
+du type :
+
+```text
+7GhK9LmP2x
+```
+
+et non :
+
+```text
+chantier/medipole
+```
+
+---
+
+Le QR contient :
+
+```text
+https://app.memoria.nc/i/7GhK9LmP2x
+```
+
+---
+
+Quand Lucas l'ouvre :
+
+Il ne voit PAS :
+
+```text
+Médipôle
+Historique
+Contrat
+Documents
+Anomalies
+```
+
+Il voit uniquement :
+
+```text
+Mission :
+
+Livraison BA13
+
+☐ Réception
+☐ Contrôle
+☐ Photos
+```
+
+---
+
+# Encore mieux
+
+Expiration.
+
+```text
+Valide :
+24h
+```
+
+ou :
+
+```text
+Valide jusqu'à clôture intervention
+```
+
+---
+
+Donc :
+
+```text
+QR
+↓
+token
+↓
+intervention
+↓
+permissions limitées
+↓
+expiration
+```
+
+---
+
+# Ce que j'imagine pour MemorIA
+
+Il existe déjà un concept proche :
+
+```text
+Passation
+↓
+Lien partagé
+```
+
+Tu l'as montré à Adrien.
+
+Je réutiliserais exactement cette philosophie.
+
+---
+
+## Handover
+
+Aujourd'hui :
+
+```text
+/ h / token
+```
+
+---
+
+## Intervention
+
+Demain :
+
+```text
+/ i / token
+```
+
+---
+
+## Dossier preuve
+
+Plus tard :
+
+```text
+/ p / token
+```
+
+---
+
+Chaque token possède :
+
+```text
+resource_type
+resource_id
+expires_at
+permissions
+```
+
+---
+
+# Permissions possibles
+
+### Lecture seule
+
+```text
+voir
+```
+
+---
+
+### Réalisation
+
+```text
+cocher
+photo
+commentaire
+```
+
+---
+
+### Validation
+
+```text
+signature
+clôture
+```
+
+---
+
+# Ce qui serait très puissant pour Adrien
+
+Le soir :
+
+```text
+Préparation demain
+```
+
+Adrien clique :
+
+```text
+Envoyer WhatsApp
+```
+
+MemorIA génère :
+
+```text
+Bonjour Lucas,
+
+Demain :
+
+Pose porte A203
+
+https://app.memoria.nc/i/7GhK9LmP2x
+```
+
+---
+
+Lucas clique.
+
+Pas besoin :
+
+* de login ;
+* de retrouver le chantier ;
+* de retrouver l'appartement ;
+* de retrouver la mission.
+
+Tout est déjà contextualisé.
+
+---
+
+Donc oui :
+
+✅ QR possible
+
+❌ QR public
+
+✅ Token
+
+✅ Permissions limitées
+
+✅ Expiration
+
+✅ Scope intervention
+
+❌ Scope chantier complet
+
+Je pense même que la bonne abstraction n'est pas **"QR Code"**, mais **"Lien sécurisé contextualisé"**.
+
+Le QR n'est alors qu'une manière parmi d'autres d'ouvrir ce lien. Le vrai objet métier est le **token d'intervention sécurisé**.
+
+
+
+Refelechir a dans  briefing du soir, envoyer le token ou lien vers un sous traitant
+
+
+
+
+
+
+
+
+
+
+
+
+
+####################################################
+PAGE SITE
+####################################################
+Oui, et plus j'analyse MemorIA, plus je pense que **l'absence d'une page Client devient un trou dans le modèle de données**.
+
+Aujourd'hui tu as :
+
+```text
+Client
+↓
+Contrat
+↓
+Site
+↓
+Mission
+↓
+Intervention
+```
+
+Mais dans l'interface tu exposes surtout :
+
+```text
+Contrat
+↓
+Site
+↓
+Mission
+↓
+Intervention
+```
+
+Le client est quasiment invisible.
+
+---
+
+# Pourquoi ça devient important avec Adrien
+
+Pendant votre entretien, Adrien a constamment raisonné par :
+
+```text
+Client
+↓
+Chantiers
+```
+
+Exemples :
+
+* Ministère des Armées
+* Médipôle
+* Port Autonome
+* Lycée
+
+Dans sa tête :
+
+```text
+Client
+↓
+Tous les chantiers
+```
+
+pas
+
+```text
+Contrat
+↓
+Sites
+```
+
+---
+
+# Ce que devrait apporter la page Client
+
+## Vue 360°
+
+Exemple :
+
+```text
+🏢 Médipôle
+
+4 contrats
+
+12 sites
+
+38 missions
+
+247 interventions
+
+7 anomalies ouvertes
+
+2 appels d'offres
+```
+
+---
+
+# Onglets
+
+### Aperçu
+
+```text
+Informations client
+
+Contact principal
+
+Téléphone
+
+Email
+
+Adresse
+
+Notes importantes
+```
+
+---
+
+### Contrats
+
+```text
+Contrat Maintenance
+
+Contrat Nettoyage
+
+Contrat BTP
+```
+
+---
+
+### Sites
+
+```text
+Urgences
+
+Pédiatrie
+
+Bloc opératoire
+```
+
+---
+
+### Activité récente
+
+```text
+Hier
+
+Contrôle sécurité
+
+Aujourd'hui
+
+Livraison matériel
+```
+
+---
+
+### Documents
+
+```text
+Contrats
+
+Plans
+
+Procédures
+
+PV
+```
+
+---
+
+### Mémoire client
+
+Ça je pense que c'est très MemorIA.
+
+Exemple :
+
+```text
+⚠ Le responsable préfère être appelé avant 8h
+
+⚠ Les livraisons doivent passer porte Sud
+
+⚠ Les contrôles qualité sont systématiques
+```
+
+---
+
+# Et là il y a un truc intéressant
+
+Pour Adrien.
+
+Imagine :
+
+```text
+Client
+↓
+Port Autonome
+```
+
+Tu vois :
+
+```text
+4 chantiers
+
+32 interventions
+
+2 réserves
+
+1 AO en cours
+```
+
+Ça devient immédiatement un cockpit commercial et opérationnel.
+
+---
+
+# Ce qui manque aujourd'hui
+
+Je pense qu'il manque même un dashboard Client.
+
+Exemple :
+
+```text
+Clients
+
+Médipôle
+12 sites
+247 interventions
+
+Ministère Armées
+4 sites
+53 interventions
+
+Port Autonome
+2 sites
+31 interventions
+```
+
+Puis clic :
+
+```text
+Client
+↓
+Vue 360°
+```
+
+---
+
+# Ordre de priorité selon moi
+
+Pour la roadmap :
+
+### Très haute valeur
+
+1. Page Client
+2. Dashboard Missions
+3. Home terrain
+4. Onglets mobile
+
+---
+
+### Valeur moyenne
+
+5. QR / Tokens intervention
+6. PDF preuve
+7. Géolocalisation
+
+---
+
+### Plus tard
+
+8. Compte-rendu IA
+9. Appels d'offres avancés
+
+---
+
+Si je devais parler à Claude, je lui dirais :
+
+> Analyse le modèle actuel MemorIA. Nous avons des pages Contrats, Sites, Missions et Interventions mais il manque la vue agrégée Client. Propose une page Client 360° servant de point d'entrée métier, avec KPIs, contrats, sites, activité récente, mémoire client et documents. L'objectif est qu'un dirigeant comme Adrien puisse raisonner par client avant de raisonner par contrat ou chantier.
+
+Je pense même que pour un chef d'entreprise, la hiérarchie naturelle est :
+
+```text
+Client
+↓
+Chantiers/Sites
+↓
+Travaux
+↓
+Interventions
+```
+
+et pas l'inverse. Aujourd'hui MemorIA est très fort sur le bas de la pyramide, mais il lui manque encore le sommet.
+
+
+
+
+
+
+
+
+
+
+
+
+
+####################################################
+SOUS TRAITANTS
+####################################################
+
+Je pense que tu viens de mettre le doigt sur un vrai problème de conception qui va devenir critique dès Adrien.
+
+Aujourd'hui ton modèle est :
+
+```text
+Intervenant
+=
+Personne qui travaille pour nous
+```
+
+Or dans le BTP ce n'est pas vrai.
+
+Tu as en réalité :
+
+```text
+Salarié
+Sous-traitant
+Livreur
+Bureau de contrôle
+Client
+```
+
+qui participent tous à la mémoire du chantier.
+
+---
+
+# Je ne mettrais pas tout dans Intervenants
+
+Parce qu'un sous-traitant n'est pas un salarié.
+
+Aujourd'hui ta fiche :
+
+```text
+Email
+Nom
+Téléphone
+Commune
+Rôle
+Type de contrat
+```
+
+respire :
+
+```text
+RH
+```
+
+---
+
+Alors que le sous-traitant est plutôt :
+
+```text
+Entreprise
+↓
+Contact
+↓
+Intervient ponctuellement
+```
+
+---
+
+# Je créerais un concept plus générique
+
+Au lieu de :
+
+```text
+Intervenants
+```
+
+je passerais progressivement vers :
+
+```text
+Acteurs
+```
+
+ou
+
+```text
+Participants
+```
+
+---
+
+Puis :
+
+### Interne
+
+```text
+Adrien
+Fred
+Lucas
+```
+
+Type :
+
+```text
+Interne
+```
+
+---
+
+### Sous-traitant
+
+```text
+Placo NC
+```
+
+Contact :
+
+```text
+Jean Dupont
+```
+
+Type :
+
+```text
+Sous-traitant
+```
+
+---
+
+### Livraison
+
+```text
+Socalait Matériaux
+```
+
+Type :
+
+```text
+Fournisseur
+```
+
+---
+
+### Contrôle
+
+```text
+SOCOTEC
+```
+
+Type :
+
+```text
+Contrôle
+```
+
+---
+
+# Pourquoi c'est puissant
+
+Parce que lorsque tu regardes une intervention :
+
+```text
+Contrôle coulage dalle
+```
+
+tu peux avoir :
+
+```text
+Participants
+
+✓ Fred
+✓ Lucas
+✓ Placo NC
+✓ SOCOTEC
+```
+
+---
+
+# Pour le MVP Adrien
+
+Par contre je ne ferais PAS ça maintenant.
+
+Trop gros.
+
+---
+
+Je ferais simplement :
+
+## Dans Intervenants
+
+Ajouter :
+
+```text
+Nature
+
+○ Salarié
+○ Sous-traitant
+○ Fournisseur
+○ Contrôle
+○ Client
+```
+
+---
+
+Et :
+
+```text
+Entreprise
+```
+
+optionnelle.
+
+---
+
+# Concernant les droits
+
+Là c'est beaucoup plus important.
+
+Je pense que tu ne dois pas raisonner :
+
+```text
+Rôle
+=
+ce qu'il est
+```
+
+mais :
+
+```text
+Accès
+=
+ce qu'il peut voir
+```
+
+---
+
+Exemple :
+
+### Fred
+
+Peut voir :
+
+```text
+Ses chantiers
+Ses interventions
+Ses photos
+Ses notes
+```
+
+---
+
+### Adrien
+
+Peut voir :
+
+```text
+Tout
+```
+
+---
+
+### Sous-traitant placo
+
+Peut voir :
+
+```text
+Intervention 4587
+```
+
+uniquement.
+
+---
+
+### Livreur
+
+Peut voir :
+
+```text
+Livraison BA13
+```
+
+uniquement.
+
+---
+
+# Et là ton idée de token devient très intéressante
+
+Au lieu de créer :
+
+```text
+Compte livreur
+```
+
+pour quelqu'un qui vient une fois.
+
+Tu génères :
+
+```text
+Intervention
+↓
+Token
+↓
+Lien WhatsApp
+```
+
+---
+
+Exemple :
+
+Adrien prépare demain.
+
+Il clique :
+
+```text
+Partager intervention
+```
+
+---
+
+MemorIA génère :
+
+```text
+Bonjour,
+
+Livraison BA13
+Chantier Médipôle
+
+https://memoria.nc/i/X8kLmP2
+```
+
+---
+
+Le livreur ouvre.
+
+Il ne voit que :
+
+```text
+☐ Livré
+
+☐ Photo
+
+☐ Commentaire
+
+Valider
+```
+
+---
+
+Puis le lien expire.
+
+---
+
+# Donc ma recommandation
+
+### Phase 1 (maintenant)
+
+Intervenants :
+
+```text
+Salarié
+Sous-traitant
+Fournisseur
+Contrôle
+```
+
+Simple.
+
+---
+
+### Phase 2
+
+Ajouter :
+
+```text
+Entreprise
+```
+
+pour regrouper les personnes.
+
+---
+
+### Phase 3
+
+Mettre en place :
+
+```text
+Intervention
+↓
+Token sécurisé
+↓
+WhatsApp
+↓
+Expiration
+```
+
+pour les personnes externes.
+
+---
+
+### Phase 4
+
+Créer une vraie entité :
+
+```text
+Participants
+```
+
+qui remplacera progressivement Intervenants.
+
+---
+
+Et honnêtement, après l'entretien Adrien, je pense que la fonctionnalité la plus intelligente n'est pas :
+
+```text
+Créer des comptes à tout le monde
+```
+
+mais :
+
+```text
+Permettre à n'importe quel acteur externe de contribuer à UNE intervention précise sans avoir besoin d'un compte.
+```
+
+Parce que ça marche pour :
+
+* le livreur ;
+* le sous-traitant ;
+* le bureau de contrôle ;
+* le client ;
+* le fournisseur ;
+
+tout en restant totalement transversal à tous les métiers que MemorIA pourra couvrir demain.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+####################################################
+SOUS TRAITANT
+####################################################
+Je pense que tu viens de mettre le doigt sur un vrai problème de conception qui va devenir critique dès Adrien.
+
+Aujourd'hui ton modèle est :
+
+```text
+Intervenant
+=
+Personne qui travaille pour nous
+```
+
+Or dans le BTP ce n'est pas vrai.
+
+Tu as en réalité :
+
+```text
+Salarié
+Sous-traitant
+Livreur
+Bureau de contrôle
+Client
+```
+
+qui participent tous à la mémoire du chantier.
+
+---
+
+# Je ne mettrais pas tout dans Intervenants
+
+Parce qu'un sous-traitant n'est pas un salarié.
+
+Aujourd'hui ta fiche :
+
+```text
+Email
+Nom
+Téléphone
+Commune
+Rôle
+Type de contrat
+```
+
+respire :
+
+```text
+RH
+```
+
+---
+
+Alors que le sous-traitant est plutôt :
+
+```text
+Entreprise
+↓
+Contact
+↓
+Intervient ponctuellement
+```
+
+---
+
+# Je créerais un concept plus générique
+
+Au lieu de :
+
+```text
+Intervenants
+```
+
+je passerais progressivement vers :
+
+```text
+Acteurs
+```
+
+ou
+
+```text
+Participants
+```
+
+---
+
+Puis :
+
+### Interne
+
+```text
+Adrien
+Fred
+Lucas
+```
+
+Type :
+
+```text
+Interne
+```
+
+---
+
+### Sous-traitant
+
+```text
+Placo NC
+```
+
+Contact :
+
+```text
+Jean Dupont
+```
+
+Type :
+
+```text
+Sous-traitant
+```
+
+---
+
+### Livraison
+
+```text
+Socalait Matériaux
+```
+
+Type :
+
+```text
+Fournisseur
+```
+
+---
+
+### Contrôle
+
+```text
+SOCOTEC
+```
+
+Type :
+
+```text
+Contrôle
+```
+
+---
+
+# Pourquoi c'est puissant
+
+Parce que lorsque tu regardes une intervention :
+
+```text
+Contrôle coulage dalle
+```
+
+tu peux avoir :
+
+```text
+Participants
+
+✓ Fred
+✓ Lucas
+✓ Placo NC
+✓ SOCOTEC
+```
+
+---
+
+# Pour le MVP Adrien
+
+Par contre je ne ferais PAS ça maintenant.
+
+Trop gros.
+
+---
+
+Je ferais simplement :
+
+## Dans Intervenants
+
+Ajouter :
+
+```text
+Nature
+
+○ Salarié
+○ Sous-traitant
+○ Fournisseur
+○ Contrôle
+○ Client
+```
+
+---
+
+Et :
+
+```text
+Entreprise
+```
+
+optionnelle.
+
+---
+
+# Concernant les droits
+
+Là c'est beaucoup plus important.
+
+Je pense que tu ne dois pas raisonner :
+
+```text
+Rôle
+=
+ce qu'il est
+```
+
+mais :
+
+```text
+Accès
+=
+ce qu'il peut voir
+```
+
+---
+
+Exemple :
+
+### Fred
+
+Peut voir :
+
+```text
+Ses chantiers
+Ses interventions
+Ses photos
+Ses notes
+```
+
+---
+
+### Adrien
+
+Peut voir :
+
+```text
+Tout
+```
+
+---
+
+### Sous-traitant placo
+
+Peut voir :
+
+```text
+Intervention 4587
+```
+
+uniquement.
+
+---
+
+### Livreur
+
+Peut voir :
+
+```text
+Livraison BA13
+```
+
+uniquement.
+
+---
+
+# Et là ton idée de token devient très intéressante
+
+Au lieu de créer :
+
+```text
+Compte livreur
+```
+
+pour quelqu'un qui vient une fois.
+
+Tu génères :
+
+```text
+Intervention
+↓
+Token
+↓
+Lien WhatsApp
+```
+
+---
+
+Exemple :
+
+Adrien prépare demain.
+
+Il clique :
+
+```text
+Partager intervention
+```
+
+---
+
+MemorIA génère :
+
+```text
+Bonjour,
+
+Livraison BA13
+Chantier Médipôle
+
+https://memoria.nc/i/X8kLmP2
+```
+
+---
+
+Le livreur ouvre.
+
+Il ne voit que :
+
+```text
+☐ Livré
+
+☐ Photo
+
+☐ Commentaire
+
+Valider
+```
+
+---
+
+Puis le lien expire.
+
+---
+
+# Donc ma recommandation
+
+### Phase 1 (maintenant)
+
+Intervenants :
+
+```text
+Salarié
+Sous-traitant
+Fournisseur
+Contrôle
+```
+
+Simple.
+
+---
+
+### Phase 2
+
+Ajouter :
+
+```text
+Entreprise
+```
+
+pour regrouper les personnes.
+
+---
+
+### Phase 3
+
+Mettre en place :
+
+```text
+Intervention
+↓
+Token sécurisé
+↓
+WhatsApp
+↓
+Expiration
+```
+
+pour les personnes externes.
+
+---
+
+### Phase 4
+
+Créer une vraie entité :
+
+```text
+Participants
+```
+
+qui remplacera progressivement Intervenants.
+
+---
+
+Et honnêtement, après l'entretien Adrien, je pense que la fonctionnalité la plus intelligente n'est pas :
+
+```text
+Créer des comptes à tout le monde
+```
+
+mais :
+
+```text
+Permettre à n'importe quel acteur externe de contribuer à UNE intervention précise sans avoir besoin d'un compte.
+```
+
+Parce que ça marche pour :
+
+* le livreur ;
+* le sous-traitant ;
+* le bureau de contrôle ;
+* le client ;
+* le fournisseur ;
+
+tout en restant totalement transversal à tous les métiers que MemorIA pourra couvrir demain.
+
+
+
+Je vais justement te challenger.
+
+Je ne suis plus sûr que ce soit trop tôt.
+
+Après Adrien, il y a un élément nouveau :
+
+> Le problème des acteurs externes n'est pas un cas marginal.
+>
+> C'est une partie du métier.
+
+Et ça change tout.
+
+---
+
+# Ce que j'avais en tête
+
+Quand je disais "trop tôt", je pensais :
+
+```text
+MVP
+↓
+Quelques managers
+↓
+Quelques chefs d'équipe
+↓
+Intervenants internes
+```
+
+Puis plus tard :
+
+```text
+Sous-traitants
+Clients
+Livreurs
+Bureaux de contrôle
+```
+
+---
+
+Mais Adrien a montré autre chose.
+
+Dans sa PME :
+
+```text
+10 salariés
++
+Sous-traitants
++
+Livreurs
++
+Contrôleurs
+```
+
+sont tous impliqués dans la continuité opérationnelle.
+
+Donc ce n'est pas une extension.
+
+C'est le métier.
+
+---
+
+# Le vrai problème
+
+Je pense qu'il faut arrêter de réfléchir en :
+
+```text
+Utilisateur
+```
+
+et commencer à réfléchir en :
+
+```text
+Contributeur à la mémoire
+```
+
+C'est très différent.
+
+---
+
+Aujourd'hui MemorIA est construit comme :
+
+```text
+Utilisateur
+↓
+Compte
+↓
+Connexion
+↓
+Actions
+```
+
+Vision SaaS classique.
+
+---
+
+Mais la philosophie MemorIA est plutôt :
+
+```text
+Mémoire
+↓
+Contributeurs
+↓
+Transmission
+```
+
+---
+
+# Exemple chantier
+
+Une intervention :
+
+```text
+Contrôle coulage dalle
+```
+
+peut recevoir des contributions de :
+
+```text
+Adrien
+Fred
+Sous-traitant béton
+Livreur béton
+SOCOTEC
+```
+
+---
+
+Ont-ils tous besoin :
+
+```text
+Compte
+Mot de passe
+Menu
+Dashboard
+```
+
+?
+
+Probablement non.
+
+---
+
+# Là où je pense qu'il faut aller
+
+Je vois maintenant deux mondes.
+
+## Monde 1
+
+Les porteurs de mémoire.
+
+Exemples :
+
+```text
+Guillaume
+Adrien
+Fred
+```
+
+Ils ont un compte.
+
+Ils vivent dans MemorIA.
+
+Ils naviguent.
+
+Ils consultent.
+
+Ils planifient.
+
+---
+
+## Monde 2
+
+Les contributeurs ponctuels.
+
+Exemples :
+
+```text
+Livreur
+Sous-traitant
+Client
+Bureau de contrôle
+```
+
+Ils ne vivent pas dans MemorIA.
+
+Ils contribuent.
+
+Puis repartent.
+
+---
+
+# Et là apparaît un concept très fort
+
+Je l'appellerais :
+
+## Contribution externe
+
+Pas :
+
+```text
+Utilisateur
+```
+
+Pas :
+
+```text
+Sous-traitant
+```
+
+Pas :
+
+```text
+Livreur
+```
+
+---
+
+Une contribution.
+
+---
+
+Exemple :
+
+Adrien crée :
+
+```text
+Livraison BA13
+```
+
+---
+
+MemorIA génère :
+
+```text
+Contribution externe
+```
+
+---
+
+Lien :
+
+```text
+/i/abc123
+```
+
+---
+
+Le livreur reçoit :
+
+```text
+Vous intervenez sur :
+
+Livraison BA13
+
+☐ livré
+
+📸 photo
+
+💬 commentaire
+
+Valider
+```
+
+---
+
+Terminé.
+
+Pas de compte.
+
+---
+
+# Pourquoi c'est plus puissant
+
+Parce que demain :
+
+## Nettoyage
+
+```text
+Client valide le passage
+```
+
+Même mécanisme.
+
+---
+
+## BTP
+
+```text
+Sous-traitant confirme
+```
+
+Même mécanisme.
+
+---
+
+## ADA
+
+```text
+Client confirme restitution
+```
+
+Même mécanisme.
+
+---
+
+# Et là je pense qu'il y a un vrai concept MVP
+
+Je le formulerais comme ça :
+
+## Les acteurs
+
+### Internes
+
+```text
+Compte permanent
+```
+
+* manager
+* chef équipe
+* opérateur
+
+---
+
+### Externes
+
+```text
+Contribution temporaire
+```
+
+* sous-traitant
+* livreur
+* client
+* contrôleur
+
+---
+
+# Pourquoi ça devient MVP
+
+Parce que le besoin apparaît déjà :
+
+### Guillaume
+
+Passation.
+
+---
+
+### Adrien
+
+Livraison.
+
+Sous-traitants.
+
+SOCOTEC.
+
+---
+
+### ADA
+
+Retour véhicule.
+
+---
+
+On commence à voir le même pattern.
+
+---
+
+# Ce que je demanderais à Claude
+
+Pas :
+
+> Ajouter les sous-traitants.
+
+Mais :
+
+> Repenser la notion d'acteur dans MemorIA.
+
+Questions :
+
+1. Quels acteurs ont besoin d'un compte permanent ?
+2. Quels acteurs peuvent être gérés comme contributeurs temporaires ?
+3. Peut-on modéliser les sous-traitants, livreurs, contrôleurs et clients comme des contributeurs externes liés à une intervention ?
+4. Peut-on réutiliser le mécanisme des passations (`/h/[token]`) pour créer un système générique de contribution sécurisée à une intervention ?
+5. Comment garder la traçabilité juridique (qui a contribué, quand, avec quelles preuves) sans multiplier les comptes ?
+
+---
+
+Et honnêtement, après toutes les discussions Guillaume + Adrien + ADA, je commence à penser que **la notion de "contributeur externe" est plus fondamentale pour MemorIA que la notion de "sous-traitant"**.
+
+Parce qu'elle résout :
+
+* le sous-traitant ;
+* le livreur ;
+* le client ;
+* le bureau de contrôle ;
+* le prestataire ;
+
+avec un seul mécanisme.
+
+Et ça, pour un MVP, c'est généralement un très bon signe : un mécanisme simple qui résout plusieurs problèmes réels déjà observés chez plusieurs pilotes.
