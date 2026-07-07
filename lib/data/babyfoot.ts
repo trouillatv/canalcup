@@ -114,6 +114,118 @@ export async function getAwards(admin: DbClient, tournamentId: string): Promise<
   return (data ?? []) as BabyfootAward[];
 }
 
+// ── État public (hub joueur + TV) ────────────────────────────────────────────
+export interface PublicMatch {
+  id: string;
+  phase: string | null;
+  round: string | null;
+  pool_label: string | null;
+  table_no: number | null;
+  status: string;
+  score_a: number | null;
+  score_b: number | null;
+  labelA: string;
+  labelB: string;
+}
+export interface PublicStanding {
+  pool: string;
+  rows: { label: string; played: number; won: number; lost: number; gf: number; ga: number; gd: number; rank: number; qualified: boolean }[];
+}
+
+export async function buildPublicState(admin: DbClient, tournamentId: string) {
+  const [entries, matches] = await Promise.all([getEntries(admin, tournamentId), getMatches(admin, tournamentId)]);
+  const labelByTeam = new Map(entries.map((e) => [e.team_id, e.label]));
+  const lbl = (teamId?: string | null) => (teamId ? labelByTeam.get(teamId) ?? "?" : "à venir");
+
+  const publicMatches: PublicMatch[] = matches.map((m) => ({
+    id: m.id, phase: m.phase ?? null, round: m.round ?? null, pool_label: m.pool_label ?? null,
+    table_no: m.table_no ?? null, status: m.status,
+    score_a: m.score_a ?? null, score_b: m.score_b ?? null,
+    labelA: lbl(m.team_a_id), labelB: lbl(m.team_b_id),
+  }));
+
+  // Classements de poule (avec qualification top 2).
+  const { computePoolStandings, qualifiedEntryIds } = await import("@/lib/babyfoot/standings");
+  const stMap = computePoolStandings(
+    entries.map((e) => ({ id: e.id, team_id: e.team_id, pool_label: e.pool_label })),
+    matches
+  );
+  const qual = qualifiedEntryIds(stMap, 2);
+  const labelByEntry = new Map(entries.map((e) => [e.id, e.label]));
+  const standings: PublicStanding[] = [...stMap.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([pool, rows]) => ({
+      pool,
+      rows: rows.map((r) => ({
+        label: labelByEntry.get(r.entry_id) ?? "?",
+        played: r.played, won: r.won, lost: r.lost, gf: r.gf, ga: r.ga, gd: r.gd, rank: r.rank,
+        qualified: qual.has(r.entry_id),
+      })),
+    }));
+
+  // Podium (rangs finaux 1..3).
+  const podium = entries
+    .filter((e) => e.final_rank && e.final_rank <= 3)
+    .sort((a, b) => (a.final_rank ?? 9) - (b.final_rank ?? 9))
+    .map((e) => ({ rank: e.final_rank!, label: e.label }));
+
+  // Stats par binôme (tous matchs terminés : poules + phase finale).
+  const stats = entries.map((e) => {
+    let played = 0, won = 0, lost = 0, gf = 0, ga = 0;
+    for (const m of matches) {
+      if (m.status !== "finished" || m.score_a == null || m.score_b == null) continue;
+      const isA = m.team_a_id === e.team_id, isB = m.team_b_id === e.team_id;
+      if (!isA && !isB) continue;
+      const mine = isA ? m.score_a : m.score_b;
+      const theirs = isA ? m.score_b : m.score_a;
+      played++; gf += mine!; ga += theirs!;
+      if (mine! > theirs!) won++; else lost++;
+    }
+    return { entry_id: e.id, label: e.label, played, won, lost, gf, ga, gd: gf - ga, final_rank: e.final_rank };
+  });
+
+  // Photos récentes du tournoi (galerie + moments).
+  const { data: photoRows } = await admin
+    .from("babyfoot_match_photos")
+    .select("id, photo_url, caption, author_name, created_at")
+    .eq("tournament_id", tournamentId)
+    .eq("status", "visible")
+    .order("created_at", { ascending: false })
+    .limit(30);
+  const photos = (photoRows ?? []) as { id: string; photo_url: string; caption: string | null; author_name: string; created_at: string }[];
+
+  return {
+    entries: entries.map((e) => ({ id: e.id, label: e.label, pool_label: e.pool_label, final_rank: e.final_rank })),
+    matches: publicMatches, standings, podium, stats, photos, registeredCount: entries.length,
+  };
+}
+
+/** Champions des éditions passées (mémoire annuelle). */
+export async function getChampionsHistory(admin?: DbClient): Promise<{ season: number; name: string; champion: string | null }[]> {
+  const db = admin ?? createAdminClient();
+  const { data: tournaments } = await db
+    .from("babyfoot_tournaments")
+    .select("id, name, season")
+    .eq("kind", "official")
+    .order("season", { ascending: false });
+  const out: { season: number; name: string; champion: string | null }[] = [];
+  for (const t of tournaments ?? []) {
+    const { data: champ } = await db
+      .from("babyfoot_entries")
+      .select("team_id, display_name, team:teams!team_id(name)")
+      .eq("tournament_id", t.id)
+      .eq("final_rank", 1)
+      .maybeSingle();
+    let label: string | null = null;
+    if (champ) {
+      const members = await getTeamMembersMap(db, [champ.team_id]);
+      label = champ.display_name || (members.get(champ.team_id) ?? []).join(" & ") || (champ.team as { name: string } | null)?.name || null;
+    }
+    out.push({ season: t.season, name: t.name, champion: label });
+  }
+  return out;
+}
+
 export interface UserBinome {
   meId: string;
   meName: string;

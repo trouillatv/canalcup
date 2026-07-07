@@ -256,6 +256,9 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
             <>
               <p className="font-black text-white text-2xl">{d.babyfootStats.wins}</p>
               <p className="text-[10px] text-canal-gray-muted">victoires de {d.babyfootStats.teamName}</p>
+              {d.babyfootStats.bestLabel && (
+                <p className="text-[10px] text-canal-yellow font-bold mt-0.5">{d.babyfootStats.bestLabel}</p>
+              )}
             </>
           ) : (
             <p className="text-xs text-canal-gray-muted py-2">Pas d&apos;équipe</p>

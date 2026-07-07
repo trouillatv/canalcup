@@ -163,17 +163,17 @@ function BabyfootCard() {
               </span>
             </div>
             <p className="text-canal-gray-muted text-sm mt-1 line-clamp-2">
-              Le football parallèle de la Canal Cup. Moins de VAR, plus de chaos.
+              Tournoi en binôme le jeudi 16 juillet. Inscris ton binôme, choisis tes dispos.
             </p>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-canal-gray-muted">
               <span className="flex items-center gap-1 text-canal-yellow font-bold">
-                <Users size={12} /> Tournoi d&apos;equipe
+                <Users size={12} /> Inscription en binôme
               </span>
               <span className="flex items-center gap-1">
-                <Gamepad2 size={12} /> Bracket & classement babyfoot
+                <Gamepad2 size={12} /> Poules + phase finale
               </span>
               <span className="flex items-center gap-1 text-canal-yellow font-bold">
-                <Trophy size={12} /> Compté au classement général
+                <Trophy size={12} /> Points au classement général
               </span>
             </div>
           </div>

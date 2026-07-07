@@ -1,14 +1,24 @@
+// État public du Tournoi Baby-foot (hub joueur + TV) : édition active, binômes,
+// classements de poule, tableau final, podium + historique des champions.
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getActiveOfficialTournament, buildPublicState, getChampionsHistory } from "@/lib/data/babyfoot";
 
-export const revalidate = 30;
+export const revalidate = 15;
 
 export async function GET() {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("babyfoot_matches")
-    .select("*, team_a:teams!team_a_id(id, name), team_b:teams!team_b_id(id, name)")
-    .order("starts_at", { ascending: true });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data ?? []);
+  const admin = createAdminClient();
+  const t = await getActiveOfficialTournament(admin);
+  if (!t) return NextResponse.json({ tournament: null, champions: await getChampionsHistory(admin) });
+
+  const [state, champions] = await Promise.all([buildPublicState(admin, t.id), getChampionsHistory(admin)]);
+  return NextResponse.json({
+    tournament: {
+      id: t.id, name: t.name, season: t.season, status: t.status, event_date: t.event_date,
+      registration_open: t.registration_open, target_teams: t.target_teams, format: t.format,
+      draw_at: t.draw_at, kickoff_at: t.kickoff_at,
+    },
+    ...state,
+    champions,
+  });
 }

@@ -1,256 +1,252 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+// /babyfoot — hub public du Tournoi Baby-foot : statut, inscription, classements
+// de poule, tableau final, podium + mémoire des champions (éditions passées).
+
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
-import { Trophy, Clock, Swords } from "lucide-react";
-import { LocalTime } from "@/components/timezone/LocalTime";
-import { ViewSwitcher } from "@/components/views/ViewSwitcher";
-import { BracketBabyFoot } from "@/components/bracket/BracketBabyFoot";
-import type { BabyFootMatch, Team } from "@/lib/supabase/types";
+import { Trophy, Users, ArrowRight, Swords, Camera, BarChart3, Loader2 } from "lucide-react";
 
-const STORAGE_KEY = "babyfoot-view";
-
-// ─── "À venir" screen ────────────────────────────────────────────────────────
-
-function ComingSoonScreen() {
-  return (
-    <div className="flex flex-col items-center justify-center py-24 gap-6 text-center">
-      <span className="text-6xl">🎮</span>
-      <div>
-        <h2 className="canal-headline text-2xl">Tournoi Babyfoot</h2>
-        <p className="text-canal-gray-muted text-sm mt-2">
-          À venir — Le tournoi démarrera bientôt !
-        </p>
-      </div>
-    </div>
-  );
+interface PublicMatch {
+  id: string; phase: string | null; round: string | null; pool_label: string | null;
+  table_no: number | null; status: string; score_a: number | null; score_b: number | null;
+  labelA: string; labelB: string;
+}
+interface Standing { pool: string; rows: { label: string; played: number; won: number; lost: number; gd: number; rank: number; qualified: boolean }[]; }
+interface State {
+  tournament: {
+    id: string; name: string; season: number; status: string; event_date: string | null;
+    registration_open: boolean; target_teams: number; format: string;
+  } | null;
+  registeredCount?: number;
+  standings?: Standing[];
+  matches?: PublicMatch[];
+  podium?: { rank: number; label: string }[];
+  stats?: { entry_id: string; label: string; played: number; won: number; lost: number; gf: number; ga: number; gd: number; final_rank: number | null }[];
+  photos?: { id: string; photo_url: string; caption: string | null; author_name: string }[];
+  champions?: { season: number; name: string; champion: string | null }[];
 }
 
-// ─── Standard view components ────────────────────────────────────────────────
+const PHASE_ORDER = ["prelim", "quarter", "semi", "final", "third"];
+const PHASE_LABEL: Record<string, string> = { prelim: "Barrages", quarter: "Quarts", semi: "Demi-finales", final: "Finale", third: "Petite finale" };
+const MEDAL = ["🥇", "🥈", "🥉"];
 
-function BabyFootMatchCard({ match }: { match: BabyFootMatch }) {
-  const isFinished = match.status === "finished";
-  const isUpcoming = match.status === "upcoming";
-  return (
-    <div className="canal-card">
-      <div className="flex items-center gap-1 text-xs text-canal-gray-muted mb-3">
-        <Clock size={12} />
-        <span>{match.starts_at ? <LocalTime date={match.starts_at} variant="datetime" /> : "Horaire à venir"}</span>
-        {match.status === "live" && (
-          <span className="flex items-center gap-1 text-red-400 font-bold ml-2">
-            <span className="live-dot" /> LIVE
-          </span>
-        )}
-        {isFinished && <span className="ml-2">Terminé</span>}
-        {isUpcoming && <span className="ml-2 text-canal-yellow">À venir</span>}
-      </div>
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex-1 flex flex-col items-center">
-          <div className="w-12 h-12 rounded-xl bg-canal-gray-mid flex items-center justify-center mb-1">
-            <span className="font-black text-canal-yellow text-xl">{match.team_a?.name[0]}</span>
-          </div>
-          {match.team_a_id ? (
-            <Link href={`/teams/${match.team_a_id}`} className="text-sm font-bold text-center leading-tight hover:text-canal-yellow transition-colors">{match.team_a?.name}</Link>
-          ) : (
-            <span className="text-sm font-bold text-center leading-tight">{match.team_a?.name}</span>
-          )}
-        </div>
-        <div className="flex flex-col items-center gap-1">
-          {isFinished ? (
-            <div className="flex gap-2 items-center">
-              <span className="score-display text-3xl">{match.score_a}</span>
-              <span className="text-canal-gray-muted">-</span>
-              <span className="score-display text-3xl">{match.score_b}</span>
-            </div>
-          ) : (
-            <Swords size={24} className="text-canal-yellow" />
-          )}
-          <span className="text-xs text-canal-gray-muted">Babyfoot</span>
-        </div>
-        <div className="flex-1 flex flex-col items-center">
-          <div className="w-12 h-12 rounded-xl bg-canal-gray-mid flex items-center justify-center mb-1">
-            <span className="font-black text-canal-yellow text-xl">{match.team_b?.name[0]}</span>
-          </div>
-          {match.team_b_id ? (
-            <Link href={`/teams/${match.team_b_id}`} className="text-sm font-bold text-center leading-tight hover:text-canal-yellow transition-colors">{match.team_b?.name}</Link>
-          ) : (
-            <span className="text-sm font-bold text-center leading-tight">{match.team_b?.name}</span>
-          )}
-        </div>
-      </div>
-      {match.highlight && (
-        <p className="mt-3 text-xs text-canal-gray-muted italic border-t border-canal-gray-light pt-2">
-          💬 {match.highlight}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function BabyFootLeaderboard({ matches, teams }: { matches: BabyFootMatch[]; teams: Team[] }) {
-  const stats = teams
-    .map((team) => {
-      const played = matches.filter(
-        (m) => m.status === "finished" && (m.team_a_id === team.id || m.team_b_id === team.id)
-      );
-      const won = played.filter((m) => {
-        if (m.team_a_id === team.id) return (m.score_a ?? 0) > (m.score_b ?? 0);
-        return (m.score_b ?? 0) > (m.score_a ?? 0);
-      });
-      return { team, played: played.length, won: won.length, points: won.length * 3 };
-    })
-    .filter((s) => s.played > 0)
-    .sort((a, b) => b.points - a.points);
-
-  if (!stats.length) return null;
-
-  return (
-    <div className="space-y-2">
-      {stats.map((s, i) => (
-        <Link key={s.team.id} href={`/teams/${s.team.id}`} className="canal-card flex items-center gap-3 hover:bg-canal-gray-mid transition-colors">
-          <span className="font-black text-canal-yellow w-6 text-center">
-            {i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉"}
-          </span>
-          <div className="flex-1">
-            <p className="font-bold text-white text-sm">{s.team.name}</p>
-            <p className="text-xs text-canal-gray-muted">
-              {s.played} joués · {s.won} victoire{s.won > 1 ? "s" : ""}
-            </p>
-          </div>
-          <span className="font-black text-canal-yellow">{s.points} pts</span>
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-function StandardView({ matches, teams }: { matches: BabyFootMatch[]; teams: Team[] }) {
-  const upcoming = matches.filter((m) => m.status === "upcoming");
-  const live = matches.filter((m) => m.status === "live");
-  const finished = matches.filter((m) => m.status === "finished");
-
-  return (
-    <div className="space-y-6">
-      <section>
-        <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider mb-3 flex items-center gap-2">
-          <Trophy size={14} /> Classement babyfoot
-        </h2>
-        <BabyFootLeaderboard matches={matches} teams={teams} />
-      </section>
-
-      {live.length > 0 && (
-        <section>
-          <h2 className="text-sm font-bold text-red-400 uppercase tracking-wider mb-3">
-            🔴 En cours
-          </h2>
-          <div className="space-y-3">
-            {live.map((m) => <BabyFootMatchCard key={m.id} match={m} />)}
-          </div>
-        </section>
-      )}
-
-      {upcoming.length > 0 && (
-        <section>
-          <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider mb-3">
-            ⏰ Prochains matchs
-          </h2>
-          <div className="space-y-3">
-            {upcoming.map((m) => <BabyFootMatchCard key={m.id} match={m} />)}
-          </div>
-        </section>
-      )}
-
-      {finished.length > 0 && (
-        <section>
-          <h2 className="text-sm font-bold text-canal-gray-muted uppercase tracking-wider mb-3">
-            Résultats
-          </h2>
-          <div className="space-y-3">
-            {finished.map((m) => <BabyFootMatchCard key={m.id} match={m} />)}
-          </div>
-        </section>
-      )}
-    </div>
-  );
-}
-
-// ─── Page ────────────────────────────────────────────────────────────────────
-
-export default function BabyFootPage() {
-  const [view, setView] = useState("standard");
-  const [matches, setMatches] = useState<BabyFootMatch[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
+export default function BabyfootPage() {
+  const [s, setS] = useState<State | null>(null);
   const [loading, setLoading] = useState(true);
-  const [babyFootLive, setBabyFootLive] = useState<boolean | null>(null);
 
+  const load = useCallback(() => {
+    fetch("/api/babyfoot").then((r) => r.json()).then(setS).catch(() => {}).finally(() => setLoading(false));
+  }, []);
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) setView(stored);
-  }, []);
+    load();
+    // Poll léger seulement quand l'onglet est visible (leçon BreakingNews).
+    let timer: ReturnType<typeof setInterval> | null = null;
+    const start = () => { if (!timer) timer = setInterval(() => { if (!document.hidden) load(); }, 20000); };
+    const stop = () => { if (timer) { clearInterval(timer); timer = null; } };
+    start();
+    document.addEventListener("visibilitychange", () => (document.hidden ? stop() : start()));
+    return stop;
+  }, [load]);
 
-  const changeView = useCallback((v: string) => {
-    setView(v);
-    localStorage.setItem(STORAGE_KEY, v);
-  }, []);
+  if (loading) return <div className="px-4 py-10 text-center text-canal-gray-muted">Chargement…</div>;
 
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/babyfoot"),
-      fetch("/api/teams"),
-      fetch("/api/admin/settings"),
-    ])
-      .then(async ([mRes, tRes, sRes]) => {
-        if (mRes.ok) setMatches(await mRes.json());
-        if (tRes.ok) {
-          const d = await tRes.json();
-          setTeams(d.teams ?? d);
-        }
-        if (sRes.ok) {
-          const settings: { key: string; value: unknown }[] = await sRes.json();
-          const row = settings.find((s) => s.key === "babyfoot_live");
-          setBabyFootLive(row ? row.value === true : false);
-        } else {
-          setBabyFootLive(false);
-        }
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  const finished = matches.filter((m) => m.status === "finished");
-
-  if (!loading && babyFootLive === false) {
-    return (
-      <div className="px-4 py-4 max-w-2xl mx-auto bg-canal-black min-h-screen">
-        <ComingSoonScreen />
-      </div>
-    );
-  }
+  const t = s?.tournament;
+  const koMatches = (s?.matches ?? []).filter((m) => m.phase !== "pool");
+  const koByPhase = PHASE_ORDER.map((ph) => ({ ph, list: koMatches.filter((m) => m.phase === ph) })).filter((g) => g.list.length);
+  const remaining = t ? Math.max(0, t.target_teams - (s?.registeredCount ?? 0)) : 0;
+  const showRegister = t && (t.status === "draft" || t.status === "registration") && t.registration_open;
 
   return (
     <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="canal-headline text-2xl">Tournoi Babyfoot</h1>
-          <p className="text-canal-gray-muted text-sm mt-1">
-            {matches.length > 0
-              ? `${matches.length} match${matches.length > 1 ? "s" : ""} · ${finished.length} terminé${finished.length > 1 ? "s" : ""}`
-              : "Le football parallèle. Moins de VAR, plus de chaos."}
-          </p>
-        </div>
-        <ViewSwitcher view={view} onChange={changeView} modes={["standard", "bracket"]} />
+      <div>
+        <h1 className="canal-headline text-2xl flex items-center gap-2"><span className="text-3xl">🎮</span> Tournoi Baby-foot</h1>
+        <p className="text-canal-gray-muted text-sm mt-1">
+          {t ? <>{t.name}{t.event_date ? ` · ${new Date(t.event_date + "T00:00:00+11:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}` : ""}</> : "Le football parallèle. Moins de VAR, plus de chaos."}
+        </p>
       </div>
 
-      {loading ? (
-        <p className="text-canal-gray-muted text-sm text-center py-12">Chargement…</p>
-      ) : matches.length === 0 ? (
-        <p className="text-canal-gray-muted text-sm text-center py-12">
-          Aucun match pour l&apos;instant. Le tournoi n&apos;a pas encore démarré.
-        </p>
-      ) : view === "bracket" ? (
-        <BracketBabyFoot matches={matches} />
-      ) : (
-        <StandardView matches={matches} teams={teams} />
+      {/* CTA inscription */}
+      {showRegister && (
+        <Link href="/babyfoot/register" className="block canal-card border border-canal-yellow/50 bg-canal-yellow/10 hover:bg-canal-yellow/15 transition-colors">
+          <div className="flex items-center gap-3">
+            <Users className="text-canal-yellow shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="font-black text-white text-sm">Inscris ton binôme !</p>
+              <p className="text-xs text-canal-gray-muted">
+                {s?.registeredCount ?? 0} inscrit{(s?.registeredCount ?? 0) > 1 ? "s" : ""}{remaining > 0 ? ` · plus que ${remaining} avant l'objectif` : ""}
+              </p>
+            </div>
+            <ArrowRight className="text-canal-yellow shrink-0" />
+          </div>
+        </Link>
       )}
+
+      {/* Podium */}
+      {(s?.podium?.length ?? 0) > 0 && (
+        <div className="canal-card border border-canal-yellow/30 bg-gradient-to-b from-canal-yellow/10 to-transparent">
+          <h2 className="text-sm font-bold uppercase text-canal-yellow mb-3 flex items-center gap-1.5"><Trophy size={14} /> Podium</h2>
+          <div className="space-y-2">
+            {s!.podium!.map((p) => (
+              <div key={p.rank} className="flex items-center gap-3">
+                <span className="text-2xl">{MEDAL[p.rank - 1] ?? "🏅"}</span>
+                <span className="font-black text-white">{p.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Classements de poule */}
+      {(s?.standings?.length ?? 0) > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-bold uppercase text-canal-yellow">Poules</h2>
+          {s!.standings!.map((st) => (
+            <div key={st.pool} className="canal-card">
+              <p className="font-black text-white text-sm mb-2">Poule {st.pool}</p>
+              <table className="w-full text-xs">
+                <thead><tr className="text-canal-gray-muted"><th className="text-left font-normal">Binôme</th><th className="px-1">J</th><th className="px-1">V</th><th className="px-1">Diff</th></tr></thead>
+                <tbody>
+                  {st.rows.map((r) => (
+                    <tr key={r.label} className={r.qualified ? "text-green-300" : "text-white"}>
+                      <td className="py-1 font-bold flex items-center gap-1">{r.qualified && <span className="text-green-400">✓</span>}{r.label}</td>
+                      <td className="text-center">{r.played}</td>
+                      <td className="text-center font-bold">{r.won}</td>
+                      <td className="text-center">{r.gd > 0 ? `+${r.gd}` : r.gd}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Tableau final */}
+      {koByPhase.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-bold uppercase text-canal-yellow">Phase finale</h2>
+          {koByPhase.map(({ ph, list }) => (
+            <div key={ph}>
+              <p className="text-xs font-bold text-canal-gray-muted uppercase mb-1.5">{PHASE_LABEL[ph]}</p>
+              <div className="space-y-2">
+                {list.map((m) => <MatchCard key={m.id} m={m} />)}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Stats par binôme */}
+      {(s?.stats?.filter((x) => x.played > 0).length ?? 0) > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-bold uppercase text-canal-yellow flex items-center gap-1.5"><BarChart3 size={14} /> Statistiques</h2>
+          <div className="canal-card overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead><tr className="text-canal-gray-muted border-b border-canal-gray-light">
+                <th className="text-left py-1.5">Binôme</th><th className="px-1">J</th><th className="px-1">V</th><th className="px-1">D</th><th className="px-1">BP</th><th className="px-1">BC</th><th className="px-1">Diff</th>
+              </tr></thead>
+              <tbody>
+                {s!.stats!.filter((x) => x.played > 0).sort((a, b) => b.won - a.won || b.gd - a.gd).map((r) => (
+                  <tr key={r.entry_id} className="border-b border-canal-gray-mid">
+                    <td className="py-1.5 font-bold text-white">{r.label}</td>
+                    <td className="text-center">{r.played}</td>
+                    <td className="text-center font-bold text-green-400">{r.won}</td>
+                    <td className="text-center text-canal-gray-muted">{r.lost}</td>
+                    <td className="text-center">{r.gf}</td>
+                    <td className="text-center">{r.ga}</td>
+                    <td className="text-center">{r.gd > 0 ? `+${r.gd}` : r.gd}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* Photos du tournoi */}
+      <PhotoSection photos={s?.photos ?? []} onUploaded={load} />
+
+      {/* Historique des champions */}
+      {(s?.champions?.filter((c) => c.champion).length ?? 0) > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-bold uppercase text-canal-yellow">🏆 Palmarès</h2>
+          <div className="canal-card space-y-1">
+            {s!.champions!.filter((c) => c.champion).map((c) => (
+              <div key={c.season} className="flex items-center justify-between text-sm">
+                <span className="text-canal-gray-muted">{c.season}</span>
+                <span className="font-black text-white">{c.champion}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {!t && <p className="text-canal-gray-muted text-sm text-center py-8">Le tournoi n&apos;est pas encore ouvert.</p>}
+    </div>
+  );
+}
+
+function PhotoSection({ photos, onUploaded }: { photos: { id: string; photo_url: string; caption: string | null; author_name: string }[]; onUploaded: () => void }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true); setErr(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/babyfoot/photo", { method: "POST", credentials: "same-origin", body: fd });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) setErr(d.error ?? "Envoi impossible.");
+      else onUploaded();
+    } catch { setErr("Erreur réseau."); }
+    finally { setUploading(false); if (fileRef.current) fileRef.current.value = ""; }
+  };
+
+  return (
+    <section className="space-y-2">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-bold uppercase text-canal-yellow flex items-center gap-1.5"><Camera size={14} /> Photos du tournoi</h2>
+        <button onClick={() => fileRef.current?.click()} disabled={uploading}
+          className="text-xs font-black bg-canal-yellow text-canal-black rounded-lg px-3 py-1.5 flex items-center gap-1.5 disabled:opacity-50">
+          {uploading ? <Loader2 size={12} className="animate-spin" /> : <Camera size={12} />} Ajouter
+        </button>
+        <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={onFile} className="hidden" />
+      </div>
+      {err && <p className="text-red-400 text-xs">{err}</p>}
+      {photos.length > 0 ? (
+        <div className="grid grid-cols-3 gap-1.5">
+          {photos.map((p) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img key={p.id} src={p.photo_url} alt={p.caption ?? "Photo baby-foot"} loading="lazy"
+              className="w-full aspect-square object-cover rounded-lg bg-canal-gray-mid" />
+          ))}
+        </div>
+      ) : (
+        <p className="text-canal-gray-muted text-xs px-1">Sois le premier à immortaliser un moment 📸</p>
+      )}
+    </section>
+  );
+}
+
+function MatchCard({ m }: { m: PublicMatch }) {
+  const finished = m.status === "finished";
+  const winA = finished && (m.score_a ?? 0) > (m.score_b ?? 0);
+  const winB = finished && (m.score_b ?? 0) > (m.score_a ?? 0);
+  return (
+    <div className="canal-card flex items-center gap-2 py-2">
+      {m.table_no != null && <span className="text-[10px] font-black text-canal-black bg-canal-yellow rounded px-1.5 py-0.5 shrink-0">T{m.table_no}</span>}
+      <span className={`flex-1 text-sm font-bold text-right truncate ${winB ? "text-canal-gray-muted" : "text-white"}`}>{m.labelA}</span>
+      {finished ? (
+        <span className="score-display text-lg px-1">{m.score_a}<span className="text-canal-gray-muted mx-1">-</span>{m.score_b}</span>
+      ) : (
+        <Swords size={16} className="text-canal-yellow shrink-0" />
+      )}
+      <span className={`flex-1 text-sm font-bold truncate ${winA ? "text-canal-gray-muted" : "text-white"}`}>{m.labelB}</span>
     </div>
   );
 }

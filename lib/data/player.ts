@@ -56,7 +56,7 @@ export interface PlayerDashboard {
     byType: { type: string; emoji: string; name: string; count: number; points: number }[];
   };
   quizStats: { count: number; correct: number; correctPct: number; fast: number; points: number };
-  babyfootStats: { teamName: string; wins: number } | null;
+  babyfootStats: { teamName: string; wins: number; tournaments: number; bestLabel: string | null } | null;
   animationStats: { participations: number; points: number };
   recentActivity: { type: string; emoji: string; label: string; created_at: string }[];
   predictionHeatmap: { id: string; outcome: PredictionOutcome; predicted: string; actual: string | null; label: string; created_at: string }[];
@@ -357,7 +357,17 @@ export async function getPlayerDashboard(userId: string): Promise<PlayerDashboar
   if (u.team_id && team) {
     const agg = await computeTeamScores(supabase, [u.team_id]);
     const b = agg.get(u.team_id);
-    babyfootStats = { teamName: (team as { name: string }).name, wins: Math.round((b?.babyRaw ?? 0) / 10) };
+    // Palmarès baby-foot du binôme (toutes éditions) : nb de tournois + meilleur résultat.
+    const { data: bfEntries } = await supabase.from("babyfoot_entries").select("final_rank").eq("team_id", u.team_id);
+    const ranks = (bfEntries ?? []).map((e: { final_rank: number | null }) => e.final_rank).filter((x): x is number => x != null);
+    const best = ranks.length ? Math.min(...ranks) : null;
+    const bestLabel = best === 1 ? "Champion 🏆" : best === 2 ? "Finaliste" : best === 3 ? "3e place" : best != null ? "Qualifié" : null;
+    babyfootStats = {
+      teamName: (team as { name: string }).name,
+      wins: Math.round((b?.babyRaw ?? 0) / 10),
+      tournaments: bfEntries?.length ?? 0,
+      bestLabel,
+    };
   }
 
   type Entry = { id: string; challenge_id: string | null; points_awarded: number | null; created_at: string };
