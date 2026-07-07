@@ -59,6 +59,7 @@ export default function AdminBabyfootPage() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [showTools, setShowTools] = useState(false);
+  const [gameDay, setGameDay] = useState(false);
 
   const load = useCallback(() => {
     fetch("/api/admin/babyfoot/tournament", { credentials: "same-origin" })
@@ -85,7 +86,14 @@ export default function AdminBabyfootPage() {
       <div>
         <div className="flex items-center justify-between gap-2">
           <h1 className="canal-headline text-2xl">🏓 Tournoi Baby-foot {t.season}</h1>
-          <Link href="/babyfoot" className="text-xs text-canal-yellow underline">Côté joueur →</Link>
+          <div className="flex items-center gap-2">
+            {matches.length > 0 && (
+              <button onClick={() => setGameDay((v) => !v)} className={`text-xs font-black rounded-lg px-2.5 py-1.5 ${gameDay ? "bg-canal-yellow text-canal-black" : "bg-canal-gray-mid text-white border border-canal-yellow/40"}`}>
+                ⚡ Jour J
+              </button>
+            )}
+            <Link href="/babyfoot" className="text-xs text-canal-yellow underline">Joueur →</Link>
+          </div>
         </div>
         <p className="text-canal-gray-muted text-sm mt-1">
           📅 {t.event_date ? new Date(t.event_date + "T00:00:00+11:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }) : "date à définir"}
@@ -93,6 +101,10 @@ export default function AdminBabyfootPage() {
       </div>
 
       {msg && <p className="text-red-400 text-sm font-bold">{msg}</p>}
+
+      {gameDay ? (
+        <GameDay state={state} busy={busy} act={act} onExit={() => setGameDay(false)} />
+      ) : (<>
 
       {/* Stepper */}
       <div className="canal-card">
@@ -126,6 +138,7 @@ export default function AdminBabyfootPage() {
           hint={`${entries.length} binôme${entries.length > 1 ? "s" : ""} inscrit${entries.length > 1 ? "s" : ""}${t.target_teams > entries.length ? ` · encore ${t.target_teams - entries.length} place${t.target_teams - entries.length > 1 ? "s" : ""}` : ""}`}
         >
           <BinomesManager entries={entries} availableTeams={availableTeams} busy={busy} act={act} />
+          <AvailabilityPanel entries={entries} />
           <button disabled={busy || entries.length < 2} onClick={() => { if (confirm("Fermer les inscriptions et passer au format ?")) act({ action: "close_registration" }); }} className={`${btnPrimary} mt-4`}>
             🔒 Fermer les inscriptions
           </button>
@@ -134,7 +147,8 @@ export default function AdminBabyfootPage() {
       )}
 
       {step === 4 && (
-        <StepCard title="Choisir le format" hint={`${entries.length} binômes — l'estimation s'ajuste au nombre d'équipes.`}>
+        <StepCard title="Générer le tournoi" hint={`${entries.length} binômes — voici ce qui va se passer.`}>
+          <AvailabilityPanel entries={entries} showBestSlot />
           <FormatChooser t={t} projection={projection} busy={busy} act={act} entriesCount={entries.length} />
         </StepCard>
       )}
@@ -192,12 +206,104 @@ export default function AdminBabyfootPage() {
           </div>
         )}
       </div>
+      </>)}
     </div>
   );
 }
 
 const btnPrimary = "w-full min-h-[46px] flex items-center justify-center gap-2 rounded-xl bg-canal-yellow text-canal-black font-black disabled:opacity-50 hover:bg-canal-yellow-hover transition-colors";
 const btnGhost = "px-3 py-2 rounded-lg bg-canal-gray-mid text-white text-sm font-bold border border-canal-gray-light disabled:opacity-50";
+
+// Disponibilités EXPLOITÉES : histogramme par créneau + meilleur créneau conseillé.
+function AvailabilityPanel({ entries, showBestSlot }: { entries: BabyfootEntryView[]; showBestSlot?: boolean }) {
+  if (!entries.length) return null;
+  const counts = BABYFOOT.slots.map((s) => ({ ...s, n: entries.filter((e) => e.availability.includes(s.key)).length }));
+  const max = Math.max(1, ...counts.map((c) => c.n));
+  const best = counts.reduce((a, b) => (b.n > a.n ? b : a), counts[0]);
+  return (
+    <div className="rounded-lg bg-canal-gray-mid/40 p-3 space-y-1.5 mt-3">
+      <p className="text-xs font-bold uppercase text-canal-gray-muted">Disponibilités des binômes</p>
+      {counts.map((c) => (
+        <div key={c.key} className="flex items-center gap-2 text-xs">
+          <span className="w-24 text-white shrink-0">{c.label}</span>
+          <div className="flex-1 bg-canal-gray-mid rounded-full h-3 overflow-hidden">
+            <div className="bg-canal-yellow h-3 rounded-full transition-all" style={{ width: `${(c.n / max) * 100}%` }} />
+          </div>
+          <span className="w-5 text-right text-white font-bold shrink-0">{c.n}</span>
+        </div>
+      ))}
+      {best.n > 0 && (
+        <p className="text-[11px] text-canal-yellow pt-1">
+          💡 {showBestSlot ? "Début conseillé : " : "Meilleur créneau : "}<b>{best.label}</b> ({best.n} binômes dispos).
+        </p>
+      )}
+    </div>
+  );
+}
+
+// MODE JOUR J : interface ultra-simplifiée. L'orga ne voit QUE le(s) match(s) à
+// jouer + le score. Le match suivant apparaît tout seul, il ne choisit jamais
+// les équipes.
+function GameDay({ state, busy, act, onExit }: { state: State; busy: boolean; act: (b: Record<string, unknown>, path?: string) => void; onExit: () => void }) {
+  const { matches, entries } = state;
+  const labelByTeam = new Map(entries.map((e) => [e.team_id, e.label]));
+  const lbl = (id?: string | null) => (id ? labelByTeam.get(id) ?? "?" : "à venir");
+  const ready = matches.filter((m) => m.status !== "finished" && m.team_a_id && m.team_b_id).sort((a, b) => (a.table_no ?? 99) - (b.table_no ?? 99) || (a.order_idx ?? 0) - (b.order_idx ?? 0));
+  const poolMatches = matches.filter((m) => m.phase === "pool");
+  const poolsDone = poolMatches.length > 0 && poolMatches.every((m) => m.status === "finished");
+  const hasKo = matches.some((m) => m.phase && m.phase !== "pool");
+  const championDecided = matches.some((m) => m.phase === "final" && m.status === "finished");
+  const remaining = matches.filter((m) => m.status !== "finished").length;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="canal-headline text-xl">⚡ Mode jour J</h2>
+        <button onClick={onExit} className="text-xs text-canal-gray-muted underline">Quitter</button>
+      </div>
+
+      {poolsDone && !hasKo && (
+        <button disabled={busy} onClick={() => act({ action: "generate_ko" })} className={btnPrimary}>🏆 Lancer la phase finale</button>
+      )}
+      {championDecided && (
+        <button disabled={busy} onClick={() => { if (confirm("Fin du tournoi ?")) act({ action: "status", status: "finished" }); }} className={btnPrimary}>🎉 Fin du tournoi → Podium</button>
+      )}
+
+      {ready.length ? (
+        ready.map((m) => <GameDayMatch key={m.id} m={m} labelA={lbl(m.team_a_id)} labelB={lbl(m.team_b_id)} busy={busy} onResult={(b) => act(b, "result")} />)
+      ) : (
+        <p className="text-center text-canal-gray-muted py-10 text-lg">{remaining ? "En attente du prochain match…" : "Tous les matchs sont joués 🎉"}</p>
+      )}
+      {remaining > 0 && <p className="text-center text-xs text-canal-gray-muted">{remaining} match{remaining > 1 ? "s" : ""} restant{remaining > 1 ? "s" : ""}</p>}
+    </div>
+  );
+}
+
+function GameDayMatch({ m, labelA, labelB, busy, onResult }: { m: BabyFootMatch; labelA: string; labelB: string; busy: boolean; onResult: (b: Record<string, unknown>) => void }) {
+  const [a, setA] = useState<string>(m.score_a?.toString() ?? "");
+  const [b, setB] = useState<string>(m.score_b?.toString() ?? "");
+  const finished = m.status === "finished";
+  const inp = "w-16 h-16 text-3xl text-center rounded-xl bg-canal-gray-mid border-2 border-canal-gray-light text-white font-black";
+  return (
+    <div className="canal-card border border-canal-yellow/30 space-y-3">
+      <div className="flex items-center justify-center gap-2 text-xs text-canal-gray-muted">
+        {m.table_no != null ? <span className="font-black text-canal-black bg-canal-yellow rounded px-2 py-0.5">Table {m.table_no}</span> : null}
+        <span>{m.round ?? m.phase}</span>
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex-1 text-right font-black text-white text-lg leading-tight">{labelA}</span>
+        <input value={a} onChange={(e) => setA(e.target.value)} inputMode="numeric" className={inp} />
+        <span className="text-canal-gray-muted">-</span>
+        <input value={b} onChange={(e) => setB(e.target.value)} inputMode="numeric" className={inp} />
+        <span className="flex-1 font-black text-white text-lg leading-tight">{labelB}</span>
+      </div>
+      <button disabled={busy || a === "" || b === ""} onClick={() => onResult({ match_id: m.id, score_a: +a, score_b: +b })} className={btnPrimary}>
+        ✅ Valider le score
+      </button>
+      {finished && <button disabled={busy} onClick={() => onResult({ match_id: m.id, clear: true })} className="w-full text-red-400 text-xs">↺ Annuler</button>}
+    </div>
+  );
+}
 
 function StepCard({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (

@@ -136,13 +136,14 @@ export default function BabyfootRegisterPage() {
 
           {/* Le binôme */}
           <div>
-            <label className="text-xs font-bold uppercase text-canal-gray-muted flex items-center gap-1.5"><Users size={12} /> Ton binôme</label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold uppercase text-canal-gray-muted flex items-center gap-1.5"><Users size={12} /> Votre binôme</label>
+              {ctx.myEntry && <span className="text-[11px] font-black text-green-400 flex items-center gap-1"><Check size={12} /> Inscrits</span>}
+            </div>
             <div className="mt-2 flex items-center gap-2 text-white font-bold">
-              <span className="px-3 py-2 rounded-xl bg-canal-gray-mid flex-1 text-center">{ctx.binome.meName}</span>
-              <span className="text-canal-yellow">&amp;</span>
-              <span className="px-3 py-2 rounded-xl bg-canal-gray-mid flex-1 text-center">
-                {ctx.binome.partnerName ?? "coéquipier"}
-              </span>
+              <span className="px-3 py-3 rounded-xl bg-canal-gray-mid flex-1 text-center">{ctx.binome.meName}</span>
+              <span className="text-2xl">🤝</span>
+              <span className="px-3 py-3 rounded-xl bg-canal-gray-mid flex-1 text-center">{ctx.binome.partnerName ?? "coéquipier"}</span>
             </div>
           </div>
 
