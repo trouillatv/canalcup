@@ -23,8 +23,17 @@ interface State {
   matches?: PublicMatch[];
   podium?: { rank: number; label: string }[];
   stats?: { entry_id: string; label: string; played: number; won: number; lost: number; gf: number; ga: number; gd: number; final_rank: number | null }[];
+  highlights?: Highlights;
   photos?: { id: string; photo_url: string; caption: string | null; author_name: string }[];
   champions?: { season: number; name: string; champion: string | null }[];
+}
+interface Highlights {
+  biggestWin: { winner: string; loser: string; sa: number; sb: number; margin: number } | null;
+  closest: { a: string; b: string; sa: number; sb: number } | null;
+  highestScoring: { a: string; b: string; sa: number; sb: number; total: number } | null;
+  undefeated: { label: string; won: number; played: number }[];
+  bestStreak: { label: string; streak: number } | null;
+  upset: { winner: string; loser: string; detail: string } | null;
 }
 
 const PHASE_ORDER = ["prelim", "quarter", "semi", "final", "third"];
@@ -137,6 +146,9 @@ export default function BabyfootPage() {
         </section>
       )}
 
+      {/* Faits marquants en direct */}
+      <HighlightsSection h={s?.highlights} />
+
       {/* Stats par binôme */}
       {(s?.stats?.filter((x) => x.played > 0).length ?? 0) > 0 && (
         <section className="space-y-2">
@@ -184,6 +196,31 @@ export default function BabyfootPage() {
 
       {!t && <p className="text-canal-gray-muted text-sm text-center py-8">Le tournoi n&apos;est pas encore ouvert.</p>}
     </div>
+  );
+}
+
+function HighlightsSection({ h }: { h?: Highlights }) {
+  if (!h) return null;
+  const cards: { icon: string; label: string; value: string }[] = [];
+  if (h.biggestWin) cards.push({ icon: "🔥", label: "Plus grosse victoire", value: `${h.biggestWin.winner} ${h.biggestWin.sa}–${h.biggestWin.sb} ${h.biggestWin.loser}` });
+  if (h.closest) cards.push({ icon: "😰", label: "Match le plus serré", value: `${h.closest.a} ${h.closest.sa}–${h.closest.sb} ${h.closest.b}` });
+  if (h.highestScoring) cards.push({ icon: "⚽", label: "Le plus de buts", value: `${h.highestScoring.a} ${h.highestScoring.sa}–${h.highestScoring.sb} ${h.highestScoring.b} (${h.highestScoring.total})` });
+  if (h.undefeated.length) cards.push({ icon: "🛡️", label: "Binôme invaincu", value: h.undefeated.slice(0, 3).map((u) => u.label).join(", ") });
+  if (h.bestStreak) cards.push({ icon: "📈", label: "Série de victoires", value: `${h.bestStreak.label} — ${h.bestStreak.streak} d'affilée` });
+  if (h.upset) cards.push({ icon: "🎭", label: "Surprise du tournoi", value: `${h.upset.winner} sort ${h.upset.loser}` });
+  if (!cards.length) return null;
+  return (
+    <section className="space-y-2">
+      <h2 className="text-sm font-bold uppercase text-canal-yellow flex items-center gap-1.5"><span className="live-dot" /> En direct</h2>
+      <div className="grid grid-cols-2 gap-2">
+        {cards.map((c) => (
+          <div key={c.label} className="canal-card">
+            <p className="text-[10px] text-canal-gray-muted uppercase font-bold flex items-center gap-1">{c.icon} {c.label}</p>
+            <p className="text-white font-bold text-sm mt-1 leading-tight">{c.value}</p>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

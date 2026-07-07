@@ -22,6 +22,15 @@ interface State {
   standings?: Standing[];
   matches?: PublicMatch[];
   podium?: { rank: number; label: string }[];
+  highlights?: Highlights;
+}
+interface Highlights {
+  biggestWin: { winner: string; loser: string; sa: number; sb: number; margin: number } | null;
+  closest: { a: string; b: string; sa: number; sb: number } | null;
+  highestScoring: { a: string; b: string; sa: number; sb: number; total: number } | null;
+  undefeated: { label: string; won: number; played: number }[];
+  bestStreak: { label: string; streak: number } | null;
+  upset: { winner: string; loser: string; detail: string } | null;
 }
 
 const MEDAL = ["🥇", "🥈", "🥉"];
@@ -30,6 +39,7 @@ const PHASE_LABEL: Record<string, string> = { prelim: "Barrages", quarter: "Quar
 export default function TvBabyfootPage() {
   const [s, setS] = useState<State | null>(null);
   const [mode, setMode] = useState("auto");
+  const [cycle, setCycle] = useState(0);
   const [, tick] = useState(0);
 
   useEffect(() => {
@@ -37,7 +47,7 @@ export default function TvBabyfootPage() {
     setMode(params.get("mode") ?? "auto");
     const load = () => fetch("/api/babyfoot").then((r) => r.json()).then((d) => setS(d)).catch(() => {});
     load();
-    const t = setInterval(load, 15000);
+    const t = setInterval(() => { load(); setCycle((v) => v + 1); }, 15000);
     const c = setInterval(() => tick((v) => v + 1), 1000); // pour les comptes à rebours
     return () => { clearInterval(t); clearInterval(c); };
   }, []);
@@ -48,7 +58,10 @@ export default function TvBabyfootPage() {
 
   if (!s?.tournament) return shell(<Center><h1 className="canal-headline text-7xl">🎮 Tournoi Baby-foot</h1><p className="text-3xl text-canal-gray-muted mt-4">Bientôt…</p></Center>);
   const t = s.tournament;
-  const eff = mode === "auto" ? autoMode(t.status) : mode;
+  const hasHighlights = !!s.highlights && (s.highlights.biggestWin || s.highlights.undefeated.length || s.highlights.bestStreak || s.highlights.upset);
+  let eff = mode === "auto" ? autoMode(t.status) : mode;
+  // Auto : pendant le jeu, on alterne le direct et les faits marquants (15 s).
+  if (mode === "auto" && hasHighlights && (eff === "pools" || eff === "matches") && cycle % 2 === 1) eff = "faits";
 
   return shell(
     <>
@@ -62,6 +75,7 @@ export default function TvBabyfootPage() {
         {eff === "pools" && <Pools s={s} />}
         {eff === "bracket" && <Bracket s={s} />}
         {eff === "matches" && <Matches s={s} />}
+        {eff === "faits" && <Faits h={s.highlights} />}
         {eff === "podium" && <Podium s={s} t={t} />}
       </div>
       <footer className="mt-6 text-center text-2xl text-canal-yellow font-bold">
@@ -207,6 +221,30 @@ function Podium({ s, t }: { s: State; t: NonNullable<State["tournament"]> }) {
         ))}
       </div>
     </Center>
+  );
+}
+
+function Faits({ h }: { h?: Highlights }) {
+  if (!h) return null;
+  const cards: { icon: string; label: string; value: string }[] = [];
+  if (h.biggestWin) cards.push({ icon: "🔥", label: "Plus grosse victoire", value: `${h.biggestWin.winner}  ${h.biggestWin.sa}–${h.biggestWin.sb}  ${h.biggestWin.loser}` });
+  if (h.closest) cards.push({ icon: "😰", label: "Le plus serré", value: `${h.closest.a}  ${h.closest.sa}–${h.closest.sb}  ${h.closest.b}` });
+  if (h.highestScoring) cards.push({ icon: "⚽", label: "Le plus de buts", value: `${h.highestScoring.a}  ${h.highestScoring.sa}–${h.highestScoring.sb}  ${h.highestScoring.b}` });
+  if (h.undefeated.length) cards.push({ icon: "🛡️", label: "Invaincu", value: h.undefeated.slice(0, 2).map((u) => u.label).join("  ·  ") });
+  if (h.bestStreak) cards.push({ icon: "📈", label: "Série de victoires", value: `${h.bestStreak.label} — ${h.bestStreak.streak} d'affilée` });
+  if (h.upset) cards.push({ icon: "🎭", label: "Surprise du tournoi", value: `${h.upset.winner} sort ${h.upset.loser}` });
+  return (
+    <div className="h-full flex flex-col">
+      <h2 className="canal-headline text-5xl mb-6 flex items-center gap-3"><span className="live-dot" /> Faits marquants</h2>
+      <div className="grid grid-cols-2 gap-6 flex-1">
+        {cards.map((c) => (
+          <div key={c.label} className="canal-card bg-canal-gray-dark/40 flex flex-col justify-center">
+            <p className="text-3xl text-canal-gray-muted font-bold">{c.icon} {c.label}</p>
+            <p className="text-5xl font-black text-white mt-3 leading-tight">{c.value}</p>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

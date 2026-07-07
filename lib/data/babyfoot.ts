@@ -184,6 +184,12 @@ export async function buildPublicState(admin: DbClient, tournamentId: string) {
     return { entry_id: e.id, label: e.label, played, won, lost, gf, ga, gd: gf - ga, final_rank: e.final_rank };
   });
 
+  // Faits marquants en direct (dérivés des matchs terminés).
+  const { computeHighlights } = await import("@/lib/babyfoot/highlights");
+  const poolRankByTeam = new Map<string, number>();
+  for (const [, rows] of stMap) for (const r of rows) poolRankByTeam.set(r.team_id, r.rank);
+  const highlights = computeHighlights(matches, { labelByTeam, poolRankByTeam });
+
   // Photos récentes du tournoi (galerie + moments).
   const { data: photoRows } = await admin
     .from("babyfoot_match_photos")
@@ -196,7 +202,7 @@ export async function buildPublicState(admin: DbClient, tournamentId: string) {
 
   return {
     entries: entries.map((e) => ({ id: e.id, label: e.label, pool_label: e.pool_label, final_rank: e.final_rank })),
-    matches: publicMatches, standings, podium, stats, photos, registeredCount: entries.length,
+    matches: publicMatches, standings, podium, stats, highlights, photos, registeredCount: entries.length,
   };
 }
 
