@@ -34,8 +34,11 @@ export async function GET(req: Request) {
   const entered = new Set(entries.map((e) => e.team_id));
   const { data: allTeams } = await admin.from("teams").select("id, name");
   const members = await getTeamMembersMap(admin, (allTeams ?? []).map((x: { id: string }) => x.id));
+  // Seules les équipes COMPLÈTES (exactement 2 joueurs) et non déjà inscrites
+  // sont proposées : la règle "binôme = 2 joueurs" est ainsi respectée dès l'UI
+  // (et garantie en base par le trigger babyfoot_entry_validate).
   const availableTeams = (allTeams ?? [])
-    .filter((x: { id: string }) => !entered.has(x.id))
+    .filter((x: { id: string }) => !entered.has(x.id) && (members.get(x.id)?.length ?? 0) === 2)
     .map((x: { id: string; name: string }) => ({ id: x.id, name: x.name, members: members.get(x.id) ?? [] }))
     .sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name));
 

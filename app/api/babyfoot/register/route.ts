@@ -63,6 +63,14 @@ export async function POST(req: Request) {
   if (!binome.teamId) {
     return NextResponse.json({ error: "Tu dois d'abord former ton binôme (équipe)." }, { status: 400 });
   }
+  // Règle NON contournable : un binôme = EXACTEMENT 2 joueurs. Pas d'inscription solo.
+  if (binome.memberCount !== 2) {
+    return NextResponse.json({
+      error: binome.memberCount < 2
+        ? "Il te faut un coéquipier : un binôme baby-foot compte exactement 2 joueurs."
+        : "Ton équipe compte plus de 2 joueurs — un binôme baby-foot en compte exactement 2.",
+    }, { status: 400 });
+  }
 
   let body: { display_name?: string; slots?: unknown };
   try { body = await req.json(); } catch { return NextResponse.json({ error: "Requête invalide." }, { status: 400 }); }

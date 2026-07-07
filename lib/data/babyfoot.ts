@@ -238,6 +238,7 @@ export interface UserBinome {
   teamId: string | null;
   teamName: string | null;
   partnerName: string | null;
+  memberCount: number; // nb de joueurs de l'équipe (doit valoir 2 pour s'inscrire)
 }
 
 /** Résout le binôme (équipe) du user connecté + le nom du coéquipier. */
@@ -251,12 +252,15 @@ export async function resolveUserBinome(admin: DbClient, authId: string): Promis
   const meName = me.display_name || me.name || "Moi";
   let teamName: string | null = null;
   let partnerName: string | null = null;
+  let memberCount = 0;
   if (me.team_id) {
     const { data: team } = await admin.from("teams").select("name").eq("id", me.team_id).maybeSingle();
     teamName = team?.name ?? null;
     const members = await getTeamMembersMap(admin, [me.team_id]);
-    const names = (members.get(me.team_id) ?? []).filter((n) => n !== meName);
+    const all = members.get(me.team_id) ?? [];
+    memberCount = all.length;
+    const names = all.filter((n) => n !== meName);
     partnerName = names[0] ?? null;
   }
-  return { meId: me.id, meName, teamId: me.team_id ?? null, teamName, partnerName };
+  return { meId: me.id, meName, teamId: me.team_id ?? null, teamName, partnerName, memberCount };
 }

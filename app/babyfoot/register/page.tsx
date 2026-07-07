@@ -16,7 +16,7 @@ interface Ctx {
     status: string; registration_open: boolean; target_teams: number;
   } | null;
   slots: Slot[];
-  binome: { meName: string; teamId: string | null; teamName: string | null; partnerName: string | null } | null;
+  binome: { meName: string; teamId: string | null; teamName: string | null; partnerName: string | null; memberCount: number } | null;
   myEntry: { id: string; label: string; display_name: string | null; availability: string[] } | null;
   registeredCount: number;
   entries: { id: string; label: string }[];
@@ -112,8 +112,21 @@ export default function BabyfootRegisterPage() {
       {/* Pas d'équipe → CTA */}
       <NoTeamCTA action="participer au tournoi baby-foot" />
 
-      {/* Formulaire (seulement si j'ai un binôme) */}
-      {ctx?.binome?.teamId ? (
+      {/* Binôme incomplet : inscription solo IMPOSSIBLE (règle : exactement 2 joueurs) */}
+      {ctx?.binome?.teamId && ctx.binome.memberCount !== 2 && (
+        <div className="canal-card border border-canal-yellow/40 bg-canal-yellow/5 space-y-2">
+          <p className="text-white font-bold text-sm">Il te faut un coéquipier 👥</p>
+          <p className="text-canal-gray-muted text-xs">
+            Un binôme baby-foot compte <b className="text-white">exactement 2 joueurs</b>. Tu ne peux pas t&apos;inscrire seul.
+          </p>
+          <Link href="/binomes" className="inline-flex items-center gap-1.5 text-canal-black bg-canal-yellow font-black text-sm rounded-lg px-3 py-2">
+            <Users size={14} /> Trouver un coéquipier
+          </Link>
+        </div>
+      )}
+
+      {/* Formulaire (seulement si binôme COMPLET = 2 joueurs) */}
+      {ctx?.binome?.teamId && ctx.binome.memberCount === 2 ? (
         <div className="canal-card space-y-5">
           {done && (
             <div className="rounded-xl bg-green-900/20 border border-green-600/40 p-3 flex items-center gap-2 text-green-300 text-sm font-bold">
@@ -128,15 +141,9 @@ export default function BabyfootRegisterPage() {
               <span className="px-3 py-2 rounded-xl bg-canal-gray-mid flex-1 text-center">{ctx.binome.meName}</span>
               <span className="text-canal-yellow">&amp;</span>
               <span className="px-3 py-2 rounded-xl bg-canal-gray-mid flex-1 text-center">
-                {ctx.binome.partnerName ?? <span className="text-canal-gray-muted font-normal">coéquipier</span>}
+                {ctx.binome.partnerName ?? "coéquipier"}
               </span>
             </div>
-            {!ctx.binome.partnerName && (
-              <p className="text-[11px] text-canal-gray-muted mt-1.5">
-                Ton équipe n&apos;a qu&apos;un membre.{" "}
-                <Link href="/binomes" className="text-canal-yellow underline">Trouve un coéquipier</Link> — tu peux quand même t&apos;inscrire.
-              </p>
-            )}
           </div>
 
           {/* Nom de binôme optionnel */}
