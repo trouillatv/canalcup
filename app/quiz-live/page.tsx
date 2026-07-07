@@ -18,7 +18,12 @@ import { Timer, CheckCircle, Zap, Hourglass, Trophy } from "lucide-react";
 import { QUIZ_TIMER_SECONDS, QUIZ_MIN_RESPONSE_MS, QUIZ_FAST_THRESHOLD_MS } from "@/lib/scoring";
 
 const ANSWERS = ["A", "B", "C", "D"] as const;
-const POLL_INTERVAL_MS = 1000;
+// Quiz EN COURS → 1 s : synchro serrée avec la TV, aucun joueur en retard.
+const POLL_ACTIVE_MS = 1000;
+// AUCUN quiz actif (écran d'attente) → cadence lente : le joueur ne regarde
+// rien qui bouge, on détecte le lancement en ~4 s (le temps de l'annonce de
+// l'orga). Zéro impact ressenti, mais divise la conso hors quiz par ~4.
+const POLL_IDLE_MS = 4000;
 const TIMER_SECONDS = QUIZ_TIMER_SECONDS;
 const FAST_S = QUIZ_FAST_THRESHOLD_MS / 1000; // seuil bonus rapidité (dérivé, source unique)
 
@@ -68,39 +73,70 @@ export default function QuizLivePage() {
   const [cheatForfeit, setCheatForfeit] = useState(false);
   const leaveRef = useRef<{ qId: string | null; count: number }>({ qId: null, count: 0 });
 
-  // Poll /api/quiz/session
+  // Poll /api/quiz/session — boucle auto-programmée (setTimeout) à cadence
+  // adaptative : 1 s pendant le quiz (synchro TV), 4 s hors quiz. Onglet caché /
+  // téléphone verrouillé → on ne poll pas (l'anti-triche gère le départ à part) ;
+  // le retour au premier plan relance un fetch immédiat.
   useEffect(() => {
     let cancelled = false;
-    const load = async () => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const schedule = (ms: number) => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(tick, ms);
+    };
+
+    const tick = async () => {
+      if (cancelled) return;
+      // Onglet caché : le joueur ne voit rien → inutile de consommer. On revient
+      // vérifier dans POLL_IDLE_MS (et le retour au 1er plan force un fetch).
+      if (typeof document !== "undefined" && document.hidden) {
+        schedule(POLL_IDLE_MS);
+        return;
+      }
+      let live = false;
       try {
         const res = await fetch("/api/quiz/session", { credentials: "same-origin" });
-        if (!res.ok) return;
-        const d = await res.json();
-        if (cancelled) return;
-        if (d.status === "question" && d.question) {
-          setSession({
-            status: "live",
-            phase: d.phase ?? "question",
-            paused: !!d.paused,
-            question: d.question,
-            started_at: d.started_at,
-            question_index: d.question_index ?? 0,
-            total: d.total ?? 0,
-            correct_answer: d.correct_answer,
-            explanation: d.explanation,
-          });
-        } else {
-          setSession({ status: "idle" });
+        if (res.ok) {
+          const d = await res.json();
+          if (!cancelled) {
+            if (d.status === "question" && d.question) {
+              live = true;
+              setSession({
+                status: "live",
+                phase: d.phase ?? "question",
+                paused: !!d.paused,
+                question: d.question,
+                started_at: d.started_at,
+                question_index: d.question_index ?? 0,
+                total: d.total ?? 0,
+                correct_answer: d.correct_answer,
+                explanation: d.explanation,
+              });
+            } else {
+              setSession({ status: "idle" });
+            }
+          }
         }
       } catch {
-        /* silencieux */
+        /* silencieux : on reprogramme quand même */
       }
+      if (cancelled) return;
+      schedule(live ? POLL_ACTIVE_MS : POLL_IDLE_MS);
     };
-    load();
-    const t = setInterval(load, POLL_INTERVAL_MS);
+
+    const onVisible = () => {
+      if (typeof document === "undefined" || document.hidden) return;
+      if (timer) clearTimeout(timer); // évite un double tick concurrent
+      tick();
+    };
+
+    tick();
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       cancelled = true;
-      clearInterval(t);
+      if (timer) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 

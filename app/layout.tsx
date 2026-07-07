@@ -3,7 +3,9 @@ import "./globals.css";
 import { TopBar } from "@/components/layout/TopBar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { FloatingFeedback } from "@/components/feedback/FloatingFeedback";
-import { BreakingNews } from "@/components/matches/BreakingNews";
+// BreakingNews désactivé (voir <main> plus bas) — import conservé en commentaire
+// pour réactivation rapide :
+// import { BreakingNews } from "@/components/matches/BreakingNews";
 import { PwaSetup } from "@/components/pwa/PwaSetup";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { PushNotifications } from "@/components/pwa/PushNotifications";
@@ -91,9 +93,12 @@ export default async function RootLayout({
         <TimezoneProvider tz={tz}>
           {isAuthenticated && <TopBar />}
           <main className={isAuthenticated ? "min-h-screen pt-safe-topbar safe-bottom" : "min-h-screen"}>
-            {/* Flash info / direct — visible sur TOUTES les pages, masqué tout seul
-                s'il n'y a ni live ni flash (le composant renvoie null). */}
-            {isAuthenticated && <BreakingNews />}
+            {/* Flash info / direct — DÉSACTIVÉ : montée dans le layout racine, ce
+                bandeau pollait /api/breaking-news sur 100 % des pages pour chaque
+                utilisateur en continu → 1re source de CPU/invocations Vercel.
+                Réactiver = remettre <BreakingNews /> (composant déjà optimisé :
+                auto-pause onglet caché + cadence adaptative 60 s / 5 min). */}
+            {/* {isAuthenticated && <BreakingNews />} */}
             {children}
           </main>
           {isAuthenticated && <BottomNav />}
