@@ -246,7 +246,7 @@ export async function getPlayerDashboard(userId: string): Promise<PlayerDashboar
     animations: indivRow?.animations ?? 0,
   };
   const teamScore = teamRow
-    ? { total: teamRow.total, babyfoot: teamRow.weighted.babyfoot, animations: teamRow.weighted.animations }
+    ? { total: teamRow.total, babyfoot: teamRow.points_babyfoot, animations: teamRow.weighted.animations }
     : null;
 
   // ─── Stats pronostics ──────────────────────────────────────────────────────

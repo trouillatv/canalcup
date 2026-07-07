@@ -115,7 +115,7 @@ function MatchRow({
     )}>
       {/* Round badge */}
       <span className="text-xs font-bold text-canal-gray-muted shrink-0 w-14 text-center">
-        {ROUND_ICONS[match.round] ?? "⚽"} {match.round}
+        {(match.round ? ROUND_ICONS[match.round] : undefined) ?? "⚽"} {match.round}
       </span>
 
       {/* Teams */}

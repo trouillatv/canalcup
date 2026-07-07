@@ -35,7 +35,7 @@ function BabyFootMatchCard({ match }: { match: BabyFootMatch }) {
     <div className="canal-card">
       <div className="flex items-center gap-1 text-xs text-canal-gray-muted mb-3">
         <Clock size={12} />
-        <span><LocalTime date={match.starts_at} variant="datetime" /></span>
+        <span>{match.starts_at ? <LocalTime date={match.starts_at} variant="datetime" /> : "Horaire à venir"}</span>
         {match.status === "live" && (
           <span className="flex items-center gap-1 text-red-400 font-bold ml-2">
             <span className="live-dot" /> LIVE

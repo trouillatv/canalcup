@@ -6,6 +6,10 @@ export type PredictionResult = "A" | "DRAW" | "B";
 export type RevivezType = "phrase" | "fail" | "photo" | "babyfoot" | "roast";
 export type InboxEventType = "mention" | "vote_received" | "badge" | "matinale" | "roast";
 export type BabyFootStatus = "upcoming" | "live" | "finished";
+export type BabyfootTournamentStatus = "draft" | "registration" | "draw" | "pools" | "knockout" | "finished";
+export type BabyfootKind = "official" | "friendly";
+export type BabyfootPhase = "pool" | "quarter" | "semi" | "final" | "third" | "friendly";
+export type BabyfootAwardStage = "participation" | "qualified" | "semifinalist" | "finalist" | "champion";
 export type QuizDifficulty = "easy" | "medium" | "hard";
 export type QuizCategory = "foot" | "culture" | "canal" | "general";
 export type AIContentType = "morning_brief" | "team_roast" | "coach_comment" | "fail_caption";
@@ -230,15 +234,83 @@ export interface BabyFootMatch {
   id: string;
   team_a_id: string;
   team_b_id: string;
-  starts_at: string;
+  starts_at?: string | null;
   score_a?: number;
   score_b?: number;
   status: BabyFootStatus;
-  round: string;
+  round?: string | null;
   highlight?: string;
   created_at: string;
   team_a?: Team;
   team_b?: Team;
+  // Champs tournoi (migration 20260707120000).
+  tournament_id?: string | null;
+  phase?: BabyfootPhase | null;
+  pool_label?: string | null;
+  target_score?: number | null;
+  slot_key?: string | null;
+  table_no?: number | null;
+  order_idx?: number | null;
+  next_match_id?: string | null;
+  next_slot?: "a" | "b" | null;
+}
+
+export interface BabyfootTournament {
+  id: string;
+  name: string;
+  season: number;
+  kind: BabyfootKind;
+  is_active: boolean;
+  event_date?: string | null;
+  status: BabyfootTournamentStatus;
+  registration_open: boolean;
+  target_teams: number;
+  draw_at?: string | null;
+  kickoff_at?: string | null;
+  format: "pools_ko" | "ko";
+  tables_count: number;
+  pool_target: number;
+  ko_target: number;
+  final_target: number;
+  created_at: string;
+}
+
+export interface BabyfootEntry {
+  id: string;
+  tournament_id: string;
+  team_id: string;
+  display_name?: string | null;
+  registered_by?: string | null;
+  pool_label?: string | null;
+  seed?: number | null;
+  final_rank?: number | null;
+  created_at: string;
+  team?: Team;
+  availability?: string[]; // slot_keys (jointure applicative)
+}
+
+export interface BabyfootAward {
+  id: string;
+  tournament_id: string;
+  entry_id: string;
+  team_id: string;
+  stage: BabyfootAwardStage;
+  points: number;
+  label: string;
+  created_at: string;
+}
+
+export interface BabyfootPhoto {
+  id: string;
+  tournament_id?: string | null;
+  match_id?: string | null;
+  team_id?: string | null;
+  user_id?: string | null;
+  author_name: string;
+  photo_url: string;
+  caption?: string | null;
+  status: "visible" | "hidden";
+  created_at: string;
 }
 
 export interface QuizQuestion {

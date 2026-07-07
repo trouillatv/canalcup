@@ -125,7 +125,7 @@ export async function getTeamDashboard(teamId: string): Promise<TeamDashboard | 
     totalMap.set(id, b.total);
     pronosMap.set(id, b.predRaw + b.bonusRaw);
     quizMap.set(id, b.quizRaw);
-    babyMap.set(id, b.babyRaw);
+    babyMap.set(id, b.babyfootPoints);
     animMap.set(id, b.animRaw);
   }
   const ranks = {

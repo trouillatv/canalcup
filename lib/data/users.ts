@@ -345,7 +345,7 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
         const tb = u.team_id ? teamAgg.get(u.team_id) : undefined;
         const pronos = Math.round(pronosRaw.get(u.id) ?? 0);
         const quiz = Math.round(quizRaw.get(u.id) ?? 0);
-        const babyfoot = Math.round(tb?.babyRaw ?? 0);
+        const babyfoot = Math.round(tb?.babyfootPoints ?? 0);
         const animations = Math.round(tb?.animRaw ?? 0);
         return {
           user_id: u.id,

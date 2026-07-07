@@ -29,7 +29,8 @@ interface TeamBreakdown {
   predRaw: number; // pronos (predictions)
   bonusRaw: number; // bonus_predictions (ex. perfect streak)
   quizRaw: number; // quiz
-  babyRaw: number; // babyfoot (10 pts / victoire)
+  babyRaw: number; // babyfoot legacy (10 pts / victoire) — conservé pour stats, HORS total
+  babyfootPoints: number; // Tournoi baby-foot : points FACIAUX (awards de l'édition active) — DANS le total
   animRaw: number; // animations/challenges/photos (score_events allowlist)
   voteRaw: number; // votes reçus — SOCIAL, hors total
   // Contributions pondérées (colonnes du classement ; somme = total)
@@ -39,7 +40,7 @@ interface TeamBreakdown {
     babyfoot: number;
     animations: number;
   };
-  total: number; // = somme des 4 contributions pondérées
+  total: number; // = babyfootPoints (facial) + animations pondérées
 }
 
 const ZERO: TeamBreakdown = {
@@ -47,6 +48,7 @@ const ZERO: TeamBreakdown = {
   bonusRaw: 0,
   quizRaw: 0,
   babyRaw: 0,
+  babyfootPoints: 0,
   animRaw: 0,
   voteRaw: 0,
   weighted: { pronostics: 0, quiz: 0, babyfoot: 0, animations: 0 },
@@ -76,6 +78,8 @@ export async function computeTeamScores(
     babyPoints,
     votePoints,
     scoreEvents,
+    bfTournaments,
+    bfAwards,
   ] = await Promise.all([
     selectAll<{ team_id: string | null; points_awarded: number | null }>(supabase, "predictions", "team_id, points_awarded"),
     selectAll<{ team_id: string | null; points_awarded: number | null }>(supabase, "bonus_predictions", "team_id, points_awarded"),
@@ -84,6 +88,10 @@ export async function computeTeamScores(
     selectAll<{ target_team_id: string | null; value: number | null }>(supabase, "votes", "target_team_id, value"),
     // Animations : UNIQUEMENT score_events (allowlist de catégories).
     selectAll<{ team_id: string | null; category: string | null; raw_points: number | null }>(supabase, "score_events", "team_id, category, raw_points"),
+    // Tournoi baby-foot : awards de l'ÉDITION ACTIVE uniquement (les éditions
+    // passées restent en base pour l'historique, sans gonfler le classement).
+    selectAll<{ id: string; is_active: boolean | null }>(supabase, "babyfoot_tournaments", "id, is_active"),
+    selectAll<{ tournament_id: string | null; team_id: string | null; points: number | null }>(supabase, "babyfoot_awards", "tournament_id, team_id, points"),
   ]);
 
   type PointRow = { team_id: string | null; points_awarded: number | null };
@@ -103,6 +111,17 @@ export async function computeTeamScores(
   const babies = (babyPoints ?? []) as BabyRow[];
   const votes = (votePoints ?? []) as VoteRow[];
   const events = (scoreEvents ?? []) as SeRow[];
+
+  // Tournoi baby-foot : points faciaux par équipe, restreints à l'édition active.
+  const activeBfId =
+    (bfTournaments ?? []).find((t) => t.is_active)?.id ?? null;
+  const babyfootByTeam = new Map<string, number>();
+  if (activeBfId) {
+    for (const a of bfAwards ?? []) {
+      if (a.tournament_id !== activeBfId || !a.team_id) continue;
+      babyfootByTeam.set(a.team_id, (babyfootByTeam.get(a.team_id) ?? 0) + (a.points ?? 0));
+    }
+  }
 
   // Garde-fou anti double comptage : on ne somme que les catégories de
   // l'allowlist (pilier animations). Toute autre catégorie est IGNORÉE du
@@ -143,23 +162,30 @@ export async function computeTeamScores(
       .filter((e) => e.team_id === id && e.category != null && allowed.has(e.category))
       .reduce((s, e) => s + (e.raw_points ?? 0), 0);
 
-    // Pondération d'origine (pronos 35 / quiz 20 / baby 20 / anim 25 %).
-    // RÈGLE (2026-05) : pronos + quiz = INDIVIDUELS → calculés (stats perso)
-    // mais EXCLUS du total d'ÉQUIPE. Le score du binôme = babyfoot + animations
-    // pondérés. Votes = social (hors total).
+    // babyRaw (10 pts/victoire) reste calculé pour d'éventuelles stats mais
+    // n'entre PLUS dans le total : le tournoi baby-foot est désormais scoré au
+    // barème FACIAL traçable (babyfoot_awards). Évite le double comptage.
+    const babyfootPoints = babyfootByTeam.get(id) ?? 0;
+
+    // Pondération d'origine conservée pour pronos/quiz (stats perso) et anim.
+    // RÈGLE (2026-05) : pronos + quiz = INDIVIDUELS → calculés mais EXCLUS du
+    // total d'ÉQUIPE. Votes = social (hors total).
+    // RÈGLE (2026-07) : score du binôme = points baby-foot FACIAUX + animations
+    // pondérées.
     const weighted = {
       pronostics: weightedContribution("pronostics", predRaw + bonusRaw),
       quiz: weightedContribution("quiz", quizRaw),
       babyfoot: weightedContribution("babyfoot", babyRaw),
       animations: weightedContribution("animations", animRaw),
     };
-    const total = weighted.babyfoot + weighted.animations;
+    const total = babyfootPoints + weighted.animations;
 
     map.set(id, {
       predRaw,
       bonusRaw,
       quizRaw,
       babyRaw,
+      babyfootPoints,
       animRaw,
       voteRaw,
       weighted,
@@ -274,7 +300,7 @@ export async function getLeaderboard(): Promise<LeaderboardRow[]> {
         points_predictions: b.predRaw,
         points_bonus: b.bonusRaw,
         points_quiz: b.quizRaw,
-        points_babyfoot: b.babyRaw,
+        points_babyfoot: b.babyfootPoints, // tournoi baby-foot facial (édition active)
         points_animations: b.animRaw,
         points_votes: b.voteRaw,
         weighted: b.weighted,
@@ -428,7 +454,7 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
         const pronos = Math.round(pronosRaw.get(u.id) ?? 0);
         const quiz = Math.round(quizRaw.get(u.id) ?? 0);
         const quizGlobal = quizGlobalMap.get(u.id) ?? 0;
-        const babyfoot = Math.round(tb?.babyRaw ?? 0);
+        const babyfoot = Math.round(tb?.babyfootPoints ?? 0); // points tournoi FACIAUX (binôme, crédités aux 2)
         const animations = Math.round(tb?.animRaw ?? 0);
         return {
           user_id: u.id,
