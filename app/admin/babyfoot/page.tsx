@@ -225,46 +225,66 @@ function BinomesManager({ entries, availableTeams, busy, act }: { entries: Babyf
         </select>
         <button disabled={busy || !pick} onClick={() => { act({ action: "add_entry", team_id: pick }); setPick(""); }} className="px-3 rounded-lg bg-canal-yellow text-canal-black font-black text-sm disabled:opacity-40 flex items-center gap-1"><Plus size={14} /></button>
       </div>
-      {/* Liste des binômes */}
+      {/* Liste des binômes inscrits */}
       <div className="divide-y divide-canal-gray-mid">
         {entries.map((e, i) => (
           <div key={e.id} className="flex items-center gap-2 py-1.5 text-sm">
             <span className="text-canal-gray-muted w-5 text-center">{i + 1}</span>
-            <span className="flex-1 font-bold text-white">{e.label}</span>
+            <span className="flex-1 font-bold text-white">🏓 {e.label}</span>
             {e.availability.length > 0 && <span className="text-[10px] text-canal-gray-muted">{e.availability.map((k) => BABYFOOT.slots.find((s) => s.key === k)?.label.split(" ")[0]).join("/")}</span>}
             <button disabled={busy} onClick={() => { if (confirm(`Retirer ${e.label} ?`)) act({ action: "delete_entry", entry_id: e.id }); }} className="text-red-400"><X size={14} /></button>
           </div>
         ))}
         {!entries.length && <p className="py-3 text-center text-canal-gray-muted text-sm">Aucun binôme pour l&apos;instant.</p>}
       </div>
+
+      {/* Qui manque : binômes complets (2 joueurs) pas encore inscrits */}
+      {availableTeams.length > 0 && (
+        <div className="rounded-lg bg-canal-gray-mid/40 p-3">
+          <p className="text-xs font-bold text-canal-gray-muted uppercase mb-1.5">Pas encore inscrits ({availableTeams.length})</p>
+          <div className="flex flex-wrap gap-1.5">
+            {availableTeams.map((tm) => (
+              <span key={tm.id} className="text-xs bg-canal-gray-mid text-white rounded-full px-2 py-1">
+                {tm.members.length ? tm.members.join(" & ") : tm.name}
+              </span>
+            ))}
+          </div>
+          <p className="text-[10px] text-canal-gray-muted mt-1.5">Relance-les de vive voix — ou ajoute-les directement ci-dessus.</p>
+        </div>
+      )}
     </div>
   );
 }
 
 function FormatChooser({ t, projection, busy, act, entriesCount }: { t: BabyfootTournament; projection: BothProjections; busy: boolean; act: (b: Record<string, unknown>) => void; entriesCount: number }) {
+  const chosen = t.format;
+  const p = chosen === "ko" ? projection.ko : projection.poolsKo;
+  const poolLabel = (pools: number[]) => {
+    if (!pools.length) return "";
+    const uniq = [...new Set(pools)];
+    return uniq.length === 1 ? `de ${uniq[0]}` : `(${pools.join("/")})`;
+  };
+  const chip = (on: boolean) => `px-2.5 py-1 rounded-full text-xs font-bold border ${on ? "bg-canal-yellow text-canal-black border-canal-yellow" : "bg-canal-gray-mid text-canal-gray-muted border-canal-gray-light"}`;
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
-        {(["ko", "poolsKo"] as const).map((k) => {
-          const p = k === "ko" ? projection.ko : projection.poolsKo;
-          const fmt = k === "ko" ? "ko" : "pools_ko";
-          const isReco = projection.recommended === fmt;
-          const chosen = t.format === fmt;
-          return (
-            <button key={k} disabled={busy} onClick={() => act({ action: "config", format: fmt })}
-              className={`text-left p-3 rounded-xl border transition-colors ${chosen ? "border-canal-yellow bg-canal-yellow/10" : "border-canal-gray-light bg-canal-gray-mid"}`}>
-              <div className="flex items-center justify-between">
-                <span className="font-black text-white text-sm">{k === "ko" ? "Élim. directe" : "Poules + élim."}</span>
-                {isReco && <span className="text-[9px] font-black text-canal-black bg-canal-yellow px-1.5 py-0.5 rounded">💡</span>}
-              </div>
-              <p className="text-xs text-canal-gray-muted mt-1">{p.totalMatches} matchs{p.pools.length ? ` · ${p.pools.length} poules` : ""}</p>
-              <p className="text-[11px] text-canal-gray-muted mt-1">1 table : <b className="text-white">{p.durationOneTableLabel}</b></p>
-              <p className="text-[11px] text-canal-gray-muted">2 tables : <b className="text-white">{p.durationTwoTablesLabel}</b></p>
-            </button>
-          );
-        })}
+    <div className="space-y-4">
+      {/* Le plan, en clair */}
+      <div className="rounded-xl bg-canal-gray-mid/60 p-4 text-center border border-canal-yellow/20">
+        <p className="text-3xl font-black text-canal-yellow">{entriesCount} binômes</p>
+        <div className="mt-3 space-y-1 text-sm text-white">
+          {p.pools.length > 0 && <p>✓ {p.pools.length} poules {poolLabel(p.pools)}</p>}
+          <p>✓ {p.totalMatches} matchs</p>
+          <p>✓ durée estimée <b className="text-canal-yellow">{p.durationTwoTablesLabel}</b> à 2 tables · {p.durationOneTableLabel} à 1 table</p>
+        </div>
       </div>
-      <p className="text-[11px] text-canal-gray-muted">{projection.reason}</p>
+      {/* Format en second plan */}
+      <div className="flex items-center justify-center gap-2">
+        <span className="text-xs text-canal-gray-muted">Format :</span>
+        {(["pools_ko", "ko"] as const).map((f) => (
+          <button key={f} disabled={busy} onClick={() => act({ action: "config", format: f })} className={chip(chosen === f)}>
+            {f === "ko" ? "Élim. directe" : "Poules + élim."}{projection.recommended === f ? " 💡" : ""}
+          </button>
+        ))}
+      </div>
       <button disabled={busy || entriesCount < 2} onClick={() => act({ action: "generate" })} className={btnPrimary}>
         🎲 Générer le tournoi
       </button>
@@ -292,6 +312,8 @@ function PoolsPreview({ matches, entries }: { matches: BabyFootMatch[]; entries:
 
 function ResultsPanel({ state, busy, act }: { state: State; busy: boolean; act: (b: Record<string, unknown>, path?: string) => void }) {
   const { matches, entries } = state;
+  const labelByTeam = new Map(entries.map((e) => [e.team_id, e.label]));
+  const lbl = (id?: string | null, fallback?: string) => (id ? labelByTeam.get(id) ?? fallback ?? "?" : "à venir");
   const byPhase = PHASE_ORDER.map((ph) => ({ ph, list: matches.filter((m) => m.phase === ph) })).filter((g) => g.list.length);
   const poolMatches = matches.filter((m) => m.phase === "pool");
   const poolsDone = poolMatches.length > 0 && poolMatches.every((m) => m.status === "finished");
@@ -314,7 +336,7 @@ function ResultsPanel({ state, busy, act }: { state: State; busy: boolean; act: 
           <div key={ph}>
             <p className="text-xs font-bold uppercase text-canal-yellow mb-1.5">{PHASE_LABEL[ph]}</p>
             <div className="space-y-2">
-              {list.map((m) => <MatchRow key={m.id} m={m} busy={busy} onResult={(b) => act(b, "result")} />)}
+              {list.map((m) => <MatchRow key={m.id} m={m} labelA={lbl(m.team_a_id, m.team_a?.name)} labelB={lbl(m.team_b_id, m.team_b?.name)} busy={busy} onResult={(b) => act(b, "result")} />)}
             </div>
           </div>
         ))}
@@ -357,13 +379,13 @@ function ConfigCard({ t, busy, onSave }: { t: BabyfootTournament; busy: boolean;
   );
 }
 
-function MatchRow({ m, busy, onResult }: { m: BabyFootMatch; busy: boolean; onResult: (b: Record<string, unknown>) => void }) {
+function MatchRow({ m, labelA, labelB, busy, onResult }: { m: BabyFootMatch; labelA: string; labelB: string; busy: boolean; onResult: (b: Record<string, unknown>) => void }) {
   const [a, setA] = useState<string>(m.score_a?.toString() ?? "");
   const [b, setB] = useState<string>(m.score_b?.toString() ?? "");
   const finished = m.status === "finished";
   const ready = !!m.team_a_id && !!m.team_b_id;
-  const nameA = m.team_a?.name ?? (m.team_a_id ? "?" : "à venir");
-  const nameB = m.team_b?.name ?? (m.team_b_id ? "?" : "à venir");
+  const nameA = labelA;
+  const nameB = labelB;
   return (
     <div className={`canal-card flex items-center gap-2 py-2 ${finished ? "opacity-80" : ""}`}>
       {m.pool_label && <span className="text-[10px] font-black text-canal-yellow w-4">{m.pool_label}</span>}

@@ -40,7 +40,7 @@ export default function TvBabyfootPage() {
   const [s, setS] = useState<State | null>(null);
   const [mode, setMode] = useState("auto");
   const [cycle, setCycle] = useState(0);
-  const [, tick] = useState(0);
+  const [ticks, setTicks] = useState(0);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -48,7 +48,7 @@ export default function TvBabyfootPage() {
     const load = () => fetch("/api/babyfoot").then((r) => r.json()).then((d) => setS(d)).catch(() => {});
     load();
     const t = setInterval(() => { load(); setCycle((v) => v + 1); }, 15000);
-    const c = setInterval(() => tick((v) => v + 1), 1000); // pour les comptes à rebours
+    const c = setInterval(() => setTicks((v) => v + 1), 1000); // comptes à rebours + speaker
     return () => { clearInterval(t); clearInterval(c); };
   }, []);
 
@@ -81,7 +81,8 @@ export default function TvBabyfootPage() {
         {eff === "faits" && <Faits h={s.highlights} />}
         {eff === "podium" && <Podium s={s} t={t} />}
       </div>
-      <footer className="mt-6 text-center text-2xl text-canal-yellow font-bold">
+      <Speaker s={s} ticks={ticks} />
+      <footer className="mt-4 text-center text-2xl text-canal-yellow font-bold">
         {t.event_date ? new Date(t.event_date + "T00:00:00+11:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }) : ""}
       </footer>
     </>
@@ -310,6 +311,64 @@ function Faits({ h }: { h?: Highlights }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// Le "speaker" : lignes d'animation dérivées de l'état, qui défilent en bas de
+// l'écran pour donner le côté ÉVÉNEMENT (« Nouveau binôme ! », « Table 1… »,
+// « Qualifié pour les demies ! », « Champions ! »).
+function computeSpeakerLines(s: State): string[] {
+  const t = s.tournament;
+  if (!t) return [];
+  const lines: string[] = [];
+  const entries = s.entries ?? [];
+  const matches = s.matches ?? [];
+  const labelByTeamMatch = (m: PublicMatch, which: "A" | "B") => (which === "A" ? m.labelA : m.labelB);
+
+  if (t.status === "draft" || t.status === "registration") {
+    lines.push(`🎉 ${s.registeredCount ?? 0} binômes déjà inscrits !`);
+    const last = entries[entries.length - 1]?.label;
+    if (last) lines.push(`🆕 Nouveau binôme : ${last} !`);
+    const remaining = Math.max(0, t.target_teams - (s.registeredCount ?? 0));
+    if (remaining > 0) lines.push(`📣 Plus que ${remaining} binômes — formez la vôtre !`);
+    lines.push("📲 Scannez le QR pour vous inscrire");
+  } else if (t.status === "draw") {
+    lines.push("🎲 Le tirage au sort va commencer — tout le monde regarde !");
+  } else if (t.status === "pools" || t.status === "knockout") {
+    // Matchs en cours (avec table).
+    for (const m of matches) {
+      if (m.status !== "finished" && m.table_no != null && m.labelA !== "à venir" && m.labelB !== "à venir") {
+        lines.push(`🔔 Table ${m.table_no} : ${m.labelA} attendus contre ${m.labelB} !`);
+      }
+    }
+    // Qualifiés pour les demies.
+    const semiTeams = new Set<string>();
+    for (const m of matches) if (m.phase === "semi") { if (m.labelA !== "à venir") semiTeams.add(m.labelA); if (m.labelB !== "à venir") semiTeams.add(m.labelB); }
+    for (const lbl of semiTeams) lines.push(`🏆 ${lbl} en demi-finale !`);
+    // Faits marquants.
+    const h = s.highlights;
+    if (h?.biggestWin) lines.push(`🔥 ${h.biggestWin.winner} écrase ${h.biggestWin.loser} ${h.biggestWin.sa}-${h.biggestWin.sb} !`);
+    if (h?.bestStreak) lines.push(`📈 ${h.bestStreak.label} : ${h.bestStreak.streak} victoires d'affilée !`);
+    if (h?.upset) lines.push(`😱 Surprise : ${h.upset.winner} sort ${h.upset.loser} !`);
+    if (matches.some((m) => m.phase === "final" && m.labelA !== "à venir" && m.labelB !== "à venir" && m.status !== "finished")) lines.push("👀 La finale est lancée — silence dans la salle !");
+    if (!lines.length) lines.push("🔥 Ça joue dur sur les tables !");
+  } else if (t.status === "finished") {
+    const champ = (s.podium ?? []).find((p) => p.rank === 1);
+    if (champ) lines.push(`🏆 Champions : ${champ.label} ! 👏👏👏`);
+    lines.push("🎉 Merci à tous les binômes — rendez-vous l'an prochain !");
+  }
+  void labelByTeamMatch;
+  return lines;
+}
+
+function Speaker({ s, ticks }: { s: State; ticks: number }) {
+  const lines = computeSpeakerLines(s);
+  if (!lines.length) return null;
+  const line = lines[Math.floor(ticks / 5) % lines.length]; // change toutes les 5 s
+  return (
+    <div className="shrink-0 bg-canal-yellow text-canal-black rounded-2xl px-6 py-3 mt-2">
+      <p key={line} className="text-3xl font-black text-center truncate animate-[pop_0.5s_ease]">🎤 {line}</p>
     </div>
   );
 }
