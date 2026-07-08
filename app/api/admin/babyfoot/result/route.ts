@@ -64,6 +64,9 @@ export async function POST(req: Request) {
 
   const a = Number(body.score_a);
   const b = Number(body.score_b);
+  if (!Number.isInteger(a) || !Number.isInteger(b) || a < 0 || b < 0 || a > 10 || b > 10) {
+    return NextResponse.json({ error: "Score invalide (0 à 10)." }, { status: 400 });
+  }
   if (a === b) return NextResponse.json({ error: "Pas de match nul en baby-foot — il faut un vainqueur." }, { status: 400 });
   const ok = await applyResult(admin, matchId, a, b);
   if (!ok) return NextResponse.json({ error: "Scores invalides." }, { status: 400 });

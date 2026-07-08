@@ -5,7 +5,16 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { Trophy, Users, ArrowRight, Swords, Camera, BarChart3, Loader2 } from "lucide-react";
+import { BABYFOOT } from "@/lib/config/babyfoot";
+
+// Onglet « Gestion » (organisateurs) — chargé à la demande : le code admin
+// n'alourdit pas le bundle des joueurs, et n'est jamais rendu pour un non-admin.
+const BabyfootAdmin = dynamic(() => import("@/components/babyfoot/BabyfootAdmin").then((m) => m.BabyfootAdmin), {
+  ssr: false,
+  loading: () => <div className="px-4 py-10 text-center text-canal-gray-muted"><Loader2 className="animate-spin inline" /></div>,
+});
 
 interface PublicMatch {
   id: string; phase: string | null; round: string | null; pool_label: string | null;
@@ -46,6 +55,17 @@ const MEDAL = ["🥇", "🥈", "🥉"];
 export default function BabyfootPage() {
   const [s, setS] = useState<State | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"tournoi" | "regles" | "gestion">("tournoi");
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Test d'accès organisateur : on interroge l'API admin (gardée par
+  // isAdminRequest). Si elle répond OK → on affiche l'onglet Gestion. La vraie
+  // sécurité reste l'API ; ici on ne fait qu'afficher/masquer l'onglet.
+  useEffect(() => {
+    fetch("/api/admin/babyfoot/tournament", { credentials: "same-origin" })
+      .then((r) => setIsAdmin(r.ok || r.status === 404)).catch(() => {}); // 403 = pas admin
+    if (new URLSearchParams(window.location.search).get("tab") === "gestion") setTab("gestion");
+  }, []);
 
   const load = useCallback(() => {
     fetch("/api/babyfoot").then((r) => r.json()).then(setS).catch(() => {}).finally(() => setLoading(false));
@@ -79,6 +99,12 @@ export default function BabyfootPage() {
           {t ? <>{t.name}{t.event_date ? ` · ${new Date(t.event_date + "T00:00:00+11:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}` : ""}</> : "Le football parallèle. Moins de VAR, plus de chaos."}
         </p>
       </div>
+
+      <BabyfootTabs tab={tab} setTab={setTab} isAdmin={isAdmin} />
+
+      {tab === "gestion" && isAdmin && <BabyfootAdmin />}
+      {tab === "regles" && <BabyfootRules />}
+      {tab === "tournoi" && (<>
 
       {/* CTA inscription */}
       {showRegister && (
@@ -228,7 +254,63 @@ export default function BabyfootPage() {
       )}
 
       {!t && <p className="text-canal-gray-muted text-sm text-center py-8">Le tournoi n&apos;est pas encore ouvert.</p>}
+      </>)}
     </div>
+  );
+}
+
+// Onglets du hub. « Gestion » n'apparaît que pour les organisateurs.
+function BabyfootTabs({ tab, setTab, isAdmin }: { tab: string; setTab: (t: "tournoi" | "regles" | "gestion") => void; isAdmin: boolean }) {
+  const tabs: [("tournoi" | "regles" | "gestion"), string][] = [["tournoi", "🏆 Tournoi"], ["regles", "📖 Règles"]];
+  if (isAdmin) tabs.push(["gestion", "⚙️ Gestion"]);
+  return (
+    <div className="flex gap-1 border-b border-canal-gray-light -mt-2">
+      {tabs.map(([k, l]) => (
+        <button key={k} onClick={() => setTab(k)}
+          className={`px-3 py-2 text-sm font-black border-b-2 -mb-px transition-colors ${tab === k ? "border-canal-yellow text-canal-yellow" : "border-transparent text-canal-gray-muted hover:text-white"}`}>
+          {l}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Règles du tournoi — visible par TOUS les joueurs.
+function BabyfootRules() {
+  const b = BABYFOOT.bareme;
+  const Card = ({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) => (
+    <div className="canal-card space-y-2">
+      <h2 className="text-sm font-black uppercase text-canal-yellow">{icon} {title}</h2>
+      <div className="text-sm text-canal-gray-light space-y-1.5 leading-relaxed">{children}</div>
+    </div>
+  );
+  const Li = ({ children }: { children: React.ReactNode }) => (
+    <p className="flex gap-2"><span className="text-canal-yellow">›</span><span>{children}</span></p>
+  );
+  return (
+    <section className="space-y-4">
+      <Card icon="🎯" title="Le format">
+        <Li>Un binôme = <b className="text-white">2 joueurs</b>. Chaque binôme dispute <b className="text-white">{BABYFOOT.matchesPerTeam} matchs</b> de championnat.</Li>
+        <Li>Un <b className="text-white">classement unique</b> aux victoires. Les <b className="text-white">{BABYFOOT.qualifiers} premiers</b> filent en phase finale.</Li>
+        <Li>Demi-finales <b className="text-white">1ᵉ–4ᵉ</b> et <b className="text-white">2ᵉ–3ᵉ</b>, puis petite finale (3ᵉ place) et <b className="text-white">grande finale</b>.</Li>
+      </Card>
+      <Card icon="🏓" title="Un match">
+        <Li>On joue sur <b className="text-white">une seule table</b>, par matchs courts (~{BABYFOOT.matchMinutes} min).</Li>
+        <Li>Le match se gagne <b className="text-white">à 10 buts</b> — le score est plafonné à 10.</Li>
+        <Li><b className="text-white">Pas de match nul</b> : but en or, il y a toujours un vainqueur.</Li>
+      </Card>
+      <Card icon="🏅" title="Les points CanalCup">
+        <Li>Participation : <b className="text-white">+{b.participation}</b></Li>
+        <Li>Chaque victoire de championnat : <b className="text-white">+{b.matchWin}</b> (jusqu&apos;à +{b.matchWin * BABYFOOT.matchesPerTeam})</Li>
+        <Li>Qualifié en demi-finale : <b className="text-white">+{b.qualified}</b></Li>
+        <Li>Demi-finale gagnée : <b className="text-white">+{b.semiWin}</b></Li>
+        <Li>Champion : <b className="text-white">+{b.champion}</b> 🏆 — soit jusqu&apos;à <b className="text-canal-yellow">{b.participation + b.matchWin * BABYFOOT.matchesPerTeam + b.qualified + b.semiWin + b.champion} points</b> !</Li>
+      </Card>
+      <Card icon="📅" title="Quand">
+        <Li>{BABYFOOT.eventLabel}.</Li>
+        <Li>Les créneaux exacts de vos matchs s&apos;affichent dans l&apos;onglet <b className="text-white">Tournoi</b> une fois le tirage fait.</Li>
+      </Card>
+    </section>
   );
 }
 

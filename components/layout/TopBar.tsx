@@ -275,7 +275,7 @@ export function TopBar() {
                 { href: "/admin/feedback", label: "💬 Feedback" },
                 { href: "/admin/quiz", label: "Quiz" },
                 { href: "/admin/challenges", label: "Animations" },
-                { href: "/admin/babyfoot", label: "🎮 Tournoi Baby-foot" },
+                { href: "/babyfoot?tab=gestion", label: "🎮 Tournoi Baby-foot" },
                 { href: "/admin/users", label: "Utilisateurs" },
                 { href: "/admin/qr", label: "QR Code WC2026" },
                 { href: "/admin/jokers", label: "🃏 Jokers" },

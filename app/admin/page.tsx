@@ -33,7 +33,7 @@ const TOOLS: Array<{
   { href: "/admin/notifications",   label: "Notifications push", desc: "État VAPID, abonnés par plateforme, test d'envoi et purge des abonnements morts.", icon: Bell },
   { href: "/admin/quiz",            label: "Quiz",            desc: "Gérer les questions, lancer le Live Show, voir les résultats.", icon: Trophy },
   { href: "/admin/challenges",      label: "Animations",      desc: "Créer/modérer les challenges, attribuer les points.",           icon: PartyPopper },
-  { href: "/admin/babyfoot",        label: "Tournoi Baby-foot", desc: "Inscriptions, tirage, planning, résultats et podium du tournoi.", icon: Gamepad2 },
+  { href: "/babyfoot?tab=gestion",  label: "Tournoi Baby-foot", desc: "Inscriptions, tirage, planning, résultats et podium du tournoi.", icon: Gamepad2 },
   { href: "/admin/users",           label: "Utilisateurs",    desc: "Allowlist, rôles, désactivation, envoi de magic links.",        icon: Users },
   { href: "/admin/user-audit",      label: "Monitoring Users", desc: "Qui est actif, bloqué, qui participe. Sécurité + support + animation.", icon: SearchCheck },
   { href: "/admin/feedback",         label: "Feedback",         desc: "Les retours envoyés par les testeurs via la bulle « Un souci ? ».", icon: MessageSquare },
