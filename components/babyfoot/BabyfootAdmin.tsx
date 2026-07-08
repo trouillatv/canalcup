@@ -475,7 +475,7 @@ function PlanningStrip({ ordered, shownId, lbl, onPick }: { ordered: BabyFootMat
           const isCurrent = m.id === shownId;
           const icon = fin ? "✅" : isCurrent ? "▶" : "⏳";
           return (
-            <button key={m.id} disabled={!fin} onClick={() => onPick(m.id)} className={`w-full flex items-center gap-2 text-xs py-1 text-left ${fin ? "text-canal-gray-muted hover:text-white" : isCurrent ? "text-white font-bold" : "text-canal-gray-muted/60"}`}>
+            <button key={m.id} disabled={!fin} onClick={() => onPick(m.id)} className={`w-full flex items-center gap-2 text-xs py-1 text-left ${fin ? "text-canal-gray-muted hover:text-white" : isCurrent ? "text-canal-yellow font-black" : "text-white/80"}`}>
               <span className="w-14 shrink-0 tabular-nums">{m.starts_at ? hhmm(m.starts_at) : PHASE_LABEL[m.phase ?? ""] ?? ""}</span>
               <span className="w-4 text-center">{icon}</span>
               <span className="flex-1 truncate">{lbl(m.team_a_id)} <b className="text-white">{fin ? `${m.score_a}–${m.score_b}` : "–"}</b> {lbl(m.team_b_id)}</span>
