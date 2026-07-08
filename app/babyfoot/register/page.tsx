@@ -7,7 +7,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Trophy, Check, Users, CalendarClock, Loader2, PartyPopper } from "lucide-react";
-import { NoTeamCTA } from "@/components/teams/NoTeamCTA";
+import { CreateBabyfootTeamCard } from "@/components/babyfoot/CreateBabyfootTeamCard";
 
 interface Slot { key: string; label: string; }
 interface Ctx {
@@ -109,8 +109,12 @@ export default function BabyfootRegisterPage() {
         )}
       </div>
 
-      {/* Pas d'équipe → CTA */}
-      <NoTeamCTA action="participer au tournoi baby-foot" />
+      {/* Pas d'équipe → création inline d'une équipe baby-foot (sans quitter la
+          page). resolveUserBinome renvoie teamId=null quand l'user n'a pas encore
+          d'équipe. */}
+      {ctx?.binome && !ctx.binome.teamId && (
+        <CreateBabyfootTeamCard onCreated={load} />
+      )}
 
       {/* Binôme incomplet : inscription solo IMPOSSIBLE (règle : exactement 2 joueurs) */}
       {ctx?.binome?.teamId && ctx.binome.memberCount !== 2 && (
