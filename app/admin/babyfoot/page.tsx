@@ -198,6 +198,11 @@ export default function AdminBabyfootPage() {
         {showTools && (
           <div className="mt-2 space-y-3">
             <ConfigCard t={t} busy={busy} onSave={(patch) => act({ action: "config", ...patch })} />
+            <div className="canal-card flex flex-wrap gap-2 items-center">
+              <span className="text-xs text-canal-gray-muted w-full">🖨️ Affiches A3 (à imprimer, permanentes) :</span>
+              <a href="/p/babyfoot/1" target="_blank" rel="noopener" className={btnGhost}>Affiche « Formez votre binôme »</a>
+              <a href="/p/babyfoot/2" target="_blank" rel="noopener" className={btnGhost}>Affiche « Qui sera champion ? »</a>
+            </div>
             <div className="canal-card flex flex-wrap gap-2">
               <button disabled={busy} onClick={() => act({ action: "recompute" })} className={btnGhost}>↻ Recalculer les points</button>
               {step === 7 && <button disabled={busy} onClick={() => { if (confirm("Clôturer le tournoi (podium) ?")) act({ action: "status", status: "finished" }); }} className={btnGhost}>Clôturer → podium</button>}
