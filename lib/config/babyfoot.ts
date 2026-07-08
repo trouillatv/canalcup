@@ -19,12 +19,18 @@ export interface BabyfootSlot {
 }
 
 const DAY_LABEL = { thu: "Jeu", fri: "Ven" } as const;
-const SLOT_TIMES = ["11:00", "11:30", "12:00", "12:30", "13:00", "13:30"];
+// Jeudi : championnat toute la matinée + début d'aprèm. Vendredi : seulement le
+// matin pour le championnat ; les créneaux 12h30–14h00 sont RÉSERVÉS aux phases
+// finales (demies / petite finale / finale) et ne sont pas proposés à l'inscription.
+const SLOT_TIMES_BY_DAY: Record<"thu" | "fri", string[]> = {
+  thu: ["11:00", "11:30", "12:00", "12:30", "13:00", "13:30"],
+  fri: ["11:00", "11:30", "12:00"],
+};
 
 function buildSlots(): BabyfootSlot[] {
   const out: BabyfootSlot[] = [];
   for (const day of ["thu", "fri"] as const) {
-    for (const start of SLOT_TIMES) {
+    for (const start of SLOT_TIMES_BY_DAY[day]) {
       const [h, m] = start.split(":");
       const end = m === "00" ? `${h}h30` : `${Number(h) + 1}h00`;
       out.push({ key: `${day}_${h}${m}`, day, start, label: `${DAY_LABEL[day]} ${h}h${m}–${end}` });
