@@ -100,7 +100,6 @@ export function BabyfootAdmin() {
             <Link href="/admin/babyfoot/qr" className="text-xs font-black rounded-lg px-2.5 py-1.5 bg-canal-gray-mid text-white border border-canal-yellow/40 flex items-center gap-1">
               <QrCode size={13} /> QR
             </Link>
-            <Link href="/babyfoot" className="text-xs text-canal-yellow underline">Joueur →</Link>
           </div>
         </div>
         <p className="text-canal-gray-muted text-sm mt-1">
