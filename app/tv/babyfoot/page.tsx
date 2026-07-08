@@ -4,7 +4,7 @@
 // forcé via ?mode=bracket|matches|podium|inscriptions|tirage (une 2e TV peut
 // afficher le tableau pendant que la 1re montre le live). Poll /api/babyfoot 15 s.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface PublicMatch {
   id: string; phase: string | null; round: string | null; pool_label: string | null;
@@ -38,11 +38,19 @@ interface Highlights {
 const MEDAL = ["🥇", "🥈", "🥉"];
 const PHASE_LABEL: Record<string, string> = { semi: "Demi-finales", final: "Finale", third: "Petite finale" };
 
+interface ResultFlashData { winner: string; loser: string; sa: number; sb: number; surprise: string | null; }
+
 export default function TvBabyfootPage() {
   const [s, setS] = useState<State | null>(null);
   const [mode, setMode] = useState("auto");
   const [cycle, setCycle] = useState(0);
   const [ticks, setTicks] = useState(0);
+  const [flash, setFlash] = useState<ResultFlashData | null>(null);
+  const [flashStart, setFlashStart] = useState(0);
+  const seen = useRef<Set<string> | null>(null);
+  const ticksRef = useRef(0);
+
+  useEffect(() => { ticksRef.current = ticks; }, [ticks]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -53,6 +61,36 @@ export default function TvBabyfootPage() {
     const c = setInterval(() => setTicks((v) => v + 1), 1000); // comptes à rebours + speaker
     return () => { clearInterval(t); clearInterval(c); };
   }, []);
+
+  // Détecte un match FRAÎCHEMENT terminé entre deux polls → déclenche la
+  // séquence « Résultat → Classement → Prochain match ». On mémorise les matchs
+  // déjà vus (pas de flash au 1er chargement).
+  useEffect(() => {
+    const matches = s?.matches ?? [];
+    const status = s?.tournament?.status;
+    const done = matches.filter((m) => m.status === "finished" && m.score_a != null && m.score_b != null);
+    if (seen.current === null) { seen.current = new Set(done.map((m) => m.id)); return; }
+    const fresh = done.filter((m) => !seen.current!.has(m.id));
+    fresh.forEach((m) => seen.current!.add(m.id));
+    if (!fresh.length || (status !== "pools" && status !== "knockout")) return;
+    const pw: Record<string, number> = { league: 0, semi: 1, third: 2, final: 3 };
+    const m = fresh.sort((a, b) => (pw[a.phase ?? "league"] ?? 0) - (pw[b.phase ?? "league"] ?? 0) || (a.rotation ?? 0) - (b.rotation ?? 0)).slice(-1)[0];
+    const sa = m.score_a ?? 0, sb = m.score_b ?? 0;
+    const winner = sa > sb ? m.labelA : m.labelB;
+    const loser = sa > sb ? m.labelB : m.labelA;
+    const loserRank = (s?.classement ?? []).find((r) => r.label === loser)?.rank;
+    const margin = Math.abs(sa - sb);
+    let surprise: string | null = null;
+    if (m.phase === "final") surprise = null; // la finale a son propre écran podium
+    else if (loserRank && loserRank <= 2) surprise = `🔥 Surprise ! ${winner} battent les leaders`;
+    else if (margin >= 5) surprise = `💥 Démonstration de ${winner} !`;
+    else if (margin === 1) surprise = "😮 Quel match — à un but près !";
+    setFlash({ winner, loser, sa, sb, surprise });
+    setFlashStart(ticksRef.current);
+  }, [s]);
+
+  const flashElapsed = ticks - flashStart;
+  const showFlash = !!flash && flashElapsed <= 8;
 
   const shell = (children: React.ReactNode) => (
     <div className="w-full min-h-screen bg-canal-black text-white overflow-hidden flex flex-col p-10">
@@ -75,15 +113,19 @@ export default function TvBabyfootPage() {
         <p className="text-2xl text-canal-gray-muted">{t.name}</p>
       </header>
       <div className="flex-1 min-h-0">
-        {eff === "inscriptions" && <Inscriptions s={s} t={t} />}
-        {eff === "tirage" && <Tirage t={t} entries={s.entries ?? []} matches={s.matches ?? []} />}
-        {eff === "classement" && <Classement s={s} />}
-        {eff === "bracket" && <Bracket s={s} />}
-        {eff === "matches" && <Matches s={s} />}
-        {eff === "faits" && <Faits h={s.highlights} />}
-        {eff === "podium" && <Podium s={s} t={t} />}
+        {showFlash ? (
+          <ResultFlash f={flash!} elapsed={flashElapsed} s={s} />
+        ) : (<>
+          {eff === "inscriptions" && <Inscriptions s={s} t={t} />}
+          {eff === "tirage" && <Tirage t={t} entries={s.entries ?? []} matches={s.matches ?? []} />}
+          {eff === "classement" && <Classement s={s} />}
+          {eff === "bracket" && <Bracket s={s} />}
+          {eff === "matches" && <Matches s={s} />}
+          {eff === "faits" && <Faits h={s.highlights} />}
+          {eff === "podium" && <Podium s={s} t={t} />}
+        </>)}
       </div>
-      <Speaker s={s} ticks={ticks} />
+      {!showFlash && <Speaker s={s} ticks={ticks} />}
       <footer className="mt-4 text-center text-2xl text-canal-yellow font-bold">
         {t.event_date ? new Date(t.event_date + "T00:00:00+11:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }) : ""}
       </footer>
@@ -284,6 +326,65 @@ function Podium({ s, t }: { s: State; t: NonNullable<State["tournament"]> }) {
           </div>
         ))}
       </div>
+    </Center>
+  );
+}
+
+// Séquence événementielle après CHAQUE match validé (≈8 s) : le score qui tombe,
+// puis « Classement mis à jour », puis le prochain match. C'est ce qui donne
+// l'impression d'un tournoi qui se raconte tout seul.
+function ResultFlash({ f, elapsed, s }: { f: ResultFlashData; elapsed: number; s: State }) {
+  const beat = elapsed < 3 ? 0 : elapsed < 6 ? 1 : 2;
+  const pw: Record<string, number> = { league: 0, semi: 1, third: 2, final: 3 };
+  const next = (s.matches ?? [])
+    .filter((m) => m.status !== "finished" && m.labelA !== "à venir" && m.labelB !== "à venir")
+    .sort((a, b) => (pw[a.phase ?? "league"] ?? 0) - (pw[b.phase ?? "league"] ?? 0) || (a.rotation ?? 0) - (b.rotation ?? 0))[0];
+
+  if (beat === 0) {
+    return (
+      <Center>
+        <p className="text-4xl text-canal-gray-muted mb-6">🏓 Résultat</p>
+        <div className="flex items-center justify-center gap-10">
+          <span className="text-6xl font-black text-right max-w-[40vw] leading-tight">{f.winner}</span>
+          <span className="text-8xl font-black text-canal-yellow tabular-nums">{f.sa > f.sb ? f.sa : f.sb}–{f.sa > f.sb ? f.sb : f.sa}</span>
+          <span className="text-6xl font-black text-left max-w-[40vw] leading-tight opacity-70">{f.loser}</span>
+        </div>
+        <p className="text-5xl font-black text-green-400 mt-10 animate-[pop_0.5s_ease]">Victoire de {f.winner} !</p>
+        {f.surprise && <p className="text-4xl font-black text-canal-yellow mt-4 animate-[pop_0.6s_ease]">{f.surprise}</p>}
+      </Center>
+    );
+  }
+  if (beat === 1) {
+    const rows = (s.classement ?? []).slice(0, 6);
+    return (
+      <div className="h-full flex flex-col justify-center">
+        <h2 className="canal-headline text-5xl text-center mb-8 animate-[pop_0.5s_ease]">📊 Classement mis à jour</h2>
+        <div className="max-w-3xl mx-auto w-full space-y-2">
+          {rows.map((r) => (
+            <div key={r.team_id} className={`flex items-center gap-4 text-4xl py-2 border-b border-white/5 ${r.qualified ? "text-green-300" : "text-white"}`}>
+              <span className="w-12 font-black">{r.rank <= 3 ? MEDAL[r.rank - 1] : r.rank}</span>
+              <span className="flex-1 font-bold truncate">{r.qualified ? "✓ " : ""}{r.label}</span>
+              <span className="text-canal-gray-muted">{r.won} V</span>
+            </div>
+          ))}
+        </div>
+        <p className="text-center text-3xl text-canal-yellow font-black mt-6">Top 4 qualifiés pour les demi-finales</p>
+      </div>
+    );
+  }
+  return (
+    <Center>
+      <p className="text-4xl text-canal-gray-muted mb-8">Prochain match</p>
+      {next ? (
+        <div className="flex items-center justify-center gap-10 text-7xl font-black">
+          <span className="text-right max-w-[38vw] leading-tight">{next.labelA}</span>
+          <span className="text-canal-yellow">VS</span>
+          <span className="text-left max-w-[38vw] leading-tight">{next.labelB}</span>
+        </div>
+      ) : (
+        <p className="text-6xl font-black text-canal-yellow">Phase suivante imminente…</p>
+      )}
+      {next?.table_no != null && <p className="text-4xl text-canal-gray-muted mt-8">Table {next.table_no}</p>}
     </Center>
   );
 }

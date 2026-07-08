@@ -11,6 +11,7 @@ import Link from "next/link";
 import { BABYFOOT, type BabyfootStage } from "@/lib/config/babyfoot";
 import type { BabyfootTournament, BabyFootMatch, BabyfootAward } from "@/lib/supabase/types";
 import type { BabyfootEntryView } from "@/lib/data/babyfoot";
+import { computeChampionshipStandings, type ChampStanding } from "@/lib/babyfoot/standings";
 import type { ChampionshipProjection } from "@/lib/babyfoot/format";
 import type { PlanningHealth } from "@/lib/babyfoot/health";
 import { CheckCircle2, Circle, Loader2, Plus, X, Trophy, Settings, ChevronDown, QrCode } from "lucide-react";
@@ -289,19 +290,47 @@ function AvailabilityPanel({ entries, showBestSlot }: { entries: BabyfootEntryVi
   );
 }
 
-// MODE JOUR J : interface ultra-simplifiée. L'orga ne voit QUE le(s) match(s) à
-// jouer + le score. Le match suivant apparaît tout seul, il ne choisit jamais
-// les équipes.
+// MODE JOUR J : l'orga ne voit QUE le match en cours + de gros +/-. Après
+// validation : flash « Victoire », le classement Top 4 se met à jour, et le
+// match suivant s'affiche tout seul. Saisie en < 5 s, jamais de menu. On peut
+// rouvrir un match terminé (depuis le programme) pour corriger un score.
+const PHASE_WEIGHT: Record<string, number> = { league: 0, semi: 1, third: 2, final: 3 };
+function hhmm(iso?: string | null): string { return iso ? new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Noumea" }) : ""; }
+
 function GameDay({ state, busy, act, onExit }: { state: State; busy: boolean; act: (b: Record<string, unknown>, path?: string) => void; onExit: () => void }) {
   const { matches, entries } = state;
   const labelByTeam = new Map(entries.map((e) => [e.team_id, e.label]));
   const lbl = (id?: string | null) => (id ? labelByTeam.get(id) ?? "?" : "à venir");
-  const ready = matches.filter((m) => m.status !== "finished" && m.team_a_id && m.team_b_id).sort((a, b) => (a.rotation ?? 99) - (b.rotation ?? 99) || (a.table_no ?? 99) - (b.table_no ?? 99) || (a.order_idx ?? 0) - (b.order_idx ?? 0));
+
+  const ordered = [...matches].sort((a, b) =>
+    (PHASE_WEIGHT[a.phase ?? "league"] ?? 0) - (PHASE_WEIGHT[b.phase ?? "league"] ?? 0) ||
+    (a.rotation ?? 99) - (b.rotation ?? 99) || (a.order_idx ?? 0) - (b.order_idx ?? 0));
+
+  const [focusId, setFocusId] = useState<string | null>(null);
+  const [flash, setFlash] = useState<{ winner: string; sa: number; sb: number } | null>(null);
+
+  const current = ordered.find((m) => m.status !== "finished" && m.team_a_id && m.team_b_id) ?? null;
+  const editing = focusId ? ordered.find((m) => m.id === focusId) ?? null : null;
+  const shown = editing ?? current;
+  const next = current ? ordered.find((m) => m.id !== current.id && m.status !== "finished" && m.team_a_id && m.team_b_id) ?? null : null;
+
+  const standings = computeChampionshipStandings(entries.map((e) => ({ id: e.id, team_id: e.team_id })), matches, BABYFOOT.qualifiers);
+
   const leagueMatches = matches.filter((m) => m.phase === "league");
   const leagueDone = leagueMatches.length > 0 && leagueMatches.every((m) => m.status === "finished");
   const hasKo = matches.some((m) => m.phase && m.phase !== "league");
   const championDecided = matches.some((m) => m.phase === "final" && m.status === "finished");
   const remaining = matches.filter((m) => m.status !== "finished").length;
+
+  const submit = async (body: Record<string, unknown>) => {
+    if (!body.clear && shown) {
+      const sa = Number(body.score_a), sb = Number(body.score_b);
+      setFlash({ winner: sa > sb ? lbl(shown.team_a_id) : lbl(shown.team_b_id), sa, sb });
+      setTimeout(() => setFlash(null), 1900);
+    }
+    setFocusId(null);
+    await act(body, "result");
+  };
 
   return (
     <div className="space-y-4">
@@ -310,6 +339,14 @@ function GameDay({ state, busy, act, onExit }: { state: State; busy: boolean; ac
         <button onClick={onExit} className="text-xs text-canal-gray-muted underline">Quitter</button>
       </div>
 
+      {flash && (
+        <div className="rounded-2xl bg-green-500 text-canal-black text-center py-5 animate-[pop_0.4s_ease]">
+          <p className="text-sm font-black uppercase tracking-wide">✅ Victoire</p>
+          <p className="text-3xl font-black mt-1 px-3 leading-tight">{flash.winner}</p>
+          <p className="text-xl font-bold mt-1">{flash.sa} – {flash.sb}</p>
+        </div>
+      )}
+
       {leagueDone && !hasKo && (
         <button disabled={busy} onClick={() => act({ action: "generate_ko" })} className={btnPrimary}>🏆 Lancer la phase finale (Top 4)</button>
       )}
@@ -317,39 +354,107 @@ function GameDay({ state, busy, act, onExit }: { state: State; busy: boolean; ac
         <button disabled={busy} onClick={() => { if (confirm("Fin du tournoi ?")) act({ action: "status", status: "finished" }); }} className={btnPrimary}>🎉 Fin du tournoi → Podium</button>
       )}
 
-      {ready.length ? (
-        ready.map((m) => <GameDayMatch key={m.id} m={m} labelA={lbl(m.team_a_id)} labelB={lbl(m.team_b_id)} busy={busy} onResult={(b) => act(b, "result")} />)
-      ) : (
+      {shown ? (
+        <GameDayMatch key={shown.id} m={shown} labelA={lbl(shown.team_a_id)} labelB={lbl(shown.team_b_id)} busy={busy} editing={!!editing} onResult={submit} onCancelEdit={() => setFocusId(null)} />
+      ) : !flash ? (
         <p className="text-center text-canal-gray-muted py-10 text-lg">{remaining ? "En attente du prochain match…" : "Tous les matchs sont joués 🎉"}</p>
+      ) : null}
+
+      {next && !editing && (
+        <div className="rounded-xl bg-canal-gray-mid/40 p-3 text-center">
+          <p className="text-[11px] uppercase font-bold text-canal-gray-muted">À suivre</p>
+          <p className="text-white font-bold mt-0.5">{lbl(next.team_a_id)} <span className="text-canal-gray-muted">vs</span> {lbl(next.team_b_id)}</p>
+        </div>
       )}
+
+      <LiveStandings standings={standings} labelByTeam={labelByTeam} />
+      <PlanningStrip ordered={ordered} shownId={shown?.id} lbl={lbl} onPick={setFocusId} />
+
       {remaining > 0 && <p className="text-center text-xs text-canal-gray-muted">{remaining} match{remaining > 1 ? "s" : ""} restant{remaining > 1 ? "s" : ""}</p>}
     </div>
   );
 }
 
-function GameDayMatch({ m, labelA, labelB, busy, onResult }: { m: BabyFootMatch; labelA: string; labelB: string; busy: boolean; onResult: (b: Record<string, unknown>) => void }) {
-  const [a, setA] = useState<string>(m.score_a?.toString() ?? "");
-  const [b, setB] = useState<string>(m.score_b?.toString() ?? "");
-  const finished = m.status === "finished";
-  const inp = "w-16 h-16 text-3xl text-center rounded-xl bg-canal-gray-mid border-2 border-canal-gray-light text-white font-black";
+function GameDayMatch({ m, labelA, labelB, busy, editing, onResult, onCancelEdit }: { m: BabyFootMatch; labelA: string; labelB: string; busy: boolean; editing: boolean; onResult: (b: Record<string, unknown>) => void; onCancelEdit: () => void }) {
+  const [a, setA] = useState<number>(m.score_a ?? 0);
+  const [b, setB] = useState<number>(m.score_b ?? 0);
+  const tie = a === b;
+  const leader = a > b ? labelA : labelB;
+  const plural = leader.includes("&") || leader.includes(" et ");
+  const stepBtn = "w-14 h-14 rounded-xl bg-canal-gray-mid border border-canal-gray-light text-white text-3xl font-black flex items-center justify-center active:scale-95 disabled:opacity-40";
+  const row = (name: string, val: number, set: (n: number) => void, side: "a" | "b") => (
+    <div className="flex items-center gap-2">
+      <span className="flex-1 font-black text-white text-lg leading-tight">{name}</span>
+      <button aria-label={`moins ${side}`} onClick={() => set(Math.max(0, val - 1))} disabled={busy || val <= 0} className={stepBtn}>−</button>
+      <span className="w-12 text-center text-4xl font-black text-canal-yellow tabular-nums">{val}</span>
+      <button aria-label={`plus ${side}`} onClick={() => set(val + 1)} disabled={busy} className={stepBtn}>+</button>
+    </div>
+  );
   return (
-    <div className="canal-card border border-canal-yellow/30 space-y-3">
+    <div className="canal-card border-2 border-canal-yellow/40 space-y-4">
       <div className="flex items-center justify-center gap-2 text-xs text-canal-gray-muted">
         {m.table_no != null ? <span className="font-black text-canal-black bg-canal-yellow rounded px-2 py-0.5">Table {m.table_no}</span> : null}
-        <span>{m.round ?? m.phase}</span>
+        <span className="uppercase font-bold">{m.round ?? PHASE_LABEL[m.phase ?? ""] ?? "Match"}</span>
+        {editing && <span className="text-canal-yellow">· correction</span>}
       </div>
-      <div className="flex items-center justify-between gap-3">
-        <span className="flex-1 text-right font-black text-white text-lg leading-tight">{labelA}</span>
-        <input value={a} onChange={(e) => setA(e.target.value)} inputMode="numeric" className={inp} />
-        <span className="text-canal-gray-muted">-</span>
-        <input value={b} onChange={(e) => setB(e.target.value)} inputMode="numeric" className={inp} />
-        <span className="flex-1 font-black text-white text-lg leading-tight">{labelB}</span>
-      </div>
-      <button disabled={busy || a === "" || b === ""} onClick={() => onResult({ match_id: m.id, score_a: +a, score_b: +b })} className={btnPrimary}>
-        ✅ Valider le score
+      {row(labelA, a, setA, "a")}
+      <div className="text-center text-canal-gray-muted text-sm font-black">VS</div>
+      {row(labelB, b, setB, "b")}
+      <button disabled={busy || tie} onClick={() => onResult({ match_id: m.id, score_a: a, score_b: b })} className={btnPrimary}>
+        {tie ? "But en or : il faut un vainqueur" : `✅ Valider — ${leader} gagne${plural ? "nt" : ""}`}
       </button>
-      {finished && <button disabled={busy} onClick={() => onResult({ match_id: m.id, clear: true })} className="w-full text-red-400 text-xs">↺ Annuler</button>}
+      {editing ? (
+        <button onClick={onCancelEdit} className="w-full text-canal-gray-muted text-xs">Annuler la correction</button>
+      ) : m.status === "finished" ? (
+        <button disabled={busy} onClick={() => onResult({ match_id: m.id, clear: true })} className="w-full text-red-400 text-xs">↺ Annuler ce résultat</button>
+      ) : null}
     </div>
+  );
+}
+
+// Classement LIVE affiché dans le mode jour J : chaque validation le met à jour,
+// les joueurs voient tout de suite s'ils entrent dans le Top 4.
+function LiveStandings({ standings, labelByTeam }: { standings: ChampStanding[]; labelByTeam: Map<string, string> }) {
+  if (!standings.some((s) => s.played > 0)) return null;
+  return (
+    <div className="canal-card">
+      <p className="text-xs font-bold uppercase text-canal-yellow mb-2">🏆 Classement live · Top 4 qualifiés</p>
+      <div className="space-y-0.5">
+        {standings.map((s) => (
+          <div key={s.entry_id} className={`flex items-center gap-2 text-sm py-1 ${s.qualified ? "text-green-300" : "text-white"} ${s.rank === BABYFOOT.qualifiers ? "border-b border-dashed border-canal-yellow/40 pb-1.5" : ""}`}>
+            <span className="w-5 font-black text-center">{s.rank}</span>
+            <span className="flex-1 font-bold truncate">{s.qualified ? "✓ " : ""}{labelByTeam.get(s.team_id) ?? "?"}</span>
+            <span className="text-canal-gray-muted text-xs">{s.won}V</span>
+            <span className="text-canal-gray-muted text-xs w-10 text-right">{s.gd > 0 ? `+${s.gd}` : s.gd}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Programme : progression (✅ joué · ▶ en cours · ⏳ à venir). Cliquer un match
+// TERMINÉ le rouvre pour corriger son score sans quitter le mode jour J.
+function PlanningStrip({ ordered, shownId, lbl, onPick }: { ordered: BabyFootMatch[]; shownId?: string; lbl: (id?: string | null) => string; onPick: (id: string) => void }) {
+  const done = ordered.filter((m) => m.status === "finished").length;
+  return (
+    <details className="canal-card">
+      <summary className="text-xs font-bold uppercase text-canal-gray-muted cursor-pointer">🗓️ Programme — {done}/{ordered.length} joués</summary>
+      <div className="mt-2 space-y-0.5">
+        {ordered.map((m) => {
+          const fin = m.status === "finished";
+          const isCurrent = m.id === shownId;
+          const icon = fin ? "✅" : isCurrent ? "▶" : "⏳";
+          return (
+            <button key={m.id} disabled={!fin} onClick={() => onPick(m.id)} className={`w-full flex items-center gap-2 text-xs py-1 text-left ${fin ? "text-canal-gray-muted hover:text-white" : isCurrent ? "text-white font-bold" : "text-canal-gray-muted/60"}`}>
+              <span className="w-14 shrink-0 tabular-nums">{m.starts_at ? hhmm(m.starts_at) : PHASE_LABEL[m.phase ?? ""] ?? ""}</span>
+              <span className="w-4 text-center">{icon}</span>
+              <span className="flex-1 truncate">{lbl(m.team_a_id)} <b className="text-white">{fin ? `${m.score_a}–${m.score_b}` : "–"}</b> {lbl(m.team_b_id)}</span>
+            </button>
+          );
+        })}
+      </div>
+    </details>
   );
 }
 
