@@ -130,6 +130,9 @@ export default function AdminBabyfootPage() {
         </div>
       </div>
 
+      {/* Tableau de bord (dès que le tournoi tourne) */}
+      {matches.length > 0 && <Dashboard state={state} />}
+
       {/* Panneau de l'étape courante */}
       {step === 2 && (
         <StepCard title="Prêt à lancer les inscriptions ?" hint="Les binômes pourront s'inscrire via le QR / la page tournoi.">
@@ -182,23 +185,6 @@ export default function AdminBabyfootPage() {
         </StepCard>
       )}
 
-      {/* Points attribués (visible dès qu'il y en a) */}
-      {awards.length > 0 && step >= 7 && (
-        <div className="canal-card">
-          <h3 className="text-sm font-bold uppercase text-canal-yellow mb-2">Points attribués</h3>
-          {[...awards].sort((a, b) => b.points - a.points).map((a) => {
-            const e = entries.find((x) => x.id === a.entry_id);
-            return (
-              <div key={a.id} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_3rem] gap-2 items-center text-sm border-b border-canal-gray-mid py-1">
-                <span className="text-white font-bold truncate">{e?.label ?? "—"}</span>
-                <span className="text-canal-gray-muted text-center truncate">{BABYFOOT.stageLabel[a.stage as BabyfootStage]}</span>
-                <span className="text-canal-yellow font-black text-right">+{a.points}</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
       {/* Outils avancés (repliés) */}
       <div>
         <button onClick={() => setShowTools((v) => !v)} className="flex items-center gap-1.5 text-xs text-canal-gray-muted">
@@ -206,6 +192,22 @@ export default function AdminBabyfootPage() {
         </button>
         {showTools && (
           <div className="mt-2 space-y-3">
+            {/* Historique des points (déplacé ici : inutile pendant le jeu) */}
+            {awards.length > 0 && (
+              <div className="canal-card">
+                <h3 className="text-sm font-bold uppercase text-canal-yellow mb-2">Historique des points</h3>
+                {[...awards].sort((a, b) => b.points - a.points).map((a) => {
+                  const e = entries.find((x) => x.id === a.entry_id);
+                  return (
+                    <div key={a.id} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_3rem] gap-2 items-center text-sm border-b border-canal-gray-mid py-1">
+                      <span className="text-white font-bold truncate">{e?.label ?? "—"}</span>
+                      <span className="text-canal-gray-muted text-center truncate">{BABYFOOT.stageLabel[a.stage as BabyfootStage]}</span>
+                      <span className="text-canal-yellow font-black text-right">+{a.points}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             <ConfigCard t={t} busy={busy} onSave={(patch) => act({ action: "config", ...patch })} />
             <div className="canal-card flex flex-wrap gap-2 items-center">
               <span className="text-xs text-canal-gray-muted w-full">📱 QR « rejoindre une équipe » (afficher / partager) :</span>
@@ -421,7 +423,7 @@ function GameDayMatch({ m, labelA, labelB, busy, onResult }: { m: BabyFootMatch;
       </div>
       {slot && <p className="text-center text-sm font-bold text-canal-gray-muted">🕐 {slot}</p>}
       <button disabled={busy || !ready} onClick={() => onResult({ match_id: m.id, score_a: na, score_b: nb })} className={btnPrimary}>
-        {tie ? "But en or : il faut un vainqueur" : ready ? `✅ Valider — ${leader} gagne${plural ? "nt" : ""}` : "Saisis le score"}
+        {tie ? "But en or : il faut un vainqueur" : ready ? `✅ Valider — ${leader} gagne${plural ? "nt" : ""}` : "✅ Valider le résultat"}
       </button>
       {finished && (
         <button disabled={busy} onClick={() => onResult({ match_id: m.id, clear: true })} className="w-full text-red-400 text-xs">↺ Annuler ce résultat</button>
@@ -434,19 +436,26 @@ function GameDayMatch({ m, labelA, labelB, busy, onResult }: { m: BabyFootMatch;
 // les joueurs voient tout de suite s'ils entrent dans le Top 4.
 function LiveStandings({ standings, labelByTeam }: { standings: ChampStanding[]; labelByTeam: Map<string, string> }) {
   if (!standings.some((s) => s.played > 0)) return null;
+  const cols = "grid grid-cols-[1.4rem_1fr_1.6rem_1.6rem_2.1rem_2.2rem] gap-1 items-center";
   return (
     <div className="canal-card">
-      <p className="text-xs font-bold uppercase text-canal-yellow mb-2">🏆 Classement live · Top 4 qualifiés</p>
-      <div className="space-y-0.5">
-        {standings.map((s) => (
-          <div key={s.entry_id} className={`flex items-center gap-2 text-sm py-1 ${s.qualified ? "text-green-300" : "text-white"} ${s.rank === BABYFOOT.qualifiers ? "border-b border-dashed border-canal-yellow/40 pb-1.5" : ""}`}>
-            <span className="w-5 font-black text-center">{s.rank}</span>
-            <span className="flex-1 font-bold truncate">{s.qualified ? "✓ " : ""}{labelByTeam.get(s.team_id) ?? "?"}</span>
-            <span className="text-canal-gray-muted text-xs">{s.won}V</span>
-            <span className="text-canal-gray-muted text-xs w-10 text-right">{s.gd > 0 ? `+${s.gd}` : s.gd}</span>
-          </div>
-        ))}
+      <p className="text-xs font-bold uppercase text-canal-yellow mb-2">🏆 Classement live · Top {BABYFOOT.qualifiers} qualifiés</p>
+      <div className={`${cols} text-[10px] uppercase text-canal-gray-muted font-bold pb-1`}>
+        <span /><span /><span className="text-right">MJ</span><span className="text-right">V</span><span className="text-right">Diff</span><span className="text-right">Pts</span>
       </div>
+      {standings.map((s) => (
+        <div key={s.entry_id}>
+          <div className={`${cols} text-sm py-0.5 ${s.qualified ? "text-green-300" : "text-white"}`}>
+            <span className="font-black text-center">{s.rank}</span>
+            <span className="font-bold truncate">{s.qualified ? "✓ " : ""}{labelByTeam.get(s.team_id) ?? "?"}</span>
+            <span className="text-canal-gray-muted text-xs text-right">{s.played}</span>
+            <span className="text-canal-gray-muted text-xs text-right">{s.won}</span>
+            <span className="text-canal-gray-muted text-xs text-right">{s.gd > 0 ? `+${s.gd}` : s.gd}</span>
+            <span className="font-black text-right tabular-nums">{s.won * 3}</span>
+          </div>
+          {s.rank === BABYFOOT.qualifiers && <div className="border-b-2 border-red-500/70 my-0.5" />}
+        </div>
+      ))}
     </div>
   );
 }
@@ -562,14 +571,50 @@ function RotationsPreview({ matches }: { matches: BabyFootMatch[] }) {
   if (!rots.length) return <p className="text-sm text-canal-gray-muted">{league.length} matchs de championnat générés.</p>;
   return (
     <div className="space-y-2">
-      {rots.map((rot) => (
-        <div key={rot} className="bg-canal-gray-mid rounded-lg p-2">
-          <p className="text-[11px] font-black text-canal-yellow uppercase">Rotation {rot}</p>
-          {league.filter((m) => m.rotation === rot).map((m) => (
-            <p key={m.id} className="text-white text-xs">{m.table_no != null ? `T${m.table_no} · ` : ""}{m.team_a?.name} vs {m.team_b?.name}</p>
-          ))}
-        </div>
-      ))}
+      {rots.map((rot) => {
+        const ms = league.filter((m) => m.rotation === rot);
+        const when = slotLabel(ms[0]?.starts_at);
+        return (
+          <div key={rot} className="bg-canal-gray-mid rounded-lg p-2">
+            <p className="text-[11px] font-black text-canal-yellow uppercase">Rotation {rot}{when ? ` · ${when}` : ""}</p>
+            {ms.map((m) => (
+              <p key={m.id} className="text-white text-xs">{m.table_no != null ? `T${m.table_no} · ` : ""}{m.team_a?.name} vs {m.team_b?.name}</p>
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Tableau de bord de l'orga pendant le tournoi : l'essentiel en un coup d'œil.
+function Dashboard({ state }: { state: State }) {
+  const { entries, matches } = state;
+  const total = matches.length;
+  const done = matches.filter((m) => m.status === "finished").length;
+  const ordered = [...matches].sort((a, b) =>
+    (PHASE_WEIGHT[a.phase ?? "league"] ?? 0) - (PHASE_WEIGHT[b.phase ?? "league"] ?? 0) ||
+    (a.rotation ?? 99) - (b.rotation ?? 99) || (a.order_idx ?? 0) - (b.order_idx ?? 0));
+  const nextM = ordered.find((m) => m.status !== "finished" && m.team_a_id && m.team_b_id);
+  const nextWhen = nextM ? (slotLabel(nextM.starts_at) || PHASE_LABEL[nextM.phase ?? ""] || "Phase finale") : "—";
+  const stat = (v: React.ReactNode, l: string) => (
+    <div className="text-center">
+      <p className="text-2xl font-black text-canal-yellow tabular-nums leading-none">{v}</p>
+      <p className="text-[10px] uppercase text-canal-gray-muted font-bold mt-1">{l}</p>
+    </div>
+  );
+  return (
+    <div className="canal-card">
+      <div className="grid grid-cols-4 gap-2">
+        {stat(entries.length, "équipes")}
+        {stat(total, "matchs")}
+        {stat(`${done}/${total}`, "terminés")}
+        {stat(total - done, "restants")}
+      </div>
+      <div className="mt-3 rounded-lg bg-canal-gray-mid/50 p-2 text-center">
+        <p className="text-[10px] uppercase text-canal-gray-muted font-bold">Prochain match</p>
+        <p className="text-white font-black">{done === total ? "Tournoi terminé 🎉" : `🕐 ${nextWhen}`}</p>
+      </div>
     </div>
   );
 }

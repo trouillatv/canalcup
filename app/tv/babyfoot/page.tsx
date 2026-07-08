@@ -15,6 +15,11 @@ interface PublicMatch {
   labelA: string; labelB: string;
 }
 function hhmm(iso: string | null): string { if (!iso) return ""; return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Noumea" }); }
+function slotDay(iso: string | null): string {
+  if (!iso) return "";
+  const day = new Date(iso).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", timeZone: "Pacific/Noumea" });
+  return `${day.charAt(0).toUpperCase()}${day.slice(1)} · ${hhmm(iso)}`;
+}
 interface ClassRow { rank: number; team_id: string; label: string; played: number; won: number; gd: number; qualified: boolean; }
 interface State {
   tournament: {
@@ -112,17 +117,24 @@ export default function TvBabyfootPage() {
 
   if (!s?.tournament) return shell(<Center><h1 className="canal-headline text-7xl">🎮 Tournoi Baby-foot</h1><p className="text-3xl text-canal-gray-muted mt-4">Bientôt…</p></Center>);
   const t = s.tournament;
-  const hasHighlights = !!s.highlights && (s.highlights.biggestWin || s.highlights.undefeated.length || s.highlights.bestStreak || s.highlights.upset);
   let eff = mode === "auto" ? autoMode(t.status) : mode;
-  // Auto : pendant le jeu, on alterne le direct et les faits marquants (15 s).
-  if (mode === "auto" && hasHighlights && (eff === "classement" || eff === "matches") && cycle % 2 === 1) eff = "faits";
+  // Auto pendant le jeu : 3 « onglets » qui tournent (15 s) — Classement, Programme, En direct.
+  const playing = t.status === "pools" || t.status === "knockout";
+  if (mode === "auto" && playing) eff = ["classement", "programme", "direct"][cycle % 3];
 
   return shell(
     <>
-      <header className="flex items-center justify-between mb-8">
+      <header className="flex items-center justify-between mb-6">
         <h1 className="canal-headline text-6xl">🎮 Baby-foot CanalCup</h1>
         <p className="text-2xl text-canal-gray-muted">{t.name}</p>
       </header>
+      {playing && !showFlash && (
+        <div className="flex justify-center gap-8 mb-6 text-2xl font-black">
+          {([["classement", "Classement"], ["programme", "Programme"], ["direct", "En direct"]] as const).map(([k, l]) => (
+            <span key={k} className={eff === k ? "text-canal-yellow" : "text-canal-gray-muted/30"}>{l}</span>
+          ))}
+        </div>
+      )}
       <div className="flex-1 min-h-0">
         {showFlash ? (
           <ResultFlash f={flash!} elapsed={flashElapsed} s={s} />
@@ -130,10 +142,12 @@ export default function TvBabyfootPage() {
           {eff === "inscriptions" && <Inscriptions s={s} t={t} />}
           {eff === "tirage" && <Tirage t={t} entries={s.entries ?? []} matches={s.matches ?? []} />}
           {eff === "classement" && <Classement s={s} />}
+          {eff === "programme" && <Programme s={s} />}
+          {eff === "direct" && <Direct s={s} />}
           {eff === "bracket" && <Bracket s={s} />}
           {eff === "matches" && <Matches s={s} />}
           {eff === "faits" && <Faits h={s.highlights} />}
-          {eff === "podium" && <Podium s={s} t={t} />}
+          {eff === "podium" && <Podium s={s} t={t} ticks={ticks} />}
         </>)}
       </div>
       {!showFlash && <Speaker s={s} ticks={ticks} />}
@@ -262,17 +276,23 @@ function Classement({ s }: { s: State }) {
   const q = BABYFOOT.qualifiers;
   const league = (s.matches ?? []).filter((m) => m.phase === "league");
   const leagueDone = league.length > 0 && league.every((m) => m.status === "finished");
+  const cols = "grid grid-cols-[3.5rem_1fr_4rem_4rem_5rem_5rem] gap-3 items-center";
   return (
     <div className="h-full overflow-hidden flex flex-col">
       <h2 className="text-4xl font-black text-canal-yellow mb-4">🏆 Top {q} {leagueDone ? "qualifié" : "provisoire"}</h2>
+      <div className={`${cols} text-xl uppercase text-canal-gray-muted font-black pb-2 border-b border-white/10`}>
+        <span></span><span></span><span className="text-right">MJ</span><span className="text-right">V</span><span className="text-right">Diff</span><span className="text-right">Pts</span>
+      </div>
       <div className="flex-1">
         {rows.map((r) => (
           <div key={r.team_id}>
-            <div className={`flex items-center gap-4 text-3xl py-1.5 ${r.qualified ? "text-green-300" : "text-white"}`}>
-              <span className="w-10 font-black">{r.rank <= 3 ? MEDAL[r.rank - 1] : r.rank}</span>
-              <span className="flex-1 font-bold truncate">{r.qualified ? "✓ " : ""}{r.label}</span>
-              <span className="text-canal-gray-muted">{r.won} V</span>
-              <span className="text-canal-gray-muted w-16 text-right">{r.gd > 0 ? `+${r.gd}` : r.gd}</span>
+            <div className={`${cols} text-3xl py-1.5 ${r.qualified ? "text-green-300" : "text-white"}`}>
+              <span className="font-black text-center">{r.rank <= 3 ? MEDAL[r.rank - 1] : r.rank}</span>
+              <span className="font-bold truncate">{r.qualified ? "✓ " : ""}{r.label}</span>
+              <span className="text-canal-gray-muted text-right">{r.played}</span>
+              <span className="text-canal-gray-muted text-right">{r.won}</span>
+              <span className="text-canal-gray-muted text-right">{r.gd > 0 ? `+${r.gd}` : r.gd}</span>
+              <span className="font-black text-canal-yellow text-right tabular-nums">{r.won * 3}</span>
             </div>
             {r.rank === q && <div className="border-t-4 border-red-500" />}
           </div>
@@ -328,22 +348,52 @@ function Matches({ s }: { s: State }) {
   );
 }
 
-function Podium({ s, t }: { s: State; t: NonNullable<State["tournament"]> }) {
+// Cérémonie de clôture facon Coupe du Monde : le podium se raconte en 4 temps
+// qui bouclent (Champions → médailles → points → classement CanalCup).
+function Podium({ s, t, ticks }: { s: State; t: NonNullable<State["tournament"]>; ticks: number }) {
   const p = s.podium ?? [];
   const champ = p.find((x) => x.rank === 1);
-  return (
+  const beat = Math.floor(ticks / 4) % 4;
+
+  if (beat === 0) return (
     <Center>
-      <p className="text-7xl mb-2">🏆</p>
-      <h2 className="canal-headline text-6xl">Champions {t.season}</h2>
-      {champ && <p className="text-8xl font-black text-canal-yellow my-6">{champ.label}</p>}
-      <div className="flex gap-12 mt-4">
+      <p className="text-8xl mb-4 animate-[pop_0.6s_ease]">🏆</p>
+      <h2 className="canal-headline text-6xl">CHAMPIONS {t.season}</h2>
+      {champ && <p className="text-8xl font-black text-canal-yellow mt-8 px-6 leading-tight animate-[pop_0.6s_ease]">{champ.label}</p>}
+    </Center>
+  );
+  if (beat === 1) return (
+    <Center>
+      <div className="flex items-end justify-center gap-16">
+        {[2, 1, 3].map((rank) => { const x = p.find((y) => y.rank === rank); if (!x) return null; return (
+          <div key={rank} className={`text-center ${rank === 1 ? "-mt-12" : ""}`}>
+            <p className={rank === 1 ? "text-9xl" : "text-7xl"}>{MEDAL[rank - 1] ?? "🏅"}</p>
+            <p className={`font-black mt-4 ${rank === 1 ? "text-5xl text-canal-yellow" : "text-3xl"}`}>{x.label}</p>
+          </div>
+        ); })}
+      </div>
+    </Center>
+  );
+  if (beat === 2) return (
+    <div className="h-full flex flex-col justify-center">
+      <h2 className="canal-headline text-5xl text-center mb-10">🎖️ Points CanalCup gagnés</h2>
+      <div className="max-w-2xl mx-auto w-full space-y-4">
         {p.map((x) => (
-          <div key={x.rank} className="text-center">
-            <p className="text-6xl">{MEDAL[x.rank - 1] ?? "🏅"}</p>
-            <p className="text-3xl font-bold mt-2">{x.label}</p>
+          <div key={x.rank} className="flex items-center gap-6 text-4xl">
+            <span className="w-14">{MEDAL[x.rank - 1] ?? "🏅"}</span>
+            <span className="flex-1 font-bold truncate">{x.label}</span>
+            <span className="font-black text-canal-yellow tabular-nums">+{x.points}</span>
           </div>
         ))}
       </div>
+    </div>
+  );
+  return (
+    <Center>
+      <p className="text-7xl mb-6">📊</p>
+      <h2 className="canal-headline text-6xl">Classement CanalCup</h2>
+      <p className="text-4xl text-canal-gray-muted mt-6">mis à jour !</p>
+      <p className="text-3xl text-green-400 font-black mt-10">Merci à tous les binômes — à l&apos;année prochaine ! 👏</p>
     </Center>
   );
 }
@@ -504,6 +554,91 @@ function ResultFlash({ f, elapsed, s }: { f: ResultFlashData; elapsed: number; s
       )}
       {next?.table_no != null && <p className="text-4xl text-canal-gray-muted mt-8">Table {next.table_no}</p>}
     </Center>
+  );
+}
+
+// PROGRAMME : À venir · En cours · Terminés. Le score reste SECONDAIRE (petit),
+// les binômes sont mis en avant. Jour + créneau affichés.
+function Programme({ s }: { s: State }) {
+  const all = s.matches ?? [];
+  const pw: Record<string, number> = { league: 0, semi: 1, third: 2, final: 3 };
+  const ord = (m: PublicMatch) => (pw[m.phase ?? "league"] ?? 0) * 100 + (m.rotation ?? 0);
+  const finished = all.filter((m) => m.status === "finished").sort((a, b) => ord(b) - ord(a));
+  const pending = all.filter((m) => m.status !== "finished" && m.labelA !== "à venir" && m.labelB !== "à venir").sort((a, b) => ord(a) - ord(b));
+  const current = pending[0] ?? null;
+  const upcoming = pending.slice(1);
+  const Line = ({ m, score }: { m: PublicMatch; score: boolean }) => (
+    <div className="flex items-center gap-3 py-2 border-b border-white/5">
+      <span className="flex-1 text-2xl font-bold text-right truncate">{m.labelA}</span>
+      {score
+        ? <span className="text-xl font-black text-canal-yellow tabular-nums w-16 text-center">{m.score_a}-{m.score_b}</span>
+        : <span className="text-base text-canal-gray-muted w-16 text-center">{hhmm(m.starts_at) || "vs"}</span>}
+      <span className="flex-1 text-2xl font-bold truncate">{m.labelB}</span>
+    </div>
+  );
+  return (
+    <div className="grid grid-cols-3 gap-8 h-full">
+      <div className="min-h-0 overflow-hidden">
+        <h3 className="text-2xl font-black text-canal-gray-muted uppercase mb-3">À venir</h3>
+        {upcoming.length ? upcoming.slice(0, 8).map((m) => <Line key={m.id} m={m} score={false} />) : <p className="text-xl text-canal-gray-muted">—</p>}
+      </div>
+      <div className="min-h-0">
+        <h3 className="text-2xl font-black text-canal-yellow uppercase mb-3 flex items-center gap-2"><span className="live-dot" /> En cours</h3>
+        {current ? (
+          <div className="canal-card bg-canal-yellow/10 border border-canal-yellow py-8 text-center">
+            {current.table_no != null && <p className="text-xl font-black text-canal-black bg-canal-yellow inline-block px-3 py-1 rounded mb-4">Table {current.table_no}</p>}
+            <p className="text-4xl font-black leading-tight">{current.labelA}</p>
+            <p className="text-2xl text-canal-yellow font-black my-2">VS</p>
+            <p className="text-4xl font-black leading-tight">{current.labelB}</p>
+            {slotDay(current.starts_at) && <p className="text-xl text-canal-gray-muted mt-4">🕐 {slotDay(current.starts_at)}</p>}
+          </div>
+        ) : <p className="text-2xl text-canal-gray-muted">Prochain match imminent…</p>}
+      </div>
+      <div className="min-h-0 overflow-hidden">
+        <h3 className="text-2xl font-black text-canal-gray-muted uppercase mb-3">Terminés</h3>
+        {finished.length ? finished.slice(0, 8).map((m) => <Line key={m.id} m={m} score={true} />) : <p className="text-xl text-canal-gray-muted">—</p>}
+      </div>
+    </div>
+  );
+}
+
+// EN DIRECT : les cartes vivantes du championnat (records + enjeux de qualif).
+function directCards(s: State): { icon: string; label: string; value: string }[] {
+  const cards: { icon: string; label: string; value: string }[] = [];
+  const rows = (s.classement ?? []).map((r) => ({ team_id: r.team_id, label: r.label, won: r.won, played: r.played, rank: r.rank }));
+  const idByLabel = new Map(rows.map((r) => [r.label, r.team_id]));
+  const remaining = new Map<string, number>();
+  for (const m of s.matches ?? []) if (m.phase === "league" && m.status !== "finished") for (const lb of [m.labelA, m.labelB]) { const id = idByLabel.get(lb); if (id) remaining.set(id, (remaining.get(id) ?? 0) + 1); }
+  if (rows.length >= BABYFOOT.qualifiers) {
+    const st = championshipStakes(rows, remaining, BABYFOOT.qualifiers);
+    for (const l of st.clinched.slice(0, 2)) cards.push({ icon: "🔒", label: "Déjà qualifié", value: l });
+    for (const l of st.oneWinAway.slice(0, 2)) cards.push({ icon: "🚨", label: "Joue sa qualif", value: `${l} : une victoire = les demies` });
+    if (st.bubble >= 2) cards.push({ icon: "🎯", label: "Course au Top 4", value: `${st.bubble} binômes encore en lice` });
+  }
+  const h = s.highlights;
+  if (h?.upset) cards.push({ icon: "😱", label: "La surprise", value: `${h.upset.winner} sortent ${h.upset.loser}` });
+  if (h?.biggestWin) cards.push({ icon: "💥", label: "Plus grosse victoire", value: `${h.biggestWin.winner} ${h.biggestWin.sa}–${h.biggestWin.sb} ${h.biggestWin.loser}` });
+  if (h?.bestStreak && h.bestStreak.streak >= 2) cards.push({ icon: "📈", label: "Série en cours", value: `${h.bestStreak.label} — ${h.bestStreak.streak} d'affilée` });
+  if (h?.undefeated.length) cards.push({ icon: "🛡️", label: "Invaincu", value: h.undefeated.slice(0, 2).map((u) => u.label).join(" · ") });
+  if (h?.closest) cards.push({ icon: "😰", label: "Le plus serré", value: `${h.closest.a} ${h.closest.sa}–${h.closest.sb} ${h.closest.b}` });
+  return cards;
+}
+
+function Direct({ s }: { s: State }) {
+  const cards = directCards(s);
+  if (!cards.length) return <Center><h2 className="canal-headline text-6xl">🔥 Ça chauffe sur les tables !</h2><p className="text-3xl text-canal-gray-muted mt-6">Les premiers résultats arrivent…</p></Center>;
+  return (
+    <div className="h-full flex flex-col">
+      <h2 className="canal-headline text-5xl mb-6 flex items-center gap-3"><span className="live-dot" /> En direct</h2>
+      <div className="grid grid-cols-2 gap-6 flex-1 content-start">
+        {cards.slice(0, 6).map((c, i) => (
+          <div key={i} className="canal-card bg-canal-gray-dark/40 flex flex-col justify-center animate-[pop_0.4s_ease]">
+            <p className="text-3xl text-canal-gray-muted font-bold">{c.icon} {c.label}</p>
+            <p className="text-4xl font-black text-white mt-3 leading-tight">{c.value}</p>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
