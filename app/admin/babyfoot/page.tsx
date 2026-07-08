@@ -12,6 +12,7 @@ import { BABYFOOT, type BabyfootStage } from "@/lib/config/babyfoot";
 import type { BabyfootTournament, BabyFootMatch, BabyfootAward } from "@/lib/supabase/types";
 import type { BabyfootEntryView } from "@/lib/data/babyfoot";
 import { computeChampionshipStandings, type ChampStanding } from "@/lib/babyfoot/standings";
+import { pointsForWin } from "@/lib/babyfoot/stakes";
 import type { ChampionshipProjection } from "@/lib/babyfoot/format";
 import type { PlanningHealth } from "@/lib/babyfoot/health";
 import { CheckCircle2, Circle, Loader2, Plus, X, Trophy, Settings, ChevronDown, QrCode } from "lucide-react";
@@ -307,7 +308,7 @@ function GameDay({ state, busy, act, onExit }: { state: State; busy: boolean; ac
     (a.rotation ?? 99) - (b.rotation ?? 99) || (a.order_idx ?? 0) - (b.order_idx ?? 0));
 
   const [focusId, setFocusId] = useState<string | null>(null);
-  const [flash, setFlash] = useState<{ winner: string; sa: number; sb: number } | null>(null);
+  const [flash, setFlash] = useState<{ winner: string; plural: boolean; sa: number; sb: number; pts: number | null; ptsLabel: string | null } | null>(null);
 
   const current = ordered.find((m) => m.status !== "finished" && m.team_a_id && m.team_b_id) ?? null;
   const editing = focusId ? ordered.find((m) => m.id === focusId) ?? null : null;
@@ -315,18 +316,16 @@ function GameDay({ state, busy, act, onExit }: { state: State; busy: boolean; ac
   const next = current ? ordered.find((m) => m.id !== current.id && m.status !== "finished" && m.team_a_id && m.team_b_id) ?? null : null;
 
   const standings = computeChampionshipStandings(entries.map((e) => ({ id: e.id, team_id: e.team_id })), matches, BABYFOOT.qualifiers);
-
-  const leagueMatches = matches.filter((m) => m.phase === "league");
-  const leagueDone = leagueMatches.length > 0 && leagueMatches.every((m) => m.status === "finished");
-  const hasKo = matches.some((m) => m.phase && m.phase !== "league");
-  const championDecided = matches.some((m) => m.phase === "final" && m.status === "finished");
   const remaining = matches.filter((m) => m.status !== "finished").length;
+  const finished = state.tournament.status === "finished";
 
   const submit = async (body: Record<string, unknown>) => {
     if (!body.clear && shown) {
       const sa = Number(body.score_a), sb = Number(body.score_b);
-      setFlash({ winner: sa > sb ? lbl(shown.team_a_id) : lbl(shown.team_b_id), sa, sb });
-      setTimeout(() => setFlash(null), 1900);
+      const winner = sa > sb ? lbl(shown.team_a_id) : lbl(shown.team_b_id);
+      const win = pointsForWin(shown.phase);
+      setFlash({ winner, plural: winner.includes("&") || winner.includes(" et "), sa: Math.max(sa, sb), sb: Math.min(sa, sb), pts: win?.pts ?? null, ptsLabel: win?.label ?? null });
+      setTimeout(() => setFlash(null), 2600);
     }
     setFocusId(null);
     await act(body, "result");
@@ -341,23 +340,20 @@ function GameDay({ state, busy, act, onExit }: { state: State; busy: boolean; ac
 
       {flash && (
         <div className="rounded-2xl bg-green-500 text-canal-black text-center py-5 animate-[pop_0.4s_ease]">
-          <p className="text-sm font-black uppercase tracking-wide">✅ Victoire</p>
-          <p className="text-3xl font-black mt-1 px-3 leading-tight">{flash.winner}</p>
-          <p className="text-xl font-bold mt-1">{flash.sa} – {flash.sb}</p>
+          <p className="text-xs font-black uppercase tracking-wide">🏓 Match terminé</p>
+          <p className="text-4xl font-black mt-1 tabular-nums">{flash.sa} – {flash.sb}</p>
+          <p className="text-2xl font-black mt-1 px-3 leading-tight">{flash.winner} gagne{flash.plural ? "nt" : ""}</p>
+          {flash.pts != null && <p className="text-base font-black mt-2 bg-canal-black/15 rounded-full inline-block px-4 py-1">+{flash.pts} {flash.ptsLabel}</p>}
         </div>
-      )}
-
-      {leagueDone && !hasKo && (
-        <button disabled={busy} onClick={() => act({ action: "generate_ko" })} className={btnPrimary}>🏆 Lancer la phase finale (Top 4)</button>
-      )}
-      {championDecided && (
-        <button disabled={busy} onClick={() => { if (confirm("Fin du tournoi ?")) act({ action: "status", status: "finished" }); }} className={btnPrimary}>🎉 Fin du tournoi → Podium</button>
       )}
 
       {shown ? (
         <GameDayMatch key={shown.id} m={shown} labelA={lbl(shown.team_a_id)} labelB={lbl(shown.team_b_id)} busy={busy} editing={!!editing} onResult={submit} onCancelEdit={() => setFocusId(null)} />
       ) : !flash ? (
-        <p className="text-center text-canal-gray-muted py-10 text-lg">{remaining ? "En attente du prochain match…" : "Tous les matchs sont joués 🎉"}</p>
+        <div className="text-center py-8 space-y-3">
+          <p className="text-canal-gray-muted text-lg">{remaining ? "En attente du prochain match…" : "🎉 Tournoi terminé !"}</p>
+          {!remaining && finished && <button onClick={onExit} className={btnPrimary}>🏆 Voir le podium</button>}
+        </div>
       ) : null}
 
       {next && !editing && (
@@ -376,35 +372,38 @@ function GameDay({ state, busy, act, onExit }: { state: State; busy: boolean; ac
 }
 
 function GameDayMatch({ m, labelA, labelB, busy, editing, onResult, onCancelEdit }: { m: BabyFootMatch; labelA: string; labelB: string; busy: boolean; editing: boolean; onResult: (b: Record<string, unknown>) => void; onCancelEdit: () => void }) {
-  const [a, setA] = useState<number>(m.score_a ?? 0);
-  const [b, setB] = useState<number>(m.score_b ?? 0);
-  const tie = a === b;
-  const leader = a > b ? labelA : labelB;
+  const [a, setA] = useState<string>(m.score_a?.toString() ?? "");
+  const [b, setB] = useState<string>(m.score_b?.toString() ?? "");
+  const na = a === "" ? null : parseInt(a, 10);
+  const nb = b === "" ? null : parseInt(b, 10);
+  const tie = na != null && nb != null && na === nb;
+  const ready = na != null && nb != null && na >= 0 && nb >= 0 && !tie;
+  const leader = na != null && nb != null ? (na > nb ? labelA : labelB) : "";
   const plural = leader.includes("&") || leader.includes(" et ");
-  const stepBtn = "w-14 h-14 rounded-xl bg-canal-gray-mid border border-canal-gray-light text-white text-3xl font-black flex items-center justify-center active:scale-95 disabled:opacity-40";
-  const row = (name: string, val: number, set: (n: number) => void, side: "a" | "b") => (
-    <div className="flex items-center gap-2">
-      <span className="flex-1 font-black text-white text-lg leading-tight">{name}</span>
-      <button aria-label={`moins ${side}`} onClick={() => set(Math.max(0, val - 1))} disabled={busy || val <= 0} className={stepBtn}>−</button>
-      <span className="w-12 text-center text-4xl font-black text-canal-yellow tabular-nums">{val}</span>
-      <button aria-label={`plus ${side}`} onClick={() => set(val + 1)} disabled={busy} className={stepBtn}>+</button>
-    </div>
-  );
+  const inp = "w-full h-24 text-6xl text-center rounded-2xl bg-canal-gray-mid border-2 border-canal-gray-light focus:border-canal-yellow outline-none text-white font-black tabular-nums";
+  const clean = (v: string) => v.replace(/[^0-9]/g, "").slice(0, 2);
   return (
-    <div className="canal-card border-2 border-canal-yellow/40 space-y-4">
+    <div className="canal-card border-2 border-canal-yellow/40 space-y-3">
       <div className="flex items-center justify-center gap-2 text-xs text-canal-gray-muted">
         {m.table_no != null ? <span className="font-black text-canal-black bg-canal-yellow rounded px-2 py-0.5">Table {m.table_no}</span> : null}
         <span className="uppercase font-bold">{m.round ?? PHASE_LABEL[m.phase ?? ""] ?? "Match"}</span>
-        {editing && <span className="text-canal-yellow">· correction</span>}
+        {editing && <span className="text-canal-yellow">· modifier résultat</span>}
       </div>
-      {row(labelA, a, setA, "a")}
-      <div className="text-center text-canal-gray-muted text-sm font-black">VS</div>
-      {row(labelB, b, setB, "b")}
-      <button disabled={busy || tie} onClick={() => onResult({ match_id: m.id, score_a: a, score_b: b })} className={btnPrimary}>
-        {tie ? "But en or : il faut un vainqueur" : `✅ Valider — ${leader} gagne${plural ? "nt" : ""}`}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <p className="text-center font-black text-white text-base leading-tight min-h-[2.5rem] flex items-center justify-center">{labelA}</p>
+          <input value={a} onChange={(e) => setA(clean(e.target.value))} inputMode="numeric" pattern="[0-9]*" placeholder="0" className={inp} />
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-center font-black text-white text-base leading-tight min-h-[2.5rem] flex items-center justify-center">{labelB}</p>
+          <input value={b} onChange={(e) => setB(clean(e.target.value))} inputMode="numeric" pattern="[0-9]*" placeholder="0" className={inp} />
+        </div>
+      </div>
+      <button disabled={busy || !ready} onClick={() => onResult({ match_id: m.id, score_a: na, score_b: nb })} className={btnPrimary}>
+        {tie ? "But en or : il faut un vainqueur" : ready ? `✅ Valider — ${leader} gagne${plural ? "nt" : ""}` : "Saisis le score"}
       </button>
       {editing ? (
-        <button onClick={onCancelEdit} className="w-full text-canal-gray-muted text-xs">Annuler la correction</button>
+        <button onClick={onCancelEdit} className="w-full text-canal-gray-muted text-xs">Annuler</button>
       ) : m.status === "finished" ? (
         <button disabled={busy} onClick={() => onResult({ match_id: m.id, clear: true })} className="w-full text-red-400 text-xs">↺ Annuler ce résultat</button>
       ) : null}

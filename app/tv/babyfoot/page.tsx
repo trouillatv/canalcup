@@ -5,6 +5,8 @@
 // afficher le tableau pendant que la 1re montre le live). Poll /api/babyfoot 15 s.
 
 import { useEffect, useRef, useState } from "react";
+import { BABYFOOT } from "@/lib/config/babyfoot";
+import { pointsForWin, championshipStakes } from "@/lib/babyfoot/stakes";
 
 interface PublicMatch {
   id: string; phase: string | null; round: string | null; pool_label: string | null;
@@ -23,7 +25,7 @@ interface State {
   entries?: { id: string; label: string; pool_label?: string | null }[];
   classement?: ClassRow[];
   matches?: PublicMatch[];
-  podium?: { rank: number; label: string }[];
+  podium?: { rank: number; label: string; points: number }[];
   highlights?: Highlights;
 }
 interface Highlights {
@@ -38,7 +40,12 @@ interface Highlights {
 const MEDAL = ["🥇", "🥈", "🥉"];
 const PHASE_LABEL: Record<string, string> = { semi: "Demi-finales", final: "Finale", third: "Petite finale" };
 
-interface ResultFlashData { winner: string; loser: string; sa: number; sb: number; surprise: string | null; }
+interface ResultFlashData {
+  kind: "match" | "champ_done" | "champion";
+  phase: string | null;
+  winner: string; loser: string; sa: number; sb: number;
+  surprise: string | null; pts: number | null; ptsLabel: string | null;
+}
 
 export default function TvBabyfootPage() {
   const [s, setS] = useState<State | null>(null);
@@ -67,30 +74,34 @@ export default function TvBabyfootPage() {
   // déjà vus (pas de flash au 1er chargement).
   useEffect(() => {
     const matches = s?.matches ?? [];
-    const status = s?.tournament?.status;
     const done = matches.filter((m) => m.status === "finished" && m.score_a != null && m.score_b != null);
     if (seen.current === null) { seen.current = new Set(done.map((m) => m.id)); return; }
     const fresh = done.filter((m) => !seen.current!.has(m.id));
     fresh.forEach((m) => seen.current!.add(m.id));
-    if (!fresh.length || (status !== "pools" && status !== "knockout")) return;
+    if (!fresh.length) return;
     const pw: Record<string, number> = { league: 0, semi: 1, third: 2, final: 3 };
     const m = fresh.sort((a, b) => (pw[a.phase ?? "league"] ?? 0) - (pw[b.phase ?? "league"] ?? 0) || (a.rotation ?? 0) - (b.rotation ?? 0)).slice(-1)[0];
     const sa = m.score_a ?? 0, sb = m.score_b ?? 0;
     const winner = sa > sb ? m.labelA : m.labelB;
     const loser = sa > sb ? m.labelB : m.labelA;
-    const loserRank = (s?.classement ?? []).find((r) => r.label === loser)?.rank;
-    const margin = Math.abs(sa - sb);
+    const league = matches.filter((x) => x.phase === "league");
+    const leagueComplete = league.length > 0 && league.every((x) => x.status === "finished");
+    const kind: ResultFlashData["kind"] = m.phase === "final" ? "champion" : (m.phase === "league" && leagueComplete) ? "champ_done" : "match";
+    const win = pointsForWin(m.phase);
     let surprise: string | null = null;
-    if (m.phase === "final") surprise = null; // la finale a son propre écran podium
-    else if (loserRank && loserRank <= 2) surprise = `🔥 Surprise ! ${winner} battent les leaders`;
-    else if (margin >= 5) surprise = `💥 Démonstration de ${winner} !`;
-    else if (margin === 1) surprise = "😮 Quel match — à un but près !";
-    setFlash({ winner, loser, sa, sb, surprise });
+    if (kind === "match") {
+      const loserRank = (s?.classement ?? []).find((r) => r.label === loser)?.rank;
+      const margin = Math.abs(sa - sb);
+      if (loserRank && loserRank <= 2) surprise = `🔥 Surprise ! ${winner} battent les leaders`;
+      else if (margin >= 5) surprise = `💥 Démonstration de ${winner} !`;
+      else if (margin === 1) surprise = "😮 Quel match — à un but près !";
+    }
+    setFlash({ kind, phase: m.phase ?? null, winner, loser, sa: Math.max(sa, sb), sb: Math.min(sa, sb), surprise, pts: win?.pts ?? null, ptsLabel: win?.label ?? null });
     setFlashStart(ticksRef.current);
   }, [s]);
 
   const flashElapsed = ticks - flashStart;
-  const showFlash = !!flash && flashElapsed <= 8;
+  const showFlash = !!flash && flashElapsed <= 12;
 
   const shell = (children: React.ReactNode) => (
     <div className="w-full min-h-screen bg-canal-black text-white overflow-hidden flex flex-col p-10">
@@ -248,19 +259,26 @@ function Tirage({ t, entries, matches }: { t: NonNullable<State["tournament"]>; 
 
 function Classement({ s }: { s: State }) {
   const rows = s.classement ?? [];
+  const q = BABYFOOT.qualifiers;
+  const league = (s.matches ?? []).filter((m) => m.phase === "league");
+  const leagueDone = league.length > 0 && league.every((m) => m.status === "finished");
   return (
-    <div className="h-full overflow-hidden">
-      <h2 className="text-4xl font-black text-canal-yellow mb-4">Classement · Top 4 qualifié</h2>
-      <div className="space-y-1.5">
+    <div className="h-full overflow-hidden flex flex-col">
+      <h2 className="text-4xl font-black text-canal-yellow mb-4">🏆 Top {q} {leagueDone ? "qualifié" : "provisoire"}</h2>
+      <div className="flex-1">
         {rows.map((r) => (
-          <div key={r.team_id} className={`flex items-center gap-4 text-3xl py-1.5 border-b border-white/5 ${r.qualified ? "text-green-300" : "text-white"}`}>
-            <span className="w-10 font-black">{r.rank <= 3 ? MEDAL[r.rank - 1] : r.rank}</span>
-            <span className="flex-1 font-bold truncate">{r.qualified ? "✓ " : ""}{r.label}</span>
-            <span className="text-canal-gray-muted">{r.won} V</span>
-            <span className="text-canal-gray-muted w-16 text-right">{r.gd > 0 ? `+${r.gd}` : r.gd}</span>
+          <div key={r.team_id}>
+            <div className={`flex items-center gap-4 text-3xl py-1.5 ${r.qualified ? "text-green-300" : "text-white"}`}>
+              <span className="w-10 font-black">{r.rank <= 3 ? MEDAL[r.rank - 1] : r.rank}</span>
+              <span className="flex-1 font-bold truncate">{r.qualified ? "✓ " : ""}{r.label}</span>
+              <span className="text-canal-gray-muted">{r.won} V</span>
+              <span className="text-canal-gray-muted w-16 text-right">{r.gd > 0 ? `+${r.gd}` : r.gd}</span>
+            </div>
+            {r.rank === q && <div className="border-t-4 border-red-500" />}
           </div>
         ))}
       </div>
+      <p className="text-2xl text-red-400 font-bold mt-3">— ligne rouge : le Top {q} file en demi-finales —</p>
     </div>
   );
 }
@@ -330,47 +348,147 @@ function Podium({ s, t }: { s: State; t: NonNullable<State["tournament"]> }) {
   );
 }
 
-// Séquence événementielle après CHAQUE match validé (≈8 s) : le score qui tombe,
-// puis « Classement mis à jour », puis le prochain match. C'est ce qui donne
-// l'impression d'un tournoi qui se raconte tout seul.
-function ResultFlash({ f, elapsed, s }: { f: ResultFlashData; elapsed: number; s: State }) {
-  const beat = elapsed < 3 ? 0 : elapsed < 6 ? 1 : 2;
-  const pw: Record<string, number> = { league: 0, semi: 1, third: 2, final: 3 };
-  const next = (s.matches ?? [])
-    .filter((m) => m.status !== "finished" && m.labelA !== "à venir" && m.labelB !== "à venir")
-    .sort((a, b) => (pw[a.phase ?? "league"] ?? 0) - (pw[b.phase ?? "league"] ?? 0) || (a.rotation ?? 0) - (b.rotation ?? 0))[0];
-
-  if (beat === 0) {
-    return (
-      <Center>
-        <p className="text-4xl text-canal-gray-muted mb-6">🏓 Résultat</p>
-        <div className="flex items-center justify-center gap-10">
-          <span className="text-6xl font-black text-right max-w-[40vw] leading-tight">{f.winner}</span>
-          <span className="text-8xl font-black text-canal-yellow tabular-nums">{f.sa > f.sb ? f.sa : f.sb}–{f.sa > f.sb ? f.sb : f.sa}</span>
-          <span className="text-6xl font-black text-left max-w-[40vw] leading-tight opacity-70">{f.loser}</span>
-        </div>
-        <p className="text-5xl font-black text-green-400 mt-10 animate-[pop_0.5s_ease]">Victoire de {f.winner} !</p>
-        {f.surprise && <p className="text-4xl font-black text-canal-yellow mt-4 animate-[pop_0.6s_ease]">{f.surprise}</p>}
-      </Center>
-    );
-  }
-  if (beat === 1) {
-    const rows = (s.classement ?? []).slice(0, 6);
-    return (
-      <div className="h-full flex flex-col justify-center">
-        <h2 className="canal-headline text-5xl text-center mb-8 animate-[pop_0.5s_ease]">📊 Classement mis à jour</h2>
-        <div className="max-w-3xl mx-auto w-full space-y-2">
-          {rows.map((r) => (
-            <div key={r.team_id} className={`flex items-center gap-4 text-4xl py-2 border-b border-white/5 ${r.qualified ? "text-green-300" : "text-white"}`}>
+// Classement (Top 6) affiché pendant la séquence, avec la ligne rouge sous le 4e.
+function FlashClassement({ s }: { s: State }) {
+  const rows = (s.classement ?? []).slice(0, 6);
+  const q = BABYFOOT.qualifiers;
+  return (
+    <div className="h-full flex flex-col justify-center">
+      <h2 className="canal-headline text-5xl text-center mb-8 animate-[pop_0.5s_ease]">📊 Classement mis à jour</h2>
+      <div className="max-w-3xl mx-auto w-full">
+        {rows.map((r) => (
+          <div key={r.team_id}>
+            <div className={`flex items-center gap-4 text-4xl py-2 ${r.qualified ? "text-green-300" : "text-white"}`}>
               <span className="w-12 font-black">{r.rank <= 3 ? MEDAL[r.rank - 1] : r.rank}</span>
               <span className="flex-1 font-bold truncate">{r.qualified ? "✓ " : ""}{r.label}</span>
               <span className="text-canal-gray-muted">{r.won} V</span>
             </div>
+            {r.rank === q && <div className="border-t-4 border-red-500 my-1" />}
+          </div>
+        ))}
+      </div>
+      <p className="text-center text-3xl text-canal-yellow font-black mt-6">Top {q} qualifiés pour les demi-finales</p>
+    </div>
+  );
+}
+
+// Tableau des demies : soit RÉEL (matchs générés), soit PROVISOIRE (Top 4 courant
+// seedé 1v4 / 2v3).
+function SemisBoard({ pairs, matches, title }: { pairs: ClassRow[][] | null; matches: PublicMatch[] | null; title: string }) {
+  const items = matches && matches.length
+    ? matches.map((m) => ({ a: m.labelA, b: m.labelB, ra: null as number | null, rb: null as number | null }))
+    : (pairs ?? []).map((p) => ({ a: p[0].label, b: p[1].label, ra: p[0].rank as number | null, rb: p[1].rank as number | null }));
+  return (
+    <div className="h-full flex flex-col justify-center">
+      <h2 className="canal-headline text-5xl text-center mb-10 animate-[pop_0.5s_ease]">🥅 {title}</h2>
+      <div className="grid grid-cols-1 gap-6 max-w-4xl mx-auto w-full">
+        {items.map((it, i) => (
+          <div key={i} className="canal-card bg-canal-gray-dark/40 flex items-center justify-center gap-8 py-6">
+            <span className="text-5xl font-black text-right flex-1 truncate">{it.ra ? `${it.ra}. ` : ""}{it.a}</span>
+            <span className="text-4xl text-canal-yellow font-black">VS</span>
+            <span className="text-5xl font-black text-left flex-1 truncate">{it.rb ? `${it.rb}. ` : ""}{it.b}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Séquence événementielle après CHAQUE match (≈12 s), rythmée selon l'enjeu :
+//  · match normal  : Résultat (+points/surprise) → Classement → Demies (provi/réelles) → Prochain
+//  · fin de champ. : Championnat terminé → Calcul… → Les demi-finalistes sont… → Tableau
+//  · finale        : 🏆 CHAMPION → Podium → Points gagnés
+function ResultFlash({ f, elapsed, s }: { f: ResultFlashData; elapsed: number; s: State }) {
+  const pw: Record<string, number> = { league: 0, semi: 1, third: 2, final: 3 };
+  const next = (s.matches ?? [])
+    .filter((m) => m.status !== "finished" && m.labelA !== "à venir" && m.labelB !== "à venir")
+    .sort((a, b) => (pw[a.phase ?? "league"] ?? 0) - (pw[b.phase ?? "league"] ?? 0) || (a.rotation ?? 0) - (b.rotation ?? 0))[0];
+  const top4 = (s.classement ?? []).slice(0, 4);
+  const provSemis: ClassRow[][] = top4.length >= 4 ? [[top4[0], top4[3]], [top4[1], top4[2]]] : [];
+  const semiMatches = (s.matches ?? []).filter((m) => m.phase === "semi");
+
+  if (f.kind === "champion") {
+    const podium = s.podium ?? [];
+    const champ = podium.find((p) => p.rank === 1);
+    if (elapsed < 4) return (
+      <Center>
+        <p className="text-8xl mb-4 animate-[pop_0.6s_ease]">🏆</p>
+        <h2 className="canal-headline text-6xl">CHAMPION</h2>
+        <p className="text-8xl font-black text-canal-yellow mt-6 px-6 leading-tight animate-[pop_0.6s_ease]">{f.winner}</p>
+      </Center>
+    );
+    if (elapsed < 8) return (
+      <Center>
+        <p className="text-6xl mb-10">🏆 Podium</p>
+        <div className="flex items-end justify-center gap-12">
+          {[2, 1, 3].map((rank) => { const p = podium.find((x) => x.rank === rank); if (!p) return null; return (
+            <div key={rank} className={`text-center ${rank === 1 ? "-mt-10" : ""}`}>
+              <p className={rank === 1 ? "text-8xl" : "text-6xl"}>{MEDAL[rank - 1]}</p>
+              <p className={`font-black mt-3 ${rank === 1 ? "text-4xl text-canal-yellow" : "text-3xl"}`}>{p.label}</p>
+            </div>
+          ); })}
+        </div>
+      </Center>
+    );
+    return (
+      <Center>
+        <p className="text-5xl text-canal-gray-muted mb-6">Points gagnés</p>
+        {champ && <p className="text-9xl font-black text-canal-yellow animate-[pop_0.6s_ease]">+{champ.points}</p>}
+        {champ && <p className="text-4xl font-black mt-4">{champ.label}</p>}
+        <p className="text-3xl text-green-400 font-black mt-8">Bravo à tous les binômes ! 👏</p>
+      </Center>
+    );
+  }
+
+  if (f.kind === "champ_done") {
+    if (elapsed < 3) return (
+      <Center>
+        <p className="text-7xl mb-4">🏁</p>
+        <h2 className="canal-headline text-6xl">Championnat terminé</h2>
+        <p className="text-3xl text-canal-gray-muted mt-8">Dernier match : {f.winner} {f.sa}–{f.sb} {f.loser}</p>
+      </Center>
+    );
+    if (elapsed < 5) return (
+      <Center>
+        <h2 className="canal-headline text-6xl">Calcul du classement{".".repeat((elapsed % 3) + 1)}</h2>
+        <p className="text-3xl text-canal-gray-muted mt-8">Qui accède aux demi-finales ?</p>
+      </Center>
+    );
+    if (elapsed < 8) return (
+      <div className="h-full flex flex-col justify-center">
+        <h2 className="canal-headline text-5xl text-center mb-10">🎟️ Les demi-finalistes sont…</h2>
+        <div className="flex justify-center gap-6 flex-wrap">
+          {top4.map((r) => (
+            <div key={r.team_id} className="canal-card bg-canal-yellow/15 border border-canal-yellow text-center px-8 animate-[pop_0.5s_ease]">
+              <p className="text-5xl">{MEDAL[r.rank - 1] ?? r.rank}</p>
+              <p className="text-3xl font-black mt-2">{r.label}</p>
+            </div>
           ))}
         </div>
-        <p className="text-center text-3xl text-canal-yellow font-black mt-6">Top 4 qualifiés pour les demi-finales</p>
       </div>
     );
+    return <SemisBoard pairs={semiMatches.length ? null : provSemis} matches={semiMatches} title="Demi-finales" />;
+  }
+
+  // kind === "match"
+  if (elapsed < 3) return (
+    <Center>
+      <p className="text-4xl text-canal-gray-muted mb-6">🏓 Résultat</p>
+      <div className="flex items-center justify-center gap-10">
+        <span className="text-6xl font-black text-right max-w-[40vw] leading-tight">{f.winner}</span>
+        <span className="text-8xl font-black text-canal-yellow tabular-nums">{f.sa}–{f.sb}</span>
+        <span className="text-6xl font-black text-left max-w-[40vw] leading-tight opacity-70">{f.loser}</span>
+      </div>
+      <p className="text-5xl font-black text-green-400 mt-8 animate-[pop_0.5s_ease]">Victoire de {f.winner} !</p>
+      {f.pts != null && <p className="text-4xl font-black text-white mt-3">+{f.pts} {f.ptsLabel}</p>}
+      {f.surprise && <p className="text-4xl font-black text-canal-yellow mt-3 animate-[pop_0.6s_ease]">{f.surprise}</p>}
+    </Center>
+  );
+  if (elapsed < 6) return <FlashClassement s={s} />;
+  if (elapsed < 9) {
+    if (f.phase === "league" && provSemis.length) return <SemisBoard pairs={provSemis} matches={null} title="Demi-finales provisoires" />;
+    if (semiMatches.length) return <SemisBoard pairs={null} matches={semiMatches} title="Phase finale" />;
+    return <FlashClassement s={s} />;
   }
   return (
     <Center>
@@ -416,6 +534,28 @@ function Faits({ h }: { h?: Highlights }) {
 // Le "speaker" : lignes d'animation dérivées de l'état, qui défilent en bas de
 // l'écran pour donner le côté ÉVÉNEMENT (« Nouveau binôme ! », « Table 1… »,
 // « Qualifié pour les demies ! », « Champions ! »).
+// Enjeux du championnat en direct : qui est qualifié, qui joue sa qualif, combien
+// se battent encore pour le Top 4. C'est ce qui fait vivre le classement.
+function stakesLines(s: State): string[] {
+  const rows = (s.classement ?? []).map((r) => ({ team_id: r.team_id, label: r.label, won: r.won, played: r.played, rank: r.rank }));
+  if (rows.length < BABYFOOT.qualifiers) return [];
+  const idByLabel = new Map(rows.map((r) => [r.label, r.team_id]));
+  const remaining = new Map<string, number>();
+  let anyRemaining = false;
+  for (const m of s.matches ?? []) {
+    if (m.phase !== "league" || m.status === "finished") continue;
+    anyRemaining = true;
+    for (const lb of [m.labelA, m.labelB]) { const id = idByLabel.get(lb); if (id) remaining.set(id, (remaining.get(id) ?? 0) + 1); }
+  }
+  if (!anyRemaining) return [];
+  const st = championshipStakes(rows, remaining, BABYFOOT.qualifiers);
+  const lines: string[] = [];
+  for (const l of st.clinched) lines.push(`✅ ${l} : déjà qualifié pour les demi-finales !`);
+  for (const l of st.oneWinAway) lines.push(`🔥 ${l} : une victoire de plus et c'est la qualif !`);
+  if (st.bubble >= 2) lines.push(`🎟️ ${st.bubble} binômes se disputent encore une place dans le Top ${st.qualifiers} !`);
+  return lines;
+}
+
 function computeSpeakerLines(s: State): string[] {
   const t = s.tournament;
   if (!t) return [];
@@ -449,6 +589,9 @@ function computeSpeakerLines(s: State): string[] {
     if (h?.biggestWin && h.biggestWin.margin >= 5) lines.push(`💥 Quelle démonstration ! ${h.biggestWin.winner} l'emportent ${h.biggestWin.sa}-${h.biggestWin.sb}.`);
     if (h?.bestStreak && h.bestStreak.streak >= 3) lines.push(`📈 ${h.bestStreak.label} enchaînent : ${h.bestStreak.streak} victoires d'affilée, personne ne les arrête !`);
     if (played >= 4) lines.push(`👏 Déjà ${played} matchs disputés — la tension monte dans la salle !`);
+
+    // Enjeux du championnat (qualif) — le cœur du récit pendant la phase 1.
+    if (t.status === "pools") lines.push(...stakesLines(s));
 
     // Demi-finales : combien de places restent ?
     const semiSlots = matches.filter((m) => m.phase === "semi").flatMap((m) => [m.labelA, m.labelB]);

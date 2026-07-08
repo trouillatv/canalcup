@@ -158,11 +158,16 @@ export async function buildPublicState(admin: DbClient, tournamentId: string) {
     played: r.played, won: r.won, lost: r.lost, gf: r.gf, ga: r.ga, gd: r.gd, qualified: r.qualified,
   }));
 
+  // Points par binôme (barème cumulatif) → utilisé pour le podium TV.
+  const awards = await getAwards(admin, tournamentId);
+  const ptsByTeam = new Map<string, number>();
+  for (const a of awards) ptsByTeam.set(a.team_id, (ptsByTeam.get(a.team_id) ?? 0) + a.points);
+
   // Podium (rangs finaux 1..3).
   const podium = entries
     .filter((e) => e.final_rank && e.final_rank <= 3)
     .sort((a, b) => (a.final_rank ?? 9) - (b.final_rank ?? 9))
-    .map((e) => ({ rank: e.final_rank!, label: e.label }));
+    .map((e) => ({ rank: e.final_rank!, label: e.label, points: ptsByTeam.get(e.team_id) ?? 0 }));
 
   // Stats par binôme (tous matchs terminés : poules + phase finale).
   const stats = entries.map((e) => {
