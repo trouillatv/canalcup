@@ -40,6 +40,7 @@ interface Highlights {
 const PHASE_ORDER = ["semi", "final", "third"];
 const PHASE_LABEL: Record<string, string> = { semi: "Demi-finales", final: "Finale", third: "Petite finale" };
 function timeLabel(iso: string | null): string { if (!iso) return ""; const d = new Date(iso); return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Noumea" }); }
+function dayTimeLabel(iso: string | null): string { if (!iso) return ""; const day = new Date(iso).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", timeZone: "Pacific/Noumea" }); return `${day.charAt(0).toUpperCase()}${day.slice(1)} · ${timeLabel(iso)}`; }
 const MEDAL = ["🥇", "🥈", "🥉"];
 
 export default function BabyfootPage() {
@@ -141,7 +142,7 @@ export default function BabyfootPage() {
           <h2 className="text-sm font-bold uppercase text-canal-yellow">Programme</h2>
           {rotations.map((rot) => {
             const ms = leagueMatches.filter((m) => m.rotation === rot);
-            const time = timeLabel(ms[0]?.starts_at ?? null);
+            const time = dayTimeLabel(ms[0]?.starts_at ?? null);
             return (
               <div key={rot} className="canal-card">
                 <p className="text-[11px] font-bold text-canal-gray-muted uppercase mb-1.5">Rotation {rot}{time ? ` · ${time}` : ""}</p>
@@ -150,7 +151,9 @@ export default function BabyfootPage() {
                     <div key={m.id} className="flex items-center gap-2 text-sm">
                       {m.table_no != null && <span className="text-[10px] font-black text-canal-black bg-canal-yellow rounded px-1.5 py-0.5">T{m.table_no}</span>}
                       <span className="flex-1 text-right font-bold truncate">{m.labelA}</span>
-                      {m.status === "finished" ? <span className="score-display px-1">{m.score_a}-{m.score_b}</span> : <span className="text-canal-gray-muted text-xs">vs</span>}
+                      {m.status === "finished"
+                        ? <span className="text-canal-yellow font-bold text-xs tabular-nums px-1 shrink-0">{m.score_a}-{m.score_b}</span>
+                        : <span className="text-canal-gray-muted text-xs shrink-0">vs</span>}
                       <span className="flex-1 font-bold truncate">{m.labelB}</span>
                     </div>
                   ))}
