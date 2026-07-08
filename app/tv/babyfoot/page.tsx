@@ -8,9 +8,11 @@ import { useEffect, useState } from "react";
 
 interface PublicMatch {
   id: string; phase: string | null; round: string | null; pool_label: string | null;
-  table_no: number | null; status: string; score_a: number | null; score_b: number | null;
+  table_no: number | null; rotation: number | null; starts_at: string | null;
+  status: string; score_a: number | null; score_b: number | null;
   labelA: string; labelB: string;
 }
+function hhmm(iso: string | null): string { if (!iso) return ""; return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Noumea" }); }
 interface ClassRow { rank: number; team_id: string; label: string; played: number; won: number; gd: number; qualified: boolean; }
 interface State {
   tournament: {
@@ -141,11 +143,12 @@ function countdownLabel(iso: string | null): string | null {
 function Tirage({ t, entries, matches }: { t: NonNullable<State["tournament"]>; entries: NonNullable<State["entries"]>; matches: PublicMatch[] }) {
   const cd = countdownLabel(t.draw_at);
   const league = matches.filter((m) => m.phase === "league");
-  const oppByTeam = new Map<string, string[]>();
+  const oppByTeam = new Map<string, { opp: string; time: string }[]>();
   for (const e of entries) oppByTeam.set(e.label, []);
   for (const m of league) {
-    if (oppByTeam.has(m.labelA)) oppByTeam.get(m.labelA)!.push(m.labelB);
-    if (oppByTeam.has(m.labelB)) oppByTeam.get(m.labelB)!.push(m.labelA);
+    const time = hhmm(m.starts_at);
+    if (oppByTeam.has(m.labelA)) oppByTeam.get(m.labelA)!.push({ opp: m.labelB, time });
+    if (oppByTeam.has(m.labelB)) oppByTeam.get(m.labelB)!.push({ opp: m.labelA, time });
   }
   const teams = entries.map((e) => e.label).filter((l) => (oppByTeam.get(l)?.length ?? 0) > 0);
   // Étapes de révélation : pour chaque binôme, l'entête puis ses adversaires 1,2,3.
@@ -177,8 +180,8 @@ function Tirage({ t, entries, matches }: { t: NonNullable<State["tournament"]>; 
     <div className="h-full flex flex-col">
       <div className="text-center mb-5">
         <h2 className="canal-headline text-6xl">🎲 Tirage — championnat</h2>
-        {!done ? <p key={revealed} className="text-4xl text-canal-yellow font-black mt-3 animate-[pop_0.5s_ease]">{cur.team}{cur.opp >= 0 ? ` affronte ${oppByTeam.get(cur.team)?.[cur.opp] ?? ""} !` : "…"}</p>
-               : <p className="text-4xl text-green-400 font-black mt-3">Le championnat est prêt — que le meilleur gagne&nbsp;! 👏</p>}
+        {!done ? <p key={revealed} className="text-4xl text-canal-yellow font-black mt-3 animate-[pop_0.5s_ease]">{cur.team}{cur.opp >= 0 ? ` affronte ${oppByTeam.get(cur.team)?.[cur.opp]?.opp ?? ""}${oppByTeam.get(cur.team)?.[cur.opp]?.time ? ` · ${oppByTeam.get(cur.team)?.[cur.opp]?.time}` : ""} !` : "…"}</p>
+               : <p className="text-4xl text-green-400 font-black mt-3">Planning officiel prêt — que le meilleur gagne&nbsp;! 👏</p>}
       </div>
       <div className="grid grid-cols-2 gap-4 flex-1 overflow-hidden content-start">
         {teams.map((tm) => {
@@ -190,7 +193,7 @@ function Tirage({ t, entries, matches }: { t: NonNullable<State["tournament"]>; 
               <p className="text-2xl font-black text-white">{tm}</p>
               <div className="flex flex-wrap gap-1.5 mt-1.5">
                 {opps.map((o, i) => (
-                  <span key={i} className={`text-lg font-bold rounded px-2 py-0.5 ${i < rc ? "bg-canal-gray-mid text-white" : "bg-canal-gray-mid/30 text-transparent"}`}>{i < rc ? o : "•••"}</span>
+                  <span key={i} className={`text-lg font-bold rounded px-2 py-0.5 ${i < rc ? "bg-canal-gray-mid text-white" : "bg-canal-gray-mid/30 text-transparent"}`}>{i < rc ? `${o.opp}${o.time ? ` ${o.time}` : ""}` : "•••"}</span>
                 ))}
               </div>
             </div>

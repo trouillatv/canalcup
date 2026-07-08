@@ -12,6 +12,7 @@ import { BABYFOOT, type BabyfootStage } from "@/lib/config/babyfoot";
 import type { BabyfootTournament, BabyFootMatch, BabyfootAward } from "@/lib/supabase/types";
 import type { BabyfootEntryView } from "@/lib/data/babyfoot";
 import type { ChampionshipProjection } from "@/lib/babyfoot/format";
+import type { PlanningHealth } from "@/lib/babyfoot/health";
 import { CheckCircle2, Circle, Loader2, Plus, X, Trophy, Settings, ChevronDown, QrCode } from "lucide-react";
 
 interface AvailableTeam { id: string; name: string; members: string[]; }
@@ -21,6 +22,7 @@ interface State {
   matches: BabyFootMatch[];
   awards: BabyfootAward[];
   projection: ChampionshipProjection;
+  health: PlanningHealth;
   availableTeams: AvailableTeam[];
 }
 
@@ -77,7 +79,7 @@ export default function AdminBabyfootPage() {
   };
 
   if (!state) return <div className="px-4 py-8 max-w-2xl mx-auto text-canal-gray-muted">{msg ?? "Chargement…"}</div>;
-  const { tournament: t, entries, matches, projection, availableTeams, awards } = state;
+  const { tournament: t, entries, matches, projection, availableTeams, awards, health } = state;
   const step = currentStep(t, matches);
 
   return (
@@ -141,6 +143,7 @@ export default function AdminBabyfootPage() {
           hint={`${entries.length} binôme${entries.length > 1 ? "s" : ""} inscrit${entries.length > 1 ? "s" : ""}${t.target_teams > entries.length ? ` · encore ${t.target_teams - entries.length} place${t.target_teams - entries.length > 1 ? "s" : ""}` : ""}`}
         >
           <BinomesManager entries={entries} availableTeams={availableTeams} busy={busy} act={act} />
+          <HealthCard health={health} />
           <AvailabilityPanel entries={entries} />
           <button disabled={busy || entries.length < 2} onClick={() => { if (confirm("Fermer les inscriptions et passer au format ?")) act({ action: "close_registration" }); }} className={`${btnPrimary} mt-4`}>
             🔒 Fermer les inscriptions
@@ -151,6 +154,7 @@ export default function AdminBabyfootPage() {
 
       {step === 4 && (
         <StepCard title="🎲 Le championnat est prêt" hint="Chaque binôme jouera 3 matchs. Un dernier coup d'œil, puis on génère.">
+          <HealthCard health={health} />
           <AvailabilityPanel entries={entries} showBestSlot />
           <ChampionshipPlan projection={projection} busy={busy} act={act} />
         </StepCard>
@@ -223,6 +227,40 @@ export default function AdminBabyfootPage() {
 
 const btnPrimary = "w-full min-h-[46px] flex items-center justify-center gap-2 rounded-xl bg-canal-yellow text-canal-black font-black disabled:opacity-50 hover:bg-canal-yellow-hover transition-colors";
 const btnGhost = "px-3 py-2 rounded-lg bg-canal-gray-mid text-white text-sm font-bold border border-canal-gray-light disabled:opacity-50";
+
+// Santé du planning : contrôle AVANT le tirage (recalculé à chaque inscription).
+function HealthCard({ health: h }: { health: PlanningHealth }) {
+  const dot = (ok: boolean) => (ok ? "✅" : "⚠️");
+  const fillColor: Record<string, string> = { green: "bg-green-500", orange: "bg-amber-500", red: "bg-red-500", closed: "bg-canal-gray-light" };
+  const globalOk = h.ready;
+  const globalBad = h.feasible === false || !h.even;
+  return (
+    <div className={`rounded-lg p-3 space-y-2 border ${globalOk ? "border-green-600/50 bg-green-900/10" : globalBad ? "border-red-600/50 bg-red-900/15" : "border-canal-yellow/40 bg-canal-yellow/5"}`}>
+      <p className="text-xs font-bold uppercase text-canal-gray-muted">🩺 Santé du planning</p>
+      <div className="space-y-1 text-sm">
+        <p>{dot(h.teams >= 4 && h.even)} {h.teams} binômes inscrits{!h.even ? " — nombre IMPAIR (ajoute/retire un binôme)" : ""}</p>
+        <p>{dot(h.allHaveMinSlots)} Chaque binôme a ≥ {h.minSlots} créneaux{!h.allHaveMinSlots ? ` — trop peu : ${h.lowSlotBinomes.join(", ")}` : ""}</p>
+        <p>{h.feasible === null ? "⏳" : dot(h.feasible)} Planning {h.feasible === null ? "à vérifier (compléter les inscriptions)" : h.feasible ? `réalisable (${h.trialsOk}/${h.trials} tirages testés OK)` : "IMPOSSIBLE en l'état"}</p>
+        {h.problemBinomes.length > 0 && (
+          <p className="text-red-300">→ Demande plus de créneaux à : <b>{h.problemBinomes.join(", ")}</b></p>
+        )}
+      </div>
+      <p className={`text-sm font-black ${globalOk ? "text-green-400" : globalBad ? "text-red-400" : "text-canal-yellow"}`}>
+        {globalOk ? "✅ Prêt pour le tirage" : globalBad ? "❌ Corrige avant de générer" : "⏳ En attente d'inscriptions"}
+      </p>
+      {/* Jauges de remplissage des créneaux */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1 pt-1">
+        {h.slotFill.map((s) => (
+          <div key={s.key} className="flex items-center gap-1.5 text-[10px]">
+            <span className="w-20 text-canal-gray-muted shrink-0">{s.label}</span>
+            <div className="flex-1 h-2 rounded-full bg-canal-gray-mid overflow-hidden"><div className={`h-2 ${fillColor[s.status]}`} style={{ width: `${Math.min(100, (s.count / s.cap) * 100)}%` }} /></div>
+            <span className="w-8 text-right text-canal-gray-muted">{s.status === "closed" ? "plein" : `${s.count}/${s.cap}`}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // Disponibilités EXPLOITÉES : histogramme par créneau + meilleur créneau conseillé.
 function AvailabilityPanel({ entries, showBestSlot }: { entries: BabyfootEntryView[]; showBestSlot?: boolean }) {

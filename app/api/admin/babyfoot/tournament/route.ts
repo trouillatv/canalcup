@@ -17,6 +17,7 @@ import { generateChampionship, generateKnockout } from "@/lib/babyfoot/generate"
 import { insertGenMatches, type ScheduleSlot } from "@/lib/babyfoot/persist";
 import { schedule } from "@/lib/babyfoot/scheduler";
 import { computeChampionshipStandings } from "@/lib/babyfoot/standings";
+import { planningHealth } from "@/lib/babyfoot/health";
 import { recomputeAwards } from "@/lib/babyfoot/awards";
 
 // Dispos par équipe (slot_keys des 12 créneaux de 30 min).
@@ -44,6 +45,16 @@ export async function GET(req: Request) {
     matchesPerTeam: BABYFOOT.matchesPerTeam, qualifiers: BABYFOOT.qualifiers,
   });
 
+  // Santé du planning (dry-run) — recalculée à chaque chargement (= à chaque inscription).
+  const health = planningHealth(
+    entries.map((e) => ({ team_id: e.team_id, label: e.label, availability: e.availability })),
+    {
+      slots: BABYFOOT.slots, matchesPerSlot: BABYFOOT.matchesPerSlot, slotStartISO,
+      matchesPerTeam: BABYFOOT.matchesPerTeam, koTarget: t.ko_target,
+      minSlots: BABYFOOT.minSlots, slotCap: BABYFOOT.slotRegistrationCap, qualifiers: BABYFOOT.qualifiers,
+    }
+  );
+
   // Équipes (binômes CanalCup) pas encore inscrites → pour l'ajout manuel par l'orga.
   const entered = new Set(entries.map((e) => e.team_id));
   const { data: allTeams } = await admin.from("teams").select("id, name");
@@ -56,7 +67,7 @@ export async function GET(req: Request) {
     .map((x: { id: string; name: string }) => ({ id: x.id, name: x.name, members: members.get(x.id) ?? [] }))
     .sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name));
 
-  return NextResponse.json({ tournament: t, entries, matches, awards, projection, availableTeams }, no);
+  return NextResponse.json({ tournament: t, entries, matches, awards, projection, availableTeams, health }, no);
 }
 
 export async function POST(req: Request) {

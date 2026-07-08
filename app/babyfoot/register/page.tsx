@@ -171,7 +171,7 @@ export default function BabyfootRegisterPage() {
           <div>
             <label className="text-xs font-bold uppercase text-canal-gray-muted flex items-center gap-1.5"><CalendarClock size={12} /> Vos disponibilités</label>
             <p className="text-[11px] text-canal-gray-muted mt-1">
-              🏓 <b>Une seule table.</b> Choisissez au minimum <b>{ctx.minSlots}</b> créneaux de 30 min (recommandé : {ctx.recommendedSlots}+). Le tirage et le planning sont construits à partir de ces disponibilités — plus vous en cochez, plus c&apos;est facile.
+              🏓 <b>Une seule table.</b> Choisissez <b>au moins {ctx.minSlots}</b> créneaux de 30 min (recommandé : {ctx.recommendedSlots}+). <b className="text-white">Plus vous cochez de disponibilités, plus le tirage pourra équilibrer le tournoi</b> — le planning est construit à partir de ces créneaux.
             </p>
             {(["thu", "fri"] as const).map((day) => (
               <div key={day} className="mt-3">
@@ -180,7 +180,9 @@ export default function BabyfootRegisterPage() {
                   {ctx.slots.filter((s) => s.day === day).map((s) => {
                     const on = slots.has(s.key);
                     const count = ctx.slotCounts[s.key] ?? 0;
+                    const ratio = count / ctx.slotCap;
                     const full = !on && count >= ctx.slotCap;
+                    const fill = full ? "text-canal-gray-muted" : ratio >= 0.85 ? "text-red-400" : ratio >= 0.5 ? "text-amber-400" : "text-green-400";
                     return (
                       <button
                         key={s.key}
@@ -191,7 +193,7 @@ export default function BabyfootRegisterPage() {
                           : on ? "bg-canal-yellow/15 border-canal-yellow text-canal-yellow" : "bg-canal-gray-mid border-canal-gray-light text-white"
                         }`}
                       >
-                        <span>{s.start}{full ? " · complet" : count > 0 ? ` · ${count}/${ctx.slotCap}` : ""}</span>
+                        <span className="flex items-center gap-1.5">{s.start} {full ? <span className="text-[10px]">complet</span> : <span className={`text-[10px] ${fill}`}>{count}/{ctx.slotCap}</span>}</span>
                         <span className={`w-4 h-4 rounded flex items-center justify-center ${on ? "bg-canal-yellow text-canal-black" : "border border-canal-gray-light"}`}>{on && <Check size={11} />}</span>
                       </button>
                     );
