@@ -189,10 +189,10 @@ export default function AdminBabyfootPage() {
           {[...awards].sort((a, b) => b.points - a.points).map((a) => {
             const e = entries.find((x) => x.id === a.entry_id);
             return (
-              <div key={a.id} className="flex items-center justify-between text-sm border-b border-canal-gray-mid py-1">
-                <span className="text-white font-bold">{e?.label ?? "—"}</span>
-                <span className="text-canal-gray-muted">{BABYFOOT.stageLabel[a.stage as BabyfootStage]}</span>
-                <span className="text-canal-yellow font-black">+{a.points}</span>
+              <div key={a.id} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_3rem] gap-2 items-center text-sm border-b border-canal-gray-mid py-1">
+                <span className="text-white font-bold truncate">{e?.label ?? "—"}</span>
+                <span className="text-canal-gray-muted text-center truncate">{BABYFOOT.stageLabel[a.stage as BabyfootStage]}</span>
+                <span className="text-canal-yellow font-black text-right">+{a.points}</span>
               </div>
             );
           })}

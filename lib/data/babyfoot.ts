@@ -86,7 +86,12 @@ export async function getEntries(admin: DbClient, tournamentId: string): Promise
   return entries.map((e) => {
     const mem = members.get(e.team_id) ?? [];
     const teamName = e.team?.name ?? "Binôme";
-    const label = e.display_name || (mem.length ? mem.join(" & ") : teamName);
+    const names = mem.length ? mem.join(" & ") : teamName;
+    // On affiche le NOM du binôme + les prénoms ("Les Chouchouz · Lili & Killian"),
+    // sauf si le nom est générique/redondant (ex. "Binôme", ou déjà dans les prénoms).
+    const bname = e.display_name || teamName;
+    const generic = bname === names || /^bin[oô]mes?$/i.test(bname.trim()) || names.toLowerCase().includes(bname.toLowerCase());
+    const label = !generic ? `${bname} · ${names}` : names;
     return {
       id: e.id, team_id: e.team_id, team_name: teamName,
       display_name: e.display_name, label, members: mem,
