@@ -297,6 +297,15 @@ function AvailabilityPanel({ entries, showBestSlot }: { entries: BabyfootEntryVi
 // rouvrir un match terminé (depuis le programme) pour corriger un score.
 const PHASE_WEIGHT: Record<string, number> = { league: 0, semi: 1, third: 2, final: 3 };
 function hhmm(iso?: string | null): string { return iso ? new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Noumea" }) : ""; }
+// "Jeudi 16 · 11h30" — jour + créneau, à afficher sous le score.
+function slotLabel(iso?: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const day = d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", timeZone: "Pacific/Noumea" });
+  const time = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Noumea" }).replace(":", "h");
+  return `${day.charAt(0).toUpperCase()}${day.slice(1)} · ${time}`;
+}
+const navBtn = "px-3 py-2 rounded-lg bg-canal-gray-mid text-white text-sm font-black border border-canal-gray-light disabled:opacity-30 active:scale-95";
 
 function GameDay({ state, busy, act, onExit }: { state: State; busy: boolean; act: (b: Record<string, unknown>, path?: string) => void; onExit: () => void }) {
   const { matches, entries } = state;
@@ -311,9 +320,12 @@ function GameDay({ state, busy, act, onExit }: { state: State; busy: boolean; ac
   const [flash, setFlash] = useState<{ winner: string; plural: boolean; sa: number; sb: number; pts: number | null; ptsLabel: string | null } | null>(null);
 
   const current = ordered.find((m) => m.status !== "finished" && m.team_a_id && m.team_b_id) ?? null;
-  const editing = focusId ? ordered.find((m) => m.id === focusId) ?? null : null;
-  const shown = editing ?? current;
-  const next = current ? ordered.find((m) => m.id !== current.id && m.status !== "finished" && m.team_a_id && m.team_b_id) ?? null : null;
+  const shown = (focusId ? ordered.find((m) => m.id === focusId) : null) ?? current;
+  const idx = shown ? ordered.findIndex((m) => m.id === shown.id) : -1;
+  const prevNav = idx > 0 ? ordered[idx - 1] : null;
+  const nextNav = idx >= 0 && idx < ordered.length - 1 ? ordered[idx + 1] : null;
+  const browsing = !!shown && !!current && shown.id !== current.id;
+  const upNext = current ? ordered.find((m) => m.id !== current.id && m.status !== "finished" && m.team_a_id && m.team_b_id) ?? null : null;
 
   const standings = computeChampionshipStandings(entries.map((e) => ({ id: e.id, team_id: e.team_id })), matches, BABYFOOT.qualifiers);
   const remaining = matches.filter((m) => m.status !== "finished").length;
@@ -347,19 +359,25 @@ function GameDay({ state, busy, act, onExit }: { state: State; busy: boolean; ac
         </div>
       )}
 
-      {shown ? (
-        <GameDayMatch key={shown.id} m={shown} labelA={lbl(shown.team_a_id)} labelB={lbl(shown.team_b_id)} busy={busy} editing={!!editing} onResult={submit} onCancelEdit={() => setFocusId(null)} />
-      ) : !flash ? (
+      {shown ? (<>
+        <div className="flex items-center justify-between gap-2">
+          <button disabled={!prevNav} onClick={() => prevNav && setFocusId(prevNav.id)} className={navBtn}>◀ Précédent</button>
+          <span className="text-xs font-black text-canal-gray-muted">Match {idx + 1}/{ordered.length}{browsing ? " · aperçu" : ""}</span>
+          <button disabled={!nextNav} onClick={() => nextNav && setFocusId(nextNav.id)} className={navBtn}>Suivant ▶</button>
+        </div>
+        <GameDayMatch key={shown.id} m={shown} labelA={lbl(shown.team_a_id)} labelB={lbl(shown.team_b_id)} busy={busy} onResult={submit} />
+        {browsing && <button onClick={() => setFocusId(null)} className="w-full text-canal-yellow text-sm font-black">⤾ Revenir au match en cours</button>}
+      </>) : !flash ? (
         <div className="text-center py-8 space-y-3">
           <p className="text-canal-gray-muted text-lg">{remaining ? "En attente du prochain match…" : "🎉 Tournoi terminé !"}</p>
           {!remaining && finished && <button onClick={onExit} className={btnPrimary}>🏆 Voir le podium</button>}
         </div>
       ) : null}
 
-      {next && !editing && (
+      {upNext && !browsing && (
         <div className="rounded-xl bg-canal-gray-mid/40 p-3 text-center">
           <p className="text-[11px] uppercase font-bold text-canal-gray-muted">À suivre</p>
-          <p className="text-white font-bold mt-0.5">{lbl(next.team_a_id)} <span className="text-canal-gray-muted">vs</span> {lbl(next.team_b_id)}</p>
+          <p className="text-white font-bold mt-0.5">{lbl(upNext.team_a_id)} <span className="text-canal-gray-muted">vs</span> {lbl(upNext.team_b_id)}</p>
         </div>
       )}
 
@@ -371,7 +389,7 @@ function GameDay({ state, busy, act, onExit }: { state: State; busy: boolean; ac
   );
 }
 
-function GameDayMatch({ m, labelA, labelB, busy, editing, onResult, onCancelEdit }: { m: BabyFootMatch; labelA: string; labelB: string; busy: boolean; editing: boolean; onResult: (b: Record<string, unknown>) => void; onCancelEdit: () => void }) {
+function GameDayMatch({ m, labelA, labelB, busy, onResult }: { m: BabyFootMatch; labelA: string; labelB: string; busy: boolean; onResult: (b: Record<string, unknown>) => void }) {
   const [a, setA] = useState<string>(m.score_a?.toString() ?? "");
   const [b, setB] = useState<string>(m.score_b?.toString() ?? "");
   const na = a === "" ? null : parseInt(a, 10);
@@ -380,6 +398,8 @@ function GameDayMatch({ m, labelA, labelB, busy, editing, onResult, onCancelEdit
   const ready = na != null && nb != null && na >= 0 && nb >= 0 && !tie;
   const leader = na != null && nb != null ? (na > nb ? labelA : labelB) : "";
   const plural = leader.includes("&") || leader.includes(" et ");
+  const finished = m.status === "finished";
+  const slot = slotLabel(m.starts_at);
   const inp = "w-full h-24 text-6xl text-center rounded-2xl bg-canal-gray-mid border-2 border-canal-gray-light focus:border-canal-yellow outline-none text-white font-black tabular-nums";
   const clean = (v: string) => v.replace(/[^0-9]/g, "").slice(0, 2);
   return (
@@ -387,7 +407,7 @@ function GameDayMatch({ m, labelA, labelB, busy, editing, onResult, onCancelEdit
       <div className="flex items-center justify-center gap-2 text-xs text-canal-gray-muted">
         {m.table_no != null ? <span className="font-black text-canal-black bg-canal-yellow rounded px-2 py-0.5">Table {m.table_no}</span> : null}
         <span className="uppercase font-bold">{m.round ?? PHASE_LABEL[m.phase ?? ""] ?? "Match"}</span>
-        {editing && <span className="text-canal-yellow">· modifier résultat</span>}
+        {finished && <span className="text-canal-yellow">· modifier résultat</span>}
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
@@ -399,14 +419,13 @@ function GameDayMatch({ m, labelA, labelB, busy, editing, onResult, onCancelEdit
           <input value={b} onChange={(e) => setB(clean(e.target.value))} inputMode="numeric" pattern="[0-9]*" placeholder="0" className={inp} />
         </div>
       </div>
+      {slot && <p className="text-center text-sm font-bold text-canal-gray-muted">🕐 {slot}</p>}
       <button disabled={busy || !ready} onClick={() => onResult({ match_id: m.id, score_a: na, score_b: nb })} className={btnPrimary}>
         {tie ? "But en or : il faut un vainqueur" : ready ? `✅ Valider — ${leader} gagne${plural ? "nt" : ""}` : "Saisis le score"}
       </button>
-      {editing ? (
-        <button onClick={onCancelEdit} className="w-full text-canal-gray-muted text-xs">Annuler</button>
-      ) : m.status === "finished" ? (
+      {finished && (
         <button disabled={busy} onClick={() => onResult({ match_id: m.id, clear: true })} className="w-full text-red-400 text-xs">↺ Annuler ce résultat</button>
-      ) : null}
+      )}
     </div>
   );
 }
