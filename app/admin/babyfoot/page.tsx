@@ -12,7 +12,7 @@ import { BABYFOOT, type BabyfootStage } from "@/lib/config/babyfoot";
 import type { BabyfootTournament, BabyFootMatch, BabyfootAward } from "@/lib/supabase/types";
 import type { BabyfootEntryView } from "@/lib/data/babyfoot";
 import type { BothProjections } from "@/lib/babyfoot/format";
-import { CheckCircle2, Circle, Loader2, Plus, X, Trophy, Settings, ChevronDown } from "lucide-react";
+import { CheckCircle2, Circle, Loader2, Plus, X, Trophy, Settings, ChevronDown, QrCode } from "lucide-react";
 
 interface AvailableTeam { id: string; name: string; members: string[]; }
 interface State {
@@ -92,6 +92,9 @@ export default function AdminBabyfootPage() {
                 ⚡ Jour J
               </button>
             )}
+            <Link href="/admin/babyfoot/qr" className="text-xs font-black rounded-lg px-2.5 py-1.5 bg-canal-gray-mid text-white border border-canal-yellow/40 flex items-center gap-1">
+              <QrCode size={13} /> QR
+            </Link>
             <Link href="/babyfoot" className="text-xs text-canal-yellow underline">Joueur →</Link>
           </div>
         </div>
@@ -199,7 +202,9 @@ export default function AdminBabyfootPage() {
           <div className="mt-2 space-y-3">
             <ConfigCard t={t} busy={busy} onSave={(patch) => act({ action: "config", ...patch })} />
             <div className="canal-card flex flex-wrap gap-2 items-center">
-              <span className="text-xs text-canal-gray-muted w-full">🖨️ Affiches A3 (à imprimer, permanentes) :</span>
+              <span className="text-xs text-canal-gray-muted w-full">📱 QR « rejoindre une équipe » (afficher / partager) :</span>
+              <Link href="/admin/babyfoot/qr" className={btnGhost}>Ouvrir le QR baby-foot</Link>
+              <span className="text-xs text-canal-gray-muted w-full mt-1">🖨️ Affiches A3 (à imprimer, permanentes) :</span>
               <a href="/p/babyfoot/1" target="_blank" rel="noopener" className={btnGhost}>Affiche « Formez votre binôme »</a>
               <a href="/p/babyfoot/2" target="_blank" rel="noopener" className={btnGhost}>Affiche « Qui sera champion ? »</a>
             </div>
