@@ -1,4 +1,6 @@
-Objet : 🎮 Le Baby-foot entre dans la Canal Cup — formez votre binôme !
+Objet : 🎮 Baby-foot Canal Cup — inscriptions jusqu'au vendredi 10 juillet midi !
+
+⏰ INSCRIPTIONS OUVERTES JUSQU'AU VENDREDI 10 JUILLET À MIDI
 
 Salut la team,
 
@@ -34,7 +36,8 @@ points CanalCup pour vous ET votre équipe.
 2. Cochez vos créneaux de dispo (jeu 16 & ven 17 juillet, 11h–14h).
 3. Plus vous cochez de créneaux, plus le tirage est équilibré. Soyez généreux !
 
-👉 Inscris ton binôme : https://canal-cup.vercel.app/babyfoot/register
+👉 Je forme mon binôme et je choisis mes créneaux :
+   https://canal-cup.vercel.app/babyfoot/register
 
 Pas encore de coéquipier·ère ? Fais tourner ce mail autour de toi — le binôme
 parfait est peut-être au bureau d'à côté.
