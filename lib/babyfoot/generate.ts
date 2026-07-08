@@ -123,10 +123,23 @@ const roundLabel = (matchesInRound: number, i: number): { phase: BabyfootPhase; 
   return { phase: "quarter", label: `Quart ${i + 1}` };
 };
 
+// Ordre de seeding standard d'un bracket de taille P (position → n° de seed).
+// P=4 → [0,3,1,2] : match (pos0,pos1)=seed0 vs seed3 (1v4), (pos2,pos3)=seed1 vs seed2 (2v3).
+function seedOrder(P: number): number[] {
+  let order = [0];
+  while (order.length < P) {
+    const n = order.length * 2;
+    const next: number[] = [];
+    for (const s of order) { next.push(s); next.push(n - 1 - s); }
+    order = next;
+  }
+  return order;
+}
+
 /**
  * Tableau à élimination directe pour des équipes SEEDÉES (meilleur seed en tête).
- * Gère les tours de barrage (prelim) quand le nb d'équipes n'est pas une
- * puissance de 2 (cap à 16 équipes → tableau principal de 8).
+ * Seeding standard : 1 vs dernier, 2 vs avant-dernier… → pour 4 qualifiés, demies
+ * 1v4 et 2v3. Gère les barrages (prelim) si le nb n'est pas une puissance de 2.
  */
 export function generateKnockout(
   seededTeamIds: string[],
@@ -184,14 +197,18 @@ export function generateKnockout(
     if (teamId) { if (slot === "a") mt.team_a_id = teamId; else mt.team_b_id = teamId; }
     return { matchLocal: mt.localId, slot };
   };
-  for (let i = 0; i < byes; i++) setSlot(i, byeTeams[i]);
+  // Placement selon l'ordre de seeding standard (seed s → position slotOfSeed[s]).
+  const seeds = seedOrder(mainSize);
+  const slotOfSeed: number[] = [];
+  seeds.forEach((s, pos) => { slotOfSeed[s] = pos; });
+  for (let i = 0; i < byes; i++) setSlot(slotOfSeed[i], byeTeams[i]);
 
   // ── Barrages (prelim) : perdants dehors, vainqueurs → placeholders ──────────
   const prelim: GenMatch[] = [];
   for (let i = 0; i < prelimCount; i++) {
     const a = prelimTeams[i];
     const b = prelimTeams[prelimTeams.length - 1 - i];
-    const dest = setSlot(byes + i, null); // placeholder → où va le vainqueur
+    const dest = setSlot(slotOfSeed[byes + i], null); // placeholder → où va le vainqueur
     prelim.push({
       localId: `prelim_${i}`,
       phase: "prelim", pool_label: null, round: `Barrage ${i + 1}`,
