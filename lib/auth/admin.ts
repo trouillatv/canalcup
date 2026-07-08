@@ -11,9 +11,11 @@
 
 import { createClient } from "@/lib/supabase/server";
 
-// Seul le compte gmail est admin. L'email canal-plus.com sert à tester
-// le parcours en tant que participant lambda.
-const DEFAULT_ADMIN_EMAILS = ["trouillatv@gmail.com"];
+// Admins (co-organisateurs). trouillatv = Vincent (super_admin) ;
+// marie.lucas = Marie (co-organisatrice). Le rôle event_admin en base
+// (allowlist_users) ouvre les pages /admin/* ; cette liste autorise les
+// ACTIONS d'API (isAdminRequest). Les deux sont nécessaires.
+const DEFAULT_ADMIN_EMAILS = ["trouillatv@gmail.com", "marie.lucas@canal-plus.com"];
 
 export async function isAdminRequest(req: Request): Promise<boolean> {
   // 1. Voie legacy : secret partagé (scripts, cron, automation externe).
