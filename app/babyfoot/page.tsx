@@ -281,7 +281,7 @@ function BabyfootRules() {
   const Card = ({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) => (
     <div className="canal-card space-y-2">
       <h2 className="text-sm font-black uppercase text-canal-yellow">{icon} {title}</h2>
-      <div className="text-sm text-canal-gray-light space-y-1.5 leading-relaxed">{children}</div>
+      <div className="text-sm text-canal-gray-muted space-y-1.5 leading-relaxed">{children}</div>
     </div>
   );
   const Li = ({ children }: { children: React.ReactNode }) => (
