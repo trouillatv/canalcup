@@ -55,3 +55,9 @@ docs/script/output/*.log
 docs/script/_*.html
 
 .vercel
+
+# scripts jetables & sauvegardes locales (ne pas committer)
+/_bf*.ts
+/_chk.ts
+/backups/
+*.bak
