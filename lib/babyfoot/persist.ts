@@ -7,15 +7,26 @@ import type { GenMatch } from "@/lib/babyfoot/generate";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DbClient = any;
 
-export async function insertGenMatches(admin: DbClient, tournamentId: string, gen: GenMatch[]): Promise<void> {
+export interface ScheduleSlot { rotation: number | null; table_no: number | null; startISO: string | null; }
+
+export async function insertGenMatches(
+  admin: DbClient,
+  tournamentId: string,
+  gen: GenMatch[],
+  scheduleByLocal?: Map<string, ScheduleSlot>
+): Promise<void> {
   if (!gen.length) return;
-  const rows = gen.map((g) => ({
-    tournament_id: tournamentId,
-    phase: g.phase, pool_label: g.pool_label, round: g.round,
-    team_a_id: g.team_a_id, team_b_id: g.team_b_id,
-    target_score: g.target_score, order_idx: g.order_idx,
-    status: "upcoming" as const, starts_at: null,
-  }));
+  const rows = gen.map((g) => {
+    const s = scheduleByLocal?.get(g.localId);
+    return {
+      tournament_id: tournamentId,
+      phase: g.phase, pool_label: g.pool_label, round: g.round,
+      team_a_id: g.team_a_id, team_b_id: g.team_b_id,
+      target_score: g.target_score, order_idx: g.order_idx,
+      rotation: s?.rotation ?? null, table_no: s?.table_no ?? null,
+      status: "upcoming" as const, starts_at: s?.startISO ?? null,
+    };
+  });
   // Insertion en bloc : PostgREST renvoie les lignes dans l'ordre d'entrée.
   const { data: inserted, error } = await admin.from("babyfoot_matches").insert(rows).select("id");
   if (error || !inserted) throw new Error(error?.message ?? "Insertion matchs impossible");

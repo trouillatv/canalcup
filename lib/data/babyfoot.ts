@@ -121,15 +121,17 @@ export interface PublicMatch {
   round: string | null;
   pool_label: string | null;
   table_no: number | null;
+  rotation: number | null;
+  starts_at: string | null;
   status: string;
   score_a: number | null;
   score_b: number | null;
   labelA: string;
   labelB: string;
 }
-export interface PublicStanding {
-  pool: string;
-  rows: { label: string; played: number; won: number; lost: number; gf: number; ga: number; gd: number; rank: number; qualified: boolean }[];
+export interface ClassementRow {
+  rank: number; entry_id: string; team_id: string; label: string;
+  played: number; won: number; lost: number; gf: number; ga: number; gd: number; qualified: boolean;
 }
 
 export async function buildPublicState(admin: DbClient, tournamentId: string) {
@@ -139,29 +141,22 @@ export async function buildPublicState(admin: DbClient, tournamentId: string) {
 
   const publicMatches: PublicMatch[] = matches.map((m) => ({
     id: m.id, phase: m.phase ?? null, round: m.round ?? null, pool_label: m.pool_label ?? null,
-    table_no: m.table_no ?? null, status: m.status,
+    table_no: m.table_no ?? null, rotation: m.rotation ?? null, starts_at: m.starts_at ?? null, status: m.status,
     score_a: m.score_a ?? null, score_b: m.score_b ?? null,
     labelA: lbl(m.team_a_id), labelB: lbl(m.team_b_id),
   }));
 
-  // Classements de poule (avec qualification top 2).
-  const { computePoolStandings, qualifiedEntryIds } = await import("@/lib/babyfoot/standings");
-  const stMap = computePoolStandings(
-    entries.map((e) => ({ id: e.id, team_id: e.team_id, pool_label: e.pool_label })),
-    matches
+  // Classement UNIQUE du championnat (victoires → diff → BP → confrontation directe).
+  const { computeChampionshipStandings } = await import("@/lib/babyfoot/standings");
+  const champ = computeChampionshipStandings(
+    entries.map((e) => ({ id: e.id, team_id: e.team_id })),
+    matches, 4
   );
-  const qual = qualifiedEntryIds(stMap, 2);
   const labelByEntry = new Map(entries.map((e) => [e.id, e.label]));
-  const standings: PublicStanding[] = [...stMap.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([pool, rows]) => ({
-      pool,
-      rows: rows.map((r) => ({
-        label: labelByEntry.get(r.entry_id) ?? "?",
-        played: r.played, won: r.won, lost: r.lost, gf: r.gf, ga: r.ga, gd: r.gd, rank: r.rank,
-        qualified: qual.has(r.entry_id),
-      })),
-    }));
+  const classement: ClassementRow[] = champ.map((r) => ({
+    rank: r.rank, entry_id: r.entry_id, team_id: r.team_id, label: labelByEntry.get(r.entry_id) ?? "?",
+    played: r.played, won: r.won, lost: r.lost, gf: r.gf, ga: r.ga, gd: r.gd, qualified: r.qualified,
+  }));
 
   // Podium (rangs finaux 1..3).
   const podium = entries
@@ -187,7 +182,7 @@ export async function buildPublicState(admin: DbClient, tournamentId: string) {
   // Faits marquants en direct (dérivés des matchs terminés).
   const { computeHighlights } = await import("@/lib/babyfoot/highlights");
   const poolRankByTeam = new Map<string, number>();
-  for (const [, rows] of stMap) for (const r of rows) poolRankByTeam.set(r.team_id, r.rank);
+  for (const r of champ) poolRankByTeam.set(r.team_id, r.rank);
   const highlights = computeHighlights(matches, { labelByTeam, poolRankByTeam });
 
   // Photos récentes du tournoi (galerie + moments).
@@ -202,7 +197,7 @@ export async function buildPublicState(admin: DbClient, tournamentId: string) {
 
   return {
     entries: entries.map((e) => ({ id: e.id, label: e.label, pool_label: e.pool_label, final_rank: e.final_rank })),
-    matches: publicMatches, standings, podium, stats, highlights, photos, registeredCount: entries.length,
+    matches: publicMatches, classement, podium, stats, highlights, photos, registeredCount: entries.length,
   };
 }
 

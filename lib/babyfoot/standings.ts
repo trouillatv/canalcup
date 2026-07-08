@@ -82,6 +82,57 @@ export function computePoolStandings(
   return pools;
 }
 
+// ── Classement du mini-championnat (V2) : un SEUL groupe ─────────────────────
+export interface ChampStanding {
+  entry_id: string;
+  team_id: string;
+  played: number; won: number; lost: number; gf: number; ga: number; gd: number;
+  rank: number;
+  qualified: boolean;
+}
+
+/**
+ * Classement général du championnat. Tri : victoires ↓, diff ↓, BP ↓, puis
+ * confrontation directe (2 à 2), puis ordre stable (= tirage au sort figé).
+ */
+export function computeChampionshipStandings(
+  entries: EntryLite[],
+  matches: BabyFootMatch[],
+  qualifiers = 4
+): ChampStanding[] {
+  const byTeam = new Map(entries.map((e) => [e.team_id, e]));
+  const acc = new Map<string, ChampStanding>();
+  for (const e of entries) {
+    acc.set(e.id, { entry_id: e.id, team_id: e.team_id, played: 0, won: 0, lost: 0, gf: 0, ga: 0, gd: 0, rank: 0, qualified: false });
+  }
+  // Confrontation directe : winner par paire de team_id.
+  const h2h = new Map<string, string>(); // `${x}|${y}` (trié) → team_id vainqueur
+  const key = (x: string, y: string) => (x < y ? `${x}|${y}` : `${y}|${x}`);
+
+  for (const m of matches) {
+    if (m.phase !== "league" || !isScored(m)) continue;
+    const ea = byTeam.get(m.team_a_id), eb = byTeam.get(m.team_b_id);
+    const sa = m.score_a ?? 0, sb = m.score_b ?? 0;
+    if (ea && acc.has(ea.id)) { const s = acc.get(ea.id)!; s.played++; s.gf += sa; s.ga += sb; if (sa > sb) s.won++; else s.lost++; }
+    if (eb && acc.has(eb.id)) { const s = acc.get(eb.id)!; s.played++; s.gf += sb; s.ga += sa; if (sb > sa) s.won++; else s.lost++; }
+    if (m.team_a_id && m.team_b_id && sa !== sb) h2h.set(key(m.team_a_id, m.team_b_id), sa > sb ? m.team_a_id : m.team_b_id);
+  }
+
+  const list = [...acc.values()];
+  for (const s of list) s.gd = s.gf - s.ga;
+  list.sort((a, b) => {
+    if (b.won !== a.won) return b.won - a.won;
+    if (b.gd !== a.gd) return b.gd - a.gd;
+    if (b.gf !== a.gf) return b.gf - a.gf;
+    const w = h2h.get(key(a.team_id, b.team_id)); // confrontation directe
+    if (w === a.team_id) return -1;
+    if (w === b.team_id) return 1;
+    return a.team_id.localeCompare(b.team_id); // ordre stable
+  });
+  list.forEach((s, i) => { s.rank = i + 1; s.qualified = i < qualifiers; });
+  return list;
+}
+
 /** Ids des entries qualifiées (top `perPool` de chaque poule). */
 export function qualifiedEntryIds(
   standings: Map<string, PoolStanding[]>,

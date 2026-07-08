@@ -1,77 +1,77 @@
-// Tournoi Baby-foot CanalCup — configuration (V1 statique, on édite ce fichier).
+// Tournoi Baby-foot CanalCup — configuration (V2, format "mini-championnat").
 //
-// L'état MUTABLE d'une ÉDITION (statut, inscriptions ouvertes/fermées, format,
-// nb de tables, dates cérémonial) vit en base dans babyfoot_tournaments (piloté
-// par l'admin). Ici : les valeurs STATIQUES — créneaux, barème des points,
-// scores cibles par défaut, projection, helpers. Heure NC (UTC+11).
+// FORMAT : Phase 1 = mini-championnat, chaque binôme joue EXACTEMENT 3 matchs
+// (adversaires tirés au sort, jamais deux fois le même). Classement (victoires
+// → diff → BP → confrontation directe → tirage). Les 4 premiers → Phase 2
+// (demies 1v4 / 2v3, petite finale, finale). Matchs AU TEMPS (5 min + but en or).
+//
+// Barème VALEUR FACIALE, cumulatif, max 65 (valorise d'aller loin) :
+//   Participation 5 · chaque victoire de phase 1 +5 (max 15) · Qualif demi 10
+//   · Victoire de demi 15 · Champion 20.
 
-export type BabyfootStage =
-  | "participation" // a joué, sorti en poules / 1er tour
-  | "qualified" // sorti des poules (ou atteint les quarts en élim. directe)
-  | "semifinalist" // demi-finaliste
-  | "finalist" // finaliste (perdant de la finale)
-  | "champion"; // vainqueur
+export type BabyfootStage = "participation" | "phase1" | "qualified" | "semi_win" | "champion";
 
 export interface BabyfootSlot {
   key: string; // stocké dans babyfoot_entry_availability.slot_key
-  label: string; // affiché à l'inscription et dans la matrice admin
+  label: string;
 }
 
 export const BABYFOOT = {
-  // Édition en cours (année) — l'historique s'empile par season en base.
   currentSeason: 2026,
-  // Date officielle du tournoi.
-  eventDate: "2026-07-16",
-  eventLabel: "jeudi 16 juillet",
-  // Journée amicale / entraînement (chauffe avant l'officiel). À ajuster.
-  friendlyDate: "2026-07-14",
-  friendlyLabel: "mardi 14 juillet",
 
-  // Créneaux : demi-journées simples (le binôme coche ses disponibilités).
+  // Événement sur 2 jours (finales le vendredi).
+  eventLabel: "jeudi 16 & vendredi 17 juillet",
+  days: {
+    thu: { date: "2026-07-16", label: "Jeudi 16 juillet" },
+    fri: { date: "2026-07-17", label: "Vendredi 17 juillet" },
+  },
+  finalsDay: "fri" as const, // les finales ont toujours lieu le vendredi
+
+  // Fermeture des inscriptions + tirage au sort officiel (événement TV).
+  inscriptionsCloseAt: "2026-07-10T12:00:00+11:00",
+  inscriptionsCloseLabel: "vendredi 10 juillet à 12h00",
+  drawAt: "2026-07-10T13:30:00+11:00",
+  drawLabel: "vendredi 10 juillet à 13h30",
+
+  // Créneaux : 2 choix simples (on peut cocher un ou les deux).
   slots: [
-    { key: "am", label: "Matin" },
-    { key: "noon", label: "Midi" },
-    { key: "pm", label: "Après-midi" },
+    { key: "thu", label: "Jeudi 16 (11h–14h)" },
+    { key: "fri", label: "Vendredi 17 (11h–14h)" },
   ] as BabyfootSlot[],
 
-  // Barème VALEUR FACIALE, 5 PALIERS lisibles. Un binôme reçoit UN palier = son
-  // RÉSULTAT (pas de cumul par match). Crédité tel quel au classement individuel
-  // ET équipe (sans pondération). Champion = 65 (cap voulu). Tout le monde comprend.
+  // Planning : fenêtre de jeu et durée d'un créneau de match.
+  dayStart: "11:00",
+  dayEnd: "14:00",
+  matchMinutes: 5, // temps réglementaire (puis but en or si égalité)
+  rotationMinutes: 3, // battement entre 2 matchs sur une même table
+  tablesDefault: 2,
+
+  // Nb de matchs garantis par binôme en phase 1.
+  matchesPerTeam: 3,
+  // Nb de qualifiés pour la phase finale.
+  qualifiers: 4,
+
+  // Barème cumulatif (points faciaux). Max 65.
   bareme: {
     participation: 5,
-    qualified: 15, // sorti des poules
-    semifinalist: 30,
-    finalist: 45,
-    champion: 65,
-  } as Record<BabyfootStage, number>,
+    matchWin: 5, // par victoire de phase 1 (max 3 → 15)
+    qualified: 10, // top 4 (qualif demi)
+    semiWin: 15, // victoire de demi-finale
+    champion: 20,
+  },
 
-  // Libellés (registre babyfoot_awards.label + affichage). En élimination directe,
-  // "qualified" = "Quart de finaliste" (adapté à l'affichage selon le format).
+  // Libellés des lignes de registre (babyfoot_awards.label).
   stageLabel: {
     participation: "Participation",
-    qualified: "Sorti des poules",
-    semifinalist: "Demi-finaliste",
-    finalist: "Finaliste",
+    phase1: "Victoires de poule",
+    qualified: "Qualifié en demi-finale",
+    semi_win: "Vainqueur de demi-finale",
     champion: "Champion 🏆",
   } as Record<BabyfootStage, string>,
-
-  // Scores cibles par défaut (l'admin peut surcharger par édition en base).
-  scoreTargets: { pool: 5, ko: 7, final: 10 },
-
-  // Projection de durée.
-  tablesDefault: 2,
-  avgMatchMinutes: 9, // match court 5-7 min + rotation ≈ 8-10 min
 };
 
-// Ordre des paliers (du plus faible au plus fort) — pour comparer un résultat.
-export const BABYFOOT_STAGE_ORDER: BabyfootStage[] = [
-  "participation",
-  "qualified",
-  "semifinalist",
-  "finalist",
-  "champion",
-];
-
-export function eventDateMs(): number {
-  return new Date(`${BABYFOOT.eventDate}T00:00:00+11:00`).getTime();
+// Points d'un parcours "champion parfait" (contrôle du cap = 65).
+export function championMaxPoints(): number {
+  const b = BABYFOOT.bareme;
+  return b.participation + b.matchWin * BABYFOOT.matchesPerTeam + b.qualified + b.semiWin + b.champion;
 }

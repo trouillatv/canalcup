@@ -8,7 +8,7 @@ export type InboxEventType = "mention" | "vote_received" | "badge" | "matinale" 
 export type BabyFootStatus = "upcoming" | "live" | "finished";
 export type BabyfootTournamentStatus = "draft" | "registration" | "draw" | "pools" | "knockout" | "finished";
 export type BabyfootKind = "official" | "friendly";
-export type BabyfootPhase = "prelim" | "pool" | "quarter" | "semi" | "final" | "third" | "friendly";
+export type BabyfootPhase = "league" | "prelim" | "pool" | "quarter" | "semi" | "final" | "third" | "friendly";
 export type BabyfootAwardStage = "participation" | "qualified" | "semifinalist" | "finalist" | "champion";
 export type QuizDifficulty = "easy" | "medium" | "hard";
 export type QuizCategory = "foot" | "culture" | "canal" | "general";
@@ -250,6 +250,7 @@ export interface BabyFootMatch {
   target_score?: number | null;
   slot_key?: string | null;
   table_no?: number | null;
+  rotation?: number | null;
   order_idx?: number | null;
   next_match_id?: string | null;
   next_slot?: "a" | "b" | null;

@@ -41,7 +41,7 @@ export default function BabyfootFriendlyPage() {
       <div>
         <h1 className="canal-headline text-2xl flex items-center gap-2"><span className="text-3xl">🎯</span> Journée amicale</h1>
         <p className="text-canal-gray-muted text-sm mt-1">
-          Entraînement baby-foot le {BABYFOOT.friendlyLabel} — sans enjeu, juste pour le fun. Aucun point, aucun classement.
+          Entraînement baby-foot en amont — sans enjeu, juste pour le fun. Aucun point, aucun classement.
         </p>
       </div>
 

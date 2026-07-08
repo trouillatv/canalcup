@@ -65,6 +65,52 @@ export function generatePools(teamIds: string[], sizes: number[], poolTarget: nu
   return { assignments, matches };
 }
 
+// ── Phase 1 : mini-championnat (méthode du cercle / round-robin) ──────────────
+// Chaque binôme joue `matchesPerTeam` adversaires DISTINCTS (jamais deux fois le
+// même). Pour un nb PAIR de binômes, tout le monde joue exactement ce nombre.
+function roundRobinRounds(ids: string[]): [string, string][][] {
+  const arr: (string | null)[] = [...ids];
+  if (arr.length % 2 === 1) arr.push(null); // "bye" si impair
+  const n = arr.length;
+  const rounds: [string, string][][] = [];
+  const fixed = arr[0];
+  let rot = arr.slice(1);
+  for (let r = 0; r < n - 1; r++) {
+    const day = [fixed, ...rot];
+    const pairs: [string, string][] = [];
+    for (let i = 0; i < n / 2; i++) {
+      const a = day[i], b = day[n - 1 - i];
+      if (a && b) pairs.push([a, b]);
+    }
+    rounds.push(pairs);
+    rot = [rot[rot.length - 1], ...rot.slice(0, rot.length - 1)]; // rotation
+  }
+  return rounds;
+}
+
+export function generateChampionship(
+  teamIds: string[],
+  matchesPerTeam: number,
+  koTarget: number
+): GenMatch[] {
+  const rounds = roundRobinRounds(teamIds).slice(0, matchesPerTeam);
+  const matches: GenMatch[] = [];
+  let order = 0;
+  rounds.forEach((pairs, r) => {
+    pairs.forEach(([a, b], i) => {
+      matches.push({
+        localId: `league_${r}_${i}`,
+        phase: "league", pool_label: null, round: `Journée ${r + 1}`,
+        team_a_id: a, team_b_id: b,
+        target_score: koTarget, order_idx: order++,
+        next_local_id: null, next_slot: null,
+        loser_next_local_id: null, loser_next_slot: null,
+      });
+    });
+  });
+  return matches;
+}
+
 function largestPow2LE(n: number): number {
   let p = 1;
   while (p * 2 <= n) p *= 2;

@@ -86,6 +86,35 @@ export interface BothProjections {
   reason: string;
 }
 
+// ── Projection V2 : championnat (3 matchs/binôme) + Top 4 ─────────────────────
+export interface ChampionshipProjection {
+  teams: number;
+  even: boolean; // nb pair de binômes ? (requis pour 3 matchs pile chacun)
+  leagueMatches: number; // phase 1
+  koMatches: number; // demies + petite finale + finale
+  totalMatches: number;
+  rotations: number;
+  durationMin: number;
+  durationLabel: string;
+}
+
+export function projectChampionship(
+  n: number,
+  opts: { tables: number; matchMinutes: number; rotationMinutes: number; matchesPerTeam: number; qualifiers: number }
+): ChampionshipProjection {
+  const even = n % 2 === 0;
+  const leagueMatches = Math.floor((n * opts.matchesPerTeam) / 2);
+  const koMatches = n >= opts.qualifiers ? opts.qualifiers - 1 + 1 : 0; // demies+finale (qualifiers-1) + petite finale
+  const totalMatches = leagueMatches + koMatches;
+  const rotations = Math.ceil(totalMatches / Math.max(1, opts.tables));
+  const durationMin = rotations * (opts.matchMinutes + opts.rotationMinutes);
+  const h = Math.floor(durationMin / 60), m = durationMin % 60;
+  return {
+    teams: n, even, leagueMatches, koMatches, totalMatches, rotations, durationMin,
+    durationLabel: h > 0 ? (m ? `${h}h${String(m).padStart(2, "0")}` : `${h}h`) : `${m} min`,
+  };
+}
+
 export function projectBoth(n: number, avgMatchMinutes: number): BothProjections {
   const ko = project(n, "ko", avgMatchMinutes);
   const poolsKo = project(n, "pools_ko", avgMatchMinutes);

@@ -12,11 +12,29 @@ import { BABYFOOT } from "@/lib/config/babyfoot";
 import {
   getActiveOfficialTournament, getEntries, getMatches, getAwards, getTeamMembersMap,
 } from "@/lib/data/babyfoot";
-import { projectBoth, planPools, structureFor } from "@/lib/babyfoot/format";
-import { generatePools, generateKnockout } from "@/lib/babyfoot/generate";
-import { insertGenMatches } from "@/lib/babyfoot/persist";
-import { computePoolStandings, qualifiedEntryIds } from "@/lib/babyfoot/standings";
+import { projectChampionship } from "@/lib/babyfoot/format";
+import { generateChampionship, generateKnockout } from "@/lib/babyfoot/generate";
+import { insertGenMatches, type ScheduleSlot } from "@/lib/babyfoot/persist";
+import { schedule, type Day } from "@/lib/babyfoot/scheduler";
+import { computeChampionshipStandings } from "@/lib/babyfoot/standings";
 import { recomputeAwards } from "@/lib/babyfoot/awards";
+
+// Dispos par équipe (slot_key 'thu'/'fri') → pour l'ordonnanceur.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function availabilityMap(entries: any[]): Map<string, Set<Day>> {
+  const m = new Map<string, Set<Day>>();
+  for (const e of entries) {
+    const days = new Set<Day>((e.availability ?? []).filter((s: string) => s === "thu" || s === "fri") as Day[]);
+    if (days.size) m.set(e.team_id, days);
+  }
+  return m;
+}
+const scheduleOpts = (tables: number) => ({
+  tables, matchMinutes: BABYFOOT.matchMinutes, rotationMinutes: BABYFOOT.rotationMinutes,
+  dayStart: BABYFOOT.dayStart, dayDate: { thu: BABYFOOT.days.thu.date, fri: BABYFOOT.days.fri.date },
+});
+const toScheduleMap = (assignments: { localId: string; rotation: number | null; table_no: number | null; startISO: string | null }[]) =>
+  new Map<string, ScheduleSlot>(assignments.map((a) => [a.localId, { rotation: a.rotation, table_no: a.table_no, startISO: a.startISO }]));
 
 const no = { headers: { "Cache-Control": "no-store" } };
 
@@ -28,7 +46,10 @@ export async function GET(req: Request) {
   const [entries, matches, awards] = await Promise.all([
     getEntries(admin, t.id), getMatches(admin, t.id), getAwards(admin, t.id),
   ]);
-  const projection = projectBoth(entries.length, BABYFOOT.avgMatchMinutes);
+  const projection = projectChampionship(entries.length, {
+    tables: t.tables_count, matchMinutes: BABYFOOT.matchMinutes, rotationMinutes: BABYFOOT.rotationMinutes,
+    matchesPerTeam: BABYFOOT.matchesPerTeam, qualifiers: BABYFOOT.qualifiers,
+  });
 
   // Équipes (binômes CanalCup) pas encore inscrites → pour l'ajout manuel par l'orga.
   const entered = new Set(entries.map((e) => e.team_id));
@@ -106,59 +127,46 @@ export async function POST(req: Request) {
     }
 
     case "generate": {
-      // Génère le tableau selon le format choisi. Repart de zéro (efface les
-      // matchs existants). NE PUBLIE PAS (l'admin publie ensuite).
+      // Phase 1 : mini-championnat (3 matchs/binôme) + ordonnancement en rotations.
+      // Repart de zéro. NE PUBLIE PAS. Nb de binômes PAIR requis (3 matchs pile).
       const entries = await getEntries(admin, t.id);
-      if (entries.length < 2) return NextResponse.json({ error: "Au moins 2 binômes requis." }, { status: 400 });
-      if (entries.length > 16) return NextResponse.json({ error: "16 binômes maximum (V1)." }, { status: 400 });
+      if (entries.length < 4) return NextResponse.json({ error: "Au moins 4 binômes requis." }, { status: 400 });
+      if (entries.length % 2 !== 0) {
+        return NextResponse.json({ error: `Nombre de binômes IMPAIR (${entries.length}). Ajoute ou retire un binôme pour avoir un nombre pair.` }, { status: 400 });
+      }
+      if (entries.length > 16) return NextResponse.json({ error: "16 binômes maximum." }, { status: 400 });
       await admin.from("babyfoot_matches").delete().eq("tournament_id", t.id);
       await admin.from("babyfoot_entries").update({ pool_label: null, seed: null, final_rank: null }).eq("tournament_id", t.id);
       await admin.from("babyfoot_awards").delete().eq("tournament_id", t.id);
 
       const teamIds = entries.map((e) => e.team_id);
-      if (t.format === "pools_ko" && structureFor(entries.length, "pools_ko").pools.length >= 2) {
-        const sizes = planPools(entries.length);
-        const { assignments, matches } = generatePools(teamIds, sizes, t.pool_target);
-        await insertGenMatches(admin, t.id, matches);
-        // pool_label sur les entries.
-        const byTeam = new Map(entries.map((e) => [e.team_id, e.id]));
-        for (const a of assignments) {
-          const eid = byTeam.get(a.teamId);
-          if (eid) await admin.from("babyfoot_entries").update({ pool_label: a.pool_label }).eq("id", eid);
-        }
-        return NextResponse.json({ ok: true, mode: "pools", poolMatches: matches.length }, no);
-      }
-      // Élimination directe : bracket depuis toutes les équipes (ordre d'inscription).
-      const gen = generateKnockout(teamIds, { koTarget: t.ko_target, finalTarget: t.final_target });
-      await insertGenMatches(admin, t.id, gen);
-      return NextResponse.json({ ok: true, mode: "ko", koMatches: gen.length }, no);
+      const gen = generateChampionship(teamIds, BABYFOOT.matchesPerTeam, t.ko_target);
+      const sched = schedule(gen, { ...scheduleOpts(t.tables_count), availabilityByTeam: availabilityMap(entries) });
+      await insertGenMatches(admin, t.id, gen, toScheduleMap(sched.assignments));
+      return NextResponse.json({ ok: true, leagueMatches: gen.length, warnings: sched.warnings, conflicts: sched.conflicts }, no);
     }
 
     case "generate_ko": {
-      // Après les poules : construit le tableau final depuis les qualifiés
-      // (top 2 de chaque poule), sans toucher aux matchs de poule.
+      // Après le championnat : demies depuis le Top 4 (1v4 / 2v3), planifiées le
+      // vendredi. Ne touche pas aux matchs de championnat.
       const [entries, matches] = await Promise.all([getEntries(admin, t.id), getMatches(admin, t.id)]);
-      const standings = computePoolStandings(
+      const standings = computeChampionshipStandings(
         entries.map((e) => ({ id: e.id, team_id: e.team_id, pool_label: e.pool_label })),
-        matches
+        matches, BABYFOOT.qualifiers
       );
-      const qualified = qualifiedEntryIds(standings, 2);
-      // Seed : vainqueurs de poule d'abord (rang 1), puis 2es — croisement.
-      const winners: string[] = [];
-      const runners: string[] = [];
-      for (const [, list] of standings) {
-        if (list[0] && qualified.has(list[0].entry_id)) winners.push(list[0].team_id);
-        if (list[1] && qualified.has(list[1].entry_id)) runners.push(list[1].team_id);
-      }
-      const seeded = [...winners, ...runners.reverse()];
-      if (seeded.length < 2) return NextResponse.json({ error: "Poules non terminées." }, { status: 400 });
-      // Efface l'éventuel ancien tableau final (garde les poules).
-      await admin.from("babyfoot_matches").delete().eq("tournament_id", t.id).neq("phase", "pool");
+      const top = standings.slice(0, BABYFOOT.qualifiers);
+      if (top.length < BABYFOOT.qualifiers) return NextResponse.json({ error: "Championnat non terminé." }, { status: 400 });
+      // Seed rangs 1..4 → generateKnockout croise 1v4 et 2v3.
+      const seeded = top.map((s) => s.team_id);
+      await admin.from("babyfoot_matches").delete().eq("tournament_id", t.id).neq("phase", "league");
       const gen = generateKnockout(seeded, { koTarget: t.ko_target, finalTarget: t.final_target, startOrder: 1000 });
-      await insertGenMatches(admin, t.id, gen);
+      // Rotations des finales à la suite de celles du championnat.
+      const maxRot = Math.max(0, ...matches.map((m) => m.rotation ?? 0));
+      const sched = schedule(gen, { ...scheduleOpts(t.tables_count), forceDay: BABYFOOT.finalsDay, rotationOffset: maxRot + 1 });
+      await insertGenMatches(admin, t.id, gen, toScheduleMap(sched.assignments));
       await admin.from("babyfoot_tournaments").update({ status: "knockout" }).eq("id", t.id);
       await recomputeAwards(admin, t.id);
-      return NextResponse.json({ ok: true, koMatches: gen.length, qualified: seeded.length }, no);
+      return NextResponse.json({ ok: true, koMatches: gen.length }, no);
     }
 
     case "publish": {

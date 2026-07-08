@@ -11,7 +11,7 @@ interface PublicMatch {
   table_no: number | null; status: string; score_a: number | null; score_b: number | null;
   labelA: string; labelB: string;
 }
-interface Standing { pool: string; rows: { label: string; played: number; won: number; gd: number; rank: number; qualified: boolean }[]; }
+interface ClassRow { rank: number; team_id: string; label: string; played: number; won: number; gd: number; qualified: boolean; }
 interface State {
   tournament: {
     id: string; name: string; season: number; status: string; event_date: string | null;
@@ -19,7 +19,7 @@ interface State {
   } | null;
   registeredCount?: number;
   entries?: { id: string; label: string; pool_label?: string | null }[];
-  standings?: Standing[];
+  classement?: ClassRow[];
   matches?: PublicMatch[];
   podium?: { rank: number; label: string }[];
   highlights?: Highlights;
@@ -34,7 +34,7 @@ interface Highlights {
 }
 
 const MEDAL = ["🥇", "🥈", "🥉"];
-const PHASE_LABEL: Record<string, string> = { prelim: "Barrages", quarter: "Quarts", semi: "Demi-finales", final: "Finale", third: "Petite finale" };
+const PHASE_LABEL: Record<string, string> = { semi: "Demi-finales", final: "Finale", third: "Petite finale" };
 
 export default function TvBabyfootPage() {
   const [s, setS] = useState<State | null>(null);
@@ -64,7 +64,7 @@ export default function TvBabyfootPage() {
   const hasHighlights = !!s.highlights && (s.highlights.biggestWin || s.highlights.undefeated.length || s.highlights.bestStreak || s.highlights.upset);
   let eff = mode === "auto" ? autoMode(t.status) : mode;
   // Auto : pendant le jeu, on alterne le direct et les faits marquants (15 s).
-  if (mode === "auto" && hasHighlights && (eff === "pools" || eff === "matches") && cycle % 2 === 1) eff = "faits";
+  if (mode === "auto" && hasHighlights && (eff === "classement" || eff === "matches") && cycle % 2 === 1) eff = "faits";
 
   return shell(
     <>
@@ -74,8 +74,8 @@ export default function TvBabyfootPage() {
       </header>
       <div className="flex-1 min-h-0">
         {eff === "inscriptions" && <Inscriptions s={s} t={t} />}
-        {eff === "tirage" && <Tirage t={t} entries={s.entries ?? []} />}
-        {eff === "pools" && <Pools s={s} />}
+        {eff === "tirage" && <Tirage t={t} entries={s.entries ?? []} matches={s.matches ?? []} />}
+        {eff === "classement" && <Classement s={s} />}
         {eff === "bracket" && <Bracket s={s} />}
         {eff === "matches" && <Matches s={s} />}
         {eff === "faits" && <Faits h={s.highlights} />}
@@ -93,7 +93,7 @@ function autoMode(status: string): string {
   switch (status) {
     case "draft": case "registration": return "inscriptions";
     case "draw": return "tirage";
-    case "pools": return "pools";
+    case "pools": return "classement";
     case "knockout": return "matches";
     case "finished": return "podium";
     default: return "inscriptions";
@@ -137,34 +137,31 @@ function countdownLabel(iso: string | null): string | null {
 
 // Tirage au sort : compte à rebours PUIS révélation animée des binômes dans les
 // poules, un par un (round-robin entre poules), avec un pop sur le dernier tiré.
-function Tirage({ t, entries }: { t: NonNullable<State["tournament"]>; entries: NonNullable<State["entries"]> }) {
-  const pooled = entries.filter((e) => e.pool_label);
+// Tirage au sort du championnat : on révèle, binôme par binôme, ses 3 adversaires.
+function Tirage({ t, entries, matches }: { t: NonNullable<State["tournament"]>; entries: NonNullable<State["entries"]>; matches: PublicMatch[] }) {
   const cd = countdownLabel(t.draw_at);
-
-  // Ordre de révélation : round-robin A,B,C,D,A,B… (remplissage "en parallèle").
-  const pools = [...new Set(pooled.map((e) => e.pool_label!))].sort();
-  const byPool = new Map(pools.map((p) => [p, pooled.filter((e) => e.pool_label === p)]));
-  const order: { pool: string; label: string }[] = [];
-  let more = true;
-  for (let i = 0; more; i++) {
-    more = false;
-    for (const p of pools) {
-      const list = byPool.get(p)!;
-      if (list[i]) { order.push({ pool: p, label: list[i].label }); more = true; }
-    }
+  const league = matches.filter((m) => m.phase === "league");
+  const oppByTeam = new Map<string, string[]>();
+  for (const e of entries) oppByTeam.set(e.label, []);
+  for (const m of league) {
+    if (oppByTeam.has(m.labelA)) oppByTeam.get(m.labelA)!.push(m.labelB);
+    if (oppByTeam.has(m.labelB)) oppByTeam.get(m.labelB)!.push(m.labelA);
   }
+  const teams = entries.map((e) => e.label).filter((l) => (oppByTeam.get(l)?.length ?? 0) > 0);
+  // Étapes de révélation : pour chaque binôme, l'entête puis ses adversaires 1,2,3.
+  const steps: { team: string; opp: number }[] = [];
+  for (const tm of teams) { steps.push({ team: tm, opp: -1 }); (oppByTeam.get(tm) ?? []).forEach((_, i) => steps.push({ team: tm, opp: i })); }
 
   const [revealed, setRevealed] = useState(0);
   useEffect(() => {
-    if (!pooled.length) return;
+    if (!teams.length) return;
     setRevealed(0);
-    const iv = setInterval(() => setRevealed((v) => (v >= order.length ? v : v + 1)), 1600);
+    const iv = setInterval(() => setRevealed((v) => (v >= steps.length ? v : v + 1)), 1300);
     return () => clearInterval(iv);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pooled.length]);
+  }, [teams.length]);
 
-  // Pas encore de tirage généré → compte à rebours / attente.
-  if (!pooled.length) {
+  if (!teams.length) {
     return <Center>
       <p className="text-9xl mb-6">🎲</p>
       <h2 className="canal-headline text-7xl">Tirage au sort</h2>
@@ -172,32 +169,29 @@ function Tirage({ t, entries }: { t: NonNullable<State["tournament"]>; entries: 
     </Center>;
   }
 
-  const done = revealed >= order.length;
-  const lastLabel = revealed > 0 ? order[revealed - 1].label : null;
+  const cur = steps[Math.min(revealed, steps.length - 1)];
+  const done = revealed >= steps.length;
+  const revealedCount = (tm: string) => steps.slice(0, revealed).filter((s) => s.team === tm && s.opp >= 0).length;
+
   return (
     <div className="h-full flex flex-col">
-      <div className="text-center mb-6">
-        <h2 className="canal-headline text-6xl">🎲 Tirage au sort</h2>
-        {!done && lastLabel && <p key={revealed} className="text-4xl text-canal-yellow font-black mt-3 animate-[pop_0.5s_ease]">{lastLabel} !</p>}
-        {done && <p className="text-4xl text-green-400 font-black mt-3">Poules complètes — que le meilleur gagne&nbsp;! 👏</p>}
+      <div className="text-center mb-5">
+        <h2 className="canal-headline text-6xl">🎲 Tirage — championnat</h2>
+        {!done ? <p key={revealed} className="text-4xl text-canal-yellow font-black mt-3 animate-[pop_0.5s_ease]">{cur.team}{cur.opp >= 0 ? ` affronte ${oppByTeam.get(cur.team)?.[cur.opp] ?? ""} !` : "…"}</p>
+               : <p className="text-4xl text-green-400 font-black mt-3">Le championnat est prêt — que le meilleur gagne&nbsp;! 👏</p>}
       </div>
-      <div className="grid gap-5 flex-1" style={{ gridTemplateColumns: `repeat(${pools.length || 1}, minmax(0,1fr))` }}>
-        {pools.map((p) => {
-          const list = byPool.get(p)!;
+      <div className="grid grid-cols-2 gap-4 flex-1 overflow-hidden content-start">
+        {teams.map((tm) => {
+          const opps = oppByTeam.get(tm) ?? [];
+          const rc = revealedCount(tm);
+          const active = cur.team === tm && !done;
           return (
-            <div key={p} className="canal-card bg-canal-gray-dark/40">
-              <h3 className="text-3xl font-black text-canal-yellow mb-3">Poule {p}</h3>
-              <div className="space-y-2">
-                {list.map((e) => {
-                  const idx = order.findIndex((o) => o.pool === p && o.label === e.label);
-                  const shown = idx < revealed;
-                  const isLast = idx === revealed - 1;
-                  return (
-                    <div key={e.id} className={`text-2xl font-bold rounded-lg px-3 py-2 transition-all duration-500 ${shown ? (isLast ? "bg-canal-yellow text-canal-black scale-105" : "bg-canal-gray-mid text-white") : "bg-canal-gray-mid/30 text-transparent"}`}>
-                      {shown ? e.label : "•••"}
-                    </div>
-                  );
-                })}
+            <div key={tm} className={`canal-card ${active ? "bg-canal-yellow/15 border border-canal-yellow" : "bg-canal-gray-dark/40"}`}>
+              <p className="text-2xl font-black text-white">{tm}</p>
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {opps.map((o, i) => (
+                  <span key={i} className={`text-lg font-bold rounded px-2 py-0.5 ${i < rc ? "bg-canal-gray-mid text-white" : "bg-canal-gray-mid/30 text-transparent"}`}>{i < rc ? o : "•••"}</span>
+                ))}
               </div>
             </div>
           );
@@ -207,27 +201,27 @@ function Tirage({ t, entries }: { t: NonNullable<State["tournament"]>; entries: 
   );
 }
 
-function Pools({ s }: { s: State }) {
+function Classement({ s }: { s: State }) {
+  const rows = s.classement ?? [];
   return (
-    <div className="grid grid-cols-2 gap-6 h-full overflow-hidden">
-      {(s.standings ?? []).map((st) => (
-        <div key={st.pool} className="canal-card bg-canal-gray-dark/40">
-          <h3 className="text-3xl font-black text-canal-yellow mb-3">Poule {st.pool}</h3>
-          {st.rows.map((r) => (
-            <div key={r.label} className={`flex justify-between text-2xl py-1.5 border-b border-white/5 ${r.qualified ? "text-green-300" : "text-white"}`}>
-              <span className="font-bold">{r.qualified ? "✓ " : ""}{r.label}</span>
-              <span className="text-canal-gray-muted">{r.won} V · {r.gd > 0 ? `+${r.gd}` : r.gd}</span>
-            </div>
-          ))}
-        </div>
-      ))}
+    <div className="h-full overflow-hidden">
+      <h2 className="text-4xl font-black text-canal-yellow mb-4">Classement · Top 4 qualifié</h2>
+      <div className="space-y-1.5">
+        {rows.map((r) => (
+          <div key={r.team_id} className={`flex items-center gap-4 text-3xl py-1.5 border-b border-white/5 ${r.qualified ? "text-green-300" : "text-white"}`}>
+            <span className="w-10 font-black">{r.rank <= 3 ? MEDAL[r.rank - 1] : r.rank}</span>
+            <span className="flex-1 font-bold truncate">{r.qualified ? "✓ " : ""}{r.label}</span>
+            <span className="text-canal-gray-muted">{r.won} V</span>
+            <span className="text-canal-gray-muted w-16 text-right">{r.gd > 0 ? `+${r.gd}` : r.gd}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
 function Bracket({ s }: { s: State }) {
-  const ko = (s.matches ?? []).filter((m) => m.phase !== "pool");
-  const byPhase = ["prelim", "quarter", "semi", "final", "third"].map((ph) => ({ ph, list: ko.filter((m) => m.phase === ph) })).filter((g) => g.list.length);
+  const byPhase = ["semi", "final", "third"].map((ph) => ({ ph, list: (s.matches ?? []).filter((m) => m.phase === ph) })).filter((g) => g.list.length);
   return (
     <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(${byPhase.length || 1}, minmax(0,1fr))` }}>
       {byPhase.map(({ ph, list }) => (

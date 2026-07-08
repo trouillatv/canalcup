@@ -9,17 +9,18 @@ import { Trophy, Users, ArrowRight, Swords, Camera, BarChart3, Loader2 } from "l
 
 interface PublicMatch {
   id: string; phase: string | null; round: string | null; pool_label: string | null;
-  table_no: number | null; status: string; score_a: number | null; score_b: number | null;
+  table_no: number | null; rotation: number | null; starts_at: string | null;
+  status: string; score_a: number | null; score_b: number | null;
   labelA: string; labelB: string;
 }
-interface Standing { pool: string; rows: { label: string; played: number; won: number; lost: number; gd: number; rank: number; qualified: boolean }[]; }
+interface ClassRow { rank: number; team_id: string; label: string; played: number; won: number; lost: number; gd: number; gf: number; qualified: boolean; }
 interface State {
   tournament: {
     id: string; name: string; season: number; status: string; event_date: string | null;
     registration_open: boolean; target_teams: number; format: string;
   } | null;
   registeredCount?: number;
-  standings?: Standing[];
+  classement?: ClassRow[];
   matches?: PublicMatch[];
   podium?: { rank: number; label: string }[];
   stats?: { entry_id: string; team_id: string; label: string; played: number; won: number; lost: number; gf: number; ga: number; gd: number; final_rank: number | null }[];
@@ -36,8 +37,9 @@ interface Highlights {
   upset: { winner: string; loser: string; detail: string } | null;
 }
 
-const PHASE_ORDER = ["prelim", "quarter", "semi", "final", "third"];
-const PHASE_LABEL: Record<string, string> = { prelim: "Barrages", quarter: "Quarts", semi: "Demi-finales", final: "Finale", third: "Petite finale" };
+const PHASE_ORDER = ["semi", "final", "third"];
+const PHASE_LABEL: Record<string, string> = { semi: "Demi-finales", final: "Finale", third: "Petite finale" };
+function timeLabel(iso: string | null): string { if (!iso) return ""; const d = new Date(iso); return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Noumea" }); }
 const MEDAL = ["🥇", "🥈", "🥉"];
 
 export default function BabyfootPage() {
@@ -61,8 +63,10 @@ export default function BabyfootPage() {
   if (loading) return <div className="px-4 py-10 text-center text-canal-gray-muted">Chargement…</div>;
 
   const t = s?.tournament;
-  const koMatches = (s?.matches ?? []).filter((m) => m.phase !== "pool");
-  const koByPhase = PHASE_ORDER.map((ph) => ({ ph, list: koMatches.filter((m) => m.phase === ph) })).filter((g) => g.list.length);
+  const leagueMatches = (s?.matches ?? []).filter((m) => m.phase === "league");
+  const koByPhase = PHASE_ORDER.map((ph) => ({ ph, list: (s?.matches ?? []).filter((m) => m.phase === ph) })).filter((g) => g.list.length);
+  // Planning : matchs de championnat groupés par rotation.
+  const rotations = [...new Set(leagueMatches.map((m) => m.rotation).filter((r): r is number => r != null))].sort((a, b) => a - b);
   const remaining = t ? Math.max(0, t.target_teams - (s?.registeredCount ?? 0)) : 0;
   const showRegister = t && (t.status === "draft" || t.status === "registration") && t.registration_open;
 
@@ -106,28 +110,54 @@ export default function BabyfootPage() {
         </div>
       )}
 
-      {/* Classements de poule */}
-      {(s?.standings?.length ?? 0) > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-sm font-bold uppercase text-canal-yellow">Poules</h2>
-          {s!.standings!.map((st) => (
-            <div key={st.pool} className="canal-card">
-              <p className="font-black text-white text-sm mb-2">Poule {st.pool}</p>
-              <table className="w-full text-xs">
-                <thead><tr className="text-canal-gray-muted"><th className="text-left font-normal">Binôme</th><th className="px-1">J</th><th className="px-1">V</th><th className="px-1">Diff</th></tr></thead>
-                <tbody>
-                  {st.rows.map((r) => (
-                    <tr key={r.label} className={r.qualified ? "text-green-300" : "text-white"}>
-                      <td className="py-1 font-bold flex items-center gap-1">{r.qualified && <span className="text-green-400">✓</span>}{r.label}</td>
-                      <td className="text-center">{r.played}</td>
-                      <td className="text-center font-bold">{r.won}</td>
-                      <td className="text-center">{r.gd > 0 ? `+${r.gd}` : r.gd}</td>
-                    </tr>
+      {/* Classement du championnat (unique) */}
+      {(s?.classement?.filter((r) => r.played > 0).length ?? 0) > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-bold uppercase text-canal-yellow">Classement · Top 4 qualifié</h2>
+          <div className="canal-card overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead><tr className="text-canal-gray-muted border-b border-canal-gray-light">
+                <th className="text-left py-1.5 w-6">#</th><th className="text-left">Binôme</th><th className="px-1">J</th><th className="px-1">V</th><th className="px-1">Diff</th>
+              </tr></thead>
+              <tbody>
+                {s!.classement!.map((r) => (
+                  <tr key={r.team_id} className={`border-b border-canal-gray-mid ${r.qualified ? "text-green-300" : "text-white"}`}>
+                    <td className="py-1.5 font-black">{r.rank <= 3 ? MEDAL[r.rank - 1] : r.rank}</td>
+                    <td className="font-bold"><Link href={`/babyfoot/binome/${r.team_id}`} className="hover:text-canal-yellow">{r.qualified ? "✓ " : ""}{r.label}</Link></td>
+                    <td className="text-center">{r.played}</td>
+                    <td className="text-center font-bold">{r.won}</td>
+                    <td className="text-center">{r.gd > 0 ? `+${r.gd}` : r.gd}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* Programme (rotations / horaires / tables) */}
+      {rotations.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-bold uppercase text-canal-yellow">Programme</h2>
+          {rotations.map((rot) => {
+            const ms = leagueMatches.filter((m) => m.rotation === rot);
+            const time = timeLabel(ms[0]?.starts_at ?? null);
+            return (
+              <div key={rot} className="canal-card">
+                <p className="text-[11px] font-bold text-canal-gray-muted uppercase mb-1.5">Rotation {rot}{time ? ` · ${time}` : ""}</p>
+                <div className="space-y-1.5">
+                  {ms.map((m) => (
+                    <div key={m.id} className="flex items-center gap-2 text-sm">
+                      {m.table_no != null && <span className="text-[10px] font-black text-canal-black bg-canal-yellow rounded px-1.5 py-0.5">T{m.table_no}</span>}
+                      <span className="flex-1 text-right font-bold truncate">{m.labelA}</span>
+                      {m.status === "finished" ? <span className="score-display px-1">{m.score_a}-{m.score_b}</span> : <span className="text-canal-gray-muted text-xs">vs</span>}
+                      <span className="flex-1 font-bold truncate">{m.labelB}</span>
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          ))}
+                </div>
+              </div>
+            );
+          })}
         </section>
       )}
 

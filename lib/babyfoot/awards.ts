@@ -1,29 +1,16 @@
-// Moteur de points baby-foot — DÉTERMINISTE et IDEMPOTENT.
+// Moteur de points baby-foot V2 (championnat) — DÉTERMINISTE & IDEMPOTENT.
 //
-// À partir de l'état des matchs, calcule le PALIER de chaque binôme (son
-// résultat) et réécrit intégralement le registre babyfoot_awards de l'édition
-// (delete + insert) → recalculer après correction d'un score ne duplique jamais
-// et converge toujours vers le même résultat. Un binôme = UN palier (le plus
-// haut atteint). Valeur faciale depuis lib/config/babyfoot.ts.
+// Barème CUMULATIF (valeur faciale) : Participation 5 · +5 par victoire de
+// championnat (max 15) · Qualif en demie 10 · Victoire de demie 15 · Champion 20.
+// → max 65. Plusieurs lignes par binôme (1 par palier). recomputeAwards réécrit
+// intégralement le registre de l'édition (delete + insert).
 
-import { BABYFOOT, BABYFOOT_STAGE_ORDER, type BabyfootStage } from "@/lib/config/babyfoot";
-import { computePoolStandings, qualifiedEntryIds, type EntryLite } from "@/lib/babyfoot/standings";
+import { BABYFOOT } from "@/lib/config/babyfoot";
+import { computeChampionshipStandings, type EntryLite } from "@/lib/babyfoot/standings";
 import type { BabyFootMatch } from "@/lib/supabase/types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DbClient = any;
-
-const rank = (s: BabyfootStage) => BABYFOOT_STAGE_ORDER.indexOf(s);
-function bump(map: Map<string, BabyfootStage>, id: string, s: BabyfootStage) {
-  const cur = map.get(id) ?? "participation";
-  if (rank(s) > rank(cur)) map.set(id, s);
-}
-
-const PHASE_TIER: Record<string, BabyfootStage> = {
-  quarter: "qualified",
-  semi: "semifinalist",
-  final: "finalist",
-};
 
 export interface RecomputeResult {
   ok: boolean;
@@ -32,29 +19,18 @@ export interface RecomputeResult {
   error?: string;
 }
 
-/**
- * Recalcule et réécrit tous les awards d'une édition. Sans écriture de points
- * tant que le tournoi n'a pas atteint la phase de jeu (pools/knockout/finished).
- */
 export async function recomputeAwards(admin: DbClient, tournamentId: string): Promise<RecomputeResult> {
   const { data: t } = await admin
-    .from("babyfoot_tournaments")
-    .select("id, status, format")
-    .eq("id", tournamentId)
-    .maybeSingle();
+    .from("babyfoot_tournaments").select("id, status").eq("id", tournamentId).maybeSingle();
   if (!t) return { ok: false, error: "Édition introuvable" };
 
   const [{ data: entriesRaw }, { data: matchesRaw }] = await Promise.all([
-    admin.from("babyfoot_entries").select("id, team_id, pool_label").eq("tournament_id", tournamentId),
-    admin
-      .from("babyfoot_matches")
-      .select("id, team_a_id, team_b_id, score_a, score_b, status, phase")
-      .eq("tournament_id", tournamentId),
+    admin.from("babyfoot_entries").select("id, team_id").eq("tournament_id", tournamentId),
+    admin.from("babyfoot_matches").select("id, team_a_id, team_b_id, score_a, score_b, status, phase").eq("tournament_id", tournamentId),
   ]);
   const entries = (entriesRaw ?? []) as EntryLite[];
   const matches = (matchesRaw ?? []) as BabyFootMatch[];
 
-  // Table rase : on repart toujours d'un registre vierge pour l'édition.
   await admin.from("babyfoot_awards").delete().eq("tournament_id", tournamentId);
   await admin.from("babyfoot_entries").update({ final_rank: null }).eq("tournament_id", tournamentId);
 
@@ -62,83 +38,63 @@ export async function recomputeAwards(admin: DbClient, tournamentId: string): Pr
   if (!scoringOn || entries.length === 0) return { ok: true, awarded: 0 };
 
   const entryByTeam = new Map(entries.map((e) => [e.team_id, e.id]));
-  const tier = new Map<string, BabyfootStage>();
-  for (const e of entries) tier.set(e.id, "participation"); // plancher : a participé
+  const b = BABYFOOT.bareme;
 
-  // Sortis des poules (top 2) → au moins "qualified".
-  if (t.format === "pools_ko") {
-    const standings = computePoolStandings(entries, matches);
-    for (const id of qualifiedEntryIds(standings, 2)) bump(tier, id, "qualified");
-  }
+  // Classement championnat → victoires + qualifiés (top 4).
+  const standings = computeChampionshipStandings(entries, matches, BABYFOOT.qualifiers);
+  const winsByEntry = new Map(standings.map((s) => [s.entry_id, s.won]));
+  const qualified = new Set(standings.filter((s) => s.qualified).map((s) => s.entry_id));
 
-  // Profondeur atteinte dans le tableau (apparaître dans un match d'une phase =
-  // avoir atteint cette phase).
-  for (const m of matches) {
-    const pt = m.phase ? PHASE_TIER[m.phase] : undefined;
-    if (!pt) continue;
-    for (const teamId of [m.team_a_id, m.team_b_id]) {
-      const eid = entryByTeam.get(teamId);
-      if (eid) bump(tier, eid, pt);
+  // Résultats de phase finale.
+  const winnerOf = (m: BabyFootMatch): string | null => {
+    if (m.status !== "finished" || m.score_a == null || m.score_b == null || m.score_a === m.score_b) return null;
+    return m.score_a > m.score_b ? m.team_a_id ?? null : m.team_b_id ?? null;
+  };
+  const semiWinners = new Set<string>();
+  for (const m of matches) if (m.phase === "semi") { const w = winnerOf(m); const e = w && entryByTeam.get(w); if (e) semiWinners.add(e); }
+
+  let championEntryId: string | null = null, finalistEntryId: string | null = null;
+  const finalMatch = matches.find((m) => m.phase === "final");
+  if (finalMatch) {
+    const w = winnerOf(finalMatch);
+    if (w) {
+      const loser = w === finalMatch.team_a_id ? finalMatch.team_b_id : finalMatch.team_a_id;
+      championEntryId = entryByTeam.get(w) ?? null;
+      finalistEntryId = (loser && entryByTeam.get(loser)) || null;
     }
   }
 
-  // Champion = vainqueur de la finale jouée.
-  let championEntryId: string | null = null;
-  let finalistEntryId: string | null = null;
-  const final = matches.find(
-    (m) => m.phase === "final" && m.status === "finished" && m.score_a != null && m.score_b != null
-  );
-  if (final) {
-    const sa = final.score_a ?? 0;
-    const sb = final.score_b ?? 0;
-    const winTeam = sa > sb ? final.team_a_id : sb > sa ? final.team_b_id : null;
-    if (winTeam) {
-      const loseTeam = winTeam === final.team_a_id ? final.team_b_id : final.team_a_id;
-      const wEid = entryByTeam.get(winTeam);
-      const lEid = entryByTeam.get(loseTeam);
-      if (wEid) { bump(tier, wEid, "champion"); championEntryId = wEid; }
-      if (lEid) finalistEntryId = lEid;
-    }
-  }
+  // Construction du registre (cumulatif).
+  type Row = { tournament_id: string; entry_id: string; team_id: string; stage: string; points: number; label: string };
+  const rows: Row[] = [];
+  const push = (e: EntryLite, stage: string, points: number, label: string) =>
+    rows.push({ tournament_id: tournamentId, entry_id: e.id, team_id: e.team_id, stage, points, label });
 
-  // Rang final (mémoire/podium) : 1 champion, 2 finaliste, 3/4 petite finale.
+  for (const e of entries) {
+    push(e, "participation", b.participation, BABYFOOT.stageLabel.participation);
+    const wins = winsByEntry.get(e.id) ?? 0;
+    if (wins > 0) push(e, "phase1", wins * b.matchWin, `${BABYFOOT.stageLabel.phase1} (${wins})`);
+    if (qualified.has(e.id)) push(e, "qualified", b.qualified, BABYFOOT.stageLabel.qualified);
+    if (semiWinners.has(e.id)) push(e, "semi_win", b.semiWin, BABYFOOT.stageLabel.semi_win);
+    if (championEntryId === e.id) push(e, "champion", b.champion, BABYFOOT.stageLabel.champion);
+  }
+  if (rows.length) await admin.from("babyfoot_awards").insert(rows);
+
+  // Rang final (podium) : 1 champion, 2 finaliste, 3/4 petite finale.
   const finalRank = new Map<string, number>();
   if (championEntryId) finalRank.set(championEntryId, 1);
   if (finalistEntryId) finalRank.set(finalistEntryId, 2);
-  const third = matches.find(
-    (m) => m.phase === "third" && m.status === "finished" && m.score_a != null && m.score_b != null
-  );
+  const third = matches.find((m) => m.phase === "third");
   if (third) {
-    const sa = third.score_a ?? 0;
-    const sb = third.score_b ?? 0;
-    const winTeam = sa > sb ? third.team_a_id : sb > sa ? third.team_b_id : null;
-    if (winTeam) {
-      const loseTeam = winTeam === third.team_a_id ? third.team_b_id : third.team_a_id;
-      const w = entryByTeam.get(winTeam);
-      const l = entryByTeam.get(loseTeam);
-      if (w) finalRank.set(w, 3);
-      if (l) finalRank.set(l, 4);
+    const w = winnerOf(third);
+    if (w) {
+      const loser = w === third.team_a_id ? third.team_b_id : third.team_a_id;
+      const we = entryByTeam.get(w); const le = loser && entryByTeam.get(loser);
+      if (we) finalRank.set(we, 3);
+      if (le) finalRank.set(le, 4);
     }
   }
-
-  // Écriture du registre (1 ligne = 1 binôme = son palier, valeur faciale).
-  const rows = entries.map((e) => {
-    const stage = tier.get(e.id) ?? "participation";
-    return {
-      tournament_id: tournamentId,
-      entry_id: e.id,
-      team_id: e.team_id,
-      stage,
-      points: BABYFOOT.bareme[stage],
-      label: BABYFOOT.stageLabel[stage],
-    };
-  });
-  if (rows.length) await admin.from("babyfoot_awards").insert(rows);
-
-  // Rangs finaux.
-  for (const [entryId, r] of finalRank) {
-    await admin.from("babyfoot_entries").update({ final_rank: r }).eq("id", entryId);
-  }
+  for (const [entryId, r] of finalRank) await admin.from("babyfoot_entries").update({ final_rank: r }).eq("id", entryId);
 
   return { ok: true, awarded: rows.length, championEntryId };
 }
