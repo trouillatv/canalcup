@@ -9,13 +9,17 @@ import Link from "next/link";
 import { Trophy, Check, Users, CalendarClock, Loader2, PartyPopper } from "lucide-react";
 import { CreateBabyfootTeamCard } from "@/components/babyfoot/CreateBabyfootTeamCard";
 
-interface Slot { key: string; label: string; }
+interface Slot { key: string; label: string; day: "thu" | "fri"; start: string; }
 interface Ctx {
   tournament: {
     id: string; name: string; event_date: string | null;
     status: string; registration_open: boolean; target_teams: number;
   } | null;
   slots: Slot[];
+  minSlots: number;
+  recommendedSlots: number;
+  slotCap: number;
+  slotCounts: Record<string, number>;
   binome: { meName: string; teamId: string | null; teamName: string | null; partnerName: string | null; memberCount: number } | null;
   myEntry: { id: string; label: string; display_name: string | null; availability: string[] } | null;
   registeredCount: number;
@@ -163,36 +167,48 @@ export default function BabyfootRegisterPage() {
             />
           </div>
 
-          {/* Disponibilités */}
+          {/* Disponibilités — créneaux de 30 min (1 seule table) */}
           <div>
             <label className="text-xs font-bold uppercase text-canal-gray-muted flex items-center gap-1.5"><CalendarClock size={12} /> Vos disponibilités</label>
-            <p className="text-[11px] text-canal-gray-muted mt-1">Cochez tous les moments où vous pouvez jouer.</p>
-            <div className="mt-2 grid grid-cols-1 gap-2">
-              {ctx.slots.map((s) => {
-                const on = slots.has(s.key);
-                return (
-                  <button
-                    key={s.key}
-                    onClick={() => toggle(s.key)}
-                    className={`flex items-center justify-between px-4 py-3 rounded-xl border text-sm font-bold transition-colors ${
-                      on ? "bg-canal-yellow/15 border-canal-yellow text-canal-yellow" : "bg-canal-gray-mid border-canal-gray-light text-white"
-                    }`}
-                  >
-                    {s.label}
-                    <span className={`w-5 h-5 rounded-md flex items-center justify-center ${on ? "bg-canal-yellow text-canal-black" : "border border-canal-gray-light"}`}>
-                      {on && <Check size={14} />}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            <p className="text-[11px] text-canal-gray-muted mt-1">
+              🏓 <b>Une seule table.</b> Choisissez au minimum <b>{ctx.minSlots}</b> créneaux de 30 min (recommandé : {ctx.recommendedSlots}+). Le tirage et le planning sont construits à partir de ces disponibilités — plus vous en cochez, plus c&apos;est facile.
+            </p>
+            {(["thu", "fri"] as const).map((day) => (
+              <div key={day} className="mt-3">
+                <p className="text-[11px] font-black text-canal-yellow uppercase mb-1.5">{day === "thu" ? "Jeudi 16" : "Vendredi 17"}</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {ctx.slots.filter((s) => s.day === day).map((s) => {
+                    const on = slots.has(s.key);
+                    const count = ctx.slotCounts[s.key] ?? 0;
+                    const full = !on && count >= ctx.slotCap;
+                    return (
+                      <button
+                        key={s.key}
+                        disabled={full}
+                        onClick={() => toggle(s.key)}
+                        className={`flex items-center justify-between px-3 py-2 rounded-lg border text-xs font-bold transition-colors ${
+                          full ? "bg-canal-gray-mid/40 border-canal-gray-light text-canal-gray-muted opacity-60"
+                          : on ? "bg-canal-yellow/15 border-canal-yellow text-canal-yellow" : "bg-canal-gray-mid border-canal-gray-light text-white"
+                        }`}
+                      >
+                        <span>{s.start}{full ? " · complet" : count > 0 ? ` · ${count}/${ctx.slotCap}` : ""}</span>
+                        <span className={`w-4 h-4 rounded flex items-center justify-center ${on ? "bg-canal-yellow text-canal-black" : "border border-canal-gray-light"}`}>{on && <Check size={11} />}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+            <p className={`text-[11px] mt-2 font-bold ${slots.size >= ctx.minSlots ? "text-green-400" : "text-canal-yellow"}`}>
+              {slots.size} / {ctx.minSlots} créneaux minimum {slots.size >= ctx.minSlots ? "✓" : ""}
+            </p>
           </div>
 
           {error && <p className="text-red-400 text-sm font-bold">{error}</p>}
 
           <button
             onClick={submit}
-            disabled={saving || !t?.registration_open}
+            disabled={saving || !t?.registration_open || slots.size < ctx.minSlots}
             className="w-full min-h-[48px] flex items-center justify-center gap-2 rounded-xl bg-canal-yellow text-canal-black font-black disabled:opacity-50 hover:bg-canal-yellow-hover transition-colors"
           >
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Trophy size={16} />}

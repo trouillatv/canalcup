@@ -8,31 +8,24 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminRequest } from "@/lib/auth/admin";
-import { BABYFOOT } from "@/lib/config/babyfoot";
+import { BABYFOOT, slotStartISO } from "@/lib/config/babyfoot";
 import {
   getActiveOfficialTournament, getEntries, getMatches, getAwards, getTeamMembersMap,
 } from "@/lib/data/babyfoot";
 import { projectChampionship } from "@/lib/babyfoot/format";
 import { generateChampionship, generateKnockout } from "@/lib/babyfoot/generate";
 import { insertGenMatches, type ScheduleSlot } from "@/lib/babyfoot/persist";
-import { schedule, type Day } from "@/lib/babyfoot/scheduler";
+import { schedule } from "@/lib/babyfoot/scheduler";
 import { computeChampionshipStandings } from "@/lib/babyfoot/standings";
 import { recomputeAwards } from "@/lib/babyfoot/awards";
 
-// Dispos par équipe (slot_key 'thu'/'fri') → pour l'ordonnanceur.
+// Dispos par équipe (slot_keys des 12 créneaux de 30 min).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function availabilityMap(entries: any[]): Map<string, Set<Day>> {
-  const m = new Map<string, Set<Day>>();
-  for (const e of entries) {
-    const days = new Set<Day>((e.availability ?? []).filter((s: string) => s === "thu" || s === "fri") as Day[]);
-    if (days.size) m.set(e.team_id, days);
-  }
+function availabilityMap(entries: any[]): Map<string, Set<string>> {
+  const m = new Map<string, Set<string>>();
+  for (const e of entries) { const s = new Set<string>(e.availability ?? []); if (s.size) m.set(e.team_id, s); }
   return m;
 }
-const scheduleOpts = (tables: number) => ({
-  tables, matchMinutes: BABYFOOT.matchMinutes, rotationMinutes: BABYFOOT.rotationMinutes,
-  dayStart: BABYFOOT.dayStart, dayDate: { thu: BABYFOOT.days.thu.date, fri: BABYFOOT.days.fri.date },
-});
 const toScheduleMap = (assignments: { localId: string; rotation: number | null; table_no: number | null; startISO: string | null }[]) =>
   new Map<string, ScheduleSlot>(assignments.map((a) => [a.localId, { rotation: a.rotation, table_no: a.table_no, startISO: a.startISO }]));
 
@@ -141,7 +134,7 @@ export async function POST(req: Request) {
 
       const teamIds = entries.map((e) => e.team_id);
       const gen = generateChampionship(teamIds, BABYFOOT.matchesPerTeam, t.ko_target);
-      const sched = schedule(gen, { ...scheduleOpts(t.tables_count), availabilityByTeam: availabilityMap(entries) });
+      const sched = schedule(gen, { slots: BABYFOOT.slots, matchesPerSlot: BABYFOOT.matchesPerSlot, slotStartISO, availabilityByTeam: availabilityMap(entries) });
       await insertGenMatches(admin, t.id, gen, toScheduleMap(sched.assignments));
       return NextResponse.json({ ok: true, leagueMatches: gen.length, warnings: sched.warnings, conflicts: sched.conflicts }, no);
     }
@@ -160,9 +153,8 @@ export async function POST(req: Request) {
       const seeded = top.map((s) => s.team_id);
       await admin.from("babyfoot_matches").delete().eq("tournament_id", t.id).neq("phase", "league");
       const gen = generateKnockout(seeded, { koTarget: t.ko_target, finalTarget: t.final_target, startOrder: 1000 });
-      // Rotations des finales à la suite de celles du championnat.
-      const maxRot = Math.max(0, ...matches.map((m) => m.rotation ?? 0));
-      const sched = schedule(gen, { ...scheduleOpts(t.tables_count), forceDay: BABYFOOT.finalsDay, rotationOffset: maxRot + 1 });
+      // Finales : placées sur les créneaux du vendredi (dispos ignorées).
+      const sched = schedule(gen, { slots: BABYFOOT.slots, matchesPerSlot: BABYFOOT.matchesPerSlot, slotStartISO, forceDay: BABYFOOT.finalsDay });
       await insertGenMatches(admin, t.id, gen, toScheduleMap(sched.assignments));
       await admin.from("babyfoot_tournaments").update({ status: "knockout" }).eq("id", t.id);
       await recomputeAwards(admin, t.id);

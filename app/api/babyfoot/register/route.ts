@@ -29,6 +29,10 @@ export async function GET() {
     ? entries.find((e) => e.team_id === binome.teamId) ?? null
     : null;
 
+  // Nombre de binômes dispos par créneau (pour afficher le remplissage / "complet").
+  const slotCounts: Record<string, number> = {};
+  for (const e of entries) for (const k of e.availability) slotCounts[k] = (slotCounts[k] ?? 0) + 1;
+
   return NextResponse.json(
     {
       tournament: tournament && {
@@ -37,7 +41,11 @@ export async function GET() {
         target_teams: tournament.target_teams,
       },
       slots: BABYFOOT.slots,
-      binome, // { meName, teamId, teamName, partnerName }
+      minSlots: BABYFOOT.minSlots,
+      recommendedSlots: BABYFOOT.recommendedSlots,
+      slotCap: BABYFOOT.slotRegistrationCap,
+      slotCounts,
+      binome, // { meName, teamId, teamName, partnerName, memberCount }
       myEntry, // inscription existante (ou null)
       registeredCount: entries.length,
       entries: entries.map((e) => ({ id: e.id, label: e.label })), // liste publique
@@ -79,6 +87,28 @@ export async function POST(req: Request) {
   const slots = Array.isArray(body.slots)
     ? [...new Set(body.slots.map(String).filter((s) => SLOT_KEYS.has(s)))]
     : [];
+
+  // Une seule table → il faut au moins BABYFOOT.minSlots créneaux de 30 min.
+  if (slots.length < BABYFOOT.minSlots) {
+    return NextResponse.json({ error: `Choisis au moins ${BABYFOOT.minSlots} créneaux de 30 min.` }, { status: 400 });
+  }
+  // Blocage capacité : un créneau se ferme au-delà de slotRegistrationCap binômes
+  // (hors soi-même). On refuse d'AJOUTER un créneau déjà complet.
+  const { data: allAvail } = await admin
+    .from("babyfoot_entry_availability")
+    .select("slot_key, entry:babyfoot_entries!entry_id(tournament_id, team_id)");
+  const countBySlot = new Map<string, number>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const r of (allAvail ?? []) as any[]) {
+    const entry = Array.isArray(r.entry) ? r.entry[0] : r.entry;
+    if (!entry || entry.tournament_id !== tournament.id || entry.team_id === binome.teamId) continue;
+    countBySlot.set(r.slot_key, (countBySlot.get(r.slot_key) ?? 0) + 1);
+  }
+  const full = slots.filter((s) => (countBySlot.get(s) ?? 0) >= BABYFOOT.slotRegistrationCap);
+  if (full.length) {
+    const labels = full.map((k) => BABYFOOT.slots.find((s) => s.key === k)?.label ?? k).join(", ");
+    return NextResponse.json({ error: `Créneau(x) complet(s) : ${labels}. Choisis-en d'autres.` }, { status: 409 });
+  }
 
   // Upsert de l'inscription (unique tournament_id + team_id → anti-doublon).
   const { data: existing } = await admin

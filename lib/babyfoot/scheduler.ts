@@ -1,116 +1,78 @@
-// Ordonnanceur baby-foot — helper PUR. Place des matchs dans des ROTATIONS
-// (1 à `tables` matchs joués en parallèle), calcule les horaires, respecte au
-// mieux les disponibilités (jeudi/vendredi). Contraintes DURES : une équipe ne
-// joue jamais deux fois dans la même rotation. Contraintes SOUPLES (best-effort) :
-// éviter deux rotations consécutives, respecter les dispos. Rien de bloquant.
+// Ordonnanceur baby-foot — UNE table, créneaux de 30 min. Place chaque match sur
+// un créneau où les DEUX binômes sont disponibles, sans dépasser la capacité du
+// créneau (3 matchs/créneau) et sans qu'une équipe joue 2 matchs dans le même
+// créneau. Best-effort : évite les créneaux consécutifs, signale les conflits.
 
 import type { GenMatch } from "@/lib/babyfoot/generate";
 
-export type Day = "thu" | "fri";
+export interface SchedulerSlot { key: string; day: "thu" | "fri"; start: string; label: string; }
 
 export interface ScheduleOpts {
-  tables: number;
-  matchMinutes: number;
-  rotationMinutes: number;
-  dayStart: string; // "11:00"
-  dayDate: Record<Day, string>; // { thu: "2026-07-16", fri: "2026-07-17" }
-  tz?: string; // offset ISO, ex "+11:00"
-  availabilityByTeam?: Map<string, Set<Day>>; // dispos ; absent = les deux jours
-  forceDay?: Day; // force tous les matchs sur ce jour (finales = vendredi)
-  rotationOffset?: number; // 1ère rotation (pour enchaîner après la phase 1)
+  slots: SchedulerSlot[]; // les 12 créneaux, dans l'ordre
+  matchesPerSlot: number; // capacité planning (1 table → 3)
+  slotStartISO: (key: string) => string | null;
+  availabilityByTeam?: Map<string, Set<string>>; // team_id → slot_keys dispo (absent = tous)
+  forceDay?: "thu" | "fri"; // finales : uniquement ce jour, dispos ignorées
 }
 
 export interface ScheduledAssignment {
   localId: string;
-  day: Day | null; // null = conflit (les 2 équipes n'ont aucun jour commun)
-  rotation: number | null;
+  slotKey: string | null;
+  rotation: number | null; // ordinal du créneau (1..12) — sert de regroupement
   table_no: number | null;
   startISO: string | null;
-  startLabel: string | null; // "11h08"
+  startLabel: string | null;
 }
 
 export interface ScheduleResult {
   assignments: ScheduledAssignment[];
-  warnings: string[]; // ex. "Léty joue 2 rotations d'affilée"
-  conflicts: string[]; // matchs sans jour commun
-}
-
-function feasibleDays(a: string | null, b: string | null, avail?: Map<string, Set<Day>>): Set<Day> {
-  const da = (a && avail?.get(a)) || new Set<Day>(["thu", "fri"]);
-  const db = (b && avail?.get(b)) || new Set<Day>(["thu", "fri"]);
-  const out = new Set<Day>();
-  for (const d of da) if (db.has(d)) out.add(d);
-  return out;
-}
-
-function clockToMin(hhmm: string): number {
-  const [h, m] = hhmm.split(":").map(Number);
-  return h * 60 + m;
-}
-function minToLabel(min: number): string {
-  const h = Math.floor(min / 60), m = min % 60;
-  return `${h}h${String(m).padStart(2, "0")}`;
+  warnings: string[];
+  conflicts: string[]; // matchs non plaçables (aucun créneau commun libre)
 }
 
 export function schedule(matches: GenMatch[], opts: ScheduleOpts): ScheduleResult {
-  const tz = opts.tz ?? "+11:00";
-  const step = opts.matchMinutes + opts.rotationMinutes;
-  const startMin = clockToMin(opts.dayStart);
-  const avail = opts.availabilityByTeam;
+  const slotOrdinal = new Map(opts.slots.map((s, i) => [s.key, i + 1]));
+  const usable = opts.forceDay ? opts.slots.filter((s) => s.day === opts.forceDay) : opts.slots;
+
+  const perSlot = new Map<string, number>();
+  const teamsInSlot = new Map<string, Set<string>>();
+  const teamOrdinals = new Map<string, number[]>();
 
   const assignments: ScheduledAssignment[] = [];
   const conflicts: string[] = [];
-
-  // 1) Jour de chaque match.
-  const byDay: Record<Day, GenMatch[]> = { thu: [], fri: [] };
-  for (const m of matches) {
-    if (opts.forceDay) { byDay[opts.forceDay].push(m); continue; }
-    const feas = feasibleDays(m.team_a_id, m.team_b_id, avail);
-    if (feas.has("thu")) byDay.thu.push(m);
-    else if (feas.has("fri")) byDay.fri.push(m);
-    else { assignments.push({ localId: m.localId, day: null, rotation: null, table_no: null, startISO: null, startLabel: null }); conflicts.push(m.round ?? m.localId); }
-  }
-
-  // 2) Packing greedy par jour → rotations (ordre = order_idx = journées).
   const warnings: string[] = [];
-  let rotationCounter = opts.rotationOffset ?? 1;
 
-  (["thu", "fri"] as Day[]).forEach((day) => {
-    const dayMatches = byDay[day].slice().sort((a, b) => (a.order_idx ?? 0) - (b.order_idx ?? 0));
-    if (!dayMatches.length) return;
-    const rotations: { teams: Set<string>; matches: GenMatch[] }[] = [];
-    for (const m of dayMatches) {
-      const a = m.team_a_id!, b = m.team_b_id!;
-      let placed = false;
-      for (const rot of rotations) {
-        if (rot.matches.length < opts.tables && !rot.teams.has(a) && !rot.teams.has(b)) {
-          rot.matches.push(m); rot.teams.add(a); rot.teams.add(b); placed = true; break;
-        }
+  const ordered = [...matches].sort((a, b) => (a.order_idx ?? 0) - (b.order_idx ?? 0));
+  for (const m of ordered) {
+    const a = m.team_a_id!, b = m.team_b_id!;
+    const availA = opts.forceDay ? undefined : opts.availabilityByTeam?.get(a);
+    const availB = opts.forceDay ? undefined : opts.availabilityByTeam?.get(b);
+
+    let placed = false;
+    for (const s of usable) {
+      if (availA && !availA.has(s.key)) continue;
+      if (availB && !availB.has(s.key)) continue;
+      if ((perSlot.get(s.key) ?? 0) >= opts.matchesPerSlot) continue;
+      const teams = teamsInSlot.get(s.key) ?? new Set<string>();
+      if (teams.has(a) || teams.has(b)) continue;
+
+      // Placement.
+      perSlot.set(s.key, (perSlot.get(s.key) ?? 0) + 1);
+      teams.add(a); teams.add(b); teamsInSlot.set(s.key, teams);
+      const ord = slotOrdinal.get(s.key)!;
+      assignments.push({ localId: m.localId, slotKey: s.key, rotation: ord, table_no: 1, startISO: opts.slotStartISO(s.key), startLabel: s.label });
+      for (const t of [a, b]) {
+        const prev = teamOrdinals.get(t) ?? [];
+        if (prev.includes(ord - 1)) warnings.push(`Un binôme enchaîne 2 créneaux d'affilée.`);
+        prev.push(ord); teamOrdinals.set(t, prev);
       }
-      if (!placed) rotations.push({ teams: new Set([a, b]), matches: [m] });
+      placed = true;
+      break;
     }
-
-    // Horaires + tables + détection back-to-back.
-    const lastRotationOfTeam = new Map<string, number>();
-    rotations.forEach((rot, ri) => {
-      const globalRot = rotationCounter + ri;
-      const startTime = startMin + ri * step;
-      const dateStr = opts.dayDate[day];
-      const startISO = `${dateStr}T${String(Math.floor(startTime / 60)).padStart(2, "0")}:${String(startTime % 60).padStart(2, "0")}:00${tz}`;
-      rot.matches.forEach((m, ti) => {
-        assignments.push({
-          localId: m.localId, day, rotation: globalRot, table_no: ti + 1,
-          startISO, startLabel: minToLabel(startTime),
-        });
-        for (const t of [m.team_a_id!, m.team_b_id!]) {
-          const prev = lastRotationOfTeam.get(t);
-          if (prev != null && globalRot - prev === 1) warnings.push(`Une équipe joue 2 rotations d'affilée (rotation ${prev}→${globalRot}).`);
-          lastRotationOfTeam.set(t, globalRot);
-        }
-      });
-    });
-    rotationCounter += rotations.length;
-  });
-
+    if (!placed) {
+      assignments.push({ localId: m.localId, slotKey: null, rotation: null, table_no: null, startISO: null, startLabel: null });
+      conflicts.push(m.round ?? m.localId);
+    }
+  }
   return { assignments, warnings: [...new Set(warnings)], conflicts };
 }
