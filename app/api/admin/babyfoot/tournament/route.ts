@@ -20,13 +20,17 @@ import { computeChampionshipStandings } from "@/lib/babyfoot/standings";
 import { planningHealth } from "@/lib/babyfoot/health";
 import { recomputeAwards } from "@/lib/babyfoot/awards";
 
-// Dispos par équipe (slot_keys des 12 créneaux de 30 min).
+// Dispos par PARTICIPANT (identité = entry_id, pour supporter les paires ad-hoc).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function availabilityMap(entries: any[]): Map<string, Set<string>> {
   const m = new Map<string, Set<string>>();
-  for (const e of entries) { const s = new Set<string>(e.availability ?? []); if (s.size) m.set(e.team_id, s); }
+  for (const e of entries) { const s = new Set<string>(e.availability ?? []); if (s.size) m.set(e.id, s); }
   return m;
 }
+// entryId → team_id (null pour les paires ad-hoc) : pour garder team_a/b_id (libellés/stats).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const entryTeamMap = (entries: any[]): Map<string, string | null> =>
+  new Map(entries.map((e) => [e.id, e.team_id || null]));
 const toScheduleMap = (assignments: { localId: string; rotation: number | null; table_no: number | null; startISO: string | null }[]) =>
   new Map<string, ScheduleSlot>(assignments.map((a) => [a.localId, { rotation: a.rotation, table_no: a.table_no, startISO: a.startISO }]));
 
@@ -47,7 +51,7 @@ export async function GET(req: Request) {
 
   // Santé du planning (dry-run) — recalculée à chaque chargement (= à chaque inscription).
   const health = planningHealth(
-    entries.map((e) => ({ team_id: e.team_id, label: e.label, availability: e.availability })),
+    entries.map((e) => ({ team_id: e.id, label: e.label, availability: e.availability })),
     {
       slots: BABYFOOT.slots, matchesPerSlot: BABYFOOT.matchesPerSlot, slotStartISO,
       matchesPerTeam: BABYFOOT.matchesPerTeam, koTarget: t.ko_target,
@@ -143,10 +147,10 @@ export async function POST(req: Request) {
       await admin.from("babyfoot_entries").update({ pool_label: null, seed: null, final_rank: null }).eq("tournament_id", t.id);
       await admin.from("babyfoot_awards").delete().eq("tournament_id", t.id);
 
-      const teamIds = entries.map((e) => e.team_id);
-      const gen = generateChampionship(teamIds, BABYFOOT.matchesPerTeam, t.ko_target);
+      const entryIds = entries.map((e) => e.id); // identité participant = entrée
+      const gen = generateChampionship(entryIds, BABYFOOT.matchesPerTeam, t.ko_target);
       const sched = schedule(gen, { slots: BABYFOOT.slots, matchesPerSlot: BABYFOOT.matchesPerSlot, slotStartISO, availabilityByTeam: availabilityMap(entries) });
-      await insertGenMatches(admin, t.id, gen, toScheduleMap(sched.assignments));
+      await insertGenMatches(admin, t.id, gen, toScheduleMap(sched.assignments), entryTeamMap(entries));
       return NextResponse.json({ ok: true, leagueMatches: gen.length, warnings: sched.warnings, conflicts: sched.conflicts }, no);
     }
 
@@ -160,13 +164,13 @@ export async function POST(req: Request) {
       );
       const top = standings.slice(0, BABYFOOT.qualifiers);
       if (top.length < BABYFOOT.qualifiers) return NextResponse.json({ error: "Championnat non terminé." }, { status: 400 });
-      // Seed rangs 1..4 → generateKnockout croise 1v4 et 2v3.
-      const seeded = top.map((s) => s.team_id);
+      // Seed rangs 1..4 (identité = entry_id) → generateKnockout croise 1v4 et 2v3.
+      const seeded = top.map((s) => s.entry_id);
       await admin.from("babyfoot_matches").delete().eq("tournament_id", t.id).neq("phase", "league");
       const gen = generateKnockout(seeded, { koTarget: t.ko_target, finalTarget: t.final_target, startOrder: 1000 });
       // Finales : placées sur les créneaux du vendredi (dispos ignorées).
       const sched = schedule(gen, { slots: BABYFOOT.slots, matchesPerSlot: BABYFOOT.matchesPerSlot, slotStartISO, forceDay: BABYFOOT.finalsDay });
-      await insertGenMatches(admin, t.id, gen, toScheduleMap(sched.assignments));
+      await insertGenMatches(admin, t.id, gen, toScheduleMap(sched.assignments), entryTeamMap(entries));
       await admin.from("babyfoot_tournaments").update({ status: "knockout" }).eq("id", t.id);
       await recomputeAwards(admin, t.id);
       return NextResponse.json({ ok: true, koMatches: gen.length }, no);

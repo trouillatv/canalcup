@@ -65,13 +65,14 @@ export async function getEntries(admin: DbClient, tournamentId: string): Promise
   const [{ data: entriesRaw }, { data: availRaw }] = await Promise.all([
     admin
       .from("babyfoot_entries")
-      .select("id, team_id, display_name, registered_by, pool_label, seed, final_rank, created_at, team:teams!team_id(id, name)")
+      .select("id, team_id, kind, p1_user_id, p2_user_id, display_name, registered_by, pool_label, seed, final_rank, created_at, team:teams!team_id(id, name)")
       .eq("tournament_id", tournamentId)
       .order("created_at", { ascending: true }),
     admin.from("babyfoot_entry_availability").select("entry_id, slot_key"),
   ]);
   const entries = (entriesRaw ?? []) as Array<{
-    id: string; team_id: string; display_name: string | null; registered_by: string | null;
+    id: string; team_id: string | null; kind: string | null; p1_user_id: string | null; p2_user_id: string | null;
+    display_name: string | null; registered_by: string | null;
     pool_label: string | null; seed: number | null; final_rank: number | null; created_at: string;
     team: { id: string; name: string } | null;
   }>;
@@ -81,19 +82,29 @@ export async function getEntries(admin: DbClient, tournamentId: string): Promise
     if (!availByEntry.has(a.entry_id)) availByEntry.set(a.entry_id, []);
     availByEntry.get(a.entry_id)!.push(a.slot_key);
   }
-  const members = await getTeamMembersMap(admin, entries.map((e) => e.team_id));
+  const members = await getTeamMembersMap(admin, entries.map((e) => e.team_id).filter((x): x is string => !!x));
+  // Noms des joueurs des paires ad-hoc (kind='open').
+  const openUserIds = entries.flatMap((e) => (e.kind === "open" ? [e.p1_user_id, e.p2_user_id] : [])).filter((x): x is string => !!x);
+  const openNames = new Map<string, string>();
+  if (openUserIds.length) {
+    const { data: us } = await admin.from("users").select("id, display_name, name").in("id", [...new Set(openUserIds)]);
+    for (const u of (us ?? []) as { id: string; display_name: string | null; name: string | null }[]) openNames.set(u.id, u.display_name || u.name || "—");
+  }
 
   return entries.map((e) => {
-    const mem = members.get(e.team_id) ?? [];
+    const isOpen = e.kind === "open";
+    const mem = isOpen
+      ? [e.p1_user_id, e.p2_user_id].filter((x): x is string => !!x).map((id) => openNames.get(id) ?? "—")
+      : (e.team_id ? members.get(e.team_id) ?? [] : []);
     const teamName = e.team?.name ?? "Binôme";
     const names = mem.length ? mem.join(" & ") : teamName;
     // On affiche le NOM du binôme + les prénoms ("Les Chouchouz · Lili & Killian"),
-    // sauf si le nom est générique/redondant (ex. "Binôme", ou déjà dans les prénoms).
-    const bname = e.display_name || teamName;
-    const generic = bname === names || /^bin[oô]mes?$/i.test(bname.trim()) || names.toLowerCase().includes(bname.toLowerCase());
+    // sauf si générique/redondant. Les paires ad-hoc affichent juste les prénoms.
+    const bname = e.display_name || (isOpen ? names : teamName);
+    const generic = isOpen || bname === names || /^bin[oô]mes?$/i.test(bname.trim()) || names.toLowerCase().includes(bname.toLowerCase());
     const label = !generic ? `${bname} · ${names}` : names;
     return {
-      id: e.id, team_id: e.team_id, team_name: teamName,
+      id: e.id, team_id: e.team_id ?? "", team_name: teamName,
       display_name: e.display_name, label, members: mem,
       pool_label: e.pool_label, seed: e.seed, final_rank: e.final_rank,
       availability: availByEntry.get(e.id) ?? [],
@@ -142,13 +153,14 @@ export interface ClassementRow {
 export async function buildPublicState(admin: DbClient, tournamentId: string) {
   const [entries, matches] = await Promise.all([getEntries(admin, tournamentId), getMatches(admin, tournamentId)]);
   const labelByTeam = new Map(entries.map((e) => [e.team_id, e.label]));
-  const lbl = (teamId?: string | null) => (teamId ? labelByTeam.get(teamId) ?? "?" : "à venir");
+  const labelByEntry = new Map(entries.map((e) => [e.id, e.label]));
+  const lblE = (entryId?: string | null) => (entryId ? labelByEntry.get(entryId) ?? "?" : "à venir");
 
   const publicMatches: PublicMatch[] = matches.map((m) => ({
     id: m.id, phase: m.phase ?? null, round: m.round ?? null, pool_label: m.pool_label ?? null,
     table_no: m.table_no ?? null, rotation: m.rotation ?? null, starts_at: m.starts_at ?? null, status: m.status,
     score_a: m.score_a ?? null, score_b: m.score_b ?? null,
-    labelA: lbl(m.team_a_id), labelB: lbl(m.team_b_id),
+    labelA: lblE(m.entry_a_id), labelB: lblE(m.entry_b_id),
   }));
 
   // Classement UNIQUE du championnat (victoires → diff → BP → confrontation directe).
@@ -157,7 +169,6 @@ export async function buildPublicState(admin: DbClient, tournamentId: string) {
     entries.map((e) => ({ id: e.id, team_id: e.team_id })),
     matches, 4
   );
-  const labelByEntry = new Map(entries.map((e) => [e.id, e.label]));
   const classement: ClassementRow[] = champ.map((r) => ({
     rank: r.rank, entry_id: r.entry_id, team_id: r.team_id, label: labelByEntry.get(r.entry_id) ?? "?",
     played: r.played, won: r.won, lost: r.lost, gf: r.gf, ga: r.ga, gd: r.gd, qualified: r.qualified,

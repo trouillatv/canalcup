@@ -311,8 +311,8 @@ const navBtn = "px-3 py-2 rounded-lg bg-canal-gray-mid text-white text-sm font-b
 
 function GameDay({ state, busy, act, onExit }: { state: State; busy: boolean; act: (b: Record<string, unknown>, path?: string) => void; onExit: () => void }) {
   const { matches, entries } = state;
-  const labelByTeam = new Map(entries.map((e) => [e.team_id, e.label]));
-  const lbl = (id?: string | null) => (id ? labelByTeam.get(id) ?? "?" : "à venir");
+  const labelByEntry = new Map(entries.map((e) => [e.id, e.label]));
+  const lbl = (id?: string | null) => (id ? labelByEntry.get(id) ?? "?" : "à venir");
 
   const ordered = [...matches].sort((a, b) =>
     (PHASE_WEIGHT[a.phase ?? "league"] ?? 0) - (PHASE_WEIGHT[b.phase ?? "league"] ?? 0) ||
@@ -321,13 +321,13 @@ function GameDay({ state, busy, act, onExit }: { state: State; busy: boolean; ac
   const [focusId, setFocusId] = useState<string | null>(null);
   const [flash, setFlash] = useState<{ winner: string; plural: boolean; sa: number; sb: number; pts: number | null; ptsLabel: string | null } | null>(null);
 
-  const current = ordered.find((m) => m.status !== "finished" && m.team_a_id && m.team_b_id) ?? null;
+  const current = ordered.find((m) => m.status !== "finished" && m.entry_a_id && m.entry_b_id) ?? null;
   const shown = (focusId ? ordered.find((m) => m.id === focusId) : null) ?? current;
   const idx = shown ? ordered.findIndex((m) => m.id === shown.id) : -1;
   const prevNav = idx > 0 ? ordered[idx - 1] : null;
   const nextNav = idx >= 0 && idx < ordered.length - 1 ? ordered[idx + 1] : null;
   const browsing = !!shown && !!current && shown.id !== current.id;
-  const upNext = current ? ordered.find((m) => m.id !== current.id && m.status !== "finished" && m.team_a_id && m.team_b_id) ?? null : null;
+  const upNext = current ? ordered.find((m) => m.id !== current.id && m.status !== "finished" && m.entry_a_id && m.entry_b_id) ?? null : null;
 
   const standings = computeChampionshipStandings(entries.map((e) => ({ id: e.id, team_id: e.team_id })), matches, BABYFOOT.qualifiers);
   const remaining = matches.filter((m) => m.status !== "finished").length;
@@ -336,7 +336,7 @@ function GameDay({ state, busy, act, onExit }: { state: State; busy: boolean; ac
   const submit = async (body: Record<string, unknown>) => {
     if (!body.clear && shown) {
       const sa = Number(body.score_a), sb = Number(body.score_b);
-      const winner = sa > sb ? lbl(shown.team_a_id) : lbl(shown.team_b_id);
+      const winner = sa > sb ? lbl(shown.entry_a_id) : lbl(shown.entry_b_id);
       const win = pointsForWin(shown.phase);
       setFlash({ winner, plural: winner.includes("&") || winner.includes(" et "), sa: Math.max(sa, sb), sb: Math.min(sa, sb), pts: win?.pts ?? null, ptsLabel: win?.label ?? null });
       setTimeout(() => setFlash(null), 2600);
@@ -367,7 +367,7 @@ function GameDay({ state, busy, act, onExit }: { state: State; busy: boolean; ac
           <span className="text-xs font-black text-canal-gray-muted">Match {idx + 1}/{ordered.length}{browsing ? " · aperçu" : ""}</span>
           <button disabled={!nextNav} onClick={() => nextNav && setFocusId(nextNav.id)} className={navBtn}>Suivant ▶</button>
         </div>
-        <GameDayMatch key={shown.id} m={shown} labelA={lbl(shown.team_a_id)} labelB={lbl(shown.team_b_id)} busy={busy} onResult={submit} />
+        <GameDayMatch key={shown.id} m={shown} labelA={lbl(shown.entry_a_id)} labelB={lbl(shown.entry_b_id)} busy={busy} onResult={submit} />
         {browsing && <button onClick={() => setFocusId(null)} className="w-full text-canal-yellow text-sm font-black">⤾ Revenir au match en cours</button>}
       </>) : !flash ? (
         <div className="text-center py-8 space-y-3">
@@ -379,11 +379,11 @@ function GameDay({ state, busy, act, onExit }: { state: State; busy: boolean; ac
       {upNext && !browsing && (
         <div className="rounded-xl bg-canal-gray-mid/40 p-3 text-center">
           <p className="text-[11px] uppercase font-bold text-canal-gray-muted">À suivre</p>
-          <p className="text-white font-bold mt-0.5">{lbl(upNext.team_a_id)} <span className="text-canal-gray-muted">vs</span> {lbl(upNext.team_b_id)}</p>
+          <p className="text-white font-bold mt-0.5">{lbl(upNext.entry_a_id)} <span className="text-canal-gray-muted">vs</span> {lbl(upNext.entry_b_id)}</p>
         </div>
       )}
 
-      <LiveStandings standings={standings} labelByTeam={labelByTeam} />
+      <LiveStandings standings={standings} labelByEntry={labelByEntry} />
       <PlanningStrip ordered={ordered} shownId={shown?.id} lbl={lbl} onPick={setFocusId} />
 
       {remaining > 0 && <p className="text-center text-xs text-canal-gray-muted">{remaining} match{remaining > 1 ? "s" : ""} restant{remaining > 1 ? "s" : ""}</p>}
@@ -435,7 +435,7 @@ function GameDayMatch({ m, labelA, labelB, busy, onResult }: { m: BabyFootMatch;
 
 // Classement LIVE affiché dans le mode jour J : chaque validation le met à jour,
 // les joueurs voient tout de suite s'ils entrent dans le Top 4.
-function LiveStandings({ standings, labelByTeam }: { standings: ChampStanding[]; labelByTeam: Map<string, string> }) {
+function LiveStandings({ standings, labelByEntry }: { standings: ChampStanding[]; labelByEntry: Map<string, string> }) {
   if (!standings.some((s) => s.played > 0)) return null;
   const cols = "grid grid-cols-[1.4rem_1fr_1.6rem_1.6rem_2.1rem_2.2rem] gap-1 items-center";
   return (
@@ -448,7 +448,7 @@ function LiveStandings({ standings, labelByTeam }: { standings: ChampStanding[];
         <div key={s.entry_id}>
           <div className={`${cols} text-sm py-0.5 ${s.qualified ? "text-green-300" : "text-white"}`}>
             <span className="font-black text-center">{s.rank}</span>
-            <span className="font-bold truncate">{s.qualified ? "✓ " : ""}{labelByTeam.get(s.team_id) ?? "?"}</span>
+            <span className="font-bold truncate">{s.qualified ? "✓ " : ""}{labelByEntry.get(s.entry_id) ?? "?"}</span>
             <span className="text-canal-gray-muted text-xs text-right">{s.played}</span>
             <span className="text-canal-gray-muted text-xs text-right">{s.won}</span>
             <span className="text-canal-gray-muted text-xs text-right">{s.gd > 0 ? `+${s.gd}` : s.gd}</span>
@@ -477,7 +477,7 @@ function PlanningStrip({ ordered, shownId, lbl, onPick }: { ordered: BabyFootMat
             <button key={m.id} disabled={!fin} onClick={() => onPick(m.id)} className={`w-full flex items-center gap-2 text-xs py-1 text-left ${fin ? "text-canal-gray-muted hover:text-white" : isCurrent ? "text-canal-yellow font-black" : "text-white/80"}`}>
               <span className="w-14 shrink-0 tabular-nums">{m.starts_at ? hhmm(m.starts_at) : PHASE_LABEL[m.phase ?? ""] ?? ""}</span>
               <span className="w-4 text-center">{icon}</span>
-              <span className="flex-1 truncate">{lbl(m.team_a_id)} <b className="text-white">{fin ? `${m.score_a}–${m.score_b}` : "–"}</b> {lbl(m.team_b_id)}</span>
+              <span className="flex-1 truncate">{lbl(m.entry_a_id)} <b className="text-white">{fin ? `${m.score_a}–${m.score_b}` : "–"}</b> {lbl(m.entry_b_id)}</span>
             </button>
           );
         })}
@@ -596,7 +596,7 @@ function Dashboard({ state }: { state: State }) {
   const ordered = [...matches].sort((a, b) =>
     (PHASE_WEIGHT[a.phase ?? "league"] ?? 0) - (PHASE_WEIGHT[b.phase ?? "league"] ?? 0) ||
     (a.rotation ?? 99) - (b.rotation ?? 99) || (a.order_idx ?? 0) - (b.order_idx ?? 0));
-  const nextM = ordered.find((m) => m.status !== "finished" && m.team_a_id && m.team_b_id);
+  const nextM = ordered.find((m) => m.status !== "finished" && m.entry_a_id && m.entry_b_id);
   const nextWhen = nextM ? (slotLabel(nextM.starts_at) || PHASE_LABEL[nextM.phase ?? ""] || "Phase finale") : "—";
   const stat = (v: React.ReactNode, l: string) => (
     <div className="text-center">
@@ -622,8 +622,8 @@ function Dashboard({ state }: { state: State }) {
 
 function ResultsPanel({ state, busy, act }: { state: State; busy: boolean; act: (b: Record<string, unknown>, path?: string) => void }) {
   const { matches, entries } = state;
-  const labelByTeam = new Map(entries.map((e) => [e.team_id, e.label]));
-  const lbl = (id?: string | null, fallback?: string) => (id ? labelByTeam.get(id) ?? fallback ?? "?" : "à venir");
+  const labelByEntry = new Map(entries.map((e) => [e.id, e.label]));
+  const lbl = (id?: string | null, fallback?: string) => (id ? labelByEntry.get(id) ?? fallback ?? "?" : "à venir");
   const byPhase = PHASE_ORDER.map((ph) => ({ ph, list: matches.filter((m) => m.phase === ph).sort((a, b) => (a.rotation ?? 99) - (b.rotation ?? 99) || (a.order_idx ?? 0) - (b.order_idx ?? 0)) })).filter((g) => g.list.length);
   const leagueMatches = matches.filter((m) => m.phase === "league");
   const leagueDone = leagueMatches.length > 0 && leagueMatches.every((m) => m.status === "finished");
@@ -646,7 +646,7 @@ function ResultsPanel({ state, busy, act }: { state: State; busy: boolean; act: 
           <div key={ph}>
             <p className="text-xs font-bold uppercase text-canal-yellow mb-1.5">{PHASE_LABEL[ph]}</p>
             <div className="space-y-2">
-              {list.map((m) => <MatchRow key={m.id} m={m} labelA={lbl(m.team_a_id, m.team_a?.name)} labelB={lbl(m.team_b_id, m.team_b?.name)} busy={busy} onResult={(b) => act(b, "result")} />)}
+              {list.map((m) => <MatchRow key={m.id} m={m} labelA={lbl(m.entry_a_id, m.team_a?.name)} labelB={lbl(m.entry_b_id, m.team_b?.name)} busy={busy} onResult={(b) => act(b, "result")} />)}
             </div>
           </div>
         ))}
@@ -693,7 +693,7 @@ function MatchRow({ m, labelA, labelB, busy, onResult }: { m: BabyFootMatch; lab
   const [a, setA] = useState<string>(m.score_a?.toString() ?? "");
   const [b, setB] = useState<string>(m.score_b?.toString() ?? "");
   const finished = m.status === "finished";
-  const ready = !!m.team_a_id && !!m.team_b_id;
+  const ready = !!m.entry_a_id && !!m.entry_b_id;
   const nameA = labelA;
   const nameB = labelB;
   return (

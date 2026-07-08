@@ -52,8 +52,8 @@ export function computePoolStandings(
 
   for (const m of matches) {
     if (m.phase !== "pool" || !isScored(m)) continue;
-    const ea = byTeam.get(m.team_a_id);
-    const eb = byTeam.get(m.team_b_id);
+    const ea = m.team_a_id ? byTeam.get(m.team_a_id) : undefined;
+    const eb = m.team_b_id ? byTeam.get(m.team_b_id) : undefined;
     const sa = m.score_a ?? 0;
     const sb = m.score_b ?? 0;
     if (ea && acc.has(ea.id)) {
@@ -100,22 +100,22 @@ export function computeChampionshipStandings(
   matches: BabyFootMatch[],
   qualifiers = 4
 ): ChampStanding[] {
-  const byTeam = new Map(entries.map((e) => [e.team_id, e]));
+  // Identité PARTICIPANT = l'entrée (marche pour officiels et paires ad-hoc).
   const acc = new Map<string, ChampStanding>();
   for (const e of entries) {
     acc.set(e.id, { entry_id: e.id, team_id: e.team_id, played: 0, won: 0, lost: 0, gf: 0, ga: 0, gd: 0, rank: 0, qualified: false });
   }
-  // Confrontation directe : winner par paire de team_id.
-  const h2h = new Map<string, string>(); // `${x}|${y}` (trié) → team_id vainqueur
+  // Confrontation directe : winner par paire d'entry_id.
+  const h2h = new Map<string, string>(); // `${x}|${y}` (trié) → entry_id vainqueur
   const key = (x: string, y: string) => (x < y ? `${x}|${y}` : `${y}|${x}`);
 
   for (const m of matches) {
     if (m.phase !== "league" || !isScored(m)) continue;
-    const ea = byTeam.get(m.team_a_id), eb = byTeam.get(m.team_b_id);
+    const ida = m.entry_a_id ?? null, idb = m.entry_b_id ?? null;
     const sa = m.score_a ?? 0, sb = m.score_b ?? 0;
-    if (ea && acc.has(ea.id)) { const s = acc.get(ea.id)!; s.played++; s.gf += sa; s.ga += sb; if (sa > sb) s.won++; else s.lost++; }
-    if (eb && acc.has(eb.id)) { const s = acc.get(eb.id)!; s.played++; s.gf += sb; s.ga += sa; if (sb > sa) s.won++; else s.lost++; }
-    if (m.team_a_id && m.team_b_id && sa !== sb) h2h.set(key(m.team_a_id, m.team_b_id), sa > sb ? m.team_a_id : m.team_b_id);
+    if (ida && acc.has(ida)) { const s = acc.get(ida)!; s.played++; s.gf += sa; s.ga += sb; if (sa > sb) s.won++; else s.lost++; }
+    if (idb && acc.has(idb)) { const s = acc.get(idb)!; s.played++; s.gf += sb; s.ga += sa; if (sb > sa) s.won++; else s.lost++; }
+    if (ida && idb && sa !== sb) h2h.set(key(ida, idb), sa > sb ? ida : idb);
   }
 
   const list = [...acc.values()];
@@ -124,10 +124,10 @@ export function computeChampionshipStandings(
     if (b.won !== a.won) return b.won - a.won;
     if (b.gd !== a.gd) return b.gd - a.gd;
     if (b.gf !== a.gf) return b.gf - a.gf;
-    const w = h2h.get(key(a.team_id, b.team_id)); // confrontation directe
-    if (w === a.team_id) return -1;
-    if (w === b.team_id) return 1;
-    return a.team_id.localeCompare(b.team_id); // ordre stable
+    const w = h2h.get(key(a.entry_id, b.entry_id)); // confrontation directe
+    if (w === a.entry_id) return -1;
+    if (w === b.entry_id) return 1;
+    return a.entry_id.localeCompare(b.entry_id); // ordre stable
   });
   list.forEach((s, i) => { s.rank = i + 1; s.qualified = i < qualifiers; });
   return list;

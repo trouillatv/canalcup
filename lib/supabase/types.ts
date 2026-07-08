@@ -232,8 +232,12 @@ export interface Vote {
 
 export interface BabyFootMatch {
   id: string;
-  team_a_id: string;
-  team_b_id: string;
+  team_a_id: string | null;
+  team_b_id: string | null;
+  // Identité participant (V1 open pairs) : l'ENTRÉE. team_a_id/team_b_id restent
+  // pour compat/libellés des binômes officiels ; la logique s'appuie sur entry_*.
+  entry_a_id?: string | null;
+  entry_b_id?: string | null;
   starts_at?: string | null;
   score_a?: number;
   score_b?: number;

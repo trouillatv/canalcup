@@ -369,6 +369,33 @@ async function casinoPointsByUser(
   return out;
 }
 
+// Points baby-foot des paires AD-HOC (kind='open') crédités par JOUEUR (p1/p2) :
+// ces paires ne donnent pas de points équipe, mais leurs 2 joueurs marquent en
+// individuel. Les binômes officiels passent, eux, par computeTeamScores (équipe).
+async function openBabyfootPointsByUser(
+  supabase: ReturnType<typeof createAdminClient>
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  try {
+    const [tourns, bfEntries, bfAwards] = await Promise.all([
+      selectAll<{ id: string; is_active: boolean | null }>(supabase, "babyfoot_tournaments", "id, is_active"),
+      selectAll<{ id: string; tournament_id: string | null; kind: string | null; p1_user_id: string | null; p2_user_id: string | null }>(supabase, "babyfoot_entries", "id, tournament_id, kind, p1_user_id, p2_user_id"),
+      selectAll<{ entry_id: string | null; points: number | null }>(supabase, "babyfoot_awards", "entry_id, points"),
+    ]);
+    const activeId = (tourns ?? []).find((t) => t.is_active)?.id ?? null;
+    if (!activeId) return out;
+    const ptsByEntry = new Map<string, number>();
+    for (const a of bfAwards ?? []) if (a.entry_id) ptsByEntry.set(a.entry_id, (ptsByEntry.get(a.entry_id) ?? 0) + (a.points ?? 0));
+    for (const e of bfEntries ?? []) {
+      if (e.tournament_id !== activeId || e.kind !== "open") continue;
+      const pts = ptsByEntry.get(e.id) ?? 0;
+      if (!pts) continue;
+      for (const uid of [e.p1_user_id, e.p2_user_id]) if (uid) out.set(uid, (out.get(uid) ?? 0) + pts);
+    }
+  } catch { /* colonnes/tables absentes → pas de crédit ad-hoc */ }
+  return out;
+}
+
 export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
   try {
     // Client ADMIN : le classement agrège les pronos/quiz de TOUS les joueurs.
@@ -401,6 +428,7 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
     const teamName = new Map((teams ?? []).map((t: { id: string; name: string }) => [t.id, t.name]));
     // Réutilise le calcul d'équipe pour babyRaw / animRaw par binôme.
     const teamAgg = await computeTeamScores(supabase, (teams ?? []).map((t: { id: string }) => t.id));
+    const openBabyfootByUser = await openBabyfootPointsByUser(supabase);
 
     type PtRow = { user_id: string | null; points_awarded: number | null };
     // Le prono embarque le match pour distinguer « évalué » (match settled) de
@@ -454,7 +482,7 @@ export async function getIndividualLeaderboard(): Promise<IndividualRow[]> {
         const pronos = Math.round(pronosRaw.get(u.id) ?? 0);
         const quiz = Math.round(quizRaw.get(u.id) ?? 0);
         const quizGlobal = quizGlobalMap.get(u.id) ?? 0;
-        const babyfoot = Math.round(tb?.babyfootPoints ?? 0); // points tournoi FACIAUX (binôme, crédités aux 2)
+        const babyfoot = Math.round((tb?.babyfootPoints ?? 0) + (openBabyfootByUser.get(u.id) ?? 0)); // officiel via équipe + paires ad-hoc via joueur
         const animations = Math.round(tb?.animRaw ?? 0);
         return {
           user_id: u.id,
