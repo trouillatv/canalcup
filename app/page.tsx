@@ -7,7 +7,8 @@ import { MatchCard } from "@/components/matches/MatchCard";
 import { TonightOnAir } from "@/components/matches/TonightOnAir";
 import { LeaderboardTable } from "@/components/leaderboard/LeaderboardTable";
 import { toNCDate, isToday, tzLabel, normalizeTimezone } from "@/lib/utils";
-import { Heart } from "lucide-react";
+import { Heart, ArrowRight } from "lucide-react";
+import { getBabyfootRegistrationSnapshot } from "@/lib/data/babyfoot";
 import { createClient } from "@/lib/supabase/server";
 import { MagicLinkReception } from "@/components/auth/MagicLinkReception";
 import { PronoReminder } from "@/components/predictions/PronoReminder";
@@ -32,12 +33,13 @@ export default async function RootPage() {
   // Dernier jour de vote (25/06 NC) : l'accueil devient la page Journée Supporters.
   if (isLastVoteDay()) redirect("/supporters");
 
-  const [matches, trends, leaderboard, brief, revivez] = await Promise.all([
+  const [matches, trends, leaderboard, brief, revivez, bfReg] = await Promise.all([
     getMatches(),
     getPredictionTrends(),
     getLeaderboard(),
     getTodayBrief(),
     getRevivezPosts(),
+    getBabyfootRegistrationSnapshot(),
   ]);
 
   // Pronos de l'utilisateur (pour pré-remplir/afficher dans chaque MatchCard)
@@ -89,6 +91,24 @@ export default async function RootPage() {
       </div>
 
       {missingPronoCount > 0 && <PronoReminder count={missingPronoCount} />}
+
+      {/* 🏓 Urgence inscriptions baby-foot (visible tant que c'est ouvert) */}
+      {bfReg && (
+        <Link href="/babyfoot/register" className="block canal-card border border-canal-yellow/50 bg-canal-yellow/10 hover:bg-canal-yellow/15 transition-colors">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl shrink-0">🏓</span>
+            <div className="flex-1 min-w-0">
+              <p className="font-black text-white text-sm">
+                {bfReg.count} binôme{bfReg.count > 1 ? "s" : ""} inscrit{bfReg.count > 1 ? "s" : ""} au Tournoi Baby-foot
+              </p>
+              <p className="text-xs text-canal-yellow font-bold mt-0.5">
+                {bfReg.remaining > 0 ? `Plus que ${bfReg.remaining} place${bfReg.remaining > 1 ? "s" : ""} · ` : ""}{bfReg.deadlineLabel}
+              </p>
+            </div>
+            <ArrowRight className="text-canal-yellow shrink-0" size={18} />
+          </div>
+        </Link>
+      )}
 
       {/* ─── EN DIRECT — section dédiée en haut, masquée si rien ne joue ─── */}
       {liveMatches.length > 0 && (

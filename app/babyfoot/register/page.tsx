@@ -11,6 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Trophy, Check, Users, CalendarClock, Loader2, PartyPopper, Search, HandHeart, X } from "lucide-react";
 import { CreateBabyfootTeamCard } from "@/components/babyfoot/CreateBabyfootTeamCard";
+import { BABYFOOT } from "@/lib/config/babyfoot";
 
 interface Slot { key: string; label: string; day: "thu" | "fri"; start: string; }
 interface Ctx {
@@ -59,6 +60,7 @@ export default function BabyfootRegisterPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [celebrate, setCelebrate] = useState(false); // écran « Parfait ! » après la 1re inscription
   const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -90,7 +92,9 @@ export default function BabyfootRegisterPage() {
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) { setError(d.error ?? "Inscription impossible."); return; }
-      setDone(true); load();
+      setDone(true);
+      if (!d.updated) setCelebrate(true); // 1re inscription → écran de célébration
+      load();
     } catch { setError("Erreur réseau."); }
     finally { setSaving(false); }
   };
@@ -152,12 +156,19 @@ export default function BabyfootRegisterPage() {
 
       {/* Déjà inscrit → gestion des dispos. Sinon → les 3 façons de participer. */}
       {registered ? (
-        <RegistrationForm
-          ctx={ctx!} isPair={isPair} displayName={displayName} setDisplayName={setDisplayName}
-          slots={slots} toggle={toggle} submit={submit} saving={saving} done={done}
-        />
+        celebrate && ctx?.myEntry ? (
+          <SuccessScreen label={ctx.myEntry.label} slotsCount={slots.size} onEdit={() => setCelebrate(false)} />
+        ) : (
+          <RegistrationForm
+            ctx={ctx!} isPair={isPair} displayName={displayName} setDisplayName={setDisplayName}
+            slots={slots} toggle={toggle} submit={submit} saving={saving} done={done}
+          />
+        )
       ) : t?.registration_open ? (
         <>
+          {/* 🔎 Chercheurs visibles DIRECTEMENT (pas besoin de changer de mode) */}
+          {pctx && <SeekersList pctx={pctx} busy={saving} act={partnerAct} />}
+
           {/* Choix du mode */}
           <div className="grid gap-2">
             <ModeCard active={mode === "binome"} onClick={() => setMode("binome")} icon={<Users size={18} />}
@@ -206,7 +217,7 @@ export default function BabyfootRegisterPage() {
 
       {/* Liste des binômes inscrits */}
       {(ctx?.entries.length ?? 0) > 0 && (
-        <div>
+        <div id="inscrits">
           <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider mb-2">Binômes inscrits</h2>
           <div className="canal-card divide-y divide-canal-gray-light">
             {ctx!.entries.map((e, i) => (
@@ -234,6 +245,37 @@ function ModeCard({ active, onClick, icon, title, desc }: { active: boolean; onC
         </div>
       </div>
     </button>
+  );
+}
+
+// 🏓 « Parfait ! » — écran d'engagement après la 1re inscription : on n'est plus
+// juste « enregistré », on est DANS l'événement (prochaine étape : le tirage).
+function SuccessScreen({ label, slotsCount, onEdit }: { label: string; slotsCount: number; onEdit: () => void }) {
+  return (
+    <div className="canal-card border-2 border-canal-yellow bg-canal-yellow/10 text-center space-y-4 py-8">
+      <p className="text-6xl" style={{ animation: "pop .5s ease-out both" }}>🏓</p>
+      <div>
+        <p className="canal-headline text-3xl text-canal-yellow">Parfait !</p>
+        <p className="text-white font-bold mt-1">Ton binôme est inscrit.</p>
+      </div>
+      <p className="text-xl font-black text-white px-4 leading-tight">{label}</p>
+      <p className="text-green-400 text-sm font-bold">✓ {slotsCount} créneau{slotsCount > 1 ? "x" : ""} enregistré{slotsCount > 1 ? "s" : ""}</p>
+      <div className="rounded-xl bg-canal-gray-mid/50 p-3 mx-4">
+        <p className="text-[10px] uppercase font-bold text-canal-gray-muted">Prochaine étape</p>
+        <p className="text-white font-black mt-0.5">🎲 Tirage au sort en direct</p>
+        <p className="text-canal-yellow font-bold text-sm">{BABYFOOT.drawLabel}</p>
+      </div>
+      <div className="grid grid-cols-2 gap-2 px-4">
+        <button
+          onClick={() => { onEdit(); setTimeout(() => document.getElementById("inscrits")?.scrollIntoView({ behavior: "smooth" }), 50); }}
+          className="min-h-[44px] rounded-xl bg-canal-yellow text-canal-black font-black text-sm">
+          Voir les inscrits
+        </button>
+        <button onClick={onEdit} className="min-h-[44px] rounded-xl bg-canal-gray-mid border border-canal-gray-light text-white font-bold text-sm">
+          Modifier
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -306,42 +348,50 @@ function PartnerPicker({ pctx, busy, act }: { pctx: PCtx; busy: boolean; act: (b
   );
 }
 
-// 🔎 Se déclarer « cherche un partenaire » + liste publique des chercheurs.
+// 🔎 Liste des chercheurs — TOUJOURS visible (pas besoin de changer de mode).
+function SeekersList({ pctx, busy, act }: { pctx: PCtx; busy: boolean; act: (b: Record<string, unknown>, ok?: string) => Promise<{ ok: boolean; paired?: boolean }> }) {
+  const list = pctx.seekers.filter((s) => s.id !== pctx.me?.id);
+  if (!list.length || pctx.me?.registered) return null;
+  return (
+    <div className="canal-card border border-canal-yellow/30">
+      <p className="text-xs font-bold uppercase text-canal-yellow mb-1">🔎 Cherchent un partenaire</p>
+      <div className="divide-y divide-canal-gray-mid">
+        {list.map((s) => (
+          <div key={s.id} className="py-2.5 flex items-center gap-2 text-sm">
+            <span className="flex-1 font-bold text-white">{s.name}</span>
+            <button disabled={busy || !!pctx.outgoing}
+              onClick={() => act({ action: "send", to_user_id: s.id }, `Invitation envoyée à ${s.name} ! 📨`)}
+              className="text-xs font-black bg-canal-yellow text-canal-black rounded-lg px-3.5 py-1.5 disabled:opacity-40">
+              Inviter
+            </button>
+          </div>
+        ))}
+      </div>
+      {pctx.outgoing && <p className="text-[11px] text-canal-gray-muted mt-1.5">⏳ Invitation en cours vers {pctx.outgoing.toName} — annule-la (mode « Je choisis mon partenaire ») pour en envoyer une autre.</p>}
+    </div>
+  );
+}
+
+// 🙋 Se déclarer « cherche un partenaire » (la liste, elle, est toujours affichée au-dessus).
 function SeekPanel({ pctx, busy, act }: { pctx: PCtx; busy: boolean; act: (b: Record<string, unknown>, ok?: string) => Promise<{ ok: boolean; paired?: boolean }> }) {
   if (pctx.me?.registered) return <p className="text-sm text-canal-gray-muted">Tu es déjà inscrit ({pctx.me.entryLabel}).</p>;
   return (
-    <div className="canal-card space-y-4">
+    <div className="canal-card space-y-3">
       {pctx.iAmSeeking ? (
         <div className="rounded-xl bg-green-900/20 border border-green-600/40 p-3 space-y-1.5">
           <p className="text-green-300 text-sm font-bold">🔎 Tu es sur la liste des chercheurs !</p>
-          <p className="text-xs text-canal-gray-muted">Les collègues te verront ici et pourront te proposer de jouer. Tu peux aussi en choisir un ci-dessous.</p>
+          <p className="text-xs text-canal-gray-muted">Les collègues te voient en haut de cette page et peuvent t&apos;inviter en un clic.</p>
           <button disabled={busy} onClick={() => act({ action: "unseek" })} className="text-xs text-red-400 font-bold">Me retirer de la liste</button>
         </div>
       ) : (
-        <button disabled={busy} onClick={() => act({ action: "seek" }, "C'est noté — tu es visible des autres chercheurs ! 🔎")}
-          className="w-full min-h-[46px] rounded-xl bg-canal-yellow text-canal-black font-black disabled:opacity-50">
-          🙋 Je me déclare « cherche un partenaire »
-        </button>
+        <>
+          <button disabled={busy} onClick={() => act({ action: "seek" }, "C'est noté — tu es visible des autres chercheurs ! 🔎")}
+            className="w-full min-h-[46px] rounded-xl bg-canal-yellow text-canal-black font-black disabled:opacity-50">
+            🙋 Je me déclare « cherche un partenaire »
+          </button>
+          <p className="text-[11px] text-canal-gray-muted">Ton nom apparaîtra dans la liste « 🔎 Cherchent un partenaire » avec un bouton Inviter.</p>
+        </>
       )}
-
-      <div>
-        <p className="text-xs font-bold uppercase text-canal-gray-muted mb-1.5">
-          {pctx.seekers.length ? `${pctx.seekers.length} personne${pctx.seekers.length > 1 ? "s" : ""} cherche${pctx.seekers.length > 1 ? "nt" : ""} un partenaire` : "Personne d'autre ne cherche pour l'instant"}
-        </p>
-        <div className="divide-y divide-canal-gray-mid">
-          {pctx.seekers.filter((s) => s.id !== pctx.me?.id).map((s) => (
-            <div key={s.id} className="py-2 flex items-center gap-2 text-sm">
-              <span className="flex-1 font-bold text-white">🔎 {s.name}</span>
-              <button disabled={busy || !!pctx.outgoing}
-                onClick={() => act({ action: "send", to_user_id: s.id }, "Proposition envoyée ! 📨")}
-                className="text-xs font-black bg-canal-yellow text-canal-black rounded-lg px-2.5 py-1.5 disabled:opacity-40">
-                Proposer de jouer
-              </button>
-            </div>
-          ))}
-        </div>
-        {pctx.outgoing && <p className="text-[11px] text-canal-gray-muted mt-1.5">⏳ Demande en cours vers {pctx.outgoing.toName} — annule-la (mode « Je choisis ») pour en envoyer une autre.</p>}
-      </div>
     </div>
   );
 }

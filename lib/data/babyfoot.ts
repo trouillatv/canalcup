@@ -351,6 +351,29 @@ export async function getBinomeFiche(teamId: string, admin?: DbClient): Promise<
   return { teamId, label, members, current, history };
 }
 
+// ── Bannière d'accueil : où en sont les inscriptions ? ───────────────────────
+// « 🏓 8 binômes inscrits · Plus que 4 places · Il reste 2 jours » — l'urgence
+// qui fait cliquer. null si pas de tournoi actif ou inscriptions fermées.
+export async function getBabyfootRegistrationSnapshot(): Promise<{
+  count: number; target: number; remaining: number; deadlineLabel: string;
+} | null> {
+  const admin = createAdminClient();
+  const t = await getActiveOfficialTournament(admin);
+  if (!t || !t.registration_open) return null;
+  const { count } = await admin
+    .from("babyfoot_entries").select("id", { count: "exact", head: true })
+    .eq("tournament_id", t.id);
+  const { BABYFOOT } = await import("@/lib/config/babyfoot");
+  const msLeft = new Date(BABYFOOT.inscriptionsCloseAt).getTime() - Date.now();
+  const days = Math.ceil(msLeft / 86_400_000);
+  const deadlineLabel =
+    msLeft <= 0 ? "⏰ Clôture imminente !"
+    : days <= 1 ? "⏰ Dernier jour pour s'inscrire !"
+    : `⏰ Il reste ${days} jours`;
+  const n = count ?? 0;
+  return { count: n, target: t.target_teams, remaining: Math.max(0, t.target_teams - n), deadlineLabel };
+}
+
 // ── Participants RÉELS d'une édition ─────────────────────────────────────────
 // user_id → son inscription effective. Officiel = les 2 membres de l'équipe ;
 // paire ad-hoc = p1 toujours, p2 SEULEMENT s'il n'est pas renfort (un renfort
