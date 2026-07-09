@@ -31,16 +31,26 @@ points CanalCup pour vous ET votre équipe.
 • Demi-finale gagnée : +15
 • Champion·ne : +20 🏆  → jusqu'à 65 points pour le parcours parfait !
 
+── 🙋 TU ES SEUL·E ? TU JOUES QUAND MÊME ! ─────────────
+Pas besoin d'avoir déjà un binôme pour t'inscrire :
+• 🔎 « Je cherche un partenaire » : déclare-toi dans l'app, ton nom apparaît
+  dans la liste des joueurs qui cherchent — n'importe qui peut t'inviter en
+  un clic.
+• 📨 « Je choisis mon partenaire » : envoie directement une demande à un
+  collègue. Il reçoit ta proposition à l'ouverture de l'app, il accepte…
+  et votre binôme est créé !
+
 ── 📲 COMMENT PARTICIPER ───────────────────────────────
-1. Trouvez votre binôme (2 joueurs) et inscrivez-vous ENSEMBLE.
-2. Cochez vos créneaux de dispo (jeu 16 & ven 17 juillet, 11h–14h).
+1. En binôme : vous êtes déjà 2 → inscrivez-vous ENSEMBLE.
+   En solo : déclare-toi « je cherche un partenaire » ou envoie une demande.
+2. Cochez vos créneaux de dispo (jeu 16 & ven 17 juillet).
 3. Plus vous cochez de créneaux, plus le tirage est équilibré. Soyez généreux !
 
-👉 Je forme mon binôme et je choisis mes créneaux :
+👉 Je m'inscris (en binôme ou en solo) :
    https://canal-cup.vercel.app/babyfoot/register
 
-Pas encore de coéquipier·ère ? Fais tourner ce mail autour de toi — le binôme
-parfait est peut-être au bureau d'à côté.
+Pas encore de coéquipier·ère ? Inscris-toi en solo — l'app te trouve un
+partenaire.
 
 CANAL CUP 2026 — TOURNOI BABY-FOOT
 Un souci ? Réponds directement à ce mail. Que la meilleure paire gagne. 🏆
