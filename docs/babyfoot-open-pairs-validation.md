@@ -56,6 +56,26 @@ paire ad-hoc était présente. **Correctif** : migration
   **individuel** (via `entry_id`). L'appoint « déjà engagé » n'existe pas en V1
   (règle 1 joueur = 1 inscription, garantie par le trigger).
 
+### C — Règle « RENFORT » (10 officiels + 1 ad-hoc normale + 1 ad-hoc avec renfort)
+Règle produit : une personne seule (p1) peut jouer avec un collègue DÉJÀ inscrit
+ailleurs (p2, renfort). Affichage « Vincent + Jeff en renfort » ; seul p1 marque
+(individuel) ; le renfort ne gagne rien ; aucun point équipe ; le binôme officiel
+du renfort reste intact.
+
+| Vérification | Résultat |
+|---|---|
+| Trigger BLOQUE p2 déjà engagé quand `p2_is_helper=false` | ✅ |
+| Trigger AUTORISE p2 déjà engagé quand `p2_is_helper=true` | ✅ |
+| Libellé = « X + Y en renfort » | ✅ |
+| Paire renfort : points au tournoi > 0, `team_id` NULL (0 pt équipe) | ✅ |
+| Binôme officiel du renfort : awards intacts (points équipe préservés) | ✅ |
+| p1 crédité en individuel ; renfort **non crédité** | ✅ |
+| Paire ad-hoc normale : les **2** joueurs crédités | ✅ |
+
+Migration : `20260709170000_babyfoot_helper.sql` (`p2_is_helper` + trigger revu —
+le renfort ne « consomme » pas d'engagement ; la règle « 1 joueur = 1 inscription »
+s'applique aux joueurs RÉELS).
+
 ## Reste à construire (UI, non risqué)
 - API `/api/babyfoot/partner` (candidats + statut, demande/accept/refuse, croisées, 🔎).
 - Refonte `/babyfoot/register` (3 modes) + éditeur de dispos de la paire créée.

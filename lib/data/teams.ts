@@ -369,20 +369,23 @@ async function casinoPointsByUser(
   return out;
 }
 
-// Points baby-foot des paires AD-HOC (kind='open') crédités par JOUEUR (p1/p2) :
-// ces paires ne donnent pas de points équipe, mais leurs 2 joueurs marquent en
-// individuel. Les binômes officiels passent, eux, par computeTeamScores (équipe).
-async function openBabyfootPointsByUser(
-  supabase: ReturnType<typeof createAdminClient>
+// Points baby-foot des paires AD-HOC (kind='open') crédités par JOUEUR :
+// ces paires ne donnent pas de points équipe, mais leurs joueurs RÉELS marquent
+// en individuel. Règle « renfort » (p2_is_helper) : p2 dépanne, il ne gagne RIEN
+// — seul p1 est crédité. Les binômes officiels passent par computeTeamScores.
+// Exporté pour la validation fonctionnelle (tournamentId injectable).
+export async function openBabyfootPointsByUser(
+  supabase: ReturnType<typeof createAdminClient>,
+  tournamentId?: string
 ): Promise<Map<string, number>> {
   const out = new Map<string, number>();
   try {
     const [tourns, bfEntries, bfAwards] = await Promise.all([
       selectAll<{ id: string; is_active: boolean | null }>(supabase, "babyfoot_tournaments", "id, is_active"),
-      selectAll<{ id: string; tournament_id: string | null; kind: string | null; p1_user_id: string | null; p2_user_id: string | null }>(supabase, "babyfoot_entries", "id, tournament_id, kind, p1_user_id, p2_user_id"),
+      selectAll<{ id: string; tournament_id: string | null; kind: string | null; p1_user_id: string | null; p2_user_id: string | null; p2_is_helper: boolean | null }>(supabase, "babyfoot_entries", "id, tournament_id, kind, p1_user_id, p2_user_id, p2_is_helper"),
       selectAll<{ entry_id: string | null; points: number | null }>(supabase, "babyfoot_awards", "entry_id, points"),
     ]);
-    const activeId = (tourns ?? []).find((t) => t.is_active)?.id ?? null;
+    const activeId = tournamentId ?? ((tourns ?? []).find((t) => t.is_active)?.id ?? null);
     if (!activeId) return out;
     const ptsByEntry = new Map<string, number>();
     for (const a of bfAwards ?? []) if (a.entry_id) ptsByEntry.set(a.entry_id, (ptsByEntry.get(a.entry_id) ?? 0) + (a.points ?? 0));
@@ -390,7 +393,8 @@ async function openBabyfootPointsByUser(
       if (e.tournament_id !== activeId || e.kind !== "open") continue;
       const pts = ptsByEntry.get(e.id) ?? 0;
       if (!pts) continue;
-      for (const uid of [e.p1_user_id, e.p2_user_id]) if (uid) out.set(uid, (out.get(uid) ?? 0) + pts);
+      const credited = e.p2_is_helper ? [e.p1_user_id] : [e.p1_user_id, e.p2_user_id];
+      for (const uid of credited) if (uid) out.set(uid, (out.get(uid) ?? 0) + pts);
     }
   } catch { /* colonnes/tables absentes → pas de crédit ad-hoc */ }
   return out;

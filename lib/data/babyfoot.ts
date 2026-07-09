@@ -15,8 +15,10 @@ export interface BabyfootEntryView {
   id: string;
   team_id: string;
   team_name: string;
+  kind: "official" | "open";         // interne — JAMAIS affiché tel quel (UI : « Paire Baby-foot »)
+  p2_is_helper: boolean;             // paire ad-hoc avec renfort : seul p1 marque
   display_name: string | null;      // nom de binôme choisi, ou null
-  label: string;                     // ce qu'on AFFICHE (display_name ou "A & B" ou nom d'équipe)
+  label: string;                     // ce qu'on AFFICHE (display_name ou "A & B" ou "A + B en renfort")
   members: string[];                 // prénoms/pseudos des 2 joueurs
   pool_label: string | null;
   seed: number | null;
@@ -65,13 +67,14 @@ export async function getEntries(admin: DbClient, tournamentId: string): Promise
   const [{ data: entriesRaw }, { data: availRaw }] = await Promise.all([
     admin
       .from("babyfoot_entries")
-      .select("id, team_id, kind, p1_user_id, p2_user_id, display_name, registered_by, pool_label, seed, final_rank, created_at, team:teams!team_id(id, name)")
+      .select("id, team_id, kind, p1_user_id, p2_user_id, p2_is_helper, display_name, registered_by, pool_label, seed, final_rank, created_at, team:teams!team_id(id, name)")
       .eq("tournament_id", tournamentId)
       .order("created_at", { ascending: true }),
     admin.from("babyfoot_entry_availability").select("entry_id, slot_key"),
   ]);
   const entries = (entriesRaw ?? []) as Array<{
     id: string; team_id: string | null; kind: string | null; p1_user_id: string | null; p2_user_id: string | null;
+    p2_is_helper: boolean | null;
     display_name: string | null; registered_by: string | null;
     pool_label: string | null; seed: number | null; final_rank: number | null; created_at: string;
     team: { id: string; name: string } | null;
@@ -93,11 +96,14 @@ export async function getEntries(admin: DbClient, tournamentId: string): Promise
 
   return entries.map((e) => {
     const isOpen = e.kind === "open";
+    const helper = isOpen && !!e.p2_is_helper;
     const mem = isOpen
       ? [e.p1_user_id, e.p2_user_id].filter((x): x is string => !!x).map((id) => openNames.get(id) ?? "—")
       : (e.team_id ? members.get(e.team_id) ?? [] : []);
     const teamName = e.team?.name ?? "Binôme";
-    const names = mem.length ? mem.join(" & ") : teamName;
+    // Renfort : « Vincent + Jeff en renfort » (tout le monde voit qui joue, seul
+    // Vincent marque). Paire ad-hoc normale : « Vincent & Julien ».
+    const names = helper && mem.length === 2 ? `${mem[0]} + ${mem[1]} en renfort` : mem.length ? mem.join(" & ") : teamName;
     // On affiche le NOM du binôme + les prénoms ("Les Chouchouz · Lili & Killian"),
     // sauf si générique/redondant. Les paires ad-hoc affichent juste les prénoms.
     const bname = e.display_name || (isOpen ? names : teamName);
@@ -105,6 +111,7 @@ export async function getEntries(admin: DbClient, tournamentId: string): Promise
     const label = !generic ? `${bname} · ${names}` : names;
     return {
       id: e.id, team_id: e.team_id ?? "", team_name: teamName,
+      kind: (isOpen ? "open" : "official") as "official" | "open", p2_is_helper: helper,
       display_name: e.display_name, label, members: mem,
       pool_label: e.pool_label, seed: e.seed, final_rank: e.final_rank,
       availability: availByEntry.get(e.id) ?? [],
