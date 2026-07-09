@@ -118,9 +118,10 @@ export default function TvBabyfootPage() {
   if (!s?.tournament) return shell(<Center><h1 className="canal-headline text-7xl">🎮 Tournoi Baby-foot</h1><p className="text-3xl text-canal-gray-muted mt-4">Bientôt…</p></Center>);
   const t = s.tournament;
   let eff = mode === "auto" ? autoMode(t.status) : mode;
-  // Auto pendant le jeu : 3 « onglets » qui tournent (15 s) — Classement, Programme, En direct.
+  // Auto pendant le jeu : 3 « onglets » qui tournent — Classement, Programme,
+  // En direct. 30 s par écran (2 cycles de poll) : le temps de lire.
   const playing = t.status === "pools" || t.status === "knockout";
-  if (mode === "auto" && playing) eff = ["classement", "programme", "direct"][cycle % 3];
+  if (mode === "auto" && playing) eff = ["classement", "programme", "direct"][Math.floor(cycle / 2) % 3];
 
   return shell(
     <>
