@@ -6,8 +6,9 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { Trophy, Users, ArrowRight, Swords, Camera, BarChart3, Loader2 } from "lucide-react";
+import { Trophy, Users, ArrowRight, Camera, BarChart3, Loader2 } from "lucide-react";
 import { BABYFOOT } from "@/lib/config/babyfoot";
+import { FinalBracket } from "@/components/babyfoot/FinalBracket";
 
 // Onglet « Gestion » (organisateurs) — chargé à la demande : le code admin
 // n'alourdit pas le bundle des joueurs, et n'est jamais rendu pour un non-admin.
@@ -46,8 +47,6 @@ interface Highlights {
   upset: { winner: string; loser: string; detail: string } | null;
 }
 
-const PHASE_ORDER = ["semi", "final", "third"];
-const PHASE_LABEL: Record<string, string> = { semi: "Demi-finales", final: "Finale", third: "Petite finale" };
 function timeLabel(iso: string | null): string { if (!iso) return ""; const d = new Date(iso); return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Noumea" }); }
 function dayTimeLabel(iso: string | null): string { if (!iso) return ""; const day = new Date(iso).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", timeZone: "Pacific/Noumea" }); return `${day.charAt(0).toUpperCase()}${day.slice(1)} · ${timeLabel(iso)}`; }
 const MEDAL = ["🥇", "🥈", "🥉"];
@@ -85,7 +84,10 @@ export default function BabyfootPage() {
 
   const t = s?.tournament;
   const leagueMatches = (s?.matches ?? []).filter((m) => m.phase === "league");
-  const koByPhase = PHASE_ORDER.map((ph) => ({ ph, list: (s?.matches ?? []).filter((m) => m.phase === ph) })).filter((g) => g.list.length);
+  const semiMatches = (s?.matches ?? []).filter((m) => m.phase === "semi");
+  const finalMatch = (s?.matches ?? []).find((m) => m.phase === "final");
+  const thirdMatch = (s?.matches ?? []).find((m) => m.phase === "third");
+  const hasFinals = semiMatches.length > 0 || !!finalMatch || !!thirdMatch;
   // Planning : matchs de championnat groupés par rotation.
   const rotations = [...new Set(leagueMatches.map((m) => m.rotation).filter((r): r is number => r != null))].sort((a, b) => a - b);
   const remaining = t ? Math.max(0, t.target_teams - (s?.registeredCount ?? 0)) : 0;
@@ -190,18 +192,13 @@ export default function BabyfootPage() {
         </section>
       )}
 
-      {/* Tableau final */}
-      {koByPhase.length > 0 && (
+      {/* Tableau final (bracket) : demi-finales → finale + petite finale */}
+      {hasFinals && (
         <section className="space-y-3">
           <h2 className="text-sm font-bold uppercase text-canal-yellow">Phase finale</h2>
-          {koByPhase.map(({ ph, list }) => (
-            <div key={ph}>
-              <p className="text-xs font-bold text-canal-gray-muted uppercase mb-1.5">{PHASE_LABEL[ph]}</p>
-              <div className="space-y-2">
-                {list.map((m) => <MatchCard key={m.id} m={m} />)}
-              </div>
-            </div>
-          ))}
+          <div className="canal-card">
+            <FinalBracket semis={semiMatches} final={finalMatch} third={thirdMatch} />
+          </div>
         </section>
       )}
 
@@ -385,20 +382,3 @@ function PhotoSection({ photos, onUploaded }: { photos: { id: string; photo_url:
   );
 }
 
-function MatchCard({ m }: { m: PublicMatch }) {
-  const finished = m.status === "finished";
-  const winA = finished && (m.score_a ?? 0) > (m.score_b ?? 0);
-  const winB = finished && (m.score_b ?? 0) > (m.score_a ?? 0);
-  return (
-    <div className="canal-card flex items-center gap-2 py-2">
-      {m.table_no != null && <span className="text-[10px] font-black text-canal-black bg-canal-yellow rounded px-1.5 py-0.5 shrink-0">T{m.table_no}</span>}
-      <span className={`flex-1 text-sm font-bold text-right truncate ${winB ? "text-canal-gray-muted" : "text-white"}`}>{m.labelA}</span>
-      {finished ? (
-        <span className="score-display text-lg px-1">{m.score_a}<span className="text-canal-gray-muted mx-1">-</span>{m.score_b}</span>
-      ) : (
-        <Swords size={16} className="text-canal-yellow shrink-0" />
-      )}
-      <span className={`flex-1 text-sm font-bold truncate ${winA ? "text-canal-gray-muted" : "text-white"}`}>{m.labelB}</span>
-    </div>
-  );
-}
