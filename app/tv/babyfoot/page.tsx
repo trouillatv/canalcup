@@ -61,8 +61,27 @@ export default function TvBabyfootPage() {
   const [flashStart, setFlashStart] = useState(0);
   const seen = useRef<Set<string> | null>(null);
   const ticksRef = useRef(0);
+  const [cursorVisible, setCursorVisible] = useState(true);
+  const cursorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { ticksRef.current = ticks; }, [ticks]);
+
+  // Cache le curseur après 3 s d'inactivité (idem mode TV principal).
+  useEffect(() => {
+    const showCursor = () => {
+      setCursorVisible(true);
+      if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
+      cursorTimerRef.current = setTimeout(() => setCursorVisible(false), 3000);
+    };
+    cursorTimerRef.current = setTimeout(() => setCursorVisible(false), 3000);
+    document.addEventListener("mousemove", showCursor);
+    document.addEventListener("pointermove", showCursor);
+    return () => {
+      document.removeEventListener("mousemove", showCursor);
+      document.removeEventListener("pointermove", showCursor);
+      if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -109,7 +128,7 @@ export default function TvBabyfootPage() {
   const showFlash = !!flash && flashElapsed <= 12;
 
   const shell = (children: React.ReactNode) => (
-    <div className="w-full min-h-screen bg-canal-black text-white overflow-hidden flex flex-col p-10">
+    <div className={`w-full min-h-screen bg-canal-black text-white overflow-hidden flex flex-col p-10${!cursorVisible ? " cursor-none" : ""}`}>
       <style>{"@keyframes pop{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}"}</style>
       {children}
     </div>
