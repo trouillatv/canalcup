@@ -7,7 +7,28 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 
-type InboxType = "mention" | "vote_received" | "badge" | "matinale" | "roast";
+type InboxType = "mention" | "vote_received" | "badge" | "matinale" | "roast" | "babyfoot";
+
+// Crée UN courrier pour un utilisateur précis (public users.id). Renvoie true si
+// le courrier a été inséré. Utilisé pour les notifications ciblées (ex. baby-foot :
+// « Julien a modifié les créneaux du binôme »).
+export async function createInboxEvent(evt: {
+  userId: string;
+  teamId?: string | null;
+  type: InboxType;
+  title: string;
+  message: string;
+}): Promise<boolean> {
+  const admin = createAdminClient();
+  const { error } = await admin.from("inbox_events").insert({
+    user_id: evt.userId,
+    team_id: evt.teamId ?? null,
+    type: evt.type,
+    title: evt.title,
+    message: evt.message,
+  });
+  return !error;
+}
 
 // Crée 1 courrier pour chaque utilisateur réel (auth_id non nul).
 // Renvoie le nombre de courriers créés (0 si échec / aucun utilisateur).

@@ -46,7 +46,14 @@ export async function GET(req: Request) {
     incoming = { id: inc.id, fromName: fu?.display_name || fu?.name || "Un collègue" };
   }
   if (new URL(req.url).searchParams.get("pending")) {
-    return NextResponse.json({ incoming, registrationOpen: t.registration_open }, no);
+    // Le splash a besoin de savoir si JE suis déjà inscrit : dans ce cas la
+    // demande reçue est un DÉPANNAGE (renfort), pas la création d'un binôme.
+    let amRegistered = false;
+    if (incoming) {
+      const participants = await getRealParticipants(admin, t.id);
+      amRegistered = participants.has(my.id);
+    }
+    return NextResponse.json({ incoming, registrationOpen: t.registration_open, amRegistered }, no);
   }
 
   const participants = await getRealParticipants(admin, t.id);

@@ -11,6 +11,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { BABYFOOT } from "@/lib/config/babyfoot";
 import {
   getActiveOfficialTournament, resolveUserBinome, getEntries,
+  getEntryBinomeContext, getNextEntryMatch, notifyBabyfootUser,
 } from "@/lib/data/babyfoot";
 
 const SLOT_KEYS = new Set(BABYFOOT.slots.map((s) => s.key));
@@ -50,6 +51,24 @@ export async function GET() {
   const slotCounts: Record<string, number> = {};
   for (const e of entries) for (const k of e.availability) slotCounts[k] = (slotCounts[k] ?? 0) + 1;
 
+  // Contexte « page binôme » : qui a créé l'inscription, qui a saisi les créneaux,
+  // avec qui je joue, et où en est le binôme (état + prochain match).
+  let binomeCtx: Awaited<ReturnType<typeof getEntryBinomeContext>> | null = null;
+  let nextMatch: Awaited<ReturnType<typeof getNextEntryMatch>> | null = null;
+  let homeState: "creating" | "registered" | "draw" | "live" = "creating";
+  if (myEntry && binome && tournament) {
+    binomeCtx = await getEntryBinomeContext(admin, myEntry.id, binome.meId);
+    const st = tournament.status;
+    if (st === "pools" || st === "knockout") {
+      homeState = "live";
+      nextMatch = await getNextEntryMatch(admin, tournament.id, myEntry.id);
+    } else if (st === "draw") {
+      homeState = "draw";
+    } else {
+      homeState = "registered";
+    }
+  }
+
   return NextResponse.json(
     {
       tournament: tournament && {
@@ -65,6 +84,9 @@ export async function GET() {
       binome, // { meName, teamId, teamName, partnerName, memberCount }
       myEntry, // inscription existante (ou null)
       myOpenPair, // { partnerName, helper } si mon inscription est une paire ad-hoc
+      binomeCtx, // créateur / auteur des créneaux / coéquipier (page binôme)
+      homeState, // creating | registered | draw | live
+      nextMatch, // prochain match du binôme (si tournoi en cours)
       registeredCount: entries.length,
       entries: entries.map((e) => ({ id: e.id, label: e.label })), // liste publique
     },
@@ -151,16 +173,20 @@ export async function POST(req: Request) {
     .eq("team_id", binome.teamId)
     .maybeSingle()).data;
 
+  const nowIso = new Date().toISOString();
   let entryId: string;
   if (existing) {
     entryId = existing.id;
-    await admin.from("babyfoot_entries").update({ display_name }).eq("id", entryId);
+    await admin.from("babyfoot_entries")
+      .update({ display_name, slots_updated_by: binome.meId, slots_updated_at: nowIso })
+      .eq("id", entryId);
   } else {
     const { data: created, error } = await admin
       .from("babyfoot_entries")
       .insert({
         tournament_id: tournament.id, team_id: binome.teamId,
         display_name, registered_by: binome.meId,
+        slots_updated_by: binome.meId, slots_updated_at: nowIso,
       })
       .select("id")
       .single();
@@ -170,12 +196,31 @@ export async function POST(req: Request) {
     entryId = created.id;
   }
 
-  // Disponibilités : on remplace intégralement.
+  // Créneaux : on remplace intégralement. On calcule si l'ensemble a changé pour
+  // décider s'il faut prévenir le coéquipier (on ne notifie pas une non-modif).
+  const { data: prevRows } = await admin
+    .from("babyfoot_entry_availability").select("slot_key").eq("entry_id", entryId);
+  const prevSet = new Set((prevRows ?? []).map((r: { slot_key: string }) => r.slot_key));
+  const slotsChanged = prevSet.size !== slots.length || slots.some((s) => !prevSet.has(s));
+
   await admin.from("babyfoot_entry_availability").delete().eq("entry_id", entryId);
   if (slots.length) {
     await admin
       .from("babyfoot_entry_availability")
       .insert(slots.map((slot_key) => ({ entry_id: entryId, slot_key })));
+  }
+
+  // Notifier le coéquipier quand une MODIFICATION (pas la 1re inscription) touche
+  // les créneaux partagés : deux notions distinctes mais un binôme reste informé.
+  if (existing && slotsChanged) {
+    const ctx = await getEntryBinomeContext(admin, entryId, binome.meId);
+    if (ctx?.partnerUserId && !ctx.iAmHelperPartner) {
+      await notifyBabyfootUser(admin, ctx.partnerUserId, {
+        title: "🏓 Créneaux du binôme mis à jour",
+        message: `${binome.meName} a modifié vos disponibilités pour le Tournoi Baby-foot.`,
+        url: "/babyfoot/register",
+      });
+    }
   }
 
   return NextResponse.json({ ok: true, entryId, updated: !!existing });
