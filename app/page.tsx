@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getMatches, getPredictionTrends } from "@/lib/data/matches";
-import { getLeaderboard } from "@/lib/data/teams";
+import { getLeaderboard, getIndividualLeaderboard } from "@/lib/data/teams";
 import { getTodayBrief, getRevivezPosts } from "@/lib/data/content";
 import { MatchCard } from "@/components/matches/MatchCard";
 import { TonightOnAir } from "@/components/matches/TonightOnAir";
-import { LeaderboardTable } from "@/components/leaderboard/LeaderboardTable";
+import { HomeLeaderboard } from "@/components/leaderboard/HomeLeaderboard";
 import { toNCDate, isToday, tzLabel, normalizeTimezone } from "@/lib/utils";
 import { Heart, ArrowRight } from "lucide-react";
 import { getBabyfootRegistrationSnapshot } from "@/lib/data/babyfoot";
@@ -33,10 +33,11 @@ export default async function RootPage() {
   // Dernier jour de vote (25/06 NC) : l'accueil devient la page Journée Supporters.
   if (isLastVoteDay()) redirect("/supporters");
 
-  const [matches, trends, leaderboard, brief, revivez, bfReg] = await Promise.all([
+  const [matches, trends, leaderboard, individualLeaderboard, brief, revivez, bfReg] = await Promise.all([
     getMatches(),
     getPredictionTrends(),
     getLeaderboard(),
+    getIndividualLeaderboard(),
     getTodayBrief(),
     getRevivezPosts(),
     getBabyfootRegistrationSnapshot(),
@@ -91,6 +92,21 @@ export default async function RootPage() {
       </div>
 
       {missingPronoCount > 0 && <PronoReminder count={missingPronoCount} />}
+
+      {/* 🧠 Avertissement quiz — un quiz aura lieu le 15 à midi */}
+      <div className="canal-card border border-canal-yellow/50 bg-canal-yellow/10">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl shrink-0">🧠</span>
+          <div className="flex-1 min-w-0">
+            <p className="font-black text-white text-sm">
+              Quiz le 15 à midi
+            </p>
+            <p className="text-xs text-canal-yellow font-bold mt-0.5">
+              Un quiz aura lieu le 15 à 12h00 — soyez prêts !
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* 🏓 Urgence inscriptions baby-foot (visible tant que c'est ouvert) */}
       {bfReg && (
@@ -194,7 +210,7 @@ export default async function RootPage() {
             Détail →
           </Link>
         </div>
-        <LeaderboardTable rows={leaderboard} compact />
+        <HomeLeaderboard teamRows={leaderboard} individualRows={individualLeaderboard} />
       </section>
 
       {topRevivez && (
