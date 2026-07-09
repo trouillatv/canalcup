@@ -12,6 +12,7 @@ import { PushNotifications } from "@/components/pwa/PushNotifications";
 import { AppBadge } from "@/components/pwa/AppBadge";
 import { TimezoneProvider } from "@/components/timezone/TimezoneProvider";
 import { EventSplash } from "@/components/events/EventSplash";
+import { PartnerRequestSplash } from "@/components/babyfoot/PartnerRequestSplash";
 import { PageTracker } from "@/components/analytics/PageTracker";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_TZ, normalizeTimezone } from "@/lib/utils";
@@ -105,6 +106,8 @@ export default async function RootLayout({
           {isAuthenticated && <FloatingFeedback />}
           {/* 🎆 Annonce événementielle (prochain Quiz) au lancement de l'app. */}
           {isAuthenticated && <EventSplash />}
+          {/* 🏓 Demande de partenaire baby-foot (prime sur l'annonce : z-index sup). */}
+          {isAuthenticated && <PartnerRequestSplash />}
           <PwaSetup />
           <InstallPrompt />
           {isAuthenticated && <PushNotifications />}

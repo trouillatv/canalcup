@@ -351,6 +351,40 @@ export async function getBinomeFiche(teamId: string, admin?: DbClient): Promise<
   return { teamId, label, members, current, history };
 }
 
+// ── Participants RÉELS d'une édition ─────────────────────────────────────────
+// user_id → son inscription effective. Officiel = les 2 membres de l'équipe ;
+// paire ad-hoc = p1 toujours, p2 SEULEMENT s'il n'est pas renfort (un renfort
+// n'est pas un « deuxième participant officiel » : il reste libre/inscrit ailleurs).
+export async function getRealParticipants(
+  admin: DbClient,
+  tournamentId: string
+): Promise<Map<string, { entryId: string; label: string }>> {
+  const [entries, { data: rawRows }] = await Promise.all([
+    getEntries(admin, tournamentId),
+    admin.from("babyfoot_entries")
+      .select("id, kind, team_id, p1_user_id, p2_user_id, p2_is_helper")
+      .eq("tournament_id", tournamentId),
+  ]);
+  const labelById = new Map(entries.map((e) => [e.id, e.label]));
+  const rows = (rawRows ?? []) as Array<{ id: string; kind: string | null; team_id: string | null; p1_user_id: string | null; p2_user_id: string | null; p2_is_helper: boolean | null }>;
+  const out = new Map<string, { entryId: string; label: string }>();
+  const officialTeams = rows.filter((r) => r.kind !== "open" && r.team_id).map((r) => r.team_id!);
+  if (officialTeams.length) {
+    const { data: tm } = await admin.from("team_memberships").select("team_id, user_id").in("team_id", officialTeams);
+    const entryByTeam = new Map(rows.filter((r) => r.kind !== "open" && r.team_id).map((r) => [r.team_id!, r.id]));
+    for (const m of (tm ?? []) as { team_id: string; user_id: string }[]) {
+      const eid = entryByTeam.get(m.team_id);
+      if (eid) out.set(m.user_id, { entryId: eid, label: labelById.get(eid) ?? "?" });
+    }
+  }
+  for (const r of rows) {
+    if (r.kind !== "open") continue;
+    if (r.p1_user_id) out.set(r.p1_user_id, { entryId: r.id, label: labelById.get(r.id) ?? "?" });
+    if (r.p2_user_id && !r.p2_is_helper) out.set(r.p2_user_id, { entryId: r.id, label: labelById.get(r.id) ?? "?" });
+  }
+  return out;
+}
+
 export interface UserBinome {
   meId: string;
   meName: string;
