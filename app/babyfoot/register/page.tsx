@@ -29,7 +29,7 @@ interface Ctx {
   registeredCount: number;
   entries: { id: string; label: string }[];
 }
-interface Candidate { id: string; name: string; status: "free" | "registered" | "seeking"; with: string | null; }
+interface Candidate { id: string; name: string; status: "free" | "registered" | "seeking"; with: string | null; teamPartner: string | null; }
 interface PCtx {
   tournament: { id: string; registration_open: boolean; status: string } | null;
   me: { id: string; name: string; registered: boolean; entryLabel: string | null } | null;
@@ -277,14 +277,23 @@ function PartnerPicker({ pctx, busy, act }: { pctx: PCtx; busy: boolean; act: (b
         <option value="">— Choisis un collègue —</option>
         {pctx.candidates.map((c) => (
           <option key={c.id} value={c.id}>
-            {c.name} {c.status === "registered" ? `· 👥 déjà en binôme${c.with ? ` (${c.with})` : ""}` : c.status === "seeking" ? "· 🔎 cherche un partenaire" : "· 🟢 disponible"}
+            {c.name} {c.status === "registered" ? "· 🏓 déjà inscrit au tournoi"
+              : c.status === "seeking" ? "· 🔎 cherche un partenaire"
+              : c.teamPartner ? `· 👥 en binôme avec ${c.teamPartner}`
+              : "· 🟢 disponible"}
           </option>
         ))}
       </select>
       {chosen?.status === "registered" && (
         <p className="text-xs text-canal-yellow bg-canal-yellow/10 border border-canal-yellow/30 rounded-lg p-2">
-          👥 <b>{chosen.name}</b> est déjà inscrit ({chosen.with}). Il/elle peut accepter <b>en renfort</b> :
+          🏓 <b>{chosen.name}</b> est déjà inscrit au tournoi ({chosen.with}). Il/elle peut accepter <b>en renfort</b> :
           il/elle joue avec toi pour te dépanner, mais <b>toi seul marqueras des points</b>.
+        </p>
+      )}
+      {chosen?.status !== "registered" && chosen?.teamPartner && (
+        <p className="text-xs text-canal-gray-muted bg-canal-gray-mid/40 border border-canal-gray-light rounded-lg p-2">
+          👥 <b className="text-white">{chosen.name}</b> a déjà un binôme CanalCup avec <b className="text-white">{chosen.teamPartner}</b> —
+          il se peut qu&apos;ils s&apos;inscrivent ensemble. Tu peux quand même lui proposer.
         </p>
       )}
       <button disabled={busy || !pick}

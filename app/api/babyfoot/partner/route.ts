@@ -51,6 +51,21 @@ export async function GET(req: Request) {
 
   const participants = await getRealParticipants(admin, t.id);
   const { data: allUsers } = await admin.from("users").select("id, display_name, name").order("display_name");
+  // Binôme RSE (équipe de 2) de chaque user → partenaire affiché dans la liste
+  // (« en binôme avec Y ») même s'ils ne sont pas encore inscrits au tournoi.
+  const { data: memRows } = await admin.from("team_memberships").select("team_id, user_id");
+  const membersByTeam = new Map<string, string[]>();
+  for (const m of (memRows ?? []) as { team_id: string; user_id: string }[]) {
+    if (!membersByTeam.has(m.team_id)) membersByTeam.set(m.team_id, []);
+    membersByTeam.get(m.team_id)!.push(m.user_id);
+  }
+  const userNameById = new Map(((allUsers ?? []) as { id: string; display_name: string | null; name: string | null }[]).map((u) => [u.id, u.display_name || u.name || "—"]));
+  const teamPartnerOf = new Map<string, string>(); // user_id → nom du coéquipier RSE
+  for (const [, ids] of membersByTeam) {
+    if (ids.length !== 2) continue;
+    teamPartnerOf.set(ids[0], userNameById.get(ids[1]) ?? "—");
+    teamPartnerOf.set(ids[1], userNameById.get(ids[0]) ?? "—");
+  }
   const { data: seekRows } = await admin.from("babyfoot_seeking").select("user_id").eq("tournament_id", t.id);
   const seekingIds = new Set((seekRows ?? []).map((r: { user_id: string }) => r.user_id));
   const { data: out } = await admin
@@ -67,7 +82,8 @@ export async function GET(req: Request) {
       return {
         id: u.id, name: nameOf(u),
         status: p ? "registered" : seekingIds.has(u.id) ? "seeking" : "free",
-        with: p?.label ?? null, // « Déjà en binôme avec … »
+        with: p?.label ?? null, // inscrit au tournoi : avec qui
+        teamPartner: teamPartnerOf.get(u.id) ?? null, // binôme RSE (équipe) même hors tournoi
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
