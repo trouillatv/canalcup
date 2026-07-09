@@ -47,6 +47,7 @@ export async function GET() {
     admin
       .from("quiz_questions")
       .select("id, question, answer_a, answer_b, answer_c, answer_d, category, difficulty")
+      .eq("disabled", false) // exclut les questions retirées du jeu (ex. blagues WAG)
       .order("created_at", { ascending: true }),
     admin.from("quiz_answers").select("question_id").eq("user_id", profile.id),
     admin.from("quiz_session").select("question_ids").eq("id", session.id).maybeSingle(),

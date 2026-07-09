@@ -17,6 +17,7 @@ export async function listQuestionIds(supabase: Supa): Promise<string[]> {
   const { data } = await supabase
     .from("quiz_questions")
     .select("id")
+    .eq("disabled", false) // exclut les questions retirées du jeu (ex. blagues WAG)
     .order("created_at", { ascending: true });
   return (data ?? []).map((q) => q.id as string);
 }
@@ -52,6 +53,35 @@ export async function usedQuestionIds(supabase: Supa): Promise<Set<string>> {
     if (Array.isArray(ids)) for (const id of ids) set.add(id as string);
   }
   return set;
+}
+
+// Toutes les questions déjà RÉPONDUES par n'importe qui (Live OU Solo).
+// Indispensable pour le tirage : les questions du mode Solo ne figurent PAS dans
+// session.question_ids (le Solo sert le complément), donc usedQuestionIds seul les
+// laisse ré-éligibles. Reposer une question déjà répondue = déjà-vu pour le joueur
+// ET collision anti-rejeu (la route answer retrouve l'ancienne ligne et l'écrase).
+// Lecture PAGINÉE : quiz_answers dépasse vite 1000 lignes (60 questions × joueurs).
+export async function answeredQuestionIds(supabase: Supa): Promise<Set<string>> {
+  const set = new Set<string>();
+  for (let from = 0; ; from += 1000) {
+    const { data } = await supabase.from("quiz_answers").select("question_id").range(from, from + 999);
+    if (!data || data.length === 0) break;
+    for (const r of data) {
+      const id = (r as { question_id: unknown }).question_id;
+      if (typeof id === "string") set.add(id);
+    }
+    if (data.length < 1000) break;
+  }
+  return set;
+}
+
+// Ensemble complet à exclure d'un nouveau tirage / d'une extension :
+// questions déjà projetées en Live (toutes sessions) ∪ questions déjà répondues
+// (Live + Solo). Garantit qu'un nouveau quiz ne repose JAMAIS du déjà-vu.
+export async function consumedQuestionIds(supabase: Supa): Promise<Set<string>> {
+  const [used, answered] = await Promise.all([usedQuestionIds(supabase), answeredQuestionIds(supabase)]);
+  for (const id of answered) used.add(id);
+  return used;
 }
 
 // La liste de passage d'une session = sa colonne question_ids (sous-ensemble

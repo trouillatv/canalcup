@@ -15,7 +15,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminRequest } from "@/lib/auth/admin";
-import { advanceQuizSession, futureStartedAt, listQuestionIds, pickRandomQuestionIds, usedQuestionIds } from "@/lib/quiz/session";
+import { advanceQuizSession, futureStartedAt, listQuestionIds, pickRandomQuestionIds, consumedQuestionIds } from "@/lib/quiz/session";
 import { isLiveOpen, QUIZ_CHAMPIONSHIP } from "@/lib/config/quiz-championship";
 import { QUIZ_LIVE_QUESTION_COUNT } from "@/lib/scoring";
 
@@ -63,10 +63,12 @@ export async function POST(req: Request) {
         { status: 403 }
       );
     }
-    // Tirage aléatoire d'un sous-ensemble (60 par défaut), en EXCLUANT les
-    // questions déjà posées dans les quiz précédents → pas de répétition, et pas
-    // de collision anti-rejeu (reposer une question écraserait l'ancienne réponse).
-    const already = await usedQuestionIds(supabase);
+    // Tirage aléatoire d'un sous-ensemble (60 par défaut), en EXCLUANT toute
+    // question déjà CONSOMMÉE : projetée en Live d'un quiz précédent OU déjà
+    // répondue par quelqu'un (Live ou Solo). Sans le volet « répondues », les
+    // questions du complément Solo restaient ré-éligibles → déjà-vu pour le joueur
+    // et collision anti-rejeu (reposer une question écraserait l'ancienne réponse).
+    const already = await consumedQuestionIds(supabase);
     const chosen = await pickRandomQuestionIds(supabase, QUIZ_LIVE_QUESTION_COUNT, already);
     if (chosen.length === 0) {
       return NextResponse.json({ error: "Aucune question quiz en base." }, { status: 400 });
@@ -103,8 +105,12 @@ export async function POST(req: Request) {
       .maybeSingle();
     if (!session) return NextResponse.json({ error: "Pas de session active." }, { status: 400 });
     const current = (session.question_ids as string[] | null) ?? (await listQuestionIds(supabase));
-    const used = new Set(current);
-    const pool = (await listQuestionIds(supabase)).filter((id) => !used.has(id));
+    // Exclut : questions déjà dans CETTE session + toute question déjà consommée
+    // ailleurs (Live précédent ou répondue en Live/Solo) → l'extension ne ramène
+    // pas non plus du déjà-vu.
+    const exclude = await consumedQuestionIds(supabase);
+    for (const id of current) exclude.add(id);
+    const pool = (await listQuestionIds(supabase)).filter((id) => !exclude.has(id));
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
