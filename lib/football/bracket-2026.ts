@@ -256,21 +256,52 @@ export function resolveKnockout(
   }));
   const thirdAssignment = assignThirds(qualifiedThirdGroups, thirdSlots);
 
-  // ── Propagation des qualifiés : winnerOf(feeder) → vrai vainqueur dès que le
-  // match amont est joué. On rattache chaque vrai 16e à son emplacement d'arbre
-  // via l'équipe DÉTERMINISTE (1er/2e de poule, non ambiguë). Le vainqueur = le
-  // score FINAL (prolongation/TAB inclus), car c'est lui qui se QUALIFIE — à ne
-  // pas confondre avec le score réglementaire qui, lui, juge les pronos.
+  // ── Propagation des qualifiés : winnerOf(feeder) → vrai vainqueur dès qu'un
+  // match amont est joué, À TOUS LES TOURS (16e → 8e → quart → demi → finale).
+  // On rattache chaque vrai match à sa position d'arbre via l'IDENTITÉ
+  // DÉTERMINISTE de ses équipes : chaque qualifié (1er/2e de poule, ou 3e
+  // repêché affecté) a un n° de 16e FIXE, donc un chemin fixe dans l'arbre. Le
+  // vainqueur = le score FINAL (prolongation/TAB inclus), car c'est lui qui se
+  // QUALIFIE — à ne pas confondre avec le score réglementaire (qui juge les pronos).
   const winnerByFeeder: Record<number, { teamName: string; teamFlag?: string }> = {};
-  const detTeamToSeize: Record<string, number> = {};
+
+  // n° de 16e de chaque équipe qualifiée (déterministe depuis les poules).
+  const seizeNoOfTeam: Record<string, number> = {};
   for (const m of SEIZIEMES) {
     const detOf = (s: Slot): StandingLike | undefined =>
       s.kind === "winner" ? perGroup[s.group]?.[0] : s.kind === "runner" ? perGroup[s.group]?.[1] : undefined;
-    const det = detOf(m.a) ?? detOf(m.b);
-    if (det?.team_name_fr) detTeamToSeize[normName(det.team_name_fr)] = m.no;
+    const a = detOf(m.a), b = detOf(m.b);
+    if (a?.team_name_fr) seizeNoOfTeam[normName(a.team_name_fr)] = m.no;
+    if (b?.team_name_fr) seizeNoOfTeam[normName(b.team_name_fr)] = m.no;
   }
+  for (const [noStr, groupL] of Object.entries(thirdAssignment)) {
+    const row = perGroup[groupL]?.[2];
+    if (row?.team_name_fr) seizeNoOfTeam[normName(row.team_name_fr)] = Number(noStr);
+  }
+
+  // Chaînage amont→aval : n° d'un match → n° du match qui accueille son vainqueur.
+  const nextMatchOf: Record<number, number> = {};
+  for (const m of [...HUITIEMES, ...QUARTS, ...DEMIS, FINALE]) {
+    nextMatchOf[m.a] = m.no;
+    nextMatchOf[m.b] = m.no;
+  }
+  const ROUND_STEPS: Record<string, number> = { Seizièmes: 0, Huitièmes: 1, Quarts: 2, Demis: 3, Finale: 4 };
+  // n° de match d'une équipe à un tour donné : on part de son 16e et on remonte.
+  const fifaNoAtRound = (teamNorm: string, round: string): number | null => {
+    let no: number | undefined = seizeNoOfTeam[teamNorm];
+    if (no == null) return null;
+    const steps = ROUND_STEPS[round];
+    if (steps == null) return null;
+    for (let i = 0; i < steps; i++) {
+      no = nextMatchOf[no];
+      if (no == null) return null;
+    }
+    return no;
+  };
+
   for (const rm of realMatches) {
-    if ((rm.phase ?? "") !== "Seizièmes" || rm.status !== "finished") continue;
+    const round = rm.phase ?? "";
+    if (!(round in ROUND_STEPS) || rm.status !== "finished") continue;
     if (rm.score_a == null || rm.score_b == null) continue;
     // Vainqueur = meilleur score final (prolongation incluse), ou, à égalité,
     // meilleur total aux tirs au but. Sans t.a.b. connus → indécidable, on saute.
@@ -282,8 +313,8 @@ export function resolveKnockout(
     } else {
       continue;
     }
-    const no = detTeamToSeize[normName(rm.team_a)] ?? detTeamToSeize[normName(rm.team_b)];
-    if (!no) continue;
+    const no = fifaNoAtRound(normName(rm.team_a), round) ?? fifaNoAtRound(normName(rm.team_b), round);
+    if (no == null) continue;
     winnerByFeeder[no] = winsA
       ? { teamName: rm.team_a, teamFlag: rm.flag_a ?? undefined }
       : { teamName: rm.team_b, teamFlag: rm.flag_b ?? undefined };
