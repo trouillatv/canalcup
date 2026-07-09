@@ -7,7 +7,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { Trophy, Users, ArrowRight, Swords, Camera, BarChart3, Loader2 } from "lucide-react";
-import { BABYFOOT } from "@/lib/config/babyfoot";
+import { BABYFOOT, championMaxPoints } from "@/lib/config/babyfoot";
 
 // Onglet « Gestion » (organisateurs) — chargé à la demande : le code admin
 // n'alourdit pas le bundle des joueurs, et n'est jamais rendu pour un non-admin.
@@ -106,8 +106,11 @@ export default function BabyfootPage() {
       {tab === "regles" && <BabyfootRules />}
       {tab === "tournoi" && (<>
 
-      {/* CTA inscription */}
-      {showRegister && (
+      {/* CTA inscription + mode d'emploi (contenu du mail d'annonce) */}
+      {showRegister && (<>
+        <div className="bg-canal-yellow text-canal-black font-black text-center text-sm rounded-lg px-4 py-2.5">
+          ⏰ Inscriptions jusqu&apos;au {BABYFOOT.inscriptionsCloseLabel}
+        </div>
         <Link href="/babyfoot/register" className="block canal-card border border-canal-yellow/50 bg-canal-yellow/10 hover:bg-canal-yellow/15 transition-colors">
           <div className="flex items-center gap-3">
             <Users className="text-canal-yellow shrink-0" />
@@ -120,7 +123,8 @@ export default function BabyfootPage() {
             <ArrowRight className="text-canal-yellow shrink-0" />
           </div>
         </Link>
-      )}
+        <HowToParticipate />
+      </>)}
 
       {/* Podium */}
       {(s?.podium?.length ?? 0) > 0 && (
@@ -275,6 +279,31 @@ function BabyfootTabs({ tab, setTab, isAdmin }: { tab: string; setTab: (t: "tour
   );
 }
 
+// Mode d'emploi affiché pendant les inscriptions — reprend le mail d'annonce
+// (comment ça marche, inscription solo, créneaux) pour que personne ne soit perdu.
+function HowToParticipate() {
+  return (
+    <section className="space-y-2">
+      <h2 className="text-sm font-bold uppercase text-canal-yellow">📲 Comment participer</h2>
+      <div className="canal-card space-y-3 text-sm leading-relaxed">
+        <div>
+          <p className="font-black text-white">👥 Vous êtes déjà 2 ?</p>
+          <p className="text-canal-gray-muted">Un binôme = <b className="text-white">exactement 2 joueurs</b>. Inscrivez-vous <b className="text-white">ensemble</b> depuis la page d&apos;inscription — vous jouerez ensemble tout le tournoi.</p>
+        </div>
+        <div>
+          <p className="font-black text-white">🙋 Tu es seul·e ? Tu joues quand même !</p>
+          <p className="text-canal-gray-muted">Déclare-toi <b className="text-white">« je cherche un partenaire »</b> : ton nom apparaît dans la liste et n&apos;importe qui peut t&apos;inviter en un clic. Ou envoie directement une <b className="text-white">demande</b> à un·e collègue — il/elle accepte, et votre binôme est créé.</p>
+        </div>
+        <div>
+          <p className="font-black text-white">📅 Cochez vos créneaux de dispo</p>
+          <p className="text-canal-gray-muted">C&apos;est ce qui permet de construire un planning qui arrange tout le monde ({BABYFOOT.eventLabel}). Au moins {BABYFOOT.minSlots} créneaux — et plus vous en cochez, <b className="text-white">plus le tirage est équilibré</b>. Soyez généreux !</p>
+        </div>
+        <p className="text-canal-gray-muted text-xs">🏅 À la clé : de vrais points CanalCup pour toi <b className="text-white">et</b> ton équipe — jusqu&apos;à <b className="text-canal-yellow">{championMaxPoints()} points</b> pour le parcours parfait. Détail du barème dans l&apos;onglet <b className="text-white">Règles</b>.</p>
+      </div>
+    </section>
+  );
+}
+
 // Règles du tournoi — visible par TOUS les joueurs.
 function BabyfootRules() {
   const b = BABYFOOT.bareme;
@@ -309,6 +338,12 @@ function BabyfootRules() {
       <Card icon="📅" title="Quand">
         <Li>{BABYFOOT.eventLabel}.</Li>
         <Li>Les créneaux exacts de vos matchs s&apos;affichent dans l&apos;onglet <b className="text-white">Tournoi</b> une fois le tirage fait.</Li>
+      </Card>
+      <Card icon="📲" title="S'inscrire">
+        <Li>Inscriptions ouvertes jusqu&apos;au <b className="text-white">{BABYFOOT.inscriptionsCloseLabel}</b>, tirage le {BABYFOOT.drawLabel}.</Li>
+        <Li><b className="text-white">En binôme :</b> vous êtes déjà 2 → inscrivez-vous ensemble depuis la page d&apos;inscription.</Li>
+        <Li><b className="text-white">En solo :</b> déclare-toi « je cherche un partenaire » ou envoie une demande à un·e collègue — l&apos;app s&apos;occupe de la mise en relation.</Li>
+        <Li>Cochez vos <b className="text-white">créneaux de dispo</b> (au moins {BABYFOOT.minSlots}) : plus vous en cochez, plus le tirage est équilibré.</Li>
       </Card>
     </section>
   );
