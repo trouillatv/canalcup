@@ -538,6 +538,90 @@ export async function notifyBabyfootUser(
   }
 }
 
+// ── Disponibilités PAR JOUEUR + intersection ─────────────────────────────────
+// babyfoot_player_availability = ce que CHAQUE joueur a coché. L'effectif du
+// binôme (babyfoot_entry_availability, lu par le moteur) = INTERSECTION des
+// joueurs qui ont saisi quelque chose. Un joueur sans saisie ne contraint pas
+// (l'autre peut inscrire le binôme seul, comme avant).
+
+/** user_ids des joueurs RÉELS d'une inscription (renfort exclu). */
+export async function getEntryRealPlayerIds(admin: DbClient, entryId: string): Promise<string[]> {
+  const { data: e } = await admin
+    .from("babyfoot_entries")
+    .select("kind, team_id, p1_user_id, p2_user_id, p2_is_helper")
+    .eq("id", entryId).maybeSingle();
+  if (!e) return [];
+  if (e.kind === "open") {
+    const ids = [e.p1_user_id];
+    if (!e.p2_is_helper) ids.push(e.p2_user_id);
+    return ids.filter((x): x is string => !!x);
+  }
+  if (e.team_id) {
+    const { data: tm } = await admin.from("team_memberships").select("user_id").eq("team_id", e.team_id);
+    return ((tm ?? []) as { user_id: string }[]).map((r) => r.user_id);
+  }
+  return [];
+}
+
+/** Recalcule l'effectif (intersection) et réécrit babyfoot_entry_availability. */
+export async function recomputeEntryAvailability(admin: DbClient, entryId: string): Promise<string[]> {
+  const players = new Set(await getEntryRealPlayerIds(admin, entryId));
+  const { data: rows } = await admin
+    .from("babyfoot_player_availability").select("user_id, slot_key").eq("entry_id", entryId);
+  const byUser = new Map<string, Set<string>>();
+  for (const r of (rows ?? []) as { user_id: string; slot_key: string }[]) {
+    if (!players.has(r.user_id)) continue;
+    if (!byUser.has(r.user_id)) byUser.set(r.user_id, new Set());
+    byUser.get(r.user_id)!.add(r.slot_key);
+  }
+  const constrainers = [...byUser.values()].filter((s) => s.size > 0);
+  let effective: string[] = [];
+  if (constrainers.length) {
+    effective = [...constrainers[0]].filter((k) => constrainers.every((s) => s.has(k)));
+  }
+  await admin.from("babyfoot_entry_availability").delete().eq("entry_id", entryId);
+  if (effective.length) {
+    await admin.from("babyfoot_entry_availability")
+      .insert(effective.map((slot_key) => ({ entry_id: entryId, slot_key })));
+  }
+  return effective;
+}
+
+export interface BinomeAvailability {
+  mySlots: string[];        // MES créneaux (à pré-remplir dans l'éditeur)
+  partnerSlots: string[];   // ceux du coéquipier ([] s'il n'a rien saisi)
+  partnerHasSet: boolean;   // le coéquipier a-t-il renseigné ses dispos ?
+  commonSlots: string[];    // intersection = créneaux jouables ensemble (= effectif)
+  iHaveSet: boolean;
+}
+
+export async function getBinomeAvailability(
+  admin: DbClient,
+  entryId: string,
+  meId: string,
+  partnerUserId: string | null
+): Promise<BinomeAvailability> {
+  const { data: rows } = await admin
+    .from("babyfoot_player_availability").select("user_id, slot_key").eq("entry_id", entryId);
+  const mine = new Set<string>();
+  const partner = new Set<string>();
+  for (const r of (rows ?? []) as { user_id: string; slot_key: string }[]) {
+    if (r.user_id === meId) mine.add(r.slot_key);
+    else if (partnerUserId && r.user_id === partnerUserId) partner.add(r.slot_key);
+  }
+  const partnerHasSet = partner.size > 0;
+  const commonSlots = partnerHasSet
+    ? [...mine].filter((k) => partner.has(k))
+    : [...mine]; // coéquipier non contraignant → jouable = mes créneaux
+  return {
+    mySlots: [...mine],
+    partnerSlots: [...partner],
+    partnerHasSet,
+    commonSlots,
+    iHaveSet: mine.size > 0,
+  };
+}
+
 // ── Prochain match d'une inscription (pour la carte d'accueil « binôme ») ──────
 export async function getNextEntryMatch(
   admin: DbClient,

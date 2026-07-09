@@ -30,6 +30,7 @@ interface BinomeCtx {
   iAmHelperPartner: boolean;
 }
 interface NextMatch { id: string; startsAt: string | null; opponentLabel: string; tableNo: number | null; }
+interface Availability { mySlots: string[]; partnerSlots: string[]; partnerHasSet: boolean; commonSlots: string[]; iHaveSet: boolean; }
 interface Ctx {
   tournament: {
     id: string; name: string; event_date: string | null;
@@ -44,6 +45,7 @@ interface Ctx {
   myEntry: { id: string; label: string; display_name: string | null; availability: string[] } | null;
   myOpenPair: { partnerName: string | null; helper: boolean } | null;
   binomeCtx: BinomeCtx | null;
+  availability: Availability | null;
   homeState: "creating" | "registered" | "draw" | "live";
   nextMatch: NextMatch | null;
   registeredCount: number;
@@ -104,7 +106,8 @@ export default function BabyfootRegisterPage() {
         setCtx(d); setPctx(p);
         if (d.myEntry) {
           setDisplayName(d.myEntry.display_name ?? "");
-          setSlots(new Set(d.myEntry.availability ?? []));
+          // Pré-remplir avec MES créneaux (pas l'intersection du binôme).
+          setSlots(new Set(d.availability?.mySlots ?? d.myEntry.availability ?? []));
         }
       })
       .catch(() => setError("Chargement impossible."))
@@ -440,6 +443,37 @@ function SeekPanel({ pctx, busy, act }: { pctx: PCtx; busy: boolean; act: (b: Re
   );
 }
 
+// Visualisation « qui est dispo quand » : une ligne par joueur + une ligne
+// « commun » (pastilles pleines aux créneaux partagés). Rend immédiatement
+// lisible où le binôme peut jouer ensemble.
+function AvailabilityGrids({ slots, meName, partnerName, mySet, partnerSet, partnerHasSet, hidePartner }: {
+  slots: Slot[]; meName: string; partnerName: string;
+  mySet: Set<string>; partnerSet: Set<string>; partnerHasSet: boolean; hidePartner?: boolean;
+}) {
+  const Row = ({ label, on, dim }: { label: string; on: (k: string) => boolean; dim?: boolean }) => (
+    <div className="flex items-center gap-2">
+      <span className={`w-14 shrink-0 text-[10px] font-bold uppercase truncate ${dim ? "text-canal-gray-muted" : "text-white"}`}>{label}</span>
+      <div className="flex gap-1 flex-wrap">
+        {slots.map((s) => {
+          const active = on(s.key);
+          return (
+            <span key={s.key} title={s.label}
+              className={`w-4 h-4 rounded-full ${active ? "bg-green-400" : "bg-canal-gray-mid border border-canal-gray-light"}`} />
+          );
+        })}
+      </div>
+    </div>
+  );
+  return (
+    <div className="rounded-lg bg-canal-gray-mid/30 p-2.5 space-y-1.5 overflow-x-auto">
+      <p className="text-[9px] text-canal-gray-muted uppercase tracking-wider mb-1">{slots.map((s) => s.start.replace(":00", "h").replace(":30", "h30")).join(" · ")}</p>
+      <Row label={meName.split(" ")[0]} on={(k) => mySet.has(k)} />
+      {!hidePartner && <Row label={partnerName.split(" ")[0]} on={(k) => partnerSet.has(k)} dim={!partnerHasSet} />}
+      {!hidePartner && <Row label="Commun" on={(k) => mySet.has(k) && partnerSet.has(k)} />}
+    </div>
+  );
+}
+
 // 🏓 PAGE BINÔME — quand je suis inscrit. Sépare l'INSCRIPTION officielle (qui
 // joue, qui l'a créée, quels créneaux) du rôle de RENFORT (dépanner un autre).
 function BinomeHome({ ctx, isPair, onEdit }: { ctx: Ctx; isPair: boolean; onEdit: () => void }) {
@@ -447,12 +481,16 @@ function BinomeHome({ ctx, isPair, onEdit }: { ctx: Ctx; isPair: boolean; onEdit
   const meName = ctx.binome?.meName ?? "Moi";
   const partnerName = bc?.partnerName ?? (isPair ? ctx.myOpenPair?.partnerName : ctx.binome?.partnerName) ?? "coéquipier";
   const helper = isPair && !!ctx.myOpenPair?.helper; // MON coéquipier est un renfort
-  const avail = [...(ctx.myEntry?.availability ?? [])].sort(
+  const av = ctx.availability;
+  const mySet = new Set(av?.mySlots ?? []);
+  const partnerSet = new Set(av?.partnerSlots ?? []);
+  const partnerHasSet = !!av?.partnerHasSet;
+  const common = [...(av?.commonSlots ?? [])].sort(
     (a, b) => ctx.slots.findIndex((s) => s.key === a) - ctx.slots.findIndex((s) => s.key === b)
   );
+  const missing = Math.max(0, ctx.minSlots - common.length);
   const slotLabel = (k: string) => ctx.slots.find((s) => s.key === k)?.label ?? k;
   const creatorLabel = bc?.iAmCreator ? "toi" : bc?.creatorName ?? partnerName;
-  const authorLabel = bc?.iAmSlotsAuthor ? "toi" : bc?.slotsAuthorName ?? creatorLabel;
 
   return (
     <div className="space-y-4">
@@ -480,33 +518,34 @@ function BinomeHome({ ctx, isPair, onEdit }: { ctx: Ctx; isPair: boolean; onEdit
         )}
       </div>
 
-      {/* Les créneaux — un seul éditeur à la fois, modification explicite */}
+      {/* Les créneaux — chacun les siens, l'app calcule le commun */}
       <div className="canal-card space-y-3">
-        <h2 className="text-sm font-black uppercase text-canal-yellow flex items-center gap-1.5"><CalendarClock size={14} /> Vos créneaux</h2>
-        {avail.length ? (
-          <div className="flex flex-wrap gap-1.5">
-            {avail.map((k) => (
-              <span key={k} className="inline-flex items-center gap-1 text-xs font-bold text-canal-yellow bg-canal-yellow/10 border border-canal-yellow/30 rounded-lg px-2.5 py-1.5">
-                <Check size={11} /> {slotLabel(k)}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-canal-gray-muted">Aucun créneau sélectionné pour l&apos;instant.</p>
-        )}
-        <p className="text-[11px] text-canal-gray-muted">
-          {bc?.iAmSlotsAuthor
-            ? <>Créneaux sélectionnés par <b className="text-white">toi</b>.</>
-            : <>Créneaux sélectionnés par <b className="text-white">{authorLabel}</b>.</>}
-          {" "}Un seul membre les saisit pour éviter les conflits.
-        </p>
+        <h2 className="text-sm font-black uppercase text-canal-yellow flex items-center gap-1.5"><CalendarClock size={14} /> Vos disponibilités</h2>
+
+        <AvailabilityGrids slots={ctx.slots} meName={meName} partnerName={partnerName} mySet={mySet} partnerSet={partnerSet} partnerHasSet={partnerHasSet} hidePartner={helper} />
+
+        {/* Résumé des créneaux communs */}
+        <div className={`rounded-lg p-2.5 text-[11px] border ${(helper ? mySet.size : common.length) >= ctx.minSlots ? "border-green-600/40 bg-green-900/10" : "border-canal-yellow/40 bg-canal-yellow/5"}`}>
+          {helper ? (
+            <p className="text-canal-gray-muted"><b className="text-white">{partnerName}</b> te dépanne en renfort : le tirage utilise <b className="text-white">tes {mySet.size} créneau{mySet.size > 1 ? "x" : ""}</b>.</p>
+          ) : partnerHasSet ? (
+            <>
+              <p className="font-bold text-white">🤝 Créneaux communs : {common.length}</p>
+              {common.length > 0 && <p className="text-canal-gray-muted mt-0.5">{common.map(slotLabel).join(" · ")}</p>}
+              {missing > 0 && <p className="text-canal-yellow font-bold mt-1">Il vous manque {missing} créneau{missing > 1 ? "x" : ""} commun{missing > 1 ? "s" : ""}.</p>}
+            </>
+          ) : mySet.size ? (
+            <p className="text-canal-gray-muted"><b className="text-white">{partnerName}</b> n&apos;a pas encore renseigné ses disponibilités. En attendant, le tirage utilise <b className="text-white">tes {mySet.size} créneau{mySet.size > 1 ? "x" : ""}</b>.</p>
+          ) : (
+            <p className="text-canal-gray-muted">Personne n&apos;a encore renseigné de créneaux.</p>
+          )}
+        </div>
+
         <button onClick={onEdit}
           className="w-full min-h-[44px] flex items-center justify-center gap-2 rounded-xl bg-canal-gray-mid border border-canal-gray-light text-white font-bold text-sm hover:border-canal-yellow/50 transition-colors">
           <Pencil size={14} /> Modifier mes disponibilités
         </button>
-        {!bc?.iAmSlotsAuthor && (
-          <p className="text-[11px] text-canal-gray-muted text-center">Si tu modifies, {authorLabel} en sera informé·e.</p>
-        )}
+        <p className="text-[11px] text-canal-gray-muted text-center">Tu ne modifies que <b className="text-white">tes</b> créneaux — ceux de {partnerName} restent intacts.</p>
       </div>
 
       {/* 🤝 Rôle de RENFORT — distinct de l'inscription officielle */}
@@ -603,12 +642,17 @@ function RegistrationForm({ ctx, isPair, displayName, setDisplayName, slots, tog
 }) {
   const t = ctx.tournament;
   const meName = ctx.binome?.meName ?? "Moi";
-  const partnerName = isPair ? (ctx.myOpenPair?.partnerName ?? "coéquipier") : (ctx.binome?.partnerName ?? "coéquipier");
+  const partnerName = ctx.binomeCtx?.partnerName ?? (isPair ? ctx.myOpenPair?.partnerName : ctx.binome?.partnerName) ?? "ton coéquipier";
+  // Dispos du coéquipier (pour l'aperçu « il est dispo ici ») + commun en direct.
+  const helperPair = isPair && !!ctx.myOpenPair?.helper; // mon coéquipier est un renfort
+  const partnerSet = new Set(ctx.availability?.partnerSlots ?? []);
+  const partnerHasSet = !helperPair && !!ctx.availability?.partnerHasSet;
+  const liveCommon = partnerHasSet ? [...slots].filter((k) => partnerSet.has(k)) : [...slots];
   return (
     <div className="canal-card space-y-5">
       {done && (
         <div className="rounded-xl bg-green-900/20 border border-green-600/40 p-3 flex items-center gap-2 text-green-300 text-sm font-bold">
-          <PartyPopper size={16} /> {ctx.myEntry ? "Inscription mise à jour !" : "Binôme inscrit !"}
+          <PartyPopper size={16} /> {ctx.myEntry ? "Disponibilités mises à jour !" : "Binôme inscrit !"}
         </div>
       )}
 
@@ -642,11 +686,12 @@ function RegistrationForm({ ctx, isPair, displayName, setDisplayName, slots, tog
         />
       </div>
 
-      {/* Disponibilités — créneaux de 30 min (1 seule table) */}
+      {/* MES disponibilités — chacun coche les siennes, l'app calcule le commun */}
       <div>
-        <label className="text-xs font-bold uppercase text-canal-gray-muted flex items-center gap-1.5"><CalendarClock size={12} /> Vos disponibilités</label>
+        <label className="text-xs font-bold uppercase text-canal-gray-muted flex items-center gap-1.5"><CalendarClock size={12} /> Mes disponibilités</label>
         <p className="text-[11px] text-canal-gray-muted mt-1">
-          🏓 <b>Une seule table.</b> Choisissez <b>au moins {ctx.minSlots}</b> créneaux de 30 min (recommandé : {ctx.recommendedSlots}+). <b className="text-white">Plus vous cochez de disponibilités, plus le tirage pourra équilibrer le tournoi</b>.
+          🏓 <b>Une seule table.</b> Coche <b>tes</b> créneaux (au moins {ctx.minSlots}, recommandé {ctx.recommendedSlots}+).
+          {" "}<b className="text-white">{partnerName} coche les siens de son côté</b> — l&apos;app calcule automatiquement vos créneaux communs.
         </p>
         {(["thu", "fri"] as const).map((day) => (
           <div key={day} className="mt-3">
@@ -658,6 +703,7 @@ function RegistrationForm({ ctx, isPair, displayName, setDisplayName, slots, tog
                 const ratio = count / ctx.slotCap;
                 const full = !on && count >= ctx.slotCap;
                 const fill = full ? "text-canal-gray-muted" : ratio >= 0.85 ? "text-red-400" : ratio >= 0.5 ? "text-amber-400" : "text-green-400";
+                const partnerOn = partnerSet.has(s.key); // coéquipier dispo ici ?
                 return (
                   <button
                     key={s.key} disabled={full} onClick={() => toggle(s.key)}
@@ -666,7 +712,11 @@ function RegistrationForm({ ctx, isPair, displayName, setDisplayName, slots, tog
                       : on ? "bg-canal-yellow/15 border-canal-yellow text-canal-yellow" : "bg-canal-gray-mid border-canal-gray-light text-white"
                     }`}
                   >
-                    <span className="flex items-center gap-1.5">{s.start} {full ? <span className="text-[10px]">🔒 complet</span> : <span className={`text-[10px] ${fill}`}>{count}/{ctx.slotCap}</span>}</span>
+                    <span className="flex items-center gap-1.5">
+                      {s.start}
+                      {full ? <span className="text-[10px]">🔒 complet</span> : <span className={`text-[10px] ${fill}`}>{count}/{ctx.slotCap}</span>}
+                      {partnerOn && <span className="text-[10px] text-green-400" title={`${partnerName} est dispo`}>· {partnerName.split(" ")[0]} ✓</span>}
+                    </span>
                     <span className={`w-4 h-4 rounded flex items-center justify-center ${on ? "bg-canal-yellow text-canal-black" : "border border-canal-gray-light"}`}>{on && <Check size={11} />}</span>
                   </button>
                 );
@@ -675,8 +725,24 @@ function RegistrationForm({ ctx, isPair, displayName, setDisplayName, slots, tog
           </div>
         ))}
         <p className={`text-[11px] mt-2 font-bold ${slots.size >= ctx.minSlots ? "text-green-400" : "text-canal-yellow"}`}>
-          {slots.size} / {ctx.minSlots} créneaux minimum {slots.size >= ctx.minSlots ? "✓" : ""}
+          {slots.size} / {ctx.minSlots} de mes créneaux {slots.size >= ctx.minSlots ? "✓" : "minimum"}
         </p>
+        {/* Créneaux communs calculés en direct */}
+        {partnerHasSet ? (
+          <div className={`mt-2 rounded-lg p-2.5 text-[11px] border ${liveCommon.length >= ctx.minSlots ? "border-green-600/40 bg-green-900/10" : "border-canal-yellow/40 bg-canal-yellow/5"}`}>
+            <p className="font-bold text-white">🤝 Créneaux communs avec {partnerName} : {liveCommon.length}</p>
+            {liveCommon.length > 0 && (
+              <p className="text-canal-gray-muted mt-0.5">{liveCommon.map((k) => ctx.slots.find((x) => x.key === k)?.label ?? k).join(" · ")}</p>
+            )}
+            {liveCommon.length < ctx.minSlots && (
+              <p className="text-canal-yellow font-bold mt-1">Il vous manque {ctx.minSlots - liveCommon.length} créneau{ctx.minSlots - liveCommon.length > 1 ? "x" : ""} commun{ctx.minSlots - liveCommon.length > 1 ? "s" : ""} — coche-en d&apos;autres où {partnerName} est dispo (✓).</p>
+            )}
+          </div>
+        ) : helperPair ? (
+          <p className="mt-2 text-[11px] text-canal-gray-muted">{partnerName} te dépanne en renfort — le tirage utilise <b className="text-white">tes</b> créneaux.</p>
+        ) : (
+          <p className="mt-2 text-[11px] text-canal-gray-muted">{partnerName} n&apos;a pas encore renseigné ses disponibilités — tu peux valider, il/elle complétera de son côté.</p>
+        )}
       </div>
 
       <div className="flex gap-2">
@@ -695,9 +761,9 @@ function RegistrationForm({ ctx, isPair, displayName, setDisplayName, slots, tog
           {ctx.myEntry ? "Enregistrer les créneaux" : "Inscrire mon binôme"}
         </button>
       </div>
-      {ctx.myEntry && !ctx.binomeCtx?.iAmCreator && (
+      {ctx.myEntry && (
         <p className="text-center text-[11px] text-canal-gray-muted">
-          {ctx.binomeCtx?.partnerName ?? "Ton coéquipier"} sera prévenu de la modification.
+          Tu modifies uniquement <b className="text-white">tes</b> créneaux — ceux de {partnerName} ne changent pas. {partnerName} sera informé·e des créneaux communs.
         </p>
       )}
       {!t?.registration_open && (

@@ -12,6 +12,7 @@ import { BABYFOOT } from "@/lib/config/babyfoot";
 import {
   getActiveOfficialTournament, resolveUserBinome, getEntries,
   getEntryBinomeContext, getNextEntryMatch, notifyBabyfootUser,
+  getBinomeAvailability, recomputeEntryAvailability,
 } from "@/lib/data/babyfoot";
 
 const SLOT_KEYS = new Set(BABYFOOT.slots.map((s) => s.key));
@@ -54,10 +55,12 @@ export async function GET() {
   // Contexte « page binôme » : qui a créé l'inscription, qui a saisi les créneaux,
   // avec qui je joue, et où en est le binôme (état + prochain match).
   let binomeCtx: Awaited<ReturnType<typeof getEntryBinomeContext>> | null = null;
+  let availability: Awaited<ReturnType<typeof getBinomeAvailability>> | null = null;
   let nextMatch: Awaited<ReturnType<typeof getNextEntryMatch>> | null = null;
   let homeState: "creating" | "registered" | "draw" | "live" = "creating";
   if (myEntry && binome && tournament) {
     binomeCtx = await getEntryBinomeContext(admin, myEntry.id, binome.meId);
+    availability = await getBinomeAvailability(admin, myEntry.id, binome.meId, binomeCtx?.partnerUserId ?? null);
     const st = tournament.status;
     if (st === "pools" || st === "knockout") {
       homeState = "live";
@@ -85,6 +88,7 @@ export async function GET() {
       myEntry, // inscription existante (ou null)
       myOpenPair, // { partnerName, helper } si mon inscription est une paire ad-hoc
       binomeCtx, // créateur / auteur des créneaux / coéquipier (page binôme)
+      availability, // { mySlots, partnerSlots, partnerHasSet, commonSlots } (par joueur)
       homeState, // creating | registered | draw | live
       nextMatch, // prochain match du binôme (si tournoi en cours)
       registeredCount: entries.length,
@@ -196,32 +200,43 @@ export async function POST(req: Request) {
     entryId = created.id;
   }
 
-  // Créneaux : on remplace intégralement. On calcule si l'ensemble a changé pour
-  // décider s'il faut prévenir le coéquipier (on ne notifie pas une non-modif).
+  // Disponibilités PAR JOUEUR : on remplace UNIQUEMENT les miennes (jamais celles
+  // du coéquipier → fini le « dernier qui édite gagne »). On repère si MES
+  // créneaux ont changé pour décider d'une notification.
   const { data: prevRows } = await admin
-    .from("babyfoot_entry_availability").select("slot_key").eq("entry_id", entryId);
+    .from("babyfoot_player_availability").select("slot_key")
+    .eq("entry_id", entryId).eq("user_id", binome.meId);
   const prevSet = new Set((prevRows ?? []).map((r: { slot_key: string }) => r.slot_key));
-  const slotsChanged = prevSet.size !== slots.length || slots.some((s) => !prevSet.has(s));
+  const mineChanged = prevSet.size !== slots.length || slots.some((s) => !prevSet.has(s));
 
-  await admin.from("babyfoot_entry_availability").delete().eq("entry_id", entryId);
+  await admin.from("babyfoot_player_availability").delete().eq("entry_id", entryId).eq("user_id", binome.meId);
   if (slots.length) {
-    await admin
-      .from("babyfoot_entry_availability")
-      .insert(slots.map((slot_key) => ({ entry_id: entryId, slot_key })));
+    await admin.from("babyfoot_player_availability")
+      .insert(slots.map((slot_key) => ({ entry_id: entryId, user_id: binome.meId, slot_key })));
   }
 
-  // Notifier le coéquipier quand une MODIFICATION (pas la 1re inscription) touche
-  // les créneaux partagés : deux notions distinctes mais un binôme reste informé.
-  if (existing && slotsChanged) {
-    const ctx = await getEntryBinomeContext(admin, entryId, binome.meId);
-    if (ctx?.partnerUserId && !ctx.iAmHelperPartner) {
-      await notifyBabyfootUser(admin, ctx.partnerUserId, {
-        title: "🏓 Créneaux du binôme mis à jour",
-        message: `${binome.meName} a modifié vos disponibilités pour le Tournoi Baby-foot.`,
-        url: "/babyfoot/register",
-      });
-    }
+  // L'effectif du binôme (lu par le moteur) = INTERSECTION des joueurs qui ont
+  // saisi. Recalcul déterministe après chaque édition individuelle.
+  const effective = await recomputeEntryAvailability(admin, entryId);
+
+  // Notifier le coéquipier quand JE modifie MES dispos : il voit combien de
+  // créneaux communs il reste (et s'il en manque). Deux notions distinctes,
+  // mais le binôme reste informé — sans que personne n'écrase l'autre.
+  const ctx = await getEntryBinomeContext(admin, entryId, binome.meId);
+  if (existing && mineChanged && ctx?.partnerUserId && !ctx.iAmHelperPartner) {
+    const common = effective.length;
+    const missing = Math.max(0, BABYFOOT.minSlots - common);
+    const msg = common === 0
+      ? `${binome.meName} a renseigné ses disponibilités, mais vous n'avez aucun créneau commun pour l'instant.`
+      : missing > 0
+        ? `${binome.meName} a mis à jour ses disponibilités : ${common} créneau${common > 1 ? "x" : ""} commun${common > 1 ? "s" : ""} — il en manque ${missing}.`
+        : `${binome.meName} a mis à jour ses disponibilités : ${common} créneau${common > 1 ? "x" : ""} commun${common > 1 ? "s" : ""}.`;
+    await notifyBabyfootUser(admin, ctx.partnerUserId, {
+      title: "🏓 Disponibilités du binôme",
+      message: msg,
+      url: "/babyfoot/register",
+    });
   }
 
-  return NextResponse.json({ ok: true, entryId, updated: !!existing });
+  return NextResponse.json({ ok: true, entryId, updated: !!existing, common: effective.length });
 }
