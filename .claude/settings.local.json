@@ -223,7 +223,8 @@
       "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 15; Write-Output \"---EXIT $LASTEXITCODE---\")",
       "PowerShell(node scripts/quiz-import-new.js --dry)",
       "PowerShell(node scripts/quiz-import-new.js)",
-      "mcp__plugin_vercel_vercel__get_deployment"
+      "mcp__plugin_vercel_vercel__get_deployment",
+      "mcp__Claude_Code_Remote__send_later"
     ]
   }
 }
