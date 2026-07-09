@@ -374,6 +374,43 @@ export async function getBabyfootRegistrationSnapshot(): Promise<{
   return { count: n, target: t.target_teams, remaining: Math.max(0, t.target_teams - n), deadlineLabel };
 }
 
+// ── Carte d'accueil « où en est mon binôme » ────────────────────────────────
+// 4 états racontés sur la home : en création → inscrit → tirage → prochain match.
+// null = pas de tournoi / joueur non inscrit (la home garde alors le CTA
+// d'inscription générique). authId = auth.users.id.
+export async function getBabyfootHomeCard(authId: string): Promise<{
+  partnerName: string | null;
+  entryLabel: string;
+  state: "registered" | "draw" | "live";
+  nextMatch: { opponentLabel: string; startsAt: string | null; tableNo: number | null } | null;
+} | null> {
+  const admin = createAdminClient();
+  const t = await getActiveOfficialTournament(admin);
+  if (!t) return null;
+  const binome = await resolveUserBinome(admin, authId);
+  if (!binome) return null;
+  const participants = await getRealParticipants(admin, t.id);
+  const mine = participants.get(binome.meId);
+  if (!mine) return null; // non inscrit → pas de carte binôme
+  const bc = await getEntryBinomeContext(admin, mine.entryId, binome.meId);
+  let state: "registered" | "draw" | "live" = "registered";
+  let nextMatch: Awaited<ReturnType<typeof getNextEntryMatch>> = null;
+  if (t.status === "pools" || t.status === "knockout") {
+    state = "live";
+    nextMatch = await getNextEntryMatch(admin, t.id, mine.entryId);
+  } else if (t.status === "draw") {
+    state = "draw";
+  }
+  return {
+    partnerName: bc?.partnerName ?? null,
+    entryLabel: mine.label,
+    state,
+    nextMatch: nextMatch
+      ? { opponentLabel: nextMatch.opponentLabel, startsAt: nextMatch.startsAt, tableNo: nextMatch.tableNo }
+      : null,
+  };
+}
+
 // ── Participants RÉELS d'une édition ─────────────────────────────────────────
 // user_id → son inscription effective. Officiel = les 2 membres de l'équipe ;
 // paire ad-hoc = p1 toujours, p2 SEULEMENT s'il n'est pas renfort (un renfort
@@ -406,6 +443,210 @@ export async function getRealParticipants(
     if (r.p2_user_id && !r.p2_is_helper) out.set(r.p2_user_id, { entryId: r.id, label: labelById.get(r.id) ?? "?" });
   }
   return out;
+}
+
+// ── Contexte « page binôme » ─────────────────────────────────────────────────
+// Pour une inscription donnée + le user courant : qui l'a créée, qui a saisi les
+// créneaux en dernier, qui est le coéquipier (et son auth_id, pour le notifier).
+// Sépare proprement l'INSCRIPTION (créateur / créneaux) du rôle de RENFORT.
+export interface EntryBinomeContext {
+  entryId: string;
+  kind: "official" | "open";
+  creatorId: string | null;
+  creatorName: string | null;
+  iAmCreator: boolean;
+  slotsAuthorId: string | null;
+  slotsAuthorName: string | null;
+  iAmSlotsAuthor: boolean;
+  slotsUpdatedAt: string | null;
+  partnerUserId: string | null;
+  partnerName: string | null;
+  partnerAuthId: string | null;
+  iAmHelperPartner: boolean; // true si MON coéquipier est un renfort (il dépanne)
+}
+
+export async function getEntryBinomeContext(
+  admin: DbClient,
+  entryId: string,
+  meId: string
+): Promise<EntryBinomeContext | null> {
+  const { data: e } = await admin
+    .from("babyfoot_entries")
+    .select("id, kind, team_id, p1_user_id, p2_user_id, p2_is_helper, registered_by, slots_updated_by, slots_updated_at")
+    .eq("id", entryId)
+    .maybeSingle();
+  if (!e) return null;
+
+  const isOpen = e.kind === "open";
+  // Les deux joueurs RÉELS de l'inscription.
+  let memberIds: string[] = [];
+  if (isOpen) {
+    memberIds = [e.p1_user_id, e.p2_user_id].filter((x): x is string => !!x);
+  } else if (e.team_id) {
+    const { data: tm } = await admin.from("team_memberships").select("user_id").eq("team_id", e.team_id);
+    memberIds = (tm ?? []).map((r: { user_id: string }) => r.user_id);
+  }
+  const partnerUserId = memberIds.find((id) => id !== meId) ?? null;
+
+  const wanted = [e.registered_by, e.slots_updated_by, partnerUserId].filter((x): x is string => !!x);
+  const nameById = new Map<string, string>();
+  const authById = new Map<string, string | null>();
+  if (wanted.length) {
+    const { data: us } = await admin
+      .from("users").select("id, display_name, name, auth_id").in("id", [...new Set(wanted)]);
+    for (const u of (us ?? []) as { id: string; display_name: string | null; name: string | null; auth_id: string | null }[]) {
+      nameById.set(u.id, u.display_name || u.name || "—");
+      authById.set(u.id, u.auth_id);
+    }
+  }
+
+  const slotsAuthorId = e.slots_updated_by ?? e.registered_by ?? null;
+  // Un renfort (p2_is_helper) est le coéquipier de p1 mais ne « possède » pas
+  // l'inscription : si JE suis p1, mon coéquipier affiché est le renfort.
+  const iAmHelperPartner = isOpen && !!e.p2_is_helper && e.p1_user_id === meId;
+
+  return {
+    entryId: e.id,
+    kind: (isOpen ? "open" : "official") as "official" | "open",
+    creatorId: e.registered_by ?? null,
+    creatorName: e.registered_by ? nameById.get(e.registered_by) ?? null : null,
+    iAmCreator: e.registered_by === meId,
+    slotsAuthorId,
+    slotsAuthorName: slotsAuthorId ? nameById.get(slotsAuthorId) ?? null : null,
+    iAmSlotsAuthor: slotsAuthorId === meId,
+    slotsUpdatedAt: e.slots_updated_at ?? null,
+    partnerUserId,
+    partnerName: partnerUserId ? nameById.get(partnerUserId) ?? null : null,
+    partnerAuthId: partnerUserId ? authById.get(partnerUserId) ?? null : null,
+    iAmHelperPartner,
+  };
+}
+
+/** Notifie UN joueur baby-foot (inbox + push). userId = public users.id. */
+export async function notifyBabyfootUser(
+  admin: DbClient,
+  userId: string,
+  n: { title: string; message: string; url?: string }
+): Promise<void> {
+  const { createInboxEvent } = await import("@/lib/data/inbox");
+  await createInboxEvent({ userId, type: "babyfoot", title: n.title, message: n.message });
+  // Push best-effort (nécessite l'auth_id du joueur).
+  const { data: u } = await admin.from("users").select("auth_id").eq("id", userId).maybeSingle();
+  if (u?.auth_id) {
+    const { sendPushToUser } = await import("@/lib/push");
+    await sendPushToUser(u.auth_id, { title: n.title, body: n.message, url: n.url ?? "/babyfoot/register" });
+  }
+}
+
+// ── Disponibilités PAR JOUEUR + intersection ─────────────────────────────────
+// babyfoot_player_availability = ce que CHAQUE joueur a coché. L'effectif du
+// binôme (babyfoot_entry_availability, lu par le moteur) = INTERSECTION des
+// joueurs qui ont saisi quelque chose. Un joueur sans saisie ne contraint pas
+// (l'autre peut inscrire le binôme seul, comme avant).
+
+/** user_ids des joueurs RÉELS d'une inscription (renfort exclu). */
+export async function getEntryRealPlayerIds(admin: DbClient, entryId: string): Promise<string[]> {
+  const { data: e } = await admin
+    .from("babyfoot_entries")
+    .select("kind, team_id, p1_user_id, p2_user_id, p2_is_helper")
+    .eq("id", entryId).maybeSingle();
+  if (!e) return [];
+  if (e.kind === "open") {
+    const ids = [e.p1_user_id];
+    if (!e.p2_is_helper) ids.push(e.p2_user_id);
+    return ids.filter((x): x is string => !!x);
+  }
+  if (e.team_id) {
+    const { data: tm } = await admin.from("team_memberships").select("user_id").eq("team_id", e.team_id);
+    return ((tm ?? []) as { user_id: string }[]).map((r) => r.user_id);
+  }
+  return [];
+}
+
+/** Recalcule l'effectif (intersection) et réécrit babyfoot_entry_availability. */
+export async function recomputeEntryAvailability(admin: DbClient, entryId: string): Promise<string[]> {
+  const players = new Set(await getEntryRealPlayerIds(admin, entryId));
+  const { data: rows } = await admin
+    .from("babyfoot_player_availability").select("user_id, slot_key").eq("entry_id", entryId);
+  const byUser = new Map<string, Set<string>>();
+  for (const r of (rows ?? []) as { user_id: string; slot_key: string }[]) {
+    if (!players.has(r.user_id)) continue;
+    if (!byUser.has(r.user_id)) byUser.set(r.user_id, new Set());
+    byUser.get(r.user_id)!.add(r.slot_key);
+  }
+  const constrainers = [...byUser.values()].filter((s) => s.size > 0);
+  let effective: string[] = [];
+  if (constrainers.length) {
+    effective = [...constrainers[0]].filter((k) => constrainers.every((s) => s.has(k)));
+  }
+  await admin.from("babyfoot_entry_availability").delete().eq("entry_id", entryId);
+  if (effective.length) {
+    await admin.from("babyfoot_entry_availability")
+      .insert(effective.map((slot_key) => ({ entry_id: entryId, slot_key })));
+  }
+  return effective;
+}
+
+export interface BinomeAvailability {
+  mySlots: string[];        // MES créneaux (à pré-remplir dans l'éditeur)
+  partnerSlots: string[];   // ceux du coéquipier ([] s'il n'a rien saisi)
+  partnerHasSet: boolean;   // le coéquipier a-t-il renseigné ses dispos ?
+  commonSlots: string[];    // intersection = créneaux jouables ensemble (= effectif)
+  iHaveSet: boolean;
+}
+
+export async function getBinomeAvailability(
+  admin: DbClient,
+  entryId: string,
+  meId: string,
+  partnerUserId: string | null
+): Promise<BinomeAvailability> {
+  const { data: rows } = await admin
+    .from("babyfoot_player_availability").select("user_id, slot_key").eq("entry_id", entryId);
+  const mine = new Set<string>();
+  const partner = new Set<string>();
+  for (const r of (rows ?? []) as { user_id: string; slot_key: string }[]) {
+    if (r.user_id === meId) mine.add(r.slot_key);
+    else if (partnerUserId && r.user_id === partnerUserId) partner.add(r.slot_key);
+  }
+  const partnerHasSet = partner.size > 0;
+  const commonSlots = partnerHasSet
+    ? [...mine].filter((k) => partner.has(k))
+    : [...mine]; // coéquipier non contraignant → jouable = mes créneaux
+  return {
+    mySlots: [...mine],
+    partnerSlots: [...partner],
+    partnerHasSet,
+    commonSlots,
+    iHaveSet: mine.size > 0,
+  };
+}
+
+// ── Prochain match d'une inscription (pour la carte d'accueil « binôme ») ──────
+export async function getNextEntryMatch(
+  admin: DbClient,
+  tournamentId: string,
+  entryId: string
+): Promise<{ id: string; startsAt: string | null; opponentLabel: string; tableNo: number | null } | null> {
+  const matches = await getMatches(admin, tournamentId);
+  const entries = await getEntries(admin, tournamentId);
+  const labelByEntry = new Map(entries.map((e) => [e.id, e.label]));
+  const mine = matches
+    .filter((m) => (m.entry_a_id === entryId || m.entry_b_id === entryId) && m.status !== "finished")
+    .sort((a, b) => {
+      const ta = a.starts_at ? new Date(a.starts_at).getTime() : Infinity;
+      const tb = b.starts_at ? new Date(b.starts_at).getTime() : Infinity;
+      return ta - tb || (a.order_idx ?? 0) - (b.order_idx ?? 0);
+    });
+  const m = mine[0];
+  if (!m) return null;
+  const oppId = m.entry_a_id === entryId ? m.entry_b_id : m.entry_a_id;
+  return {
+    id: m.id,
+    startsAt: m.starts_at ?? null,
+    opponentLabel: (oppId && labelByEntry.get(oppId)) || "à venir",
+    tableNo: m.table_no ?? null,
+  };
 }
 
 export interface UserBinome {

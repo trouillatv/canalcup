@@ -8,7 +8,7 @@ import { TonightOnAir } from "@/components/matches/TonightOnAir";
 import { HomeLeaderboard } from "@/components/leaderboard/HomeLeaderboard";
 import { toNCDate, isToday, tzLabel, normalizeTimezone } from "@/lib/utils";
 import { Heart, ArrowRight } from "lucide-react";
-import { getBabyfootRegistrationSnapshot } from "@/lib/data/babyfoot";
+import { getBabyfootRegistrationSnapshot, getBabyfootHomeCard } from "@/lib/data/babyfoot";
 import { createClient } from "@/lib/supabase/server";
 import { MagicLinkReception } from "@/components/auth/MagicLinkReception";
 import { PronoReminder } from "@/components/predictions/PronoReminder";
@@ -16,6 +16,16 @@ import { ensureAllowlisted } from "@/lib/auth/allowlist";
 import { isLastVoteDay } from "@/lib/supporters/access";
 
 export const dynamic = "force-dynamic";
+
+// Horaire du prochain match baby-foot : relatif si imminent, sinon jour + heure NC.
+function bfKickoffLabel(iso: string): string {
+  const diffMin = Math.round((new Date(iso).getTime() - Date.now()) / 60000);
+  if (diffMin >= 0 && diffMin <= 120) return diffMin <= 1 ? "dans 1 min" : `dans ${diffMin} min`;
+  const d = new Date(iso);
+  const day = d.toLocaleDateString("fr-FR", { weekday: "long", timeZone: "Pacific/Noumea" });
+  const time = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Noumea" });
+  return `${day.charAt(0).toUpperCase()}${day.slice(1)} ${time}`;
+}
 
 export default async function RootPage() {
   const supabase = await createClient();
@@ -33,7 +43,7 @@ export default async function RootPage() {
   // Dernier jour de vote (25/06 NC) : l'accueil devient la page Journée Supporters.
   if (isLastVoteDay()) redirect("/supporters");
 
-  const [matches, trends, leaderboard, individualLeaderboard, brief, revivez, bfReg] = await Promise.all([
+  const [matches, trends, leaderboard, individualLeaderboard, brief, revivez, bfReg, bfHome] = await Promise.all([
     getMatches(),
     getPredictionTrends(),
     getLeaderboard(),
@@ -41,6 +51,7 @@ export default async function RootPage() {
     getTodayBrief(),
     getRevivezPosts(),
     getBabyfootRegistrationSnapshot(),
+    getBabyfootHomeCard(user.id),
   ]);
 
   // Pronos de l'utilisateur (pour pré-remplir/afficher dans chaque MatchCard)
@@ -108,8 +119,36 @@ export default async function RootPage() {
         </div>
       </div>
 
-      {/* 🏓 Urgence inscriptions baby-foot (visible tant que c'est ouvert) */}
-      {bfReg && (
+      {/* 🏓 Baby-foot — pour un joueur INSCRIT : où en est son binôme (inscrit →
+          tirage → prochain match). Sinon : urgence inscriptions (tant qu'ouvert). */}
+      {bfHome ? (
+        <Link href="/babyfoot/register" className="block canal-card border border-canal-yellow/50 bg-canal-yellow/10 hover:bg-canal-yellow/15 transition-colors">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl shrink-0">{bfHome.state === "live" ? "⚽" : bfHome.state === "draw" ? "🎲" : "🏓"}</span>
+            <div className="flex-1 min-w-0">
+              {bfHome.state === "live" && bfHome.nextMatch ? (
+                <>
+                  <p className="font-black text-white text-sm">Prochain match Baby-foot</p>
+                  <p className="text-xs text-canal-yellow font-bold mt-0.5">
+                    {bfHome.nextMatch.tableNo ? `Table ${bfHome.nextMatch.tableNo} · ` : ""}contre {bfHome.nextMatch.opponentLabel}{bfHome.nextMatch.startsAt ? ` · ${bfKickoffLabel(bfHome.nextMatch.startsAt)}` : ""}
+                  </p>
+                </>
+              ) : bfHome.state === "draw" ? (
+                <>
+                  <p className="font-black text-white text-sm">Tirage au sort Baby-foot</p>
+                  <p className="text-xs text-canal-yellow font-bold mt-0.5">Votre premier match sera bientôt connu.</p>
+                </>
+              ) : (
+                <>
+                  <p className="font-black text-white text-sm">Vous êtes inscrit au Tournoi Baby-foot{bfHome.partnerName ? ` avec ${bfHome.partnerName}` : ""}</p>
+                  <p className="text-xs text-canal-yellow font-bold mt-0.5">Voir mon binôme et mes créneaux →</p>
+                </>
+              )}
+            </div>
+            <ArrowRight className="text-canal-yellow shrink-0" size={18} />
+          </div>
+        </Link>
+      ) : bfReg && (
         <Link href="/babyfoot/register" className="block canal-card border border-canal-yellow/50 bg-canal-yellow/10 hover:bg-canal-yellow/15 transition-colors">
           <div className="flex items-center gap-3">
             <span className="text-2xl shrink-0">🏓</span>

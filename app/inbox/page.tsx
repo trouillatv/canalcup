@@ -5,7 +5,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { LocalTime } from "@/components/timezone/LocalTime";
 import type { InboxEvent } from "@/lib/supabase/types";
-import { Bell, Trophy, Newspaper, Heart, MessageCircle, Star, AlertTriangle } from "lucide-react";
+import { Bell, Trophy, Newspaper, Heart, MessageCircle, Star, AlertTriangle, Gamepad2 } from "lucide-react";
 
 const TYPE_CONFIG = {
   mention: { icon: MessageCircle, color: "text-blue-400", label: "Mention" },
@@ -13,6 +13,7 @@ const TYPE_CONFIG = {
   badge: { icon: Star, color: "text-canal-yellow", label: "Badge" },
   matinale: { icon: Newspaper, color: "text-green-400", label: "Matinale" },
   roast: { icon: Trophy, color: "text-purple-400", label: "Roast gentil" },
+  babyfoot: { icon: Gamepad2, color: "text-canal-yellow", label: "Baby-foot" },
 };
 
 function InboxItem({ event }: { event: InboxEvent }) {
