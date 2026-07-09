@@ -443,6 +443,82 @@ function SeekPanel({ pctx, busy, act }: { pctx: PCtx; busy: boolean; act: (b: Re
   );
 }
 
+// Suggère le créneau commun LE PLUS FACILE à obtenir :
+//  1) un créneau où le coéquipier est déjà dispo → je l'ajoute (1 clic) ;
+//  2) sinon un créneau où MOI je suis dispo → demander au coéquipier ;
+//  3) sinon un créneau libre pour les deux (le moins rempli).
+function suggestCommonSlot(
+  mySet: Set<string>, partnerSet: Set<string>, slots: Slot[],
+  slotCounts: Record<string, number>, cap: number
+): { slot: Slot; kind: "iAdd" | "askPartner" | "both" } | null {
+  const iAdd = slots.find((s) => partnerSet.has(s.key) && !mySet.has(s.key) && (slotCounts[s.key] ?? 0) < cap);
+  if (iAdd) return { slot: iAdd, kind: "iAdd" };
+  const ask = slots.find((s) => mySet.has(s.key) && !partnerSet.has(s.key));
+  if (ask) return { slot: ask, kind: "askPartner" };
+  const free = slots
+    .filter((s) => !mySet.has(s.key) && !partnerSet.has(s.key) && (slotCounts[s.key] ?? 0) < cap)
+    .sort((a, b) => (slotCounts[a.key] ?? 0) - (slotCounts[b.key] ?? 0))[0];
+  return free ? { slot: free, kind: "both" } : null;
+}
+
+// Jauge de compatibilité + liste des communs + soit « il manque X (suggestion) »,
+// soit « binôme prêt ! ». Partagée entre la page binôme et l'éditeur.
+function CompatibilityBlock({ mySet, partnerSet, slots, slotCounts, cap, minSlots, partnerName }: {
+  mySet: Set<string>; partnerSet: Set<string>; slots: Slot[];
+  slotCounts: Record<string, number>; cap: number; minSlots: number; partnerName: string;
+}) {
+  const common = slots.filter((s) => mySet.has(s.key) && partnerSet.has(s.key));
+  const ready = common.length >= minSlots;
+  const pct = Math.min(100, Math.round((common.length / minSlots) * 100));
+  const missing = Math.max(0, minSlots - common.length);
+  const sugg = ready ? null : suggestCommonSlot(mySet, partnerSet, slots, slotCounts, cap);
+  const suggMsg = sugg && (
+    sugg.kind === "iAdd" ? <>👉 Ajoute <b className="text-white">« {sugg.slot.label} »</b> : {partnerName} y est déjà disponible.</>
+    : sugg.kind === "askPartner" ? <>👉 Demande à {partnerName} s&apos;il/elle peut se libérer <b className="text-white">« {sugg.slot.label} »</b>.</>
+    : <>👉 Trouvez ensemble un créneau, par exemple <b className="text-white">« {sugg.slot.label} »</b>.</>
+  );
+  return (
+    <div className="space-y-2">
+      {/* Jauge */}
+      <div>
+        <div className="flex items-center justify-between text-[10px] uppercase font-bold text-canal-gray-muted">
+          <span>Compatibilité des dispos</span><span className={ready ? "text-green-400" : "text-canal-yellow"}>{pct}%</span>
+        </div>
+        <div className="h-2 rounded-full bg-canal-gray-mid overflow-hidden mt-1">
+          <div className={`h-full rounded-full transition-all ${ready ? "bg-green-400" : "bg-canal-yellow"}`} style={{ width: `${Math.max(pct, 4)}%` }} />
+        </div>
+        <p className="text-[11px] text-canal-gray-muted mt-1">
+          {common.length} créneau{common.length > 1 ? "x" : ""} commun{common.length > 1 ? "s" : ""} · Objectif : {minSlots} minimum
+        </p>
+      </div>
+
+      {/* Liste des créneaux communs */}
+      {common.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {common.map((s) => (
+            <span key={s.key} className="inline-flex items-center gap-1 text-[11px] font-bold text-green-300 bg-green-900/20 border border-green-600/30 rounded-lg px-2 py-1">
+              <Check size={10} /> {s.label}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {ready ? (
+        <div className="rounded-lg border border-green-600/40 bg-green-900/15 p-3 space-y-1">
+          <p className="font-black text-green-300 text-sm">✅ Votre binôme est prêt !</p>
+          <p className="text-[11px] text-canal-gray-muted">Vous avez assez de disponibilités communes — le planning pourra être généré automatiquement.</p>
+          <p className="text-[11px] text-white font-bold">Prochaine étape : 🎲 Tirage officiel · {BABYFOOT.drawLabel}</p>
+        </div>
+      ) : (
+        <div className="rounded-lg border border-canal-yellow/40 bg-canal-yellow/5 p-2.5 space-y-1">
+          <p className="text-canal-yellow font-bold text-[11px]">Il manque {missing} créneau{missing > 1 ? "x" : ""} commun{missing > 1 ? "s" : ""}.</p>
+          {suggMsg && <p className="text-[11px] text-canal-gray-muted">{suggMsg}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Visualisation « qui est dispo quand » : une ligne par joueur + une ligne
 // « commun » (pastilles pleines aux créneaux partagés). Rend immédiatement
 // lisible où le binôme peut jouer ensemble.
@@ -484,12 +560,7 @@ function BinomeHome({ ctx, isPair, onEdit }: { ctx: Ctx; isPair: boolean; onEdit
   const av = ctx.availability;
   const mySet = new Set(av?.mySlots ?? []);
   const partnerSet = new Set(av?.partnerSlots ?? []);
-  const partnerHasSet = !!av?.partnerHasSet;
-  const common = [...(av?.commonSlots ?? [])].sort(
-    (a, b) => ctx.slots.findIndex((s) => s.key === a) - ctx.slots.findIndex((s) => s.key === b)
-  );
-  const missing = Math.max(0, ctx.minSlots - common.length);
-  const slotLabel = (k: string) => ctx.slots.find((s) => s.key === k)?.label ?? k;
+  const partnerHasSet = !helper && !!av?.partnerHasSet;
   const creatorLabel = bc?.iAmCreator ? "toi" : bc?.creatorName ?? partnerName;
 
   return (
@@ -524,22 +595,22 @@ function BinomeHome({ ctx, isPair, onEdit }: { ctx: Ctx; isPair: boolean; onEdit
 
         <AvailabilityGrids slots={ctx.slots} meName={meName} partnerName={partnerName} mySet={mySet} partnerSet={partnerSet} partnerHasSet={partnerHasSet} hidePartner={helper} />
 
-        {/* Résumé des créneaux communs */}
-        <div className={`rounded-lg p-2.5 text-[11px] border ${(helper ? mySet.size : common.length) >= ctx.minSlots ? "border-green-600/40 bg-green-900/10" : "border-canal-yellow/40 bg-canal-yellow/5"}`}>
-          {helper ? (
+        {/* Compatibilité / créneaux communs */}
+        {helper ? (
+          <div className="rounded-lg p-2.5 text-[11px] border border-canal-gray-light">
             <p className="text-canal-gray-muted"><b className="text-white">{partnerName}</b> te dépanne en renfort : le tirage utilise <b className="text-white">tes {mySet.size} créneau{mySet.size > 1 ? "x" : ""}</b>.</p>
-          ) : partnerHasSet ? (
-            <>
-              <p className="font-bold text-white">🤝 Créneaux communs : {common.length}</p>
-              {common.length > 0 && <p className="text-canal-gray-muted mt-0.5">{common.map(slotLabel).join(" · ")}</p>}
-              {missing > 0 && <p className="text-canal-yellow font-bold mt-1">Il vous manque {missing} créneau{missing > 1 ? "x" : ""} commun{missing > 1 ? "s" : ""}.</p>}
-            </>
-          ) : mySet.size ? (
+          </div>
+        ) : partnerHasSet ? (
+          <CompatibilityBlock mySet={mySet} partnerSet={partnerSet} slots={ctx.slots} slotCounts={ctx.slotCounts} cap={ctx.slotCap} minSlots={ctx.minSlots} partnerName={partnerName} />
+        ) : mySet.size ? (
+          <div className="rounded-lg p-2.5 text-[11px] border border-canal-yellow/40 bg-canal-yellow/5">
             <p className="text-canal-gray-muted"><b className="text-white">{partnerName}</b> n&apos;a pas encore renseigné ses disponibilités. En attendant, le tirage utilise <b className="text-white">tes {mySet.size} créneau{mySet.size > 1 ? "x" : ""}</b>.</p>
-          ) : (
+          </div>
+        ) : (
+          <div className="rounded-lg p-2.5 text-[11px] border border-canal-gray-light">
             <p className="text-canal-gray-muted">Personne n&apos;a encore renseigné de créneaux.</p>
-          )}
-        </div>
+          </div>
+        )}
 
         <button onClick={onEdit}
           className="w-full min-h-[44px] flex items-center justify-center gap-2 rounded-xl bg-canal-gray-mid border border-canal-gray-light text-white font-bold text-sm hover:border-canal-yellow/50 transition-colors">
@@ -647,7 +718,6 @@ function RegistrationForm({ ctx, isPair, displayName, setDisplayName, slots, tog
   const helperPair = isPair && !!ctx.myOpenPair?.helper; // mon coéquipier est un renfort
   const partnerSet = new Set(ctx.availability?.partnerSlots ?? []);
   const partnerHasSet = !helperPair && !!ctx.availability?.partnerHasSet;
-  const liveCommon = partnerHasSet ? [...slots].filter((k) => partnerSet.has(k)) : [...slots];
   return (
     <div className="canal-card space-y-5">
       {done && (
@@ -727,16 +797,10 @@ function RegistrationForm({ ctx, isPair, displayName, setDisplayName, slots, tog
         <p className={`text-[11px] mt-2 font-bold ${slots.size >= ctx.minSlots ? "text-green-400" : "text-canal-yellow"}`}>
           {slots.size} / {ctx.minSlots} de mes créneaux {slots.size >= ctx.minSlots ? "✓" : "minimum"}
         </p>
-        {/* Créneaux communs calculés en direct */}
+        {/* Compatibilité calculée en direct pendant l'édition */}
         {partnerHasSet ? (
-          <div className={`mt-2 rounded-lg p-2.5 text-[11px] border ${liveCommon.length >= ctx.minSlots ? "border-green-600/40 bg-green-900/10" : "border-canal-yellow/40 bg-canal-yellow/5"}`}>
-            <p className="font-bold text-white">🤝 Créneaux communs avec {partnerName} : {liveCommon.length}</p>
-            {liveCommon.length > 0 && (
-              <p className="text-canal-gray-muted mt-0.5">{liveCommon.map((k) => ctx.slots.find((x) => x.key === k)?.label ?? k).join(" · ")}</p>
-            )}
-            {liveCommon.length < ctx.minSlots && (
-              <p className="text-canal-yellow font-bold mt-1">Il vous manque {ctx.minSlots - liveCommon.length} créneau{ctx.minSlots - liveCommon.length > 1 ? "x" : ""} commun{ctx.minSlots - liveCommon.length > 1 ? "s" : ""} — coche-en d&apos;autres où {partnerName} est dispo (✓).</p>
-            )}
+          <div className="mt-2">
+            <CompatibilityBlock mySet={slots} partnerSet={partnerSet} slots={ctx.slots} slotCounts={ctx.slotCounts} cap={ctx.slotCap} minSlots={ctx.minSlots} partnerName={partnerName} />
           </div>
         ) : helperPair ? (
           <p className="mt-2 text-[11px] text-canal-gray-muted">{partnerName} te dépanne en renfort — le tirage utilise <b className="text-white">tes</b> créneaux.</p>
