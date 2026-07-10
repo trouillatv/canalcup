@@ -48,10 +48,12 @@ export const BABYFOOT = {
   },
   finalsDay: "fri" as const,
 
-  inscriptionsCloseAt: "2026-07-10T12:00:00+11:00",
-  inscriptionsCloseLabel: "vendredi 10 juillet à 12h00",
-  drawAt: "2026-07-10T13:30:00+11:00",
-  drawLabel: "vendredi 10 juillet à 13h30",
+  // Les inscriptions restent ouvertes jusqu'au début du tournoi ; le tirage a
+  // lieu en direct au coup d'envoi (jeudi 16 juillet).
+  inscriptionsCloseAt: "2026-07-16T11:00:00+11:00",
+  inscriptionsCloseLabel: "début du tournoi",
+  drawAt: "2026-07-16T11:00:00+11:00",
+  drawLabel: "jeudi 16 juillet",
 
   // 12 créneaux de 30 min.
   slots: buildSlots(),
