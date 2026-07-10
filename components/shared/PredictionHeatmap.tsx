@@ -15,6 +15,14 @@ export interface HeatItem {
   actual: string | null;   // "1–1" ou null si pas joué
   label: string;           // "France – Brésil"
   created_at?: string;
+  points?: number | null;  // points RÉELS du match (joker inclus) ; null = à venir
+}
+
+// Points affichés dans la case : signés, compacts. Absents (undefined) → on
+// retombe sur l'emoji d'issue (ex. heatmap d'équipe qui ne fournit pas les points).
+function pointsLabel(p: number | null | undefined): string | null {
+  if (p == null) return null;
+  return p > 0 ? `+${p}` : `${p}`; // 0 → "0", négatif garde son signe
 }
 export interface HeatRow {
   name: string;
@@ -38,13 +46,15 @@ const STYLE: Record<PredictionOutcome, { cls: string; emoji: string; label: stri
 
 function Cell({ it, size, onClick, active }: { it: HeatItem; size: string; onClick: () => void; active: boolean }) {
   const s = STYLE[it.outcome];
+  const pts = it.outcome === "pending" ? null : pointsLabel(it.points);
   return (
     <button
       onClick={onClick}
-      title={`${it.label} — pronostic ${it.predicted}${it.actual ? ` / réel ${it.actual}` : " (à venir)"}`}
-      className={`${size} ${s.cls} rounded-[5px] flex items-center justify-center text-[11px] font-bold shrink-0 transition-transform ${active ? "ring-2 ring-white scale-110" : "hover:scale-105"}`}
+      title={`${it.label} — pronostic ${it.predicted}${it.actual ? ` / réel ${it.actual}` : " (à venir)"}${pts != null ? ` · ${pts} pts` : ""}`}
+      className={`${size} ${s.cls} rounded-[5px] flex items-center justify-center text-[10px] font-black tabular-nums leading-none shrink-0 transition-transform ${active ? "ring-2 ring-white scale-110" : "hover:scale-105"}`}
     >
-      {it.outcome === "pending" ? "" : s.emoji}
+      {/* Points réels (joker inclus) si connus ; sinon l'emoji d'issue. */}
+      {pts != null ? pts : it.outcome === "pending" ? "" : s.emoji}
     </button>
   );
 }
@@ -57,6 +67,7 @@ export function PredictionHeatmap({ mode, items = [], rows = [], compact }: Prop
   if (empty) {
     return <p className="text-xs text-canal-gray-muted">Aucun pronostic à afficher pour l&apos;instant.</p>;
   }
+  const showsPoints = items.some((it) => it.points != null);
 
   return (
     <div className="space-y-3">
@@ -68,6 +79,9 @@ export function PredictionHeatmap({ mode, items = [], rows = [], compact }: Prop
           </span>
         ))}
       </div>
+      {showsPoints && (
+        <p className="text-[10px] text-canal-gray-muted -mt-1">Le chiffre = points du match (jokers inclus).</p>
+      )}
 
       {/* Grille */}
       {mode === "player" ? (
@@ -106,6 +120,9 @@ export function PredictionHeatmap({ mode, items = [], rows = [], compact }: Prop
           <span className="text-canal-gray-muted shrink-0">
             prono <span className="text-white font-bold">{sel.actual ? sel.predicted : "saisi"}</span>
             {sel.actual && <> · réel <span className="text-white font-bold">{sel.actual}</span></>}
+            {sel.outcome !== "pending" && sel.points != null && (
+              <> · <span className={sel.points > 0 ? "text-canal-yellow font-bold" : sel.points < 0 ? "text-red-400 font-bold" : "text-white font-bold"}>{pointsLabel(sel.points)} pts</span></>
+            )}
           </span>
         </div>
       )}

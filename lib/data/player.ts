@@ -59,7 +59,7 @@ export interface PlayerDashboard {
   babyfootStats: { teamName: string; wins: number; tournaments: number; bestLabel: string | null } | null;
   animationStats: { participations: number; points: number };
   recentActivity: { type: string; emoji: string; label: string; created_at: string }[];
-  predictionHeatmap: { id: string; outcome: PredictionOutcome; predicted: string; actual: string | null; label: string; created_at: string }[];
+  predictionHeatmap: { id: string; outcome: PredictionOutcome; predicted: string; actual: string | null; label: string; created_at: string; points: number | null }[];
 }
 
 // Heatmap collective d'une équipe : une ligne par membre, ses pronos sur les
@@ -399,6 +399,10 @@ export async function getPlayerDashboard(userId: string): Promise<PlayerDashboar
         actual: finished ? `${m!.score_a}–${m!.score_b}` : null,
         label: m ? `${m.team_a} – ${m.team_b}` : "Match",
         created_at: m?.starts_at ?? p.created_at,
+        // Points RÉELS du match (déjà écrasés par les jokers Quitte/Kamikaze/Jet
+        // Lag au règlement) → la case peut afficher +25, 0, −5… selon le joker.
+        // null tant que le match n'est pas terminé.
+        points: finished ? p.points_awarded ?? 0 : null,
       };
     })
     .sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
