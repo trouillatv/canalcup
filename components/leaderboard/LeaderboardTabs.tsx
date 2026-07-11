@@ -173,7 +173,6 @@ export function LeaderboardTabs({
             <div className="flex flex-wrap gap-x-4 gap-y-1">
               <span className="text-canal-gray-muted">🎰 Score exact <span className="text-canal-yellow font-bold">+10 pts</span></span>
               <span className="text-canal-gray-muted">🎯 Bon résultat (V/N/D) <span className="text-canal-yellow font-bold">+5 pts</span></span>
-              <span className="text-canal-gray-muted">↔ Bonne différence de buts <span className="text-canal-yellow font-bold">+3 pts</span></span>
             </div>
             <div className="border-t border-canal-gray-mid pt-2">
               <p className="text-[10px] font-bold text-canal-gray-muted uppercase tracking-wide mb-1.5">Multiplicateurs phases finales</p>
