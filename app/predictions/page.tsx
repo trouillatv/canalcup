@@ -447,7 +447,6 @@ export default function PredictionsPage() {
             {[
               { label: "Score exact", pts: 10, icon: "🎯" },
               { label: "Bon résultat (V/N/D)", pts: 5, icon: "✅" },
-              { label: "Bonne différence de buts", pts: 3, icon: "↔️" },
               { label: "Mauvais pronostic", pts: 0, icon: "❌" },
             ].map((r) => (
               <div key={r.label} className="flex items-center justify-between">
