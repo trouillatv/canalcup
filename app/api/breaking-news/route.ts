@@ -3,7 +3,7 @@
 
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { refreshLiveMatches } from "@/services/football/sync";
+import { refreshLiveMatches, syncFixturesThrottled } from "@/services/football/sync";
 
 // Un vrai match n'est plus jamais "live" au-delà de ~3h30 après le coup d'envoi
 // (90' + mi-temps + prolongations + t.a.b. + arrêts de jeu). Garde-fou d'affichage
@@ -20,6 +20,12 @@ export async function GET() {
   // fenêtre live (throttlé par le budget adaptatif), pour que le score/minute
   // affichés soient à jour même si personne n'est sur la fiche du match.
   await refreshLiveMatches().catch(() => {});
+
+  // Insère les nouveaux tours à élimination directe (ex. un quart de finale qui
+  // vient d'être fixé chez le fournisseur) SANS attendre le cron quotidien —
+  // sinon le match reste invisible et impariable jusqu'à 24 h. Throttlé en base
+  // (≤ 1×/20 min), et jamais bloquant pour le flash.
+  await syncFixturesThrottled().catch(() => {});
 
   // Live matches first — bornés pour ne pas afficher un match coincé en "live".
   const liveFloor = new Date(Date.now() - LIVE_WINDOW_MS).toISOString();

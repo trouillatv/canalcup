@@ -1111,6 +1111,43 @@ export async function syncSeason(): Promise<{ updated: number; inserted: number;
   return { updated, inserted, total: fixtures.length };
 }
 
+// ─── Sync throttlé des fixtures (insertion des nouveaux tours hors cron) ───────
+//
+// Le cron d'insertion (syncSeason) ne tourne qu'UNE FOIS PAR JOUR (0 8 * * *).
+// Problème en phase à élimination directe : le tour suivant (ex. un quart
+// Argentine–Suisse) n'existe chez API-Football qu'APRÈS la fin des huitièmes qui
+// l'alimentent. Tant que le cron quotidien n'a pas repassé, ce match n'est pas
+// inséré en base → il n'apparaît nulle part et PERSONNE ne peut parier dessus,
+// parfois pendant ~24 h. On rattrape en déclenchant syncSeason depuis un chemin
+// très fréquenté (/api/breaking-news, poll ~30 s sur toutes les pages), throttlé
+// EN BASE (app_settings) pour ne le lancer qu'au plus une fois toutes les
+// FIXTURES_SYNC_MIN_MS — indépendamment du cron et du nombre d'instances
+// serverless. Coût : ~1 appel API-Football / 20 min (72/j), négligeable sous le
+// budget quotidien (4000).
+const FIXTURES_SYNC_MIN_MS = 20 * 60_000;
+const FIXTURES_SYNC_KEY = "fixtures_sync_at";
+
+export async function syncFixturesThrottled(): Promise<number | null> {
+  if (!hasApiFootball()) return null;
+  const supabase = createAdminClient();
+
+  // Dernier passage (epoch ms stocké en jsonb). Absent au 1er appel → 0.
+  const { data } = await supabase
+    .from("app_settings").select("value").eq("key", FIXTURES_SYNC_KEY).single();
+  const last = typeof data?.value === "number" ? data.value : 0;
+  if (Date.now() - last < FIXTURES_SYNC_MIN_MS) return null; // throttle
+
+  // On POSE le marqueur AVANT le fetch : anti-doublon concurrent (plusieurs
+  // instances serverless peuvent servir /api/breaking-news en parallèle).
+  await supabase.from("app_settings").upsert(
+    { key: FIXTURES_SYNC_KEY, value: Date.now(), updated_at: new Date().toISOString() },
+    { onConflict: "key" }
+  );
+
+  const { inserted } = await syncSeason();
+  return inserted;
+}
+
 // ─── Backfill API-Football IDs on matches ─────────────────────────────────────
 
 async function backfillApifIds(dbMatches: { id: string; team_a: string; team_b: string }[]) {
