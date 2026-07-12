@@ -559,9 +559,13 @@ async function applyJoker(
     .single();
   if (playErr || !playRow) return { ok: false, error: playErr?.message ?? "Échec de l'enregistrement." };
 
-  // Insert effect (si applicable)
+  // Insert effect (si applicable). ⚠️ On VÉRIFIE l'erreur : un insert raté ici
+  // rend le joker inopérant (l'effet n'existe pas → jamais résolu au settlement).
+  // C'est ce qui est arrivé au Jet Lag (contrainte CHECK sans 'jet_lag', 2026-07).
+  // Le play est déjà enregistré : on remonte l'erreur pour ne pas facturer un
+  // joker sans effet, et pour que la panne ne soit plus silencieuse.
   if (effect) {
-    await admin.from("joker_effects").insert({
+    const { error: effErr } = await admin.from("joker_effects").insert({
       joker_play_id: playRow.id,
       affected_user_id: effect.affected,
       match_id: params.matchId ?? null,
@@ -571,6 +575,12 @@ async function applyJoker(
       status: "active",
       metadata: params.type === "espion" ? { viewed_match_ids: [] } : {},
     });
+    if (effErr) {
+      // On annule le play orphelin pour laisser l'utilisateur rejouer son joker.
+      await admin.from("joker_plays").delete().eq("id", playRow.id);
+      console.error(`[jokers] échec insert effet ${effect.type} (play annulé):`, effErr.message);
+      return { ok: false, error: `Effet non enregistré (${effErr.message}). Joker non consommé.` };
+    }
   }
 
   // Live feed (Canal Cup Live + TV chaos)
