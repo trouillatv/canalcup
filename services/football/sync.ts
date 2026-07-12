@@ -1111,6 +1111,101 @@ export async function syncSeason(): Promise<{ updated: number; inserted: number;
   return { updated, inserted, total: fixtures.length };
 }
 
+// ─── Schedule fallback — TheSportsDB ────────────────────────────────────────────
+// Pourquoi : le plan API-Football GRATUIT n'a plus accès à la saison WC 2026
+// (« Free plans do not have access to this season »). syncSeason() ne crée donc
+// plus AUCUN match — la carte de prono d'un quart/demi/finale n'apparaît jamais
+// et personne ne peut parier (cas vécu : Argentine–Suisse, quart jamais inséré).
+// Ce fallback interroge TheSportsDB (ligue 4429) pour créer/mettre à jour les
+// matchs de PHASE FINALE manquants AVANT le coup d'envoi.
+//
+// strRound est souvent vide côté TSDB → on s'appuie sur intRound (fiable).
+const TSDB_ROUND_PHASE: Record<number, string> = {
+  125: "Quarts",
+  150: "Demis",
+  160: "3ème place", // playoff / petite finale
+  200: "Finale",
+};
+
+export async function syncScheduleTsdb(): Promise<{ inserted: number; updated: number }> {
+  const supabase = createAdminClient();
+
+  const [pastJson, nextJson] = await Promise.all([
+    tsdbFetch(`/eventspastleague.php?id=4429`),
+    tsdbFetch(`/eventsnextleague.php?id=4429`),
+  ]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const events: any[] = [...(pastJson?.events ?? []), ...(nextJson?.events ?? [])]
+    .filter((e) => String(e.strSeason) === String(APIF_WC_SEASON));
+  if (!events.length) return { inserted: 0, updated: 0 };
+
+  const { data: matchesData } = await supabase
+    .from("matches")
+    .select("id, team_a, team_b, external_id, is_settled");
+  const matches = matchesData ?? [];
+
+  let inserted = 0, updated = 0;
+
+  for (const e of events) {
+    const phase = TSDB_ROUND_PHASE[Number(e.intRound)];
+    if (!phase) continue; // ce fallback ne gère QUE la phase finale
+
+    const teamAFr = toFrench(e.strHomeTeam);
+    const teamBFr = toFrench(e.strAwayTeam);
+    if (!teamAFr || !teamBFr) continue;
+
+    const tsdbId = Number(e.idEvent);
+    const status = tsdbStatus(e);
+    const scoreA = e.intHomeScore != null && e.intHomeScore !== "" ? parseInt(e.intHomeScore, 10) : null;
+    const scoreB = e.intAwayScore != null && e.intAwayScore !== "" ? parseInt(e.intAwayScore, 10) : null;
+    const startsAt = e.strTimestamp
+      ? `${e.strTimestamp}+00:00`
+      : `${e.dateEvent}T${e.strTime ?? "00:00:00"}+00:00`;
+
+    // Dédup insensible à l'ordre des équipes : TheSportsDB peut inverser
+    // domicile/extérieur par rapport à une ligne créée manuellement (ex. demie
+    // pré-remplie « Argentine vs Angleterre » vs « England vs Argentina »).
+    const pairKey = [teamAFr.toLowerCase(), teamBFr.toLowerCase()].sort().join("|");
+    const existing =
+      matches.find((m) => m.external_id === tsdbId) ??
+      matches.find((m) =>
+        [m.team_a.toLowerCase(), m.team_b.toLowerCase()].sort().join("|") === pairKey
+      );
+
+    if (existing) {
+      // Ne jamais réécrire un match déjà réglé (settle a figé le scoring).
+      if (existing.is_settled) continue;
+      await supabase.from("matches").update({
+        external_id: tsdbId, status, score_a: scoreA, score_b: scoreB,
+        team_a: teamAFr, team_b: teamBFr,
+        flag_a: toFlag(e.strHomeTeam), flag_b: toFlag(e.strAwayTeam),
+        phase, venue: e.strVenue ?? undefined,
+        // Une ligne créée manuellement (sans id TSDB) a un horaire provisoire :
+        // on le corrige avec l'horaire officiel dès que TheSportsDB le publie.
+        ...(existing.external_id == null ? { starts_at: startsAt } : {}),
+        updated_at: new Date().toISOString(),
+      }).eq("id", existing.id);
+      cache.invalidate(`match:${existing.id}`);
+      updated++;
+    } else {
+      const { data: ins, error } = await supabase.from("matches").insert({
+        external_id: tsdbId, competition: "FIFA World Cup 2026", phase,
+        team_a: teamAFr, team_b: teamBFr,
+        flag_a: toFlag(e.strHomeTeam), flag_b: toFlag(e.strAwayTeam),
+        starts_at: startsAt, channel: "Canal+", status,
+        score_a: scoreA, score_b: scoreB,
+        venue: e.strVenue ?? undefined,
+      }).select("id").single();
+      if (!error && ins) {
+        inserted++;
+        matches.push({ id: ins.id, team_a: teamAFr, team_b: teamBFr, external_id: tsdbId, is_settled: false });
+      }
+    }
+  }
+
+  return { inserted, updated };
+}
+
 // ─── Backfill API-Football IDs on matches ─────────────────────────────────────
 
 async function backfillApifIds(dbMatches: { id: string; team_a: string; team_b: string }[]) {

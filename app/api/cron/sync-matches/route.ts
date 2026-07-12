@@ -4,7 +4,7 @@
 // Logged dans public.cron_runs via runCron() (page /admin/monitoring).
 
 import { NextResponse } from "next/server";
-import { syncSeason, syncLiveScores, syncStandings, syncStandingsFromMatches } from "@/services/football";
+import { syncSeason, syncScheduleTsdb, syncLiveScores, syncStandings, syncStandingsFromMatches } from "@/services/football";
 import { settleAllFinished } from "@/services/scoring/settle";
 import { runCron } from "@/lib/monitoring/cron-log";
 
@@ -42,6 +42,10 @@ export async function GET(request: Request) {
       syncLiveScores(),
       syncStandings().catch(() => 0),
     ]);
+    // Fallback TheSportsDB : crée les matchs de phase finale que le plan
+    // API-Football gratuit ne renvoie plus (saison 2026 inaccessible). Doit
+    // passer AVANT settle pour que les matchs finis soient réglés ce run.
+    const scheduleTsdb = await syncScheduleTsdb().catch(() => ({ inserted: 0, updated: 0 }));
     // Recalcule les classements depuis NOS matchs (à jour) — l'endpoint
     // /standings d'API-Football est parfois figé sur une journée de retard.
     // Doit passer APRÈS syncSeason/syncLiveScores (matchs frais).
@@ -57,6 +61,8 @@ export async function GET(request: Request) {
     return {
       meta: {
         ...(typeof seasonResult === "object" ? seasonResult : {}),
+        tsdb_inserted: scheduleTsdb.inserted,
+        tsdb_updated: scheduleTsdb.updated,
         live_synced: liveSynced,
         provider_standings: providerStandings,
         standings_synced: standingsSynced,

@@ -31,7 +31,7 @@ export function flagFor(nameFr: string, nameEn?: string): string {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function tsdbStatus(e: any): MatchStatus {
   const s = e.strStatus ?? "";
-  if (["Match Finished", "FT", "AOT", "Pen"].includes(s)) return "finished";
+  if (["Match Finished", "FT", "AOT", "AET", "AP", "Pen", "PEN"].includes(s)) return "finished";
   if (["HT", "Half Time"].includes(s)) return "halftime";
   if (["1H", "2H", "ET", "P", "In Progress"].includes(s)) return "live";
   if (["Postponed", "Cancelled", "ABD"].includes(s)) return "postponed";
