@@ -14,6 +14,13 @@ for (const line of envText.split(/\r?\n/)) {
 }
 
 const LIMIT = 60;
+const FAST_THRESHOLD_MS = 7000;
+
+function scoreRow(answer) {
+  const isCorrect = !!answer.is_correct && (answer.answer ?? "") !== "";
+  if (!isCorrect) return 0;
+  return (Number(answer.response_time_ms) || 0) <= FAST_THRESHOLD_MS ? 5 : 3;
+}
 
 async function main() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -26,7 +33,7 @@ async function main() {
 
   const [{ data: sessions, error: sessionsError }, { data: answers, error: answersError }] = await Promise.all([
     sb.from("quiz_session").select("id, created_at, question_ids"),
-    sb.from("quiz_answers").select("id, quiz_session_id, question_id, points_awarded"),
+    sb.from("quiz_answers").select("id, quiz_session_id, question_id, points_awarded, mode, answer, is_correct, response_time_ms"),
   ]);
   if (sessionsError) throw sessionsError;
   if (answersError) throw answersError;
@@ -46,12 +53,13 @@ async function main() {
 
   const updates = [];
   for (const answer of answers ?? []) {
-    if (!countedIds.has(answer.question_id)) {
-      if ((answer.points_awarded ?? 0) !== 0) {
-        updates.push(
-          sb.from("quiz_answers").update({ points_awarded: 0 }).eq("id", answer.id)
-        );
-      }
+    const mode = String(answer.mode || "");
+    if (mode !== "solo") continue;
+    const nextPoints = countedIds.has(answer.question_id) ? scoreRow(answer) : 0;
+    if ((answer.points_awarded ?? 0) !== nextPoints) {
+      updates.push(
+        sb.from("quiz_answers").update({ points_awarded: nextPoints }).eq("id", answer.id)
+      );
     }
   }
 
