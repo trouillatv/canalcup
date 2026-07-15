@@ -163,7 +163,7 @@ export function quizPoints(isCorrect: boolean, responseTimeMs: number): number {
 // serveur partagé → non triché) : bonne réponse = points de base × coefficient.
 // 0,7 = le Solo rapporte 70 % des points (assez bas pour valoriser le Live,
 // assez haut pour que les absents aient encore intérêt à jouer — pas punitif).
-export const QUIZ_SOLO_COEFFICIENT = 0.7;
+export const QUIZ_SOLO_COEFFICIENT = 1;
 
 export function quizSoloPoints(isCorrect: boolean): number {
   if (!isCorrect) return 0;

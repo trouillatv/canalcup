@@ -31,18 +31,6 @@ export async function GET() {
     .from("users").select("id").eq("auth_id", user.id).single();
   if (!profile) return NextResponse.json({ available: false, reason: "profile" }, { status: 404 });
 
-  // 🔒 Le Solo est un RATTRAPAGE : réservé à ceux qui n'ont PAS joué le Live.
-  // Si le joueur a ≥1 réponse Live sur cette session, le Solo lui est fermé.
-  const { count: liveCount } = await admin
-    .from("quiz_answers")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", profile.id)
-    .eq("quiz_session_id", session.id)
-    .eq("mode", "live");
-  if ((liveCount ?? 0) > 0) {
-    return NextResponse.json({ available: false, reason: "played_live" });
-  }
-
   const [{ data: allQuestions }, { data: mine }, { data: sessRow }] = await Promise.all([
     admin
       .from("quiz_questions")
@@ -53,9 +41,8 @@ export async function GET() {
     admin.from("quiz_session").select("question_ids").eq("id", session.id).maybeSingle(),
   ]);
 
-  // Le Solo pose les questions NON posées pendant le Live (le complément du
-  // tirage Live) → les absents découvrent d'autres questions, pas un rejeu du
-  // quiz projeté. Fallback (ancienne session sans set) : toutes les questions.
+  // Le Solo utilise la même banque du jour que le Live, mais sans verrou de
+  // participation : tout le monde peut s'entraîner.
   const setIds = (sessRow?.question_ids as string[] | null) ?? null;
   let questions = allQuestions ?? [];
   if (setIds && setIds.length) {
@@ -73,6 +60,8 @@ export async function GET() {
       closesAt: win.closesAt,
       questions: questions ?? [],
       answered,
+      scoring_note:
+        "Le mode Solo est ouvert à tout le monde. Les questions déjà jouées ou déjà répondues ne rapportent plus de points.",
     },
     { headers: { "Cache-Control": "no-store" } }
   );

@@ -31,6 +31,7 @@ interface Outcome {
   correct_answer?: string;
   explanation?: string;
   points: number;
+  alreadyAnswered?: boolean;
 }
 
 export default function QuizSoloPage() {
@@ -39,6 +40,7 @@ export default function QuizSoloPage() {
   const [queue, setQueue] = useState<SoloQuestion[]>([]);
   const [i, setI] = useState(0);
   const [coef, setCoef] = useState(0.5);
+  const [scoringNote, setScoringNote] = useState<string | null>(null);
   const [score, setScore] = useState(0);
   const [answeredCount, setAnsweredCount] = useState(0);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
@@ -56,6 +58,7 @@ export default function QuizSoloPage() {
         if (!alive) return;
         if (!d.available) { setReason(d.reason ?? null); setState("unavailable"); return; }
         setCoef(d.coefficient ?? 0.7);
+        setScoringNote(typeof d.scoring_note === "string" ? d.scoring_note : null);
         const answered = new Set<string>(d.answered ?? []);
         const todo: SoloQuestion[] = (d.questions ?? []).filter((q: SoloQuestion) => !answered.has(q.id));
         setQueue(todo);
@@ -96,6 +99,7 @@ export default function QuizSoloPage() {
           correct_answer: d.correct_answer,
           explanation: d.explanation,
           points: pts,
+          alreadyAnswered: !!d.alreadyAnswered,
         });
         setScore((s) => s + pts);
         setAnsweredCount((n) => n + 1);
@@ -141,9 +145,7 @@ export default function QuizSoloPage() {
 
   if (state === "unavailable") {
     const lockMsg =
-      reason === "played_live"
-        ? "✅ Tu as déjà joué le Live de ce quiz ! Le mode Solo est un rattrapage réservé à celles et ceux qui n'ont pas pu participer en direct."
-        : reason === "live_in_progress"
+      reason === "live_in_progress"
         ? "🔒 Le Quiz est actuellement en direct. Le mode Solo ouvrira à la fin du Live."
         : reason === "window_closed"
           ? "🔒 La fenêtre du Quiz Solo est fermée pour ce quiz. Rendez-vous au prochain !"
@@ -189,7 +191,8 @@ export default function QuizSoloPage() {
       {/* Bandeau Solo explicite : personne ne doit se croire désavantagé sans le savoir. */}
       <div className="rounded-xl border border-canal-yellow/30 bg-canal-yellow/5 px-3 py-2.5 text-xs leading-relaxed">
         <span className="font-black text-canal-yellow">🎮 Mode Solo</span>{" "}
-        <span className="text-white/80">— points réduits à <b>{coefPct}%</b>. Le mode <b>Live</b> reste le meilleur moyen de marquer.</span>
+        <span className="text-white/80">— même barème que le Live. Le mode <b>Live</b> reste le plus intense, mais pas plus rentable.</span>
+        {scoringNote && <span className="block mt-1 text-white/60">{scoringNote}</span>}
       </div>
 
       <div className="flex items-center justify-between text-sm">
@@ -243,6 +246,9 @@ export default function QuizSoloPage() {
           <p className={cn("font-black text-lg flex items-center justify-center gap-2", outcome.is_correct ? "text-green-400" : "text-canal-gray-muted")}>
             {outcome.is_correct ? <><CheckCircle size={18} /> Bonne réponse · +{outcome.points} pts</> : <><XCircle size={18} /> Raté</>}
           </p>
+          {outcome.alreadyAnswered && (
+            <p className="text-orange-300 text-xs font-bold">Cette question ne rapporte plus de points.</p>
+          )}
           {outcome.explanation && <p className="text-canal-gray-muted text-xs italic leading-relaxed">{outcome.explanation}</p>}
           <button onClick={next} className="mt-1 w-full py-3 rounded-xl bg-canal-yellow text-canal-black font-black text-sm">
             {i + 1 >= total ? "Terminer" : "Question suivante"}

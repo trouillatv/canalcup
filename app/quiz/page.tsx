@@ -13,6 +13,7 @@ import { Brain, Trophy, Radio, Medal, Crown, ChevronRight, Sparkles, Lock, Check
 import { cn } from "@/lib/utils";
 import { QuizPlayerDetail } from "@/components/quiz/QuizPlayerDetail";
 import { QuizReview } from "@/components/quiz/QuizReview";
+import { QUIZ_CHAMPIONSHIP } from "@/lib/config/quiz-championship";
 
 interface RankRow {
   user_id: string; name: string; points: number; correct: number; answered: number;
@@ -36,7 +37,6 @@ const SOLO_LOCK: Record<string, string> = {
   not_started: "🔒 Le Quiz Live n'a pas encore commencé.",
   live_in_progress: "🔒 Le Quiz est actuellement en direct.",
   window_closed: "🔒 Le mode Solo de ce quiz est terminé.",
-  played_live: "✅ Tu as joué le Live — le Solo est réservé à ceux qui n'ont pas pu participer.",
 };
 const MEDALS = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣"];
 
@@ -46,6 +46,7 @@ export default function QuizHubPage() {
   const [board, setBoard] = useState<Board | null>(null);
   const [detail, setDetail] = useState<{ id: string; name: string } | null>(null);
   const [review, setReview] = useState(false);
+  const [seasonTab, setSeasonTab] = useState<"all" | "1" | "2">("all");
 
   useEffect(() => {
     const load = () => {
@@ -64,6 +65,7 @@ export default function QuizHubPage() {
   const finale = board?.finale;
   const finalists = board?.finalists ?? 5;
   const qualifiers = (board?.ranking ?? []).filter((r) => r.qualified);
+  const seasonItems = (board?.schedule ?? []).filter((q) => seasonTab === "all" ? true : String(q.n) === seasonTab);
 
   return (
     <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto pb-24">
@@ -77,7 +79,7 @@ export default function QuizHubPage() {
       </div>
 
       {/* Quiz Live en direct */}
-      {liveActive && (
+      {liveActive && QUIZ_CHAMPIONSHIP.liveEnabled !== false && (
         <Link href="/quiz-live" className="block rounded-2xl border border-red-500/40 bg-red-950/20 p-4 hover:bg-red-950/30 transition-colors">
           <div className="flex items-center gap-3">
             <Radio className="text-red-400 animate-pulse shrink-0" size={26} />
@@ -89,10 +91,16 @@ export default function QuizHubPage() {
           </div>
         </Link>
       )}
+      {QUIZ_CHAMPIONSHIP.liveEnabled === false && (
+        <div className="rounded-2xl border border-red-500/30 bg-red-950/15 p-4">
+          <p className="text-red-300 font-black text-lg">Quiz Live fermé</p>
+          <p className="text-white/60 text-sm mt-1">Le mode Live est verrouillé pour cette saison. Le Solo reste disponible.</p>
+        </div>
+      )}
 
       {/* Choix de mode */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Link href="/quiz-live" className="canal-card hover:border-canal-yellow/50 transition-colors">
+        <Link href="/quiz-live" className={cn("canal-card transition-colors", QUIZ_CHAMPIONSHIP.liveEnabled === false ? "opacity-60 pointer-events-none" : "hover:border-canal-yellow/50")}>
           <div className="flex items-center gap-2 mb-1">
             <Radio size={16} className="text-canal-yellow" />
             <span className="font-black text-white">Quiz Live</span>
@@ -158,10 +166,32 @@ export default function QuizHubPage() {
       {/* Saison Quiz */}
       {board && board.schedule.length > 0 && (
         <section className="space-y-2">
-          <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider">🗓️ Saison Quiz</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-bold text-canal-yellow uppercase tracking-wider">🗓️ Saison Quiz</h2>
+            <div className="flex gap-1.5">
+              {[
+                { id: "all" as const, label: "Tous" },
+                ...(board.schedule.map((q) => ({ id: String(q.n) as "1" | "2", label: q.dateLabel }))),
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setSeasonTab(tab.id)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border transition-colors",
+                    seasonTab === tab.id
+                      ? "bg-canal-yellow text-canal-black border-canal-yellow"
+                      : "bg-white/5 text-canal-gray-muted border-canal-gray-light"
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="flex flex-wrap gap-2">
-            {board.schedule.map((q, i) => {
-              const done = i < board.finishedSessions;
+            {seasonItems.map((q) => {
+              const done = q.n <= board.finishedSessions;
               return (
                 <span key={q.n} className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold border", done ? "bg-green-500/10 border-green-500/30 text-green-300" : "bg-white/5 border-canal-gray-light text-canal-gray-muted")}>
                   {done ? <CheckCircle2 size={13} /> : <Hourglass size={13} />}
@@ -169,7 +199,7 @@ export default function QuizHubPage() {
                 </span>
               );
             })}
-            {board.finale?.enabled && (
+            {board.finale?.enabled && seasonTab === "all" && (
               <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black border bg-canal-yellow/10 border-canal-yellow/30 text-canal-yellow">
                 🏆 Grande Finale
               </span>

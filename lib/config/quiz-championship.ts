@@ -3,6 +3,9 @@
 // toute la Coupe du Monde et se termine par une Grande Finale en direct.
 
 export const QUIZ_CHAMPIONSHIP = {
+  // Fermeture du Live : on laisse le Solo accessible, mais on ne veut plus
+  // lancer de nouvelle session Live sans réactiver explicitement ce drapeau.
+  liveEnabled: false,
   // Ouverture du Quiz LIVE (heure Nouvelle-Calédonie, UTC+11) : on ne peut pas
   // DÉMARRER une session de quiz Live avant cet instant. Garde-fou anti-lancement
   // accidentel (une session de test oubliée affichait « 🔴 Quiz en direct »).

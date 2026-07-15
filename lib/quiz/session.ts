@@ -22,6 +22,13 @@ export async function listQuestionIds(supabase: Supa): Promise<string[]> {
   return (data ?? []).map((q) => q.id as string);
 }
 
+// Banque du jour : on ne retient que les 60 premières questions actives.
+// Live et Solo partagent ce même pool pour éviter d'épuiser la banque totale.
+export async function dailyQuestionIds(supabase: Supa, limit = 60): Promise<string[]> {
+  const ids = await listQuestionIds(supabase);
+  return ids.slice(0, Math.max(1, limit));
+}
+
 // Tire `count` ids de questions AU HASARD (ordre aléatoire). Sert au démarrage
 // d'une session : on ne pose pas toutes les questions, mais un sous-ensemble.
 // `exclude` (ex. les questions des quiz précédents) est évité en priorité — pas
@@ -33,7 +40,7 @@ export async function pickRandomQuestionIds(
   count: number,
   exclude?: Set<string>
 ): Promise<string[]> {
-  const all = await listQuestionIds(supabase);
+  const all = await dailyQuestionIds(supabase);
   const filtered = exclude && exclude.size ? all.filter((id) => !exclude.has(id)) : all;
   const pool = filtered.length ? filtered : all;
   for (let i = pool.length - 1; i > 0; i--) {

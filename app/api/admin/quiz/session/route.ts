@@ -15,7 +15,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminRequest } from "@/lib/auth/admin";
-import { advanceQuizSession, futureStartedAt, listQuestionIds, pickRandomQuestionIds, consumedQuestionIds } from "@/lib/quiz/session";
+import { advanceQuizSession, futureStartedAt, listQuestionIds, pickRandomQuestionIds, consumedQuestionIds, dailyQuestionIds } from "@/lib/quiz/session";
 import { isLiveOpen, QUIZ_CHAMPIONSHIP } from "@/lib/config/quiz-championship";
 import { QUIZ_LIVE_QUESTION_COUNT } from "@/lib/scoring";
 
@@ -54,6 +54,12 @@ export async function POST(req: Request) {
   const supabase = createAdminClient();
 
   if (action === "start") {
+    if (QUIZ_CHAMPIONSHIP.liveEnabled === false && body.force !== true) {
+      return NextResponse.json(
+        { error: "🔒 Le Quiz Live est fermé pour cette saison." },
+        { status: 403 }
+      );
+    }
     // 🔒 Verrou d'ouverture : impossible de démarrer le Live avant l'heure
     // officielle (cf. liveOpenLabel). `force: true` permet une répétition
     // volontaire de l'organisateur.
@@ -69,7 +75,8 @@ export async function POST(req: Request) {
     // questions du complément Solo restaient ré-éligibles → déjà-vu pour le joueur
     // et collision anti-rejeu (reposer une question écraserait l'ancienne réponse).
     const already = await consumedQuestionIds(supabase);
-    const chosen = await pickRandomQuestionIds(supabase, QUIZ_LIVE_QUESTION_COUNT, already);
+    const pool = await dailyQuestionIds(supabase, QUIZ_LIVE_QUESTION_COUNT);
+    const chosen = await pickRandomQuestionIds(supabase, pool.length, already);
     if (chosen.length === 0) {
       return NextResponse.json({ error: "Aucune question quiz en base." }, { status: 400 });
     }
