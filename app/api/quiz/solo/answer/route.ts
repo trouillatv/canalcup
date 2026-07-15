@@ -8,7 +8,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { quizSoloPoints } from "@/lib/scoring";
+import { quizPoints } from "@/lib/scoring";
 import { getSoloWindow } from "@/lib/quiz/solo";
 
 export async function POST(req: Request) {
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
     }
 
     const is_correct = answer !== "" && answer === question.correct_answer;
-    const points = quizSoloPoints(is_correct);
+    const points = quizPoints(is_correct, response_time_ms);
 
     await admin.from("quiz_answers").insert({
       user_id: profile.id,

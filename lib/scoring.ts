@@ -165,9 +165,8 @@ export function quizPoints(isCorrect: boolean, responseTimeMs: number): number {
 // assez haut pour que les absents aient encore intérêt à jouer — pas punitif).
 export const QUIZ_SOLO_COEFFICIENT = 1;
 
-export function quizSoloPoints(isCorrect: boolean): number {
-  if (!isCorrect) return 0;
-  return Math.round(3 * QUIZ_SOLO_COEFFICIENT); // base (3) sans bonus rapidité, × 0,7 ≈ 2
+export function quizSoloPoints(isCorrect: boolean, responseTimeMs: number): number {
+  return quizPoints(isCorrect, responseTimeMs);
 }
 
 // ─── Contribution du Quiz au classement GÉNÉRAL (pondérée par SCORE) ──────────

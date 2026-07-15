@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Brain, Trophy, Radio, Medal, Crown, ChevronRight, Sparkles, Lock, CheckCircle2, Hourglass } from "lucide-react";
+import { Brain, Trophy, Radio, Crown, ChevronRight, Sparkles, Lock, CheckCircle2, Hourglass } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuizPlayerDetail } from "@/components/quiz/QuizPlayerDetail";
 import { QuizReview } from "@/components/quiz/QuizReview";
@@ -30,6 +30,7 @@ interface Board {
   qualifClosed: boolean;
   finale: { enabled: boolean; dateLabel: string; timeLabel: string; title: string };
   schedule: SchedItem[];
+  sessions?: { id: string; label: string; status: string; created_at: string; ended_at: string | null; ranking: RankRow[] }[];
   viewerIsAdmin?: boolean;
 }
 
@@ -64,8 +65,10 @@ export default function QuizHubPage() {
 
   const finale = board?.finale;
   const finalists = board?.finalists ?? 5;
-  const qualifiers = (board?.ranking ?? []).filter((r) => r.qualified);
+  const qualifiers = (board?.ranking ?? []).slice(0, finalists);
   const seasonItems = (board?.schedule ?? []).filter((q) => seasonTab === "all" ? true : String(q.n) === seasonTab);
+  const selectedSession = seasonTab === "all" ? null : board?.sessions?.[Number(seasonTab) - 1] ?? null;
+  const lastQuizRows = selectedSession?.ranking ?? board?.current ?? [];
 
   return (
     <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto pb-24">
@@ -199,26 +202,28 @@ export default function QuizHubPage() {
                 </span>
               );
             })}
-            {board.finale?.enabled && seasonTab === "all" && (
-              <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black border bg-canal-yellow/10 border-canal-yellow/30 text-canal-yellow">
-                🏆 Grande Finale
-              </span>
-            )}
           </div>
         </section>
       )}
 
-      {/* Classement du DERNIER quiz (Live) */}
-      {board && board.current.length > 0 && (
+      {/* Classement du dernier quiz selon la date sélectionnée */}
+      {board && lastQuizRows.length > 0 && (
         <section className="space-y-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Radio size={15} className="text-canal-yellow" />
             <h2 className="font-black text-white text-sm">
-              {board.currentSessionStatus === "question" ? "Quiz en cours" : "Dernier quiz"}
+              {seasonTab === "all"
+                ? (board.currentSessionStatus === "question" ? "Quiz en cours" : "Dernier quiz")
+                : `Dernier quiz ${selectedSession?.label ?? ""}`}
             </h2>
+            {seasonTab !== "all" && selectedSession && (
+              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-canal-yellow/10 border border-canal-yellow/30 text-canal-yellow">
+                {board.schedule[Number(seasonTab) - 1]?.dateLabel}
+              </span>
+            )}
           </div>
           <div className="flex flex-col gap-1">
-            {board.current.slice(0, 5).map((r) => (
+            {lastQuizRows.map((r) => (
               <div key={r.user_id} className={cn("flex items-center gap-3 rounded-lg px-3 py-2", r.isMe ? "bg-canal-yellow/15 border border-canal-yellow/40" : "bg-white/5")}>
                 <span className="text-base w-6 text-center">{MEDALS[r.rank - 1] ?? r.rank}</span>
                 <span className="flex-1 font-bold text-white text-sm truncate">{r.name}{r.isMe && <span className="text-canal-yellow text-xs"> · toi</span>}</span>
@@ -233,12 +238,12 @@ export default function QuizHubPage() {
           du classement général/équipe : les points de quiz aident AUSSI l'équipe,
           mais ce classement-ci ne compare que les individus pour la finale. */}
       <section className="space-y-3">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Trophy size={16} className="text-canal-yellow" />
-          <h2 className="font-black text-white">Championnat Quiz</h2>
-          <span className="text-[10px] font-black text-white/50 bg-white/10 px-1.5 py-0.5 rounded-full uppercase">Classement individuel</span>
-          {board?.finale?.enabled && board?.qualifClosed && (
-            <span className="text-[10px] font-black text-canal-yellow bg-canal-yellow/10 px-1.5 py-0.5 rounded-full uppercase">Qualifs closes</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Trophy size={16} className="text-canal-yellow" />
+            <h2 className="font-black text-white">Championnat Quiz</h2>
+            <span className="text-[10px] font-black text-white/50 bg-white/10 px-1.5 py-0.5 rounded-full uppercase">Classement individuel</span>
+            {board?.finale?.enabled && board?.qualifClosed && (
+              <span className="text-[10px] font-black text-canal-yellow bg-canal-yellow/10 px-1.5 py-0.5 rounded-full uppercase">Qualifs closes</span>
           )}
         </div>
         <p className="text-canal-gray-muted text-xs -mt-1">
@@ -280,7 +285,7 @@ export default function QuizHubPage() {
           </p>
         ) : (
           <div className="flex flex-col gap-1.5">
-            {board.ranking.slice(0, 30).map((r) => {
+            {board.ranking.map((r) => {
               return (
                 <button
                   key={r.user_id}
@@ -288,7 +293,7 @@ export default function QuizHubPage() {
                   onClick={() => setDetail({ id: r.user_id, name: r.name })}
                   className={cn(
                     "flex items-center gap-3 rounded-xl px-3 py-2.5 text-left w-full transition-colors hover:bg-white/10 cursor-pointer",
-                    r.isMe ? "bg-canal-yellow/15 border border-canal-yellow/40" : r.qualified ? "bg-canal-yellow/5 border border-canal-yellow/20" : "bg-white/5"
+                    r.isMe ? "bg-canal-yellow/15 border border-canal-yellow/40" : "bg-white/5"
                   )}
                 >
                   <span className={cn("font-black tabular-nums w-7 text-center", r.rank === 1 ? "text-canal-yellow" : r.rank <= 3 ? "text-white" : "text-white/40")}>{r.rank}</span>
@@ -296,11 +301,6 @@ export default function QuizHubPage() {
                     {r.rank <= 3 ? `${["🥇", "🥈", "🥉"][r.rank - 1]} ` : ""}{r.name}
                     {r.isMe && <span className="text-canal-yellow text-xs"> · toi</span>}
                   </span>
-                  {r.qualified && (
-                    <span className="flex items-center gap-1 text-[10px] font-black text-canal-yellow bg-canal-yellow/10 border border-canal-yellow/30 px-1.5 py-0.5 rounded-full uppercase shrink-0">
-                      <Medal size={11} /> {board.qualifClosed ? "Finaliste" : "Qualifié"}
-                    </span>
-                  )}
                   {r.horsConcours && (
                     <span className="text-[10px] font-black text-white/50 bg-white/10 border border-white/15 px-1.5 py-0.5 rounded-full uppercase shrink-0">
                       Hors concours

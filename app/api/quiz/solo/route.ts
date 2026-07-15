@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { QUIZ_SOLO_COEFFICIENT } from "@/lib/scoring";
 import { getSoloWindow } from "@/lib/quiz/solo";
+import { dailyQuestionIds } from "@/lib/quiz/session";
 
 export async function GET() {
   const supabase = await createClient();
@@ -41,14 +42,11 @@ export async function GET() {
     admin.from("quiz_session").select("question_ids").eq("id", session.id).maybeSingle(),
   ]);
 
-  // Le Solo utilise la même banque du jour que le Live, mais sans verrou de
-  // participation : tout le monde peut s'entraîner.
-  const setIds = (sessRow?.question_ids as string[] | null) ?? null;
-  let questions = allQuestions ?? [];
-  if (setIds && setIds.length) {
-    const liveSet = new Set(setIds);
-    questions = (allQuestions ?? []).filter((q) => !liveSet.has(q.id));
-  }
+  // Le Solo utilise le même pool quotidien que le Live : les 60 premières
+  // questions actives. Pas de différence de banque entre les deux modes.
+  const dailyIds = await dailyQuestionIds(admin, 60);
+  const liveSet = new Set((sessRow?.question_ids as string[] | null) ?? dailyIds);
+  const questions = (allQuestions ?? []).filter((q) => liveSet.has(q.id) && dailyIds.includes(q.id));
 
   const answered = [...new Set((mine ?? []).map((a) => a.question_id as string))];
 

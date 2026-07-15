@@ -54,6 +54,10 @@ export async function GET(req: Request) {
     admin.from("quiz_session").select("id, status").order("created_at", { ascending: false }).limit(1).maybeSingle(),
     admin.from("quiz_session").select("id", { count: "exact", head: true }).eq("status", "finished"),
   ]);
+  const { data: sessions } = await admin
+    .from("quiz_session")
+    .select("id, status, created_at, ended_at, question_ids")
+    .order("created_at", { ascending: true });
 
   const rows = allRows ?? [];
   const ids = [...new Set(rows.map((r) => r.user_id))];
@@ -91,6 +95,14 @@ export async function GET(req: Request) {
 
   const currentRows = recent?.id ? rows.filter((r) => r.quiz_session_id === recent.id) : [];
   const current = rank(currentRows, nameById, myId);
+  const sessionLeaderboards = (sessions ?? []).map((s, idx) => ({
+    id: s.id,
+    label: `Quiz #${idx + 1}`,
+    status: s.status,
+    created_at: s.created_at,
+    ended_at: s.ended_at,
+    ranking: rank(rows.filter((r) => r.quiz_session_id === s.id), nameById, myId),
+  }));
 
   return NextResponse.json(
     {
@@ -103,6 +115,7 @@ export async function GET(req: Request) {
       qualifClosed: isQualifClosed(),
       finale: QUIZ_CHAMPIONSHIP.finale,
       schedule: QUIZ_CHAMPIONSHIP.schedule,
+      sessions: sessionLeaderboards,
       viewerIsAdmin,
     },
     { headers: { "Cache-Control": "no-store" } }
