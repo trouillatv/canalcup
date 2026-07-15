@@ -8,7 +8,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { quizPoints } from "@/lib/scoring";
+import { quizPoints, QUIZ_LIVE_QUESTION_COUNT } from "@/lib/scoring";
 import { getSoloWindow } from "@/lib/quiz/solo";
 
 export async function POST(req: Request) {
@@ -81,8 +81,16 @@ export async function POST(req: Request) {
       });
     }
 
+    const { data: sessionRow } = await admin
+      .from("quiz_session")
+      .select("question_ids")
+      .eq("id", session.id)
+      .maybeSingle();
     const is_correct = answer !== "" && answer === question.correct_answer;
-    const points = quizPoints(is_correct, response_time_ms);
+    const sessionQuestionIds = sessionRow?.question_ids as string[] | null | undefined;
+    const questionIndex = Array.isArray(sessionQuestionIds) ? sessionQuestionIds.indexOf(question_id as string) : -1;
+    const zeroPointQuestion = questionIndex >= QUIZ_LIVE_QUESTION_COUNT;
+    const points = zeroPointQuestion ? 0 : quizPoints(is_correct, response_time_ms);
 
     await admin.from("quiz_answers").insert({
       user_id: profile.id,
@@ -102,6 +110,7 @@ export async function POST(req: Request) {
         persisted: true,
         is_correct,
         points,
+        zeroPointQuestion,
         correct_answer: question.correct_answer,
         explanation: question.explanation,
       },

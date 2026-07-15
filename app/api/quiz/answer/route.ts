@@ -10,7 +10,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { quizPoints, QUIZ_TIMER_SECONDS, QUIZ_MIN_RESPONSE_MS } from "@/lib/scoring";
+import { quizPoints, QUIZ_TIMER_SECONDS, QUIZ_MIN_RESPONSE_MS, QUIZ_LIVE_QUESTION_COUNT } from "@/lib/scoring";
 
 export async function POST(req: Request) {
   try {
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     const admin = createAdminClient();
     const { data: session } = await admin
       .from("quiz_session")
-      .select("id, current_question_id, started_at, status")
+      .select("id, current_question_id, started_at, status, question_index")
       .is("ended_at", null)
       .maybeSingle();
 
@@ -98,7 +98,8 @@ export async function POST(req: Request) {
     void rawRt; // ignore le client (anti-triche)
 
     const is_correct = !isTimeoutAnswer && answer === question.correct_answer;
-    const points = timedOut || tooFast ? 0 : quizPoints(is_correct, response_time_ms);
+    const zeroPointQuestion = typeof session.question_index === "number" && session.question_index >= QUIZ_LIVE_QUESTION_COUNT;
+    const points = timedOut || tooFast || zeroPointQuestion ? 0 : quizPoints(is_correct, response_time_ms);
 
     // Quiz = individuel : on persiste même sans équipe (team_id null). Le score
     // compte au classement individuel, sans créditer d'équipe.

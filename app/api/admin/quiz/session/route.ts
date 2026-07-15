@@ -19,6 +19,8 @@ import { advanceQuizSession, futureStartedAt, listQuestionIds, pickRandomQuestio
 import { isLiveOpen, QUIZ_CHAMPIONSHIP } from "@/lib/config/quiz-championship";
 import { QUIZ_LIVE_QUESTION_COUNT } from "@/lib/scoring";
 
+const QUIZ_DAILY_LIMIT = 60;
+
 // La télécommande /quiz-control s'authentifie par le PIN TV (qu'elle a déjà pour
 // l'accès), envoyé dans l'en-tête x-tv-pin. On l'accepte pour les commandes de
 // RYTHME (start/pause/resume/next/end) → n'importe quel organisateur avec le PIN
@@ -112,17 +114,20 @@ export async function POST(req: Request) {
       .maybeSingle();
     if (!session) return NextResponse.json({ error: "Pas de session active." }, { status: 400 });
     const current = (session.question_ids as string[] | null) ?? (await listQuestionIds(supabase));
+    if (current.length >= QUIZ_DAILY_LIMIT) {
+      return NextResponse.json({ ok: true, added: 0, total: current.length, note: "La session est déjà au plafond de 60 questions." });
+    }
     // Exclut : questions déjà dans CETTE session + toute question déjà consommée
     // ailleurs (Live précédent ou répondue en Live/Solo) → l'extension ne ramène
     // pas non plus du déjà-vu.
     const exclude = await consumedQuestionIds(supabase);
     for (const id of current) exclude.add(id);
-    const pool = (await listQuestionIds(supabase)).filter((id) => !exclude.has(id));
+    const pool = (await dailyQuestionIds(supabase, QUIZ_DAILY_LIMIT)).filter((id) => !exclude.has(id));
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
     }
-    const added = pool.slice(0, n);
+    const added = pool.slice(0, Math.min(n, QUIZ_DAILY_LIMIT - current.length));
     if (!added.length) {
       return NextResponse.json({ ok: true, added: 0, total: current.length, note: "Plus de question disponible." });
     }
