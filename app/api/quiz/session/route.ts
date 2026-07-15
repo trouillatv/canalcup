@@ -26,80 +26,8 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { QUIZ_TIMER_SECONDS, QUIZ_TIMEUP_MS, QUIZ_STATS_MS, QUIZ_REVEAL_END_MS } from "@/lib/scoring";
 import { advanceQuizSession } from "@/lib/quiz/session";
-import { selectAll } from "@/lib/data/select-all";
-
-type Supa = ReturnType<typeof createAdminClient>;
 
 const SESSION_COLS = "id, current_question_id, question_index, started_at, status, paused_at, question_ids";
-
-// Classement individuel du quiz (somme des points + nb de bonnes réponses),
-// agrégé depuis quiz_answers (vidé au reset → ne contient que la session courante).
-async function computeStandings(
-  supabase: Supa
-): Promise<
-  {
-    name: string;
-    points: number;
-    correct: number;
-    answered: number;
-    wrong: number;
-    fast: number; // bonnes réponses < seuil (+5)
-    normal: number; // bonnes réponses ≥ seuil (+3)
-    avgMs: number | null;
-  }[]
-> {
-  // selectAll : paginé (sinon >1000 réponses → classement final tronqué/sous-compté).
-  const rows = await selectAll<{
-    user_id: string;
-    points_awarded: number | null;
-    is_correct: boolean;
-    answer: string | null;
-    response_time_ms: number | null;
-  }>(supabase, "quiz_answers", "user_id, points_awarded, is_correct, answer, response_time_ms");
-  if (!rows.length) return [];
-  type Agg = { points: number; correct: number; answered: number; wrong: number; fast: number; normal: number; sumMs: number; nMs: number };
-  const byUser = new Map<string, Agg>();
-  for (const r of rows) {
-    const e =
-      byUser.get(r.user_id) ?? { points: 0, correct: 0, answered: 0, wrong: 0, fast: 0, normal: 0, sumMs: 0, nMs: 0 };
-    const pts = r.points_awarded ?? 0;
-    const hasAns = (r.answer ?? "") !== "";
-    e.points += pts;
-    if (hasAns) e.answered += 1;
-    if (r.is_correct) {
-      e.correct += 1;
-      if (pts >= 5) e.fast += 1; // dérivé des points → juste même si le seuil change
-      else if (pts === 3) e.normal += 1;
-    } else if (hasAns) {
-      e.wrong += 1;
-    }
-    if (hasAns && r.response_time_ms != null) {
-      e.sumMs += r.response_time_ms;
-      e.nMs += 1;
-    }
-    byUser.set(r.user_id, e);
-  }
-  const ids = [...byUser.keys()];
-  const { data: users } = await supabase
-    .from("users")
-    .select("id, display_name, name")
-    .in("id", ids);
-  const nameById = new Map(
-    (users ?? []).map((u) => [u.id, u.display_name?.trim() || u.name?.trim() || "Joueur"])
-  );
-  return [...byUser.entries()]
-    .map(([uid, e]) => ({
-      name: nameById.get(uid) ?? "Joueur",
-      points: e.points,
-      correct: e.correct,
-      answered: e.answered,
-      wrong: e.wrong,
-      fast: e.fast,
-      normal: e.normal,
-      avgMs: e.nMs ? Math.round(e.sumMs / e.nMs) : null,
-    }))
-    .sort((a, b) => b.points - a.points || b.correct - a.correct);
-}
 
 export async function GET() {
   const supabase = createAdminClient();
@@ -129,23 +57,8 @@ export async function GET() {
   }
 
   if (!session || session.status !== "question" || !session.current_question_id) {
-    // Pas de session active : si la DERNIÈRE session est terminée et qu'il reste
-    // des réponses, on renvoie le classement final → l'écran TV joue la cérémonie.
-    const { data: last } = await supabase
-      .from("quiz_session")
-      .select("id, status")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (last?.status === "finished") {
-      const standings = await computeStandings(supabase);
-      if (standings.length) {
-        return NextResponse.json(
-          { status: "finished", standings },
-          { headers: { "Cache-Control": "no-store" } }
-        );
-      }
-    }
+    // Pas de session active : on renvoie l'écran d'attente.
+    // Le podium / classement final n'est plus projeté ici entre deux quiz.
     return NextResponse.json({ status: "idle" });
   }
 
