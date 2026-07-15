@@ -18,6 +18,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminRequest } from "@/lib/auth/admin";
 import { selectAll } from "@/lib/data/select-all";
+const QUIZ_LIMIT = 60;
 
 export async function GET(req: Request) {
   if (!(await isAdminRequest(req))) {
@@ -63,10 +64,17 @@ export async function GET(req: Request) {
     "user_id, team_id, question_id, is_correct, points_awarded, created_at",
     (q) => q.gte("created_at", session.created_at)
   );
+  const { data: sessionQuestions } = await supabase
+    .from("quiz_session")
+    .select("question_ids")
+    .eq("id", session.id)
+    .maybeSingle();
+  const allowedIds = new Set((Array.isArray(sessionQuestions?.question_ids) ? (sessionQuestions.question_ids as string[]) : []).slice(0, QUIZ_LIMIT));
+  const filtered = list.filter((a) => allowedIds.has(a.question_id));
 
   // 3. Enrichit avec name (users) et name (teams).
-  const userIds = Array.from(new Set(list.map((a) => a.user_id)));
-  const teamIds = Array.from(new Set(list.map((a) => a.team_id)));
+  const userIds = Array.from(new Set(filtered.map((a) => a.user_id)));
+  const teamIds = Array.from(new Set(filtered.map((a) => a.team_id)));
 
   const [{ data: users }, { data: teams }] = await Promise.all([
     userIds.length
@@ -85,7 +93,7 @@ export async function GET(req: Request) {
     string,
     { user_id: string; name: string; team_id: string; team_name: string; total_points: number; correct: number; answered: number }
   >();
-  for (const a of list) {
+  for (const a of filtered) {
     const k = a.user_id;
     if (!byUser.has(k)) {
       byUser.set(k, {
@@ -134,7 +142,7 @@ export async function GET(req: Request) {
     (a, b) => b.total_points - a.total_points
   );
 
-  const questionsAnswered = new Set(list.map((a) => a.question_id)).size;
+  const questionsAnswered = new Set(filtered.map((a) => a.question_id)).size;
 
   return NextResponse.json({
     session: {

@@ -22,6 +22,7 @@ import { QUIZ_SOLO_COEFFICIENT, quizGlobalPoints } from "@/lib/scoring";
 
 // Base d'un point Solo AVANT coefficient (sert à expliquer 3 × 0,7 ≈ 2).
 const SOLO_BASE = 3;
+const QUIZ_LIMIT = 60;
 
 export type PointsType =
   | "live_fast" // bonne réponse Live <5s → +5
@@ -203,7 +204,7 @@ export async function buildQuizAudit(onlyUserId?: string): Promise<QuizAudit> {
   );
   const sessionMeta = new Map<string, { title: string; date: string | null; ids: string[] }>();
   sessions.forEach((s, i) => {
-    const ids = Array.isArray(s.question_ids) ? (s.question_ids as string[]) : [];
+    const ids = Array.isArray(s.question_ids) ? (s.question_ids as string[]).slice(0, QUIZ_LIMIT) : [];
     sessionMeta.set(s.id, { title: `Quiz #${i + 1}`, date: s.created_at, ids });
   });
 

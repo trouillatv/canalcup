@@ -16,6 +16,7 @@ import { selectAll } from "@/lib/data/select-all";
 import { QUIZ_CHAMPIONSHIP, isQualifClosed, isFinalsExcluded } from "@/lib/config/quiz-championship";
 
 type Tally = { points: number; correct: number; answered: number };
+const QUIZ_LIMIT = 60;
 
 function rank(
   rows: { user_id: string; points_awarded: number | null; is_correct: boolean }[],
@@ -83,7 +84,14 @@ export async function GET(req: Request) {
   // Pas de finale (finale.enabled=false) → aucune qualification, juste le cumul.
   const finaleOn = QUIZ_CHAMPIONSHIP.finale.enabled;
   let finalPos = 0;
-  const championship = rank(rows, nameById, myId).map((r) => {
+  const sessionById = new Map(
+    (sessions ?? []).map((s) => [s.id, (Array.isArray(s.question_ids) ? (s.question_ids as string[]).slice(0, QUIZ_LIMIT) : [])])
+  );
+  const filteredRows = rows.filter((r) => {
+    const ids = sessionById.get(r.quiz_session_id ?? "") ?? [];
+    return ids.includes((r as { question_id?: string }).question_id ?? "");
+  });
+  const championship = rank(filteredRows, nameById, myId).map((r) => {
     const horsConcours = excludedIds.has(r.user_id);
     if (!horsConcours) finalPos += 1;
     return {
@@ -93,7 +101,7 @@ export async function GET(req: Request) {
     };
   });
 
-  const currentRows = recent?.id ? rows.filter((r) => r.quiz_session_id === recent.id) : [];
+  const currentRows = recent?.id ? filteredRows.filter((r) => r.quiz_session_id === recent.id) : [];
   const current = rank(currentRows, nameById, myId);
   const sessionLeaderboards = (sessions ?? []).map((s, idx) => ({
     id: s.id,
@@ -101,7 +109,7 @@ export async function GET(req: Request) {
     status: s.status,
     created_at: s.created_at,
     ended_at: s.ended_at,
-    ranking: rank(rows.filter((r) => r.quiz_session_id === s.id), nameById, myId),
+    ranking: rank(filteredRows.filter((r) => r.quiz_session_id === s.id), nameById, myId),
   }));
 
   return NextResponse.json(
