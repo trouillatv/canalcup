@@ -99,7 +99,13 @@ export async function GET(req: Request) {
     };
   });
 
-  const currentRows = recent?.id ? countedRows.filter((r) => r.quiz_session_id === recent.id) : [];
+  // Classement d'UN quiz (« qui a gagné ce quiz ? ») : on somme TOUTES les
+  // réponses de la session, sans le filtre des questions comptées. Le plafond
+  // « 60 par quiz » est une règle du CHAMPIONNAT (cumul) ; l'appliquer ici
+  // amputait le résultat du Live des questions réellement posées mais absentes
+  // de question_ids (cf. review.ts « questions répondues non listées »).
+  // Les points stockés reflètent déjà le barème en vigueur au moment du jeu.
+  const currentRows = recent?.id ? rows.filter((r) => r.quiz_session_id === recent.id) : [];
   const current = rank(currentRows, nameById, myId);
   const sessionLeaderboards = (sessions ?? []).map((s, idx) => ({
     id: s.id,
@@ -107,7 +113,7 @@ export async function GET(req: Request) {
     status: s.status,
     created_at: s.created_at,
     ended_at: s.ended_at,
-    ranking: rank(countedRows.filter((r) => r.quiz_session_id === s.id), nameById, myId),
+    ranking: rank(rows.filter((r) => r.quiz_session_id === s.id), nameById, myId),
   }));
 
   return NextResponse.json(
