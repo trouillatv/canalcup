@@ -31,12 +31,22 @@ async function main() {
 
   const sb = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
 
-  const [{ data: sessions, error: sessionsError }, { data: answers, error: answersError }] = await Promise.all([
+  const [{ data: sessions, error: sessionsError }] = await Promise.all([
     sb.from("quiz_session").select("id, created_at, question_ids"),
-    sb.from("quiz_answers").select("id, quiz_session_id, question_id, points_awarded, mode, answer, is_correct, response_time_ms"),
   ]);
   if (sessionsError) throw sessionsError;
-  if (answersError) throw answersError;
+
+  const answers = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb
+      .from("quiz_answers")
+      .select("id, quiz_session_id, question_id, points_awarded, mode, answer, is_correct, response_time_ms")
+      .range(from, from + 999);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    answers.push(...data);
+    if (data.length < 1000) break;
+  }
 
   const countedIds = new Set();
   const orderedSessions = [...(sessions ?? [])].sort(
