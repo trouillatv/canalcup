@@ -14,6 +14,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminRequest } from "@/lib/auth/admin";
 import { selectAll } from "@/lib/data/select-all";
 import { QUIZ_CHAMPIONSHIP, isQualifClosed, isFinalsExcluded } from "@/lib/config/quiz-championship";
+import { countedQuestionIdsFromSessions } from "@/lib/quiz/session";
 
 type Tally = { points: number; correct: number; answered: number };
 
@@ -46,10 +47,10 @@ export async function GET(req: Request) {
   // >1000 réponses quiz, un `.select()` simple SOUS-COMPTAIT les points (un joueur
   // affichait 92 au lieu de 121). On lit TOUTES les lignes.
   const [allRows, { data: recent }, { count: finishedSessions }] = await Promise.all([
-    selectAll<{ user_id: string; points_awarded: number | null; is_correct: boolean; quiz_session_id: string | null }>(
+    selectAll<{ user_id: string; points_awarded: number | null; is_correct: boolean; quiz_session_id: string | null; question_id: string | null }>(
       admin,
       "quiz_answers",
-      "user_id, points_awarded, is_correct, quiz_session_id"
+      "user_id, points_awarded, is_correct, quiz_session_id, question_id"
     ),
     admin.from("quiz_session").select("id, status").order("created_at", { ascending: false }).limit(1).maybeSingle(),
     admin.from("quiz_session").select("id", { count: "exact", head: true }).eq("status", "finished"),
@@ -60,6 +61,11 @@ export async function GET(req: Request) {
     .order("created_at", { ascending: true });
 
   const rows = allRows ?? [];
+  const countedIds = countedQuestionIdsFromSessions((sessions ?? []) as { created_at: string | null; question_ids: unknown }[]);
+  const countedRows = rows.filter((r) => {
+    if (!r.question_id) return true;
+    return countedIds.has(r.question_id);
+  });
   const ids = [...new Set(rows.map((r) => r.user_id))];
   const { data: users } = ids.length
     ? await admin.from("users").select("id, display_name, name, email").in("id", ids)
@@ -83,7 +89,7 @@ export async function GET(req: Request) {
   // Pas de finale (finale.enabled=false) → aucune qualification, juste le cumul.
   const finaleOn = QUIZ_CHAMPIONSHIP.finale.enabled;
   let finalPos = 0;
-  const championship = rank(rows, nameById, myId).map((r) => {
+  const championship = rank(countedRows, nameById, myId).map((r) => {
     const horsConcours = excludedIds.has(r.user_id);
     if (!horsConcours) finalPos += 1;
     return {
@@ -93,7 +99,7 @@ export async function GET(req: Request) {
     };
   });
 
-  const currentRows = recent?.id ? rows.filter((r) => r.quiz_session_id === recent.id) : [];
+  const currentRows = recent?.id ? countedRows.filter((r) => r.quiz_session_id === recent.id) : [];
   const current = rank(currentRows, nameById, myId);
   const sessionLeaderboards = (sessions ?? []).map((s, idx) => ({
     id: s.id,
@@ -101,7 +107,7 @@ export async function GET(req: Request) {
     status: s.status,
     created_at: s.created_at,
     ended_at: s.ended_at,
-    ranking: rank(rows.filter((r) => r.quiz_session_id === s.id), nameById, myId),
+    ranking: rank(countedRows.filter((r) => r.quiz_session_id === s.id), nameById, myId),
   }));
 
   return NextResponse.json(

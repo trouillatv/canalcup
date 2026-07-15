@@ -61,3 +61,5 @@ docs/script/_*.html
 /_chk.ts
 /backups/
 *.bak
+
+.env*

@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { QUIZ_COUNTDOWN_MS } from "@/lib/scoring";
 
 type Supa = ReturnType<typeof createAdminClient>;
+export const QUIZ_COUNTED_QUESTION_LIMIT = 60;
 
 // started_at posé dans le FUTUR (now + countdown) → compte à rebours visible +
 // l'API answer refuse toute réponse avant. Anti-précharge du doigt.
@@ -27,6 +28,34 @@ export async function listQuestionIds(supabase: Supa): Promise<string[]> {
 export async function dailyQuestionIds(supabase: Supa, limit = 60): Promise<string[]> {
   const ids = await listQuestionIds(supabase);
   return ids.slice(0, Math.max(1, limit));
+}
+
+export function isCountedQuizQuestionIndex(questionIndex: number | null | undefined): boolean {
+  return typeof questionIndex === "number" && questionIndex >= 0 && questionIndex < QUIZ_COUNTED_QUESTION_LIMIT;
+}
+
+export function isCountedQuizQuestionPosition(position: number | null | undefined): boolean {
+  return typeof position === "number" && position >= 0 && position < QUIZ_COUNTED_QUESTION_LIMIT;
+}
+
+type SessionQuestionSource = { created_at: string | null; question_ids: unknown };
+
+export function countedQuestionIdsFromSessions(
+  sessions: SessionQuestionSource[],
+  limit = QUIZ_COUNTED_QUESTION_LIMIT
+): Set<string> {
+  const ordered = [...sessions].sort(
+    (a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime()
+  );
+  const counted = new Set<string>();
+  for (const session of ordered) {
+    const ids = Array.isArray(session.question_ids) ? (session.question_ids as string[]) : [];
+    for (const id of ids) {
+      if (counted.size >= limit) return counted;
+      counted.add(id);
+    }
+  }
+  return counted;
 }
 
 // Tire `count` ids de questions AU HASARD (ordre aléatoire). Sert au démarrage

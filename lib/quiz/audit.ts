@@ -19,11 +19,10 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { selectAll } from "@/lib/data/select-all";
 import { QUIZ_SOLO_COEFFICIENT, quizGlobalPoints } from "@/lib/scoring";
+import { QUIZ_COUNTED_QUESTION_LIMIT, countedQuestionIdsFromSessions } from "@/lib/quiz/session";
 
 // Base d'un point Solo AVANT coefficient (sert à expliquer 3 × 0,7 ≈ 2).
 const SOLO_BASE = 3;
-const QUIZ_LIMIT = 60;
-
 export type PointsType =
   | "live_fast" // bonne réponse Live <5s → +5
   | "live_normal" // bonne réponse Live ≥5s → +3
@@ -49,6 +48,7 @@ export interface AuditAnswerRow {
   team_name: string;
   question_index: number; // 1-based, ordre réel posé
   question_id: string;
+  counted: boolean;
   question_text: string;
   answer_a: string;
   answer_b: string;
@@ -202,9 +202,10 @@ export async function buildQuizAudit(onlyUserId?: string): Promise<QuizAudit> {
   const sessions = [...sessionsRaw].sort(
     (a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime()
   );
+  const countedIds = countedQuestionIdsFromSessions(sessionsRaw);
   const sessionMeta = new Map<string, { title: string; date: string | null; ids: string[] }>();
   sessions.forEach((s, i) => {
-    const ids = Array.isArray(s.question_ids) ? (s.question_ids as string[]).slice(0, QUIZ_LIMIT) : [];
+    const ids = Array.isArray(s.question_ids) ? (s.question_ids as string[]).slice(0, QUIZ_COUNTED_QUESTION_LIMIT) : [];
     sessionMeta.set(s.id, { title: `Quiz #${i + 1}`, date: s.created_at, ids });
   });
 
@@ -253,6 +254,7 @@ export async function buildQuizAudit(onlyUserId?: string): Promise<QuizAudit> {
         const q = qById.get(qid);
         const a = ansByKey.get(`${uid}|${qid}`);
         const c = classify(a);
+        const counted = countedIds.has(qid);
         rows.push({
           quiz_session_id: sid,
           quiz_title: title,
@@ -263,6 +265,7 @@ export async function buildQuizAudit(onlyUserId?: string): Promise<QuizAudit> {
           team_name: info.team_name,
           question_index: idx + 1,
           question_id: qid,
+          counted,
           question_text: q?.question ?? "(question supprimée)",
           answer_a: q?.answer_a ?? "",
           answer_b: q?.answer_b ?? "",
@@ -276,7 +279,7 @@ export async function buildQuizAudit(onlyUserId?: string): Promise<QuizAudit> {
           response_time_ms: a && c.answered ? a.response_time_ms ?? null : null,
           points_awarded_raw: c.raw,
           points_type: c.type,
-          championship_points: c.championship,
+          championship_points: counted ? c.championship : 0,
           was_speed_bonus: c.speedBonus,
           was_solo: c.solo,
           solo_coefficient: c.solo ? QUIZ_SOLO_COEFFICIENT : null,
@@ -308,6 +311,9 @@ export async function buildQuizAudit(onlyUserId?: string): Promise<QuizAudit> {
   // partir des réponses brutes (mêmes règles : classify), puis on pondère.
   const championshipAll = new Map<string, number>();
   for (const a of answersRaw) {
+    if (!countedIds.has(a.question_id)) {
+      continue;
+    }
     const c = classify(a);
     championshipAll.set(a.user_id, (championshipAll.get(a.user_id) ?? 0) + c.championship);
   }

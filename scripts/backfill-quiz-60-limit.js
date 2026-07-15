@@ -1,0 +1,74 @@
+const fs = require("fs");
+const { createClient } = require("@supabase/supabase-js");
+
+const envPath = ".env.local";
+const envText = fs.readFileSync(envPath, "utf8");
+for (const line of envText.split(/\r?\n/)) {
+  const match = line.match(/^([A-Z0-9_]+)=(.*)$/);
+  if (!match) continue;
+  let value = match[2].trim();
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    value = value.slice(1, -1);
+  }
+  process.env[match[1]] = value;
+}
+
+const LIMIT = 60;
+
+async function main() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    throw new Error("Missing Supabase credentials in .env.local");
+  }
+
+  const sb = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
+
+  const [{ data: sessions, error: sessionsError }, { data: answers, error: answersError }] = await Promise.all([
+    sb.from("quiz_session").select("id, created_at, question_ids"),
+    sb.from("quiz_answers").select("id, quiz_session_id, question_id, points_awarded"),
+  ]);
+  if (sessionsError) throw sessionsError;
+  if (answersError) throw answersError;
+
+  const countedIds = new Set();
+  const orderedSessions = [...(sessions ?? [])].sort(
+    (a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime()
+  );
+  for (const session of orderedSessions) {
+    const ids = Array.isArray(session.question_ids) ? session.question_ids : [];
+    for (const id of ids) {
+      if (countedIds.size >= LIMIT) break;
+      countedIds.add(id);
+    }
+    if (countedIds.size >= LIMIT) break;
+  }
+
+  const updates = [];
+  for (const answer of answers ?? []) {
+    if (!countedIds.has(answer.question_id)) {
+      if ((answer.points_awarded ?? 0) !== 0) {
+        updates.push(
+          sb.from("quiz_answers").update({ points_awarded: 0 }).eq("id", answer.id)
+        );
+      }
+    }
+  }
+
+  const results = await Promise.all(updates);
+  const errors = results.filter((r) => r.error);
+  if (errors.length) {
+    throw new Error(errors[0].error.message);
+  }
+
+  console.log(JSON.stringify({
+    sessions: sessions?.length ?? 0,
+    answers: answers?.length ?? 0,
+    updated: updates.length,
+  }, null, 2));
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
