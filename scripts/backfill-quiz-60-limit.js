@@ -48,17 +48,12 @@ async function main() {
     if (data.length < 1000) break;
   }
 
+  // Plafond de 60 questions PAR QUIZ (pas un budget global partagé) : le
+  // championnat cumule les 2 quiz, chacun comptant ses 60 premières questions.
   const countedIds = new Set();
-  const orderedSessions = [...(sessions ?? [])].sort(
-    (a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime()
-  );
-  for (const session of orderedSessions) {
+  for (const session of sessions ?? []) {
     const ids = Array.isArray(session.question_ids) ? session.question_ids : [];
-    for (const id of ids) {
-      if (countedIds.size >= LIMIT) break;
-      countedIds.add(id);
-    }
-    if (countedIds.size >= LIMIT) break;
+    for (const id of ids.slice(0, LIMIT)) countedIds.add(id);
   }
 
   const updates = [];

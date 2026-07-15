@@ -40,20 +40,19 @@ export function isCountedQuizQuestionPosition(position: number | null | undefine
 
 type SessionQuestionSource = { created_at: string | null; question_ids: unknown };
 
+// Le plafond de 60 questions est PAR QUIZ, pas un budget global partagé entre
+// les sessions. Le championnat se joue « en CUMUL sur les 2 quiz » : chaque quiz
+// compte ses 60 premières questions indépendamment. Un budget global unique
+// laissait Quiz #1 (déjà 60 questions) tout consommer → Quiz #2 comptait 0
+// (classement du dernier quiz vidé, points du 2e quiz annulés).
 export function countedQuestionIdsFromSessions(
   sessions: SessionQuestionSource[],
   limit = QUIZ_COUNTED_QUESTION_LIMIT
 ): Set<string> {
-  const ordered = [...sessions].sort(
-    (a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime()
-  );
   const counted = new Set<string>();
-  for (const session of ordered) {
+  for (const session of sessions) {
     const ids = Array.isArray(session.question_ids) ? (session.question_ids as string[]) : [];
-    for (const id of ids) {
-      if (counted.size >= limit) return counted;
-      counted.add(id);
-    }
+    for (const id of ids.slice(0, limit)) counted.add(id);
   }
   return counted;
 }
