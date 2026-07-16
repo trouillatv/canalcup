@@ -206,8 +206,10 @@ export default function QuizHubPage() {
         </section>
       )}
 
-      {/* Classement du dernier quiz selon la date sélectionnée */}
-      {board && lastQuizRows.length > 0 && (
+      {/* Classement d'UN quiz précis (onglet daté) ou du quiz EN DIRECT. Sous
+          « Tous », on masque ce bloc : seul le cumul « Championnat Quiz » compte,
+          sinon on croit à tort que le « dernier quiz » est le total. */}
+      {board && lastQuizRows.length > 0 && (seasonTab !== "all" || board.currentSessionStatus === "question") && (
         <section className="space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
             <Radio size={15} className="text-canal-yellow" />
