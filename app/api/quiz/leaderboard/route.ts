@@ -14,7 +14,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminRequest } from "@/lib/auth/admin";
 import { selectAll } from "@/lib/data/select-all";
 import { QUIZ_CHAMPIONSHIP, isQualifClosed, isFinalsExcluded } from "@/lib/config/quiz-championship";
-import { countedQuestionIdsFromSessions } from "@/lib/quiz/session";
 
 type Tally = { points: number; correct: number; answered: number };
 
@@ -60,12 +59,10 @@ export async function GET(req: Request) {
     .select("id, status, created_at, ended_at, question_ids")
     .order("created_at", { ascending: true });
 
+  // Les points stockés (points_awarded) encodent DÉJÀ le barème historique de
+  // chaque session/mode ET le plafond de 60 questions/joueur. On SOMME sans
+  // re-filtrer par question (sinon on écarterait les réponses Solo hors-tirage).
   const rows = allRows ?? [];
-  const countedIds = countedQuestionIdsFromSessions((sessions ?? []) as { created_at: string | null; question_ids: unknown }[]);
-  const countedRows = rows.filter((r) => {
-    if (!r.question_id) return true;
-    return countedIds.has(r.question_id);
-  });
   const ids = [...new Set(rows.map((r) => r.user_id))];
   const { data: users } = ids.length
     ? await admin.from("users").select("id, display_name, name, email").in("id", ids)
@@ -89,7 +86,7 @@ export async function GET(req: Request) {
   // Pas de finale (finale.enabled=false) → aucune qualification, juste le cumul.
   const finaleOn = QUIZ_CHAMPIONSHIP.finale.enabled;
   let finalPos = 0;
-  const championship = rank(countedRows, nameById, myId).map((r) => {
+  const championship = rank(rows, nameById, myId).map((r) => {
     const horsConcours = excludedIds.has(r.user_id);
     if (!horsConcours) finalPos += 1;
     return {
@@ -99,7 +96,7 @@ export async function GET(req: Request) {
     };
   });
 
-  const currentRows = recent?.id ? countedRows.filter((r) => r.quiz_session_id === recent.id) : [];
+  const currentRows = recent?.id ? rows.filter((r) => r.quiz_session_id === recent.id) : [];
   const current = rank(currentRows, nameById, myId);
   const sessionLeaderboards = (sessions ?? []).map((s, idx) => ({
     id: s.id,
@@ -107,7 +104,7 @@ export async function GET(req: Request) {
     status: s.status,
     created_at: s.created_at,
     ended_at: s.ended_at,
-    ranking: rank(countedRows.filter((r) => r.quiz_session_id === s.id), nameById, myId),
+    ranking: rank(rows.filter((r) => r.quiz_session_id === s.id), nameById, myId),
   }));
 
   return NextResponse.json(

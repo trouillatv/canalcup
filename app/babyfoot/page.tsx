@@ -324,9 +324,9 @@ function BabyfootRules() {
         <Li>Demi-finales <b className="text-white">1ᵉ–4ᵉ</b> et <b className="text-white">2ᵉ–3ᵉ</b>, puis petite finale (3ᵉ place) et <b className="text-white">grande finale</b>.</Li>
       </Card>
       <Card icon="🏓" title="Un match">
-        <Li>On joue sur <b className="text-white">une seule table</b>, par matchs courts (~{BABYFOOT.matchMinutes} min).</Li>
+        <Li>On joue sur <b className="text-white">une seule table</b>, par matchs de <b className="text-white">{BABYFOOT.matchMinutes} min max</b>.</Li>
         <Li>Le match se gagne <b className="text-white">à 10 buts</b> — le score est plafonné à 10.</Li>
-        <Li><b className="text-white">Pas de match nul</b> : but en or, il y a toujours un vainqueur.</Li>
+        <Li><b className="text-white">Pas de match nul</b> : à égalité au bout de {BABYFOOT.matchMinutes} min, <b className="text-white">{BABYFOOT.overtimeMinutes} min de prolongation</b> (but en or) — il y a toujours un vainqueur.</Li>
       </Card>
       <Card icon="🏅" title="Les points CanalCup">
         <Li>Participation : <b className="text-white">+{b.participation}</b></Li>

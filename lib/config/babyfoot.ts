@@ -1,8 +1,8 @@
 // Tournoi Baby-foot CanalCup — configuration (V2, championnat, UNE table).
 //
 // FORMAT : Phase 1 = mini-championnat (chaque binôme joue 3 matchs), classement
-// unique, Top 4 → demies 1v4/2v3, petite finale, finale. Matchs AU TEMPS (5 min
-// + but en or). Barème cumulatif max 65.
+// unique, Top 4 → demies 1v4/2v3, petite finale, finale. Matchs AU TEMPS : 8 min
+// MAX, puis 5 min de prolongation si pas de vainqueur (but en or). Barème max 65.
 //
 // UNE SEULE TABLE → disponibilités par CRÉNEAUX DE 30 MIN (jeu 11-14h, ven 11-14h
 // = 12 créneaux). Un créneau accueille au plus 3 matchs (1 table). Un binôme
@@ -63,7 +63,8 @@ export const BABYFOOT = {
   matchesPerSlot: 3, // capacité planning : 3 matchs / créneau (1 table)
 
   tablesDefault: 1, // UNE table
-  matchMinutes: 5, // temps réglementaire (puis but en or)
+  matchMinutes: 8, // temps réglementaire (8 min MAX)
+  overtimeMinutes: 5, // prolongation si pas de vainqueur au temps (but en or)
   rotationMinutes: 3,
 
   matchesPerTeam: 3,

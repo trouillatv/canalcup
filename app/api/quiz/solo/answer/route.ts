@@ -10,7 +10,6 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { quizPoints } from "@/lib/scoring";
 import { getSoloWindow } from "@/lib/quiz/solo";
-import { countedQuestionIdsFromSessions } from "@/lib/quiz/session";
 
 export async function POST(req: Request) {
   try {
@@ -82,20 +81,9 @@ export async function POST(req: Request) {
       });
     }
 
-    const { data: sessionRow } = await admin
-      .from("quiz_session")
-      .select("question_ids")
-      .eq("id", session.id)
-      .maybeSingle();
-    const { data: allSessions } = await admin
-      .from("quiz_session")
-      .select("created_at, question_ids");
     const is_correct = answer !== "" && answer === question.correct_answer;
-    const sessionQuestionIds = sessionRow?.question_ids as string[] | null | undefined;
-    const questionIndex = Array.isArray(sessionQuestionIds) ? sessionQuestionIds.indexOf(question_id as string) : -1;
-    const countedIds = countedQuestionIdsFromSessions((allSessions ?? []) as { created_at: string | null; question_ids: unknown }[]);
-    const zeroPointQuestion = !countedIds.has(question_id as string);
-    const points = zeroPointQuestion ? 0 : quizPoints(is_correct, response_time_ms);
+    // Barème Solo stocké tel quel ; plafond 60 questions/joueur appliqué au recompute/lecture.
+    const points = quizPoints(is_correct, response_time_ms);
 
     await admin.from("quiz_answers").insert({
       user_id: profile.id,
@@ -115,7 +103,6 @@ export async function POST(req: Request) {
         persisted: true,
         is_correct,
         points,
-        zeroPointQuestion,
         correct_answer: question.correct_answer,
         explanation: question.explanation,
       },
