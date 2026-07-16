@@ -82,7 +82,7 @@ export const BABYFOOT = {
 
   stageLabel: {
     participation: "Participation",
-    phase1: "Victoires de championnat",
+    phase1: "Matchs joués & victoires",
     qualified: "Qualifié en demi-finale",
     semi_win: "Vainqueur de demi-finale",
     champion: "Champion 🏆",

@@ -329,11 +329,13 @@ function BabyfootRules() {
         <Li><b className="text-white">Pas de match nul</b> : à égalité au bout de {BABYFOOT.matchMinutes} min, <b className="text-white">{BABYFOOT.overtimeMinutes} min de prolongation</b> (but en or) — il y a toujours un vainqueur.</Li>
       </Card>
       <Card icon="🏅" title="Les points CanalCup">
+        <Li><b className="text-white">Chaque joueur du binôme</b> marque les points ci-dessous :</Li>
         <Li>Participation : <b className="text-white">+{b.participation}</b></Li>
-        <Li>Chaque victoire de championnat : <b className="text-white">+{b.matchWin}</b> (jusqu&apos;à +{b.matchWin * BABYFOOT.matchesPerTeam})</Li>
+        <Li>Chaque match joué (gagné ou perdu) : <b className="text-white">+{b.matchPlayed}</b></Li>
+        <Li>Chaque victoire de championnat : <b className="text-white">+{b.matchWin}</b></Li>
         <Li>Qualifié en demi-finale : <b className="text-white">+{b.qualified}</b></Li>
         <Li>Demi-finale gagnée : <b className="text-white">+{b.semiWin}</b></Li>
-        <Li>Champion : <b className="text-white">+{b.champion}</b> 🏆 — soit jusqu&apos;à <b className="text-canal-yellow">{b.participation + b.matchWin * BABYFOOT.matchesPerTeam + b.qualified + b.semiWin + b.champion} points</b> !</Li>
+        <Li>Champion : <b className="text-white">+{b.champion}</b> 🏆 — soit jusqu&apos;à <b className="text-canal-yellow">{championMaxPoints()} points</b> !</Li>
       </Card>
       <Card icon="📅" title="Quand">
         <Li>{BABYFOOT.eventLabel}.</Li>
