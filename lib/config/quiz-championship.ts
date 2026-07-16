@@ -18,7 +18,7 @@ export const QUIZ_CHAMPIONSHIP = {
   // Comptes « hors concours » : ils peuvent avoir un score quiz (organisateurs,
   // démos), mais ne prennent JAMAIS une place de finaliste — les 5 places vont
   // aux vrais joueurs. (Ex. le compte participant de l'organisateur.)
-  finalsExcludedEmails: ["vincent.trouillat@canal-plus.com"] as string[],
+  finalsExcludedEmails: [] as string[],
   // Pas de finale : le championnat = classement CUMULÉ sur les 2 quiz. On fige
   // l'affichage après le 2e quiz (15 juil) + sa fenêtre Solo.
   qualifCutoff: "2026-07-16T23:59:00+11:00",
