@@ -2,7 +2,8 @@
 //
 // FORMAT : Phase 1 = mini-championnat (chaque binôme joue 3 matchs), classement
 // unique, Top 4 → demies 1v4/2v3, petite finale, finale. Matchs AU TEMPS : 8 min
-// MAX, puis 5 min de prolongation si pas de vainqueur (but en or). Barème max 65.
+// MAX, puis 5 min de prolongation si pas de vainqueur (but en or). Barème max 90
+// (+5 participation, +5 par match joué, +5 par victoire, +10/+15/+20 phases finales).
 //
 // UNE SEULE TABLE → disponibilités par CRÉNEAUX DE 30 MIN (jeu 11-14h, ven 11-14h
 // = 12 créneaux). Un créneau accueille au plus 3 matchs (1 table). Un binôme
@@ -72,6 +73,7 @@ export const BABYFOOT = {
 
   bareme: {
     participation: 5,
+    matchPlayed: 5, // par match DISPUTÉ (victoire ou défaite)
     matchWin: 5, // par victoire de championnat (max 3 → 15)
     qualified: 10, // top 4
     semiWin: 15,
@@ -96,5 +98,14 @@ export function slotStartISO(slotKey: string): string | null {
 
 export function championMaxPoints(): number {
   const b = BABYFOOT.bareme;
-  return b.participation + b.matchWin * BABYFOOT.matchesPerTeam + b.qualified + b.semiWin + b.champion;
+  // Champion : 3 matchs de championnat + demie + finale = 5 matchs disputés.
+  const matchesPlayedByChampion = BABYFOOT.matchesPerTeam + 2;
+  return (
+    b.participation +
+    b.matchPlayed * matchesPlayedByChampion +
+    b.matchWin * BABYFOOT.matchesPerTeam +
+    b.qualified +
+    b.semiWin +
+    b.champion
+  );
 }

@@ -42,6 +42,7 @@ export async function recomputeAwards(admin: DbClient, tournamentId: string): Pr
   // Classement championnat → victoires + qualifiés (top 4).
   const standings = computeChampionshipStandings(entries, matches, BABYFOOT.qualifiers);
   const winsByEntry = new Map(standings.map((s) => [s.entry_id, s.won]));
+  const playedByEntry = new Map(standings.map((s) => [s.entry_id, s.played]));
   const qualified = new Set(standings.filter((s) => s.qualified).map((s) => s.entry_id));
 
   // Résultats de phase finale — winnerOf / loserOf renvoient des ENTRY ids.
@@ -69,7 +70,10 @@ export async function recomputeAwards(admin: DbClient, tournamentId: string): Pr
   for (const e of entries) {
     push(e, "participation", b.participation, BABYFOOT.stageLabel.participation);
     const wins = winsByEntry.get(e.id) ?? 0;
-    if (wins > 0) push(e, "phase1", wins * b.matchWin, `${BABYFOOT.stageLabel.phase1} (${wins})`);
+    const played = playedByEntry.get(e.id) ?? 0;
+    // +5 par match DISPUTÉ (victoire ou défaite) + 5 par victoire, cumulés dans phase1.
+    const phase1Pts = played * b.matchPlayed + wins * b.matchWin;
+    if (phase1Pts > 0) push(e, "phase1", phase1Pts, `${played} match(s) joué(s), ${wins} gagné(s)`);
     if (qualified.has(e.id)) push(e, "qualified", b.qualified, BABYFOOT.stageLabel.qualified);
     if (semiWinners.has(e.id)) push(e, "semi_win", b.semiWin, BABYFOOT.stageLabel.semi_win);
     if (championEntryId === e.id) push(e, "champion", b.champion, BABYFOOT.stageLabel.champion);
