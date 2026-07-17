@@ -8,7 +8,7 @@ import { TonightOnAir } from "@/components/matches/TonightOnAir";
 import { HomeLeaderboard } from "@/components/leaderboard/HomeLeaderboard";
 import { toNCDate, isToday, tzLabel, normalizeTimezone } from "@/lib/utils";
 import { Heart, ArrowRight } from "lucide-react";
-import { getBabyfootRegistrationSnapshot, getBabyfootHomeCard } from "@/lib/data/babyfoot";
+import { getBabyfootRegistrationSnapshot, getBabyfootHomeCard, getBabyfootQualifiedBanner } from "@/lib/data/babyfoot";
 import { createClient } from "@/lib/supabase/server";
 import { MagicLinkReception } from "@/components/auth/MagicLinkReception";
 import { PronoReminder } from "@/components/predictions/PronoReminder";
@@ -27,6 +27,12 @@ function bfKickoffLabel(iso: string): string {
   return `${day.charAt(0).toUpperCase()}${day.slice(1)} ${time}`;
 }
 
+// « A, B, C et D »
+function frenchList(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? "";
+  return `${items.slice(0, -1).join(", ")} et ${items[items.length - 1]}`;
+}
+
 export default async function RootPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -43,7 +49,7 @@ export default async function RootPage() {
   // Dernier jour de vote (25/06 NC) : l'accueil devient la page Journée Supporters.
   if (isLastVoteDay()) redirect("/supporters");
 
-  const [matches, trends, leaderboard, individualLeaderboard, brief, revivez, bfReg, bfHome] = await Promise.all([
+  const [matches, trends, leaderboard, individualLeaderboard, brief, revivez, bfReg, bfHome, bfQualified] = await Promise.all([
     getMatches(),
     getPredictionTrends(),
     getLeaderboard(),
@@ -52,6 +58,7 @@ export default async function RootPage() {
     getRevivezPosts(),
     getBabyfootRegistrationSnapshot(),
     getBabyfootHomeCard(user.id),
+    getBabyfootQualifiedBanner(user.id),
   ]);
 
   // Pronos de l'utilisateur (pour pré-remplir/afficher dans chaque MatchCard)
@@ -118,6 +125,26 @@ export default async function RootPage() {
           </div>
         </div>
       </div>
+
+      {/* 🏆 Baby-foot — championnat terminé : on félicite le Top 4 et on annonce
+          les demies qui s'enchaînent. Visible par tous, personnalisée pour les
+          qualifiés. */}
+      {bfQualified && (
+        <Link href="/babyfoot" className="block canal-card border border-green-400/50 bg-green-400/10 hover:bg-green-400/15 transition-colors">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl shrink-0">🏆</span>
+            <div className="flex-1 min-w-0">
+              <p className="font-black text-white text-sm">
+                {bfQualified.mine ? "Bravo, vous êtes qualifiés en demi-finale !" : "Les demi-finales du Baby-foot sont connues"}
+              </p>
+              <p className="text-xs text-green-300 font-bold mt-0.5">
+                Bravo à {frenchList(bfQualified.labels)} · demies{bfQualified.nextStartsAt ? ` ${bfKickoffLabel(bfQualified.nextStartsAt)}` : " dans la foulée"}
+              </p>
+            </div>
+            <ArrowRight className="text-green-300 shrink-0" size={18} />
+          </div>
+        </Link>
+      )}
 
       {/* 🏓 Baby-foot — pour un joueur INSCRIT : où en est son binôme (inscrit →
           tirage → prochain match). Sinon : urgence inscriptions (tant qu'ouvert). */}

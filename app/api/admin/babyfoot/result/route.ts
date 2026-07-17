@@ -6,7 +6,8 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminRequest } from "@/lib/auth/admin";
-import { BABYFOOT } from "@/lib/config/babyfoot";
+import { BABYFOOT, slotStartISO } from "@/lib/config/babyfoot";
+import { schedule } from "@/lib/babyfoot/scheduler";
 import { recomputeAwards } from "@/lib/babyfoot/awards";
 import { applyResult, insertGenMatches } from "@/lib/babyfoot/persist";
 import { generateKnockout } from "@/lib/babyfoot/generate";
@@ -25,14 +26,22 @@ async function autoAdvance(admin: ReturnType<typeof createAdminClient>, tourname
   const leagueDone = league.length > 0 && league.every((m) => m.status === "finished");
 
   if (leagueDone && !hasKo) {
-    const { data: entriesRaw } = await admin.from("babyfoot_entries").select("id, team_id").eq("tournament_id", tournamentId);
-    const entries = (entriesRaw ?? []) as { id: string; team_id: string }[];
+    const { data: entriesRaw } = await admin.from("babyfoot_entries").select("id, team_id, forfeited").eq("tournament_id", tournamentId);
+    const entries = (entriesRaw ?? []) as { id: string; team_id: string; forfeited: boolean | null }[];
     const standings = computeChampionshipStandings(entries, ms, BABYFOOT.qualifiers);
-    const seeded = standings.slice(0, BABYFOOT.qualifiers).map((s) => s.team_id);
+    // Identité participant = l'ENTRÉE (comme la génération manuelle) : semer avec
+    // des team_id remplirait entry_a_id avec un id d'équipe → tableau illisible
+    // et avancement du vainqueur cassé.
+    const seeded = standings.slice(0, BABYFOOT.qualifiers).filter((s) => !s.forfeited).map((s) => s.entry_id);
     if (seeded.length >= 2) {
       const { data: tRow } = await admin.from("babyfoot_tournaments").select("ko_target, final_target").eq("id", tournamentId).maybeSingle();
       const gen = generateKnockout(seeded, { koTarget: tRow?.ko_target ?? 7, finalTarget: tRow?.final_target ?? 10, startOrder: 1000 });
-      await insertGenMatches(admin, tournamentId, gen);
+      const sched = schedule(gen, {
+        slots: BABYFOOT.slots, matchesPerSlot: BABYFOOT.matchesPerSlot, slotStartISO, forceDay: BABYFOOT.finalsDay,
+      });
+      const scheduleByLocal = new Map(sched.assignments.map((a) => [a.localId, { rotation: a.rotation, table_no: a.table_no, startISO: a.startISO }]));
+      const teamByEntry = new Map(entries.map((e) => [e.id, e.team_id || null]));
+      await insertGenMatches(admin, tournamentId, gen, scheduleByLocal, teamByEntry);
       await admin.from("babyfoot_tournaments").update({ status: "knockout" }).eq("id", tournamentId);
     }
     return;

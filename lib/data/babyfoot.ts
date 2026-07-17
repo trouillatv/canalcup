@@ -23,6 +23,7 @@ export interface BabyfootEntryView {
   pool_label: string | null;
   seed: number | null;
   final_rank: number | null;
+  forfeited: boolean;                // forfait : hors barème (0 point) et hors qualification
   availability: string[];            // slot_keys cochés
   registered_by: string | null;
   created_at: string;
@@ -67,7 +68,7 @@ export async function getEntries(admin: DbClient, tournamentId: string): Promise
   const [{ data: entriesRaw }, { data: availRaw }] = await Promise.all([
     admin
       .from("babyfoot_entries")
-      .select("id, team_id, kind, p1_user_id, p2_user_id, p2_is_helper, display_name, registered_by, pool_label, seed, final_rank, created_at, team:teams!team_id(id, name)")
+      .select("id, team_id, kind, p1_user_id, p2_user_id, p2_is_helper, display_name, registered_by, pool_label, seed, final_rank, forfeited, created_at, team:teams!team_id(id, name)")
       .eq("tournament_id", tournamentId)
       .order("created_at", { ascending: true }),
     admin.from("babyfoot_entry_availability").select("entry_id, slot_key"),
@@ -76,7 +77,7 @@ export async function getEntries(admin: DbClient, tournamentId: string): Promise
     id: string; team_id: string | null; kind: string | null; p1_user_id: string | null; p2_user_id: string | null;
     p2_is_helper: boolean | null;
     display_name: string | null; registered_by: string | null;
-    pool_label: string | null; seed: number | null; final_rank: number | null; created_at: string;
+    pool_label: string | null; seed: number | null; final_rank: number | null; forfeited: boolean | null; created_at: string;
     team: { id: string; name: string } | null;
   }>;
   const avail = (availRaw ?? []) as Array<{ entry_id: string; slot_key: string }>;
@@ -107,13 +108,16 @@ export async function getEntries(admin: DbClient, tournamentId: string): Promise
     // On affiche le NOM du binôme + les prénoms ("Les Chouchouz · Lili & Killian"),
     // sauf si générique/redondant. Les paires ad-hoc affichent juste les prénoms.
     const bname = e.display_name || (isOpen ? names : teamName);
-    const generic = isOpen || bname === names || /^bin[oô]mes?$/i.test(bname.trim()) || names.toLowerCase().includes(bname.toLowerCase());
+    // Une paire ad-hoc n'affiche que les prénoms… sauf si elle s'est choisi un
+    // nom de binôme (ex. une paire née d'une équipe existante) : on le garde.
+    const generic = (isOpen && !e.display_name) || bname === names || /^bin[oô]mes?$/i.test(bname.trim()) || names.toLowerCase().includes(bname.toLowerCase());
     const label = !generic ? `${bname} · ${names}` : names;
     return {
       id: e.id, team_id: e.team_id ?? "", team_name: teamName,
       kind: (isOpen ? "open" : "official") as "official" | "open", p2_is_helper: helper,
       display_name: e.display_name, label, members: mem,
       pool_label: e.pool_label, seed: e.seed, final_rank: e.final_rank,
+      forfeited: !!e.forfeited,
       availability: availByEntry.get(e.id) ?? [],
       registered_by: e.registered_by, created_at: e.created_at,
     };
@@ -155,6 +159,7 @@ export interface PublicMatch {
 export interface ClassementRow {
   rank: number; entry_id: string; team_id: string; label: string;
   played: number; won: number; lost: number; gf: number; ga: number; gd: number; qualified: boolean;
+  forfeited: boolean;
 }
 
 export async function buildPublicState(admin: DbClient, tournamentId: string) {
@@ -173,12 +178,13 @@ export async function buildPublicState(admin: DbClient, tournamentId: string) {
   // Classement UNIQUE du championnat (victoires → diff → BP → confrontation directe).
   const { computeChampionshipStandings } = await import("@/lib/babyfoot/standings");
   const champ = computeChampionshipStandings(
-    entries.map((e) => ({ id: e.id, team_id: e.team_id })),
+    entries.map((e) => ({ id: e.id, team_id: e.team_id, forfeited: e.forfeited })),
     matches, 4
   );
   const classement: ClassementRow[] = champ.map((r) => ({
     rank: r.rank, entry_id: r.entry_id, team_id: r.team_id, label: labelByEntry.get(r.entry_id) ?? "?",
     played: r.played, won: r.won, lost: r.lost, gf: r.gf, ga: r.ga, gd: r.gd, qualified: r.qualified,
+    forfeited: r.forfeited,
   }));
 
   // Points par binôme (barème cumulatif) → utilisé pour le podium TV.
@@ -408,6 +414,52 @@ export async function getBabyfootHomeCard(authId: string): Promise<{
     nextMatch: nextMatch
       ? { opponentLabel: nextMatch.opponentLabel, startsAt: nextMatch.startsAt, tableNo: nextMatch.tableNo }
       : null,
+  };
+}
+
+// ── Bannière d'accueil « Top 4 qualifié » ────────────────────────────────────
+// Visible par TOUT LE MONDE entre la fin du championnat et la fin du tournoi :
+// félicite les 4 qualifiés et annonce les demies qui s'enchaînent. Personnalisée
+// si le binôme du visiteur est du lot. Retourne null tant que le championnat
+// n'est pas terminé (ou une fois le tournoi fini : le podium prend le relais).
+export async function getBabyfootQualifiedBanner(authId: string): Promise<{
+  labels: string[];
+  mine: boolean;
+  nextStartsAt: string | null;
+} | null> {
+  const admin = createAdminClient();
+  const t = await getActiveOfficialTournament(admin);
+  if (!t || t.status === "finished") return null;
+
+  const matches = await getMatches(admin, t.id);
+  const league = matches.filter((m) => m.phase === "league");
+  if (!league.length || !league.every((m) => m.status === "finished")) return null;
+
+  const entries = await getEntries(admin, t.id);
+  const [{ computeChampionshipStandings }, { BABYFOOT }] = await Promise.all([
+    import("@/lib/babyfoot/standings"),
+    import("@/lib/config/babyfoot"),
+  ]);
+  const champ = computeChampionshipStandings(
+    entries.map((e) => ({ id: e.id, team_id: e.team_id, forfeited: e.forfeited })),
+    matches, BABYFOOT.qualifiers
+  );
+  const labelByEntry = new Map(entries.map((e) => [e.id, e.label]));
+  const qualified = champ.filter((s) => s.qualified);
+  if (!qualified.length) return null;
+
+  const binome = await resolveUserBinome(admin, authId);
+  const mineEntryId = binome ? (await getRealParticipants(admin, t.id)).get(binome.meId)?.entryId ?? null : null;
+
+  const nextStartsAt = matches
+    .filter((m) => m.phase && m.phase !== "league" && m.status !== "finished" && m.starts_at)
+    .map((m) => m.starts_at!)
+    .sort()[0] ?? null;
+
+  return {
+    labels: qualified.map((s) => labelByEntry.get(s.entry_id) ?? "?"),
+    mine: !!mineEntryId && qualified.some((s) => s.entry_id === mineEntryId),
+    nextStartsAt,
   };
 }
 

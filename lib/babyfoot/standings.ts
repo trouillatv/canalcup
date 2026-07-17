@@ -7,6 +7,7 @@ export interface EntryLite {
   id: string;
   team_id: string;
   pool_label?: string | null;
+  forfeited?: boolean | null; // binôme déclaré forfait : classé dernier, jamais qualifié
 }
 
 export interface PoolStanding {
@@ -89,11 +90,13 @@ export interface ChampStanding {
   played: number; won: number; lost: number; gf: number; ga: number; gd: number;
   rank: number;
   qualified: boolean;
+  forfeited: boolean;
 }
 
 /**
  * Classement général du championnat. Tri : victoires ↓, diff ↓, BP ↓, puis
  * confrontation directe (2 à 2), puis ordre stable (= tirage au sort figé).
+ * Un binôme forfait est classé dernier et n'est jamais qualifié.
  */
 export function computeChampionshipStandings(
   entries: EntryLite[],
@@ -103,7 +106,7 @@ export function computeChampionshipStandings(
   // Identité PARTICIPANT = l'entrée (marche pour officiels et paires ad-hoc).
   const acc = new Map<string, ChampStanding>();
   for (const e of entries) {
-    acc.set(e.id, { entry_id: e.id, team_id: e.team_id, played: 0, won: 0, lost: 0, gf: 0, ga: 0, gd: 0, rank: 0, qualified: false });
+    acc.set(e.id, { entry_id: e.id, team_id: e.team_id, played: 0, won: 0, lost: 0, gf: 0, ga: 0, gd: 0, rank: 0, qualified: false, forfeited: !!e.forfeited });
   }
   // Confrontation directe : winner par paire d'entry_id.
   const h2h = new Map<string, string>(); // `${x}|${y}` (trié) → entry_id vainqueur
@@ -121,6 +124,7 @@ export function computeChampionshipStandings(
   const list = [...acc.values()];
   for (const s of list) s.gd = s.gf - s.ga;
   list.sort((a, b) => {
+    if (a.forfeited !== b.forfeited) return a.forfeited ? 1 : -1; // forfaits en bas de tableau
     if (b.won !== a.won) return b.won - a.won;
     if (b.gd !== a.gd) return b.gd - a.gd;
     if (b.gf !== a.gf) return b.gf - a.gf;
@@ -129,7 +133,7 @@ export function computeChampionshipStandings(
     if (w === b.entry_id) return 1;
     return a.entry_id.localeCompare(b.entry_id); // ordre stable
   });
-  list.forEach((s, i) => { s.rank = i + 1; s.qualified = i < qualifiers; });
+  list.forEach((s, i) => { s.rank = i + 1; s.qualified = i < qualifiers && !s.forfeited; });
   return list;
 }
 

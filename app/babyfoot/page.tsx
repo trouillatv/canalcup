@@ -22,7 +22,7 @@ interface PublicMatch {
   status: string; score_a: number | null; score_b: number | null;
   labelA: string; labelB: string;
 }
-interface ClassRow { rank: number; team_id: string; label: string; played: number; won: number; lost: number; gd: number; gf: number; qualified: boolean; }
+interface ClassRow { rank: number; team_id: string; label: string; played: number; won: number; lost: number; gd: number; gf: number; qualified: boolean; forfeited: boolean; }
 interface State {
   tournament: {
     id: string; name: string; season: number; status: string; event_date: string | null;
@@ -152,9 +152,12 @@ export default function BabyfootPage() {
               </tr></thead>
               <tbody>
                 {s!.classement!.map((r) => (
-                  <tr key={r.team_id} className={`border-b border-canal-gray-mid ${r.qualified ? "text-green-300" : "text-white"}`}>
-                    <td className="py-1.5 font-black">{r.rank <= 3 ? MEDAL[r.rank - 1] : r.rank}</td>
-                    <td className="font-bold"><Link href={`/babyfoot/binome/${r.team_id}`} className="hover:text-canal-yellow">{r.qualified ? "✓ " : ""}{r.label}</Link></td>
+                  <tr key={r.team_id} className={`border-b border-canal-gray-mid ${r.forfeited ? "text-canal-gray-muted" : r.qualified ? "text-green-300" : "text-white"}`}>
+                    <td className="py-1.5 font-black">{r.forfeited ? "—" : r.rank <= 3 ? MEDAL[r.rank - 1] : r.rank}</td>
+                    <td className="font-bold">
+                      <Link href={`/babyfoot/binome/${r.team_id}`} className="hover:text-canal-yellow">{r.qualified ? "✓ " : ""}{r.label}</Link>
+                      {r.forfeited && <span className="ml-1.5 text-[10px] uppercase font-black text-red-400">Forfait</span>}
+                    </td>
                     <td className="text-center">{r.played}</td>
                     <td className="text-center font-bold">{r.won}</td>
                     <td className="text-center">{r.gd > 0 ? `+${r.gd}` : r.gd}</td>

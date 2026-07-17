@@ -159,10 +159,10 @@ export async function POST(req: Request) {
       // vendredi. Ne touche pas aux matchs de championnat.
       const [entries, matches] = await Promise.all([getEntries(admin, t.id), getMatches(admin, t.id)]);
       const standings = computeChampionshipStandings(
-        entries.map((e) => ({ id: e.id, team_id: e.team_id, pool_label: e.pool_label })),
+        entries.map((e) => ({ id: e.id, team_id: e.team_id, pool_label: e.pool_label, forfeited: e.forfeited })),
         matches, BABYFOOT.qualifiers
       );
-      const top = standings.slice(0, BABYFOOT.qualifiers);
+      const top = standings.slice(0, BABYFOOT.qualifiers).filter((s) => !s.forfeited);
       if (top.length < BABYFOOT.qualifiers) return NextResponse.json({ error: "Championnat non terminé." }, { status: 400 });
       // Seed rangs 1..4 (identité = entry_id) → generateKnockout croise 1v4 et 2v3.
       const seeded = top.map((s) => s.entry_id);

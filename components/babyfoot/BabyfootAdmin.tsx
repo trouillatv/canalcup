@@ -329,7 +329,7 @@ function GameDay({ state, busy, act, onExit }: { state: State; busy: boolean; ac
   const browsing = !!shown && !!current && shown.id !== current.id;
   const upNext = current ? ordered.find((m) => m.id !== current.id && m.status !== "finished" && m.entry_a_id && m.entry_b_id) ?? null : null;
 
-  const standings = computeChampionshipStandings(entries.map((e) => ({ id: e.id, team_id: e.team_id })), matches, BABYFOOT.qualifiers);
+  const standings = computeChampionshipStandings(entries.map((e) => ({ id: e.id, team_id: e.team_id, forfeited: e.forfeited })), matches, BABYFOOT.qualifiers);
   const remaining = matches.filter((m) => m.status !== "finished").length;
   const finished = state.tournament.status === "finished";
 
@@ -446,9 +446,9 @@ function LiveStandings({ standings, labelByEntry }: { standings: ChampStanding[]
       </div>
       {standings.map((s) => (
         <div key={s.entry_id}>
-          <div className={`${cols} text-sm py-0.5 ${s.qualified ? "text-green-300" : "text-white"}`}>
-            <span className="font-black text-center">{s.rank}</span>
-            <span className="font-bold truncate">{s.qualified ? "✓ " : ""}{labelByEntry.get(s.entry_id) ?? "?"}</span>
+          <div className={`${cols} text-sm py-0.5 ${s.forfeited ? "text-canal-gray-muted" : s.qualified ? "text-green-300" : "text-white"}`}>
+            <span className="font-black text-center">{s.forfeited ? "—" : s.rank}</span>
+            <span className="font-bold truncate">{s.qualified ? "✓ " : ""}{labelByEntry.get(s.entry_id) ?? "?"}{s.forfeited ? " · forfait" : ""}</span>
             <span className="text-canal-gray-muted text-xs text-right">{s.played}</span>
             <span className="text-canal-gray-muted text-xs text-right">{s.won}</span>
             <span className="text-canal-gray-muted text-xs text-right">{s.gd > 0 ? `+${s.gd}` : s.gd}</span>

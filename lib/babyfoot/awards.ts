@@ -25,10 +25,10 @@ export async function recomputeAwards(admin: DbClient, tournamentId: string): Pr
   if (!t) return { ok: false, error: "Édition introuvable" };
 
   const [{ data: entriesRaw }, { data: matchesRaw }] = await Promise.all([
-    admin.from("babyfoot_entries").select("id, team_id").eq("tournament_id", tournamentId),
+    admin.from("babyfoot_entries").select("id, team_id, kind, forfeited").eq("tournament_id", tournamentId),
     admin.from("babyfoot_matches").select("id, entry_a_id, entry_b_id, team_a_id, team_b_id, score_a, score_b, status, phase").eq("tournament_id", tournamentId),
   ]);
-  const entries = (entriesRaw ?? []) as EntryLite[];
+  const entries = (entriesRaw ?? []) as (EntryLite & { kind?: string | null })[];
   const matches = (matchesRaw ?? []) as BabyFootMatch[];
 
   await admin.from("babyfoot_awards").delete().eq("tournament_id", tournamentId);
@@ -62,12 +62,22 @@ export async function recomputeAwards(admin: DbClient, tournamentId: string): Pr
   const finalistEntryId: string | null = finalMatch ? loserOf(finalMatch) : null;
 
   // Construction du registre (cumulatif).
-  type Row = { tournament_id: string; entry_id: string; team_id: string; stage: string; points: number; label: string };
+  type Row = { tournament_id: string; entry_id: string; team_id: string | null; stage: string; points: number; label: string };
   const rows: Row[] = [];
-  const push = (e: EntryLite, stage: string, points: number, label: string) =>
-    rows.push({ tournament_id: tournamentId, entry_id: e.id, team_id: e.team_id, stage, points, label });
+  // Une paire ad-hoc n'a pas d'équipe RSE derrière elle : son award porte
+  // team_id NULL → points INDIVIDUELS aux 2 joueurs, aucun point équipe.
+  const push = (e: EntryLite & { kind?: string | null }, stage: string, points: number, label: string) =>
+    rows.push({
+      tournament_id: tournamentId, entry_id: e.id,
+      team_id: e.kind === "open" ? null : e.team_id,
+      stage, points, label,
+    });
 
   for (const e of entries) {
+    // Forfait : le binôme n'a pas participé → AUCUN point, pas même les 5 de
+    // participation. Ses adversaires ont gagné par forfait, lui reste au registre
+    // à zéro.
+    if (e.forfeited) continue;
     push(e, "participation", b.participation, BABYFOOT.stageLabel.participation);
     const wins = winsByEntry.get(e.id) ?? 0;
     const played = playedByEntry.get(e.id) ?? 0;
