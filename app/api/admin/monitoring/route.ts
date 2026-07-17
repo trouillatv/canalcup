@@ -13,6 +13,7 @@ import path from "path";
 import { isAdminRequest } from "@/lib/auth/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getLiveSyncBudget } from "@/services/football/sync";
+import { calendarHealth, type MatchLite } from "@/lib/football/calendar-health";
 
 // Schedules dÃ©finies dans vercel.json. Ã€ garder en sync (ou parser le
 // fichier au runtime, mais c'est en .json donc statique).
@@ -335,8 +336,16 @@ export async function GET(req: Request) {
     { gemini_cost_eur: 0, apif_calls: 0, runs_count: 0 }
   );
 
+  // Santé du calendrier : la synchro ne sait pas dire qu'un match MANQUE (elle
+  // n'a plus de source qui les liste), et « 0 match inséré » n'est pas une
+  // erreur. On le déduit donc de la structure du tournoi.
+  const { data: calMatches } = await createAdminClient()
+    .from("matches").select("phase, status, starts_at").eq("competition", "FIFA World Cup 2026");
+  const calendar = calendarHealth((calMatches ?? []) as MatchLite[]);
+
   return NextResponse.json({
     ts: new Date().toISOString(),
+    calendar,
     keys: {
       gemini,
       api_football: football.key,

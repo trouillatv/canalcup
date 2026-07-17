@@ -45,6 +45,7 @@ interface CronInfo {
 }
 interface Monitoring {
   ts: string;
+  calendar: { state: "ok" | "warn"; upcoming: number; missing: string[]; detail: string };
   keys: { gemini: KeyStatus; api_football: KeyStatus };
   consumption_total: { gemini_cost_eur: number; apif_calls: number; runs_count: number };
   quota: {
@@ -205,6 +206,22 @@ export default function AdminMonitoringPage() {
         <p className="text-canal-gray-muted text-sm italic">Chargement…</p>
       ) : (
         <>
+          {/* ─── Calendrier : un match manquant = personne ne peut parier ───
+              La synchro ne sait pas le dire (0 match inséré n'est pas une
+              erreur) : on le déduit de la structure du tournoi. */}
+          {data.calendar?.state === "warn" && (
+            <section className="canal-card border border-red-500/60 bg-red-500/10">
+              <h2 className="text-xs text-red-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                ⚠️ Calendrier incomplet
+              </h2>
+              <p className="text-white text-sm font-bold mt-1.5">{data.calendar.detail}</p>
+              <p className="text-[11px] text-canal-gray-muted mt-1">
+                Sans la ligne en base, la carte de prono n&apos;apparaît jamais et personne ne parie.
+                Déjà vécu sur Argentine–Suisse et sur la finale 2026.
+              </p>
+            </section>
+          )}
+
           {/* ─── Consommation totale (Gemini + API-Football) ─── */}
           <section className="canal-card border border-canal-yellow/30 bg-gradient-to-br from-canal-yellow/5 to-transparent space-y-3">
             <h2 className="text-xs text-canal-yellow font-bold uppercase tracking-wider flex items-center gap-1.5">
