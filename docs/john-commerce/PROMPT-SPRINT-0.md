@@ -19,7 +19,9 @@ technique et le silo Organisation/Utilisateurs.
 
 ## Contraintes techniques
 
-- Next.js avec App Router ;
+- Next.js avec App Router — **vérifie la version stable actuelle** (et sa
+  compatibilité avec Supabase) au moment de l'initialisation ; l'architecture
+  impose App Router et TypeScript strict, **pas** une version figée par principe ;
 - TypeScript strict ;
 - PostgreSQL ;
 - Supabase pour la base, l'authentification et le stockage ;

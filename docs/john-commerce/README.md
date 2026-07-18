@@ -7,11 +7,18 @@
 Ces documents décrivent **l'architecture cible** et le **plan d'exécution**.
 Aucun code applicatif n'est encore écrit : c'est un plan, pas une implémentation.
 
+> 📄 **Documentation de préparation uniquement.** Ce dossier ne contient que de
+> la documentation destinée à préparer le produit. **L'implémentation ne doit
+> pas se faire ici** : elle doit avoir lieu dans un **dépôt séparé et dédié**
+> (`john-commerce`), où Claude Code inspectera un dépôt réellement vide et
+> initialisera proprement la stack. Ces quatre fichiers pourront y être recopiés
+> (par ex. sous `docs/product/`) pour servir de référence.
+
 > ⚠️ Ce dossier vit dans le dépôt `canalcup`, qui héberge une application
 > **différente et en production** (Canal Cup 2026). John Commerce n'a **rien**
-> à voir avec Canal Cup : lorsqu'on passera à l'implémentation, il devra vivre
-> dans un dépôt propre (ou un sous-projet isolé), jamais mélangé au code de
-> Canal Cup.
+> à voir avec Canal Cup : aucun fichier, historique, composant ou secret de
+> Canal Cup ne doit être copié dans le dépôt d'implémentation, et réciproquement
+> ce plan ne modifie aucun fichier de Canal Cup.
 
 ## Documents
 

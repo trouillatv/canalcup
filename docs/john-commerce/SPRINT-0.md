@@ -35,7 +35,10 @@ paiement · statistiques · marketplace · coursiers à la demande.
 
 ## Contraintes techniques
 
-- Next.js **App Router**
+- Next.js **App Router** — vérifier la version stable actuelle et sa
+  compatibilité Supabase à l'initialisation ; ne pas figer une version obsolète
+  par principe (l'exigence porte sur App Router + TypeScript strict, pas sur un
+  numéro de version)
 - **TypeScript strict**
 - PostgreSQL
 - Supabase (base + auth + storage)
