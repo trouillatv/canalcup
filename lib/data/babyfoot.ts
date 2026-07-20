@@ -155,6 +155,10 @@ export interface PublicMatch {
   score_b: number | null;
   labelA: string;
   labelB: string;
+  // Entries des deux côtés — NULL tant que le match KO attend ses qualifiés.
+  // Permet au bracket de relier une affiche à ses binômes (fiches, podium).
+  entryA: string | null;
+  entryB: string | null;
 }
 export interface ClassementRow {
   rank: number; entry_id: string; team_id: string; label: string;
@@ -173,6 +177,7 @@ export async function buildPublicState(admin: DbClient, tournamentId: string) {
     table_no: m.table_no ?? null, rotation: m.rotation ?? null, starts_at: m.starts_at ?? null, status: m.status,
     score_a: m.score_a ?? null, score_b: m.score_b ?? null,
     labelA: lblE(m.entry_a_id), labelB: lblE(m.entry_b_id),
+    entryA: m.entry_a_id ?? null, entryB: m.entry_b_id ?? null,
   }));
 
   // Classement UNIQUE du championnat (victoires → diff → BP → confrontation directe).
@@ -188,15 +193,19 @@ export async function buildPublicState(admin: DbClient, tournamentId: string) {
   }));
 
   // Points par binôme (barème cumulatif) → utilisé pour le podium TV.
+  // Indexé par ENTRY et non par team : une paire ad-hoc porte team_id NULL sur
+  // ses awards (elle ne crédite aucune équipe RSE). Une Map par team_id
+  // écrasait toutes ces lignes sous la clé null → podium à 0 dès qu'une paire
+  // ad-hoc y figure. entry_id est unique par binôme et toujours renseigné.
   const awards = await getAwards(admin, tournamentId);
-  const ptsByTeam = new Map<string, number>();
-  for (const a of awards) ptsByTeam.set(a.team_id, (ptsByTeam.get(a.team_id) ?? 0) + a.points);
+  const ptsByEntry = new Map<string, number>();
+  for (const a of awards) ptsByEntry.set(a.entry_id, (ptsByEntry.get(a.entry_id) ?? 0) + a.points);
 
   // Podium (rangs finaux 1..3).
   const podium = entries
     .filter((e) => e.final_rank && e.final_rank <= 3)
     .sort((a, b) => (a.final_rank ?? 9) - (b.final_rank ?? 9))
-    .map((e) => ({ rank: e.final_rank!, label: e.label, points: ptsByTeam.get(e.team_id) ?? 0 }));
+    .map((e) => ({ rank: e.final_rank!, label: e.label, points: ptsByEntry.get(e.id) ?? 0 }));
 
   // Stats par binôme (tous matchs terminés : poules + phase finale).
   const stats = entries.map((e) => {
@@ -222,12 +231,14 @@ export async function buildPublicState(admin: DbClient, tournamentId: string) {
   // Photos récentes du tournoi (galerie + moments).
   const { data: photoRows } = await admin
     .from("babyfoot_match_photos")
-    .select("id, photo_url, caption, author_name, created_at")
+    // match_id : permet de rattacher une photo à son match (panneau du bracket).
+    // Reste nullable — une photo « générale » du tournoi n'en a pas.
+    .select("id, match_id, photo_url, caption, author_name, created_at")
     .eq("tournament_id", tournamentId)
     .eq("status", "visible")
     .order("created_at", { ascending: false })
     .limit(30);
-  const photos = (photoRows ?? []) as { id: string; photo_url: string; caption: string | null; author_name: string; created_at: string }[];
+  const photos = (photoRows ?? []) as { id: string; match_id: string | null; photo_url: string; caption: string | null; author_name: string; created_at: string }[];
 
   return {
     entries: entries.map((e) => ({ id: e.id, label: e.label, pool_label: e.pool_label, final_rank: e.final_rank })),

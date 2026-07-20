@@ -73,7 +73,8 @@ export async function POST() {
     results.quiz_answers = error ? `ERREUR: ${error.message}` : `OK (${count ?? "?"} ligne(s) mise(s) à jour)`;
   }
 
-  // 6. Événements de score (challenges, animations, babyfoot points)
+  // 6. Événements de score (challenges, animations) — les points baby-foot
+  // n'y transitent PAS : ils vivent dans babyfoot_awards (cf. étape 8).
   {
     const { error, count } = await db
       .from("score_events")
@@ -89,6 +90,28 @@ export async function POST() {
       .update({ score_a: null, score_b: null, status: "upcoming" }, { count: "exact" })
       .eq("status", "finished");
     results.babyfoot_matches = error ? `ERREUR: ${error.message}` : `OK (${count ?? "?"} ligne(s) mise(s) à jour)`;
+  }
+
+  // 8. Registre de points baby-foot — DOIT être purgé avec les matchs (étape 7).
+  // Sans ça, les awards survivent au reset alors que les scores qui les ont
+  // produits ont disparu : les équipes gardent des points fantômes que plus
+  // aucun résultat ne justifie. Le registre est reconstruit intégralement par
+  // recomputeAwards à la première saisie de score, donc le vider est sûr.
+  {
+    const { error, count } = await db
+      .from("babyfoot_awards")
+      .delete({ count: "exact" })
+      .gte("created_at", "2000-01-01");
+    results.babyfoot_awards = error ? `ERREUR: ${error.message}` : `OK (${count ?? "?"} ligne(s) supprimée(s))`;
+  }
+
+  // 9. Rangs finaux (podium) — dérivés des mêmes matchs, même raison.
+  {
+    const { error, count } = await db
+      .from("babyfoot_entries")
+      .update({ final_rank: null }, { count: "exact" })
+      .not("final_rank", "is", null);
+    results.babyfoot_final_rank = error ? `ERREUR: ${error.message}` : `OK (${count ?? "?"} ligne(s) mise(s) à jour)`;
   }
 
   const hasError = Object.values(results).some((v) => v.startsWith("ERREUR"));

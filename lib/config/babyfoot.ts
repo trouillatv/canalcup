@@ -96,14 +96,25 @@ export function slotStartISO(slotKey: string): string | null {
   return `${BABYFOOT.days[s.day].date}T${s.start}:00+11:00`;
 }
 
+/**
+ * Points du « parcours parfait » (champion invaincu). Affiché aux joueurs, donc
+ * ce chiffre DOIT correspondre à ce que recomputeAwards attribue réellement.
+ *
+ * Règle métier : le palier `phase1` (matchs joués + victoires) ne compte QUE le
+ * championnat — il est calculé depuis computeChampionshipStandings, qui ignore
+ * les matchs de phase finale. Demie et finale sont déjà rémunérées par leurs
+ * paliers dédiés (semiWin, champion) ; les compter aussi comme « matchs
+ * disputés » les paierait deux fois.
+ *
+ * → 5 + (3×5 + 3×5) + 10 + 15 + 20 = 80.
+ */
 export function championMaxPoints(): number {
   const b = BABYFOOT.bareme;
-  // Champion : 3 matchs de championnat + demie + finale = 5 matchs disputés.
-  const matchesPlayedByChampion = BABYFOOT.matchesPerTeam + 2;
+  const leagueMatches = BABYFOOT.matchesPerTeam; // 3 — la phase finale est hors phase1
   return (
     b.participation +
-    b.matchPlayed * matchesPlayedByChampion +
-    b.matchWin * BABYFOOT.matchesPerTeam +
+    b.matchPlayed * leagueMatches +
+    b.matchWin * leagueMatches +
     b.qualified +
     b.semiWin +
     b.champion

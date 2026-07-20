@@ -1,9 +1,10 @@
 // Moteur de points baby-foot V2 (championnat) — DÉTERMINISTE & IDEMPOTENT.
 //
-// Barème CUMULATIF (valeur faciale) : Participation 5 · +5 par victoire de
-// championnat (max 15) · Qualif en demie 10 · Victoire de demie 15 · Champion 20.
-// → max 65. Plusieurs lignes par binôme (1 par palier). recomputeAwards réécrit
-// intégralement le registre de l'édition (delete + insert).
+// Barème CUMULATIF (valeur faciale) : Participation 5 · +5 par match de
+// championnat DISPUTÉ (max 15) · +5 par victoire de championnat (max 15) ·
+// Qualif en demie 10 · Victoire de demie 15 · Champion 20.
+// → max 80 (cf. championMaxPoints()). Plusieurs lignes par binôme (1 par
+// palier). recomputeAwards réécrit intégralement le registre (delete + insert).
 
 import { BABYFOOT } from "@/lib/config/babyfoot";
 import { computeChampionshipStandings, type EntryLite } from "@/lib/babyfoot/standings";
