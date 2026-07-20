@@ -8,6 +8,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { Trophy, Users, ArrowRight, Swords, Camera, BarChart3, Loader2 } from "lucide-react";
 import { BABYFOOT, championMaxPoints } from "@/lib/config/babyfoot";
+import KnockoutBracket from "@/components/babyfoot/KnockoutBracket";
 
 // Onglet « Gestion » (organisateurs) — chargé à la demande : le code admin
 // n'alourdit pas le bundle des joueurs, et n'est jamais rendu pour un non-admin.
@@ -21,6 +22,7 @@ interface PublicMatch {
   table_no: number | null; rotation: number | null; starts_at: string | null;
   status: string; score_a: number | null; score_b: number | null;
   labelA: string; labelB: string;
+  entryA: string | null; entryB: string | null;
 }
 interface ClassRow { rank: number; team_id: string; label: string; played: number; won: number; lost: number; gd: number; gf: number; qualified: boolean; forfeited: boolean; }
 interface State {
@@ -31,10 +33,10 @@ interface State {
   registeredCount?: number;
   classement?: ClassRow[];
   matches?: PublicMatch[];
-  podium?: { rank: number; label: string }[];
+  podium?: { rank: number; label: string; points: number }[];
   stats?: { entry_id: string; team_id: string; label: string; played: number; won: number; lost: number; gf: number; ga: number; gd: number; final_rank: number | null }[];
   highlights?: Highlights;
-  photos?: { id: string; photo_url: string; caption: string | null; author_name: string }[];
+  photos?: { id: string; match_id: string | null; photo_url: string; caption: string | null; author_name: string }[];
   champions?: { season: number; name: string; champion: string | null }[];
 }
 interface Highlights {
@@ -90,6 +92,20 @@ export default function BabyfootPage() {
   const rotations = [...new Set(leagueMatches.map((m) => m.rotation).filter((r): r is number => r != null))].sort((a, b) => a - b);
   const remaining = t ? Math.max(0, t.target_teams - (s?.registeredCount ?? 0)) : 0;
   const showRegister = t && (t.status === "draft" || t.status === "registration") && t.registration_open;
+  // Dès que la phase finale existe réellement (ou que le tournoi est clos),
+  // l'arbre passe EN TÊTE de page : c'est ce que les gens viennent voir à ce
+  // stade, avant le classement. Avant ça il n'est qu'une projection et reste à
+  // sa place, à côté du classement qui la produit.
+  const knockoutStarted = koByPhase.length > 0 || t?.status === "finished";
+  const bracket = (
+    <KnockoutBracket
+      classement={s?.classement ?? []}
+      matches={s?.matches ?? []}
+      photos={s?.photos ?? []}
+      podium={s?.podium ?? []}
+      tournamentFinished={t?.status === "finished"}
+    />
+  );
 
   return (
     <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto">
@@ -141,7 +157,14 @@ export default function BabyfootPage() {
         </div>
       )}
 
-      {/* Classement du championnat (unique) */}
+      {/* Phase finale en tête, pleine largeur, dès qu'elle est réelle. */}
+      {knockoutStarted && bracket}
+
+      {/* Classement + (tant que la phase finale n'existe pas) sa projection,
+          côte à côte sur grand écran. Empilés sur mobile : deux colonnes
+          seraient illisibles sur un téléphone. `items-start` évite que la
+          colonne la plus courte s'étire à la hauteur de l'autre. */}
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
       {(s?.classement?.filter((r) => r.played > 0).length ?? 0) > 0 && (
         <section className="space-y-2">
           <h2 className="text-sm font-bold uppercase text-canal-yellow">Classement · Top 4 qualifié</h2>
@@ -168,6 +191,9 @@ export default function BabyfootPage() {
           </div>
         </section>
       )}
+
+      {!knockoutStarted && bracket}
+      </div>
 
       {/* Programme (rotations / horaires / tables) */}
       {rotations.length > 0 && (
@@ -197,10 +223,11 @@ export default function BabyfootPage() {
         </section>
       )}
 
-      {/* Tableau final */}
+      {/* Détail des matchs de phase finale (horaires, table). L'arbre plus haut
+          donne la structure ; ces cartes donnent les informations pratiques. */}
       {koByPhase.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-sm font-bold uppercase text-canal-yellow">Phase finale</h2>
+          <h2 className="text-sm font-bold uppercase text-canal-yellow">Matchs de phase finale</h2>
           {koByPhase.map(({ ph, list }) => (
             <div key={ph}>
               <p className="text-xs font-bold text-canal-gray-muted uppercase mb-1.5">{PHASE_LABEL[ph]}</p>

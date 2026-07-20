@@ -6,7 +6,7 @@
 //   /p/babyfoot/2  → « Qui sera le champion ? »
 // Documents HTML autonomes (hors shell app), imprimables A3.
 
-import { BABYFOOT } from "@/lib/config/babyfoot";
+import { BABYFOOT, championMaxPoints } from "@/lib/config/babyfoot";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +36,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ kind: string }>
       <ul class="feats">
         <li>📅 <b>${BABYFOOT.eventLabel}</b></li>
         <li>👥 Équipes de <b>2</b> obligatoires</li>
-        <li>🏆 Jusqu'à <b>65 points</b> CanalCup à gagner</li>
+        <li>🏆 Jusqu'à <b>${championMaxPoints()} points</b> CanalCup à gagner</li>
         <li>🔥 Le tournoi qui peut tout changer</li>
       </ul>
       <div class="qr"><img src="${qr}" alt="QR inscription" /><p>📱 Scannez pour inscrire votre binôme</p></div>
