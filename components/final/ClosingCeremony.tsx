@@ -44,8 +44,11 @@ function SectionTitle({ title, unit }: { title: string; unit: Unit }) {
 type PodiumEntry = { rank: number; label: string; sub?: string | null; points: number };
 
 const MEDAL = ["🥇", "🥈", "🥉"];
-const PODIUM_ORDER = [1, 0, 2]; // 2e · 1er · 3e — la marche du milieu est la plus haute
-const PODIUM_H = ["h-24", "h-32", "h-20"];
+// Ordre d'AFFICHAGE (gauche → droite) : 2e · 1er · 3e.
+const PODIUM_ORDER = [1, 0, 2];
+// Hauteur des marches indexée par RANG (0 = 1er) — surtout pas par position,
+// sinon le vainqueur se retrouve sur une marche plus basse que son dauphin.
+const PODIUM_H = ["h-32", "h-24", "h-20"];
 
 function Podium({ entries }: { entries: PodiumEntry[] }) {
   if (!entries.length) return null;
@@ -168,6 +171,21 @@ export async function ClosingCeremony() {
     points: r.total,
   }));
 
+  // Classement général INDIVIDUEL. C'était l'onglet ouvert PAR DÉFAUT sur la
+  // home (« 🧍 Joueurs ») : le classement que chacun regarde en premier. Une
+  // cérémonie qui ne le montre pas laisse chaque joueur sans sa place perso.
+  // ⚠️ Points PERSO — jamais additionnables ni comparables aux points d'équipe,
+  // d'où le badge d'unité (même total, pas la même monnaie).
+  const players = individuals
+    .filter((p) => p.total > 0)
+    .sort((a, b) => b.total - a.total)
+    .map((p, i) => ({
+      rank: i + 1,
+      label: p.display_name ?? "Joueur",
+      sub: p.team_name,
+      points: p.total,
+    }));
+
   // Baby-foot : le podium officiel vient des final_rank posés à la clôture du
   // tournoi. S'il est vide (tournoi non finalisé), on n'invente rien.
   const babyPodium = (baby?.podium ?? []).map((p) => ({
@@ -200,6 +218,7 @@ export async function ClosingCeremony() {
   // ── Hall of Fame — UNIQUEMENT des faits déjà en base ──────────────────────
   const hall: { title: string; who: string; detail?: string; unit: Unit }[] = [];
   if (general[0]) hall.push({ title: "Champion Canal Cup", who: general[0].label, detail: `${general[0].points} pts`, unit: "Équipes" });
+  if (players[0]) hall.push({ title: "Meilleur joueur Canal Cup", who: players[0].label, detail: `${players[0].points} pts`, unit: "Joueurs" });
   if (babyPodium[0]) hall.push({ title: "Champion Baby-foot", who: babyPodium[0].label, unit: "Binômes" });
   if (babyPodium[1]) hall.push({ title: "Finaliste Baby-foot", who: babyPodium[1].label, unit: "Binômes" });
   if (babyPodium[2]) hall.push({ title: "Troisième Baby-foot", who: babyPodium[2].label, unit: "Binômes" });
@@ -248,6 +267,13 @@ export async function ClosingCeremony() {
           <SectionTitle title="Classement général" unit="Équipes" />
           <Podium entries={general.map((r) => ({ ...r, sub: null }))} />
           <RankTable rows={general} entityHeader="Équipe" />
+        </section>
+
+        {/* ── 3bis. Classement général individuel — JOUEURS ──────────────── */}
+        <section className="canal-card">
+          <SectionTitle title="Classement général individuel" unit="Joueurs" />
+          <Podium entries={players} />
+          <RankTable rows={players} entityHeader="Joueur" />
         </section>
 
         {/* ── 4-5. Pronostics — JOUEURS ──────────────────────────────────── */}
