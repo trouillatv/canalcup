@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isCompetitionClosed } from "@/lib/event/status";
 import { sendPushToUser } from "@/lib/push";
 import { calculatePoints } from "@/lib/scoring";
 import {
@@ -33,6 +34,10 @@ export interface PlayResult {
 
 // ── Expiration paresseuse des effets à fenêtre temporelle ────────────────────
 export async function expireStaleEffects(admin: Admin = createAdminClient()): Promise<void> {
+  // 🔒 Compétition close = verrou VRAIMENT sans écriture. Cette fonction tourne
+  // à la LECTURE (getActiveEffects*), elle écrirait donc encore en base après la
+  // clôture. Rien à expirer de toute façon : plus aucun joker ne se joue.
+  if (await isCompetitionClosed()) return;
   const nowIso = new Date().toISOString();
   await admin
     .from("joker_effects")

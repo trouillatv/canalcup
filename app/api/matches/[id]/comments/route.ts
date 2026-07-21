@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentSocialUser } from "@/lib/social/profile";
 import { sendPushToUser } from "@/lib/push";
+import { competitionLock } from "@/lib/event/status";
 
 // Organisateurs notifiés de CHAQUE commentaire (monitoring du live).
 const ORGANIZER_EMAILS = ["vincent.trouillat@canal-plus.com", "trouillatv@gmail.com"];
@@ -109,6 +110,9 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // 🔒 Canal Cup terminée → plus aucune écriture de jeu (403).
+  const locked = await competitionLock();
+  if (locked) return locked;
   const { id } = await params;
   const me = await getCurrentSocialUser();
   if (!me?.userId) return NextResponse.json({ error: "Non authentifie" }, { status: 401 });

@@ -3,6 +3,7 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { competitionLock } from "@/lib/event/status";
 
 const ALLOWED_EMOJIS = ["⚽", "🔥", "😱", "🤩", "😡", "🎉"] as const;
 
@@ -38,6 +39,9 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // 🔒 Canal Cup terminée → plus aucune écriture de jeu (403).
+  const locked = await competitionLock();
+  if (locked) return locked;
   const { id } = await params;
   const supabase = await createClient();
 

@@ -11,8 +11,12 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { quizPoints, QUIZ_TIMER_SECONDS, QUIZ_MIN_RESPONSE_MS } from "@/lib/scoring";
+import { competitionLock } from "@/lib/event/status";
 
 export async function POST(req: Request) {
+  // 🔒 Canal Cup terminée → plus aucune écriture de jeu (403).
+  const locked = await competitionLock();
+  if (locked) return locked;
   try {
     const supabase = await createClient();
     const {

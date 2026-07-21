@@ -8,8 +8,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserRole } from "@/lib/auth/session";
 import { isSupportersOrganizer } from "@/lib/supporters/access";
 import { sendPushToUser } from "@/lib/push";
+import { competitionLock } from "@/lib/event/status";
 
 export async function POST(req: Request) {
+  // 🔒 Canal Cup terminée → plus aucune écriture de jeu (403).
+  const locked = await competitionLock();
+  if (locked) return locked;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

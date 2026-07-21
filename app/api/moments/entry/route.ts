@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { MOMENT_CATEGORY_KEYS } from "@/lib/moments/categories";
+import { competitionLock } from "@/lib/event/status";
 
 const BUCKET = "canalcup-moments";
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 Mo
@@ -13,6 +14,9 @@ const ALLOWED_IMAGE = ["image/jpeg", "image/png", "image/webp"];
 const ALLOWED_VIDEO = ["video/mp4", "video/webm", "video/quicktime"];
 
 export async function POST(req: Request) {
+  // 🔒 Canal Cup terminée → plus aucune écriture de jeu (403).
+  const locked = await competitionLock();
+  if (locked) return locked;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

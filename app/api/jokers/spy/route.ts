@@ -8,6 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { hasActiveEffect, recordSpyView } from "@/lib/jokers/service";
 import { getAdminEmails } from "@/lib/data/roles";
 import { SPY_MAX_MATCHES } from "@/lib/jokers/catalog";
+import { competitionLock } from "@/lib/event/status";
 
 async function currentUserId(): Promise<string | null> {
   const supabase = await createClient();
@@ -47,6 +48,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  // 🔒 Canal Cup terminée → plus aucune écriture de jeu (403).
+  const locked = await competitionLock();
+  if (locked) return locked;
   const userId = await currentUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

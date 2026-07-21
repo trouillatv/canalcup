@@ -1,7 +1,7 @@
 # Canal Cup — Clôture officielle & cérémonie finale — Design
 
 **Date :** 2026-07-21
-**Statut :** proposé (en attente de validation utilisateur)
+**Statut :** ✅ IMPLÉMENTÉ (2026-07-21) — voir §10 pour ce qui a été livré et les arbitrages retenus.
 
 ## 1. Objectif
 
@@ -227,9 +227,34 @@ fin de tournoi » : sobre, solennel, résultats mis en avant, appel à l'action 
 6. **Hall of Fame + bloc Récompenses**.
 7. Tests + vérif manuelle + push.
 
-## 9. Questions ouvertes (à trancher au moment de la spec/plan)
+## 9. Questions ouvertes — TRANCHÉES
 
-- `/final` accessible seulement quand `closed` (redirection sinon) — **OK par défaut**.
-- Inclure « Score le plus large » / « Match le plus serré » au Hall of Fame (dérivables sans
-  nouvelle règle) — **proposé oui**, à confirmer.
-- Emplacement exact du toggle admin (écran settings existant vs page admin dédiée).
+- `/final` accessible seulement quand `closed` → **retenu**, avec une exception : les
+  **organisateurs** y accèdent même en `open` (prévisualisation). Sans ça, la seule façon de
+  relire la page avant le jour J aurait été de clôturer pour de vrai.
+- « Score le plus large » / « Match le plus serré » → **inclus** (dérivés de scores déjà
+  enregistrés, aucune nouvelle règle).
+- Toggle admin → **page dédiée `/admin/cloture`** (tuile sur le dashboard admin), avec double
+  confirmation. Un interrupteur qui verrouille tout le site n'avait pas sa place noyé dans un
+  écran de réglages.
+
+## 10. Livré
+
+| Élément | Fichier |
+|---|---|
+| Logique pure (parse + cache, fail-open) | `lib/event/status-core.ts` |
+| Helper serveur + `competitionLock()` | `lib/event/status.ts` |
+| Contexte client + `useCompetitionClosed()` | `components/event/EventStatusProvider.tsx` |
+| Bandeau global « Canal Cup terminée » | `components/event/ClosedBanner.tsx` (monté par `app/layout.tsx`) |
+| Cérémonie (composant unique) | `components/final/ClosingCeremony.tsx` |
+| Confettis one-shot SSR-safe | `components/final/CeremonyConfetti.tsx` |
+| Page palmarès | `app/final/page.tsx` |
+| Bascule home → cérémonie | `app/page.tsx` |
+| Bascule orga | `app/admin/cloture/page.tsx` + `app/api/admin/event-status/route.ts` |
+| Verrou d'écriture | **40 routes** `app/api/**` + no-op de `expireStaleEffects` |
+| Tests | `lib/event/status-core.test.ts` (7) + `lib/event/lock-coverage.test.ts` (2) |
+
+Écart assumé vs §7 : pas de test d'intégration HTTP par route (le projet n'a pas de harnais de
+routes, seulement le runner Node sur du pur). Remplacé par un test **structurel** qui parcourt
+`app/api` et échoue si une route d'écriture n'est ni verrouillée ni exemptée explicitement —
+il couvre le vrai risque : la route ajoutée dans six mois qu'on oublierait de verrouiller.

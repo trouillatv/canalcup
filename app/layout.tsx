@@ -14,6 +14,9 @@ import { TimezoneProvider } from "@/components/timezone/TimezoneProvider";
 import { EventSplash } from "@/components/events/EventSplash";
 import { PartnerRequestSplash } from "@/components/babyfoot/PartnerRequestSplash";
 import { PageTracker } from "@/components/analytics/PageTracker";
+import { EventStatusProvider } from "@/components/event/EventStatusProvider";
+import { ClosedBanner } from "@/components/event/ClosedBanner";
+import { getEventStatus } from "@/lib/event/status";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_TZ, normalizeTimezone } from "@/lib/utils";
 
@@ -56,6 +59,11 @@ export default async function RootLayout({
   const { data: { user } } = await supabase.auth.getUser();
   const isAuthenticated = !!user;
 
+  // 🔒 Drapeau de clôture lu UNE fois ici (cache 30 s côté serveur) puis diffusé
+  // au client par contexte — aucun appel réseau supplémentaire.
+  const eventStatus = await getEventStatus();
+  const isClosed = eventStatus === "closed";
+
   // Fuseau de l'utilisateur → alimente le contexte d'affichage des heures.
   // Repli sur NC (lieu de l'événement) si non connecté ou champ absent.
   let tz: string = DEFAULT_TZ;
@@ -92,8 +100,12 @@ export default async function RootLayout({
       </head>
       <body className="bg-canal-black text-white antialiased" suppressHydrationWarning>
         <TimezoneProvider tz={tz}>
+         <EventStatusProvider status={eventStatus}>
           {isAuthenticated && <TopBar />}
           <main className={isAuthenticated ? "min-h-screen pt-safe-topbar safe-bottom" : "min-h-screen"}>
+            {/* 🏁 Compétition terminée : le dire partout, sinon les CTA disparus
+                passent pour un bug. */}
+            {isAuthenticated && isClosed && <ClosedBanner />}
             {/* Flash info / direct — DÉSACTIVÉ : montée dans le layout racine, ce
                 bandeau pollait /api/breaking-news sur 100 % des pages pour chaque
                 utilisateur en continu → 1re source de CPU/invocations Vercel.
@@ -104,15 +116,17 @@ export default async function RootLayout({
           </main>
           {isAuthenticated && <BottomNav />}
           {isAuthenticated && <FloatingFeedback />}
-          {/* 🎆 Annonce événementielle (prochain Quiz) au lancement de l'app. */}
-          {isAuthenticated && <EventSplash />}
+          {/* 🎆 Annonce événementielle (prochain Quiz) au lancement de l'app.
+              Muette après la clôture : plus rien à annoncer. */}
+          {isAuthenticated && !isClosed && <EventSplash />}
           {/* 🏓 Demande de partenaire baby-foot (prime sur l'annonce : z-index sup). */}
-          {isAuthenticated && <PartnerRequestSplash />}
+          {isAuthenticated && !isClosed && <PartnerRequestSplash />}
           <PwaSetup />
           <InstallPrompt />
           {isAuthenticated && <PushNotifications />}
           {isAuthenticated && <AppBadge />}
           {isAuthenticated && <PageTracker />}
+         </EventStatusProvider>
         </TimezoneProvider>
       </body>
     </html>

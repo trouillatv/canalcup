@@ -26,6 +26,14 @@ export async function isAdminRequest(req: Request): Promise<boolean> {
   }
 
   // 2. Voie utilisateur connecté : l'auth Supabase dans le cookie.
+  return isAdminUser();
+}
+
+/**
+ * Même liste blanche, mais depuis un Server Component (pas d'objet `Request`
+ * sous la main — ex. la prévisualisation orga de la cérémonie de clôture).
+ */
+export async function isAdminUser(): Promise<boolean> {
   try {
     const supabase = await createClient();
     const {

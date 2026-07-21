@@ -14,6 +14,8 @@ import { MagicLinkReception } from "@/components/auth/MagicLinkReception";
 import { PronoReminder } from "@/components/predictions/PronoReminder";
 import { ensureAllowlisted } from "@/lib/auth/allowlist";
 import { isLastVoteDay } from "@/lib/supporters/access";
+import { isCompetitionClosed } from "@/lib/event/status";
+import { ClosingCeremony } from "@/components/final/ClosingCeremony";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +47,11 @@ export default async function RootPage() {
     await supabase.auth.signOut();
     return <MagicLinkReception />;
   }
+
+  // 🏁 Canal Cup terminée : l'accueil DEVIENT la cérémonie de clôture. Même
+  // composant que /final (zéro duplication) — inutile de proposer des pronos sur
+  // un tournoi fini.
+  if (await isCompetitionClosed()) return <ClosingCeremony />;
 
   // Dernier jour de vote (25/06 NC) : l'accueil devient la page Journée Supporters.
   if (isLastVoteDay()) redirect("/supporters");

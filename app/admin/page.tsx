@@ -10,7 +10,7 @@ import Link from "next/link";
 import {
   QrCode, Trophy, PartyPopper, Gamepad2, Users,
   Shield, RefreshCw, ArrowRight, Activity, SearchCheck, Image as ImageIcon, MessageSquare,
-  ClipboardList, Bell, Sparkles, Camera, BarChart3,
+  ClipboardList, Bell, Sparkles, Camera, BarChart3, Lock,
 } from "lucide-react";
 
 interface QrCounter {
@@ -40,6 +40,7 @@ const TOOLS: Array<{
   { href: "/admin/qr",              label: "QR Code WC2026",  desc: "Imprimer / partager le QR + voir les scans.",                   icon: QrCode },
   { href: "/admin/jokers",          label: "Jokers",          desc: "Attribuer/retirer des jokers, voir effets actifs, cibles et cartons.", icon: Sparkles },
   { href: "/admin/supporters",      label: "Journée Supporters", desc: "Valider les photos, ouvrir/clôturer les votes, publier le podium.", icon: Camera },
+  { href: "/admin/cloture",         label: "Clôture du tournoi", desc: "Basculer la Canal Cup en mode terminé : palmarès partout, écritures verrouillées.", icon: Lock },
 ];
 
 function formatTime(iso: string | null): string {

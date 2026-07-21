@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentSocialUser, isSocialAdmin } from "@/lib/social/profile";
 import type { FeedPostType } from "@/lib/supabase/types";
+import { competitionLock } from "@/lib/event/status";
 
 const FEED_TYPES: FeedPostType[] = [
   "ambiance",
@@ -28,6 +29,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  // 🔒 Canal Cup terminée → plus aucune écriture de jeu (403).
+  const locked = await competitionLock();
+  if (locked) return locked;
   const me = await getCurrentSocialUser();
   if (!me) return NextResponse.json({ error: "Non authentifie" }, { status: 401 });
 
