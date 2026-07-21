@@ -217,8 +217,9 @@ export async function ClosingCeremony() {
 
   // ── Hall of Fame — UNIQUEMENT des faits déjà en base ──────────────────────
   const hall: { title: string; who: string; detail?: string; unit: Unit }[] = [];
-  if (general[0]) hall.push({ title: "Champion Canal Cup", who: general[0].label, detail: `${general[0].points} pts`, unit: "Équipes" });
+  // Même priorité que les sections : le joueur d'abord, l'équipe ensuite.
   if (players[0]) hall.push({ title: "Meilleur joueur Canal Cup", who: players[0].label, detail: `${players[0].points} pts`, unit: "Joueurs" });
+  if (general[0]) hall.push({ title: "Champion Canal Cup", who: general[0].label, detail: `${general[0].points} pts`, unit: "Équipes" });
   if (babyPodium[0]) hall.push({ title: "Champion Baby-foot", who: babyPodium[0].label, unit: "Binômes" });
   if (babyPodium[1]) hall.push({ title: "Finaliste Baby-foot", who: babyPodium[1].label, unit: "Binômes" });
   if (babyPodium[2]) hall.push({ title: "Troisième Baby-foot", who: babyPodium[2].label, unit: "Binômes" });
@@ -262,18 +263,20 @@ export async function ClosingCeremony() {
       </header>
 
       <div className="px-4 max-w-3xl mx-auto space-y-8">
-        {/* ── 2-3. Classement général — ÉQUIPES ──────────────────────────── */}
-        <section className="canal-card">
-          <SectionTitle title="Classement général" unit="Équipes" />
-          <Podium entries={general.map((r) => ({ ...r, sub: null }))} />
-          <RankTable rows={general} entityHeader="Équipe" />
-        </section>
-
-        {/* ── 3bis. Classement général individuel — JOUEURS ──────────────── */}
+        {/* ── 2. Classement général individuel — JOUEURS ─────────────────
+            EN PREMIER, volontairement : c'est SA place que chacun vient
+            chercher. Le classement par équipes vient ensuite. */}
         <section className="canal-card">
           <SectionTitle title="Classement général individuel" unit="Joueurs" />
           <Podium entries={players} />
           <RankTable rows={players} entityHeader="Joueur" />
+        </section>
+
+        {/* ── 3. Classement général — ÉQUIPES ────────────────────────────── */}
+        <section className="canal-card">
+          <SectionTitle title="Classement général" unit="Équipes" />
+          <Podium entries={general.map((r) => ({ ...r, sub: null }))} />
+          <RankTable rows={general} entityHeader="Équipe" />
         </section>
 
         {/* ── 4-5. Pronostics — JOUEURS ──────────────────────────────────── */}
