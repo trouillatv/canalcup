@@ -4,6 +4,7 @@ import { getLeaderboard, getIndividualLeaderboard } from "@/lib/data/teams";
 import { getServiceLeaderboard } from "@/lib/data/users";
 import { getActiveOfficialTournament, getEntries, getMatches, getAwards } from "@/lib/data/babyfoot";
 import { FinalCeremonyTv, type CeremonyTvData } from "@/components/tv/FinalCeremonyTv";
+import { hasShootout, isCountedGoal } from "@/lib/football/goals";
 
 export const metadata: Metadata = {
   title: "Canal Cup 2026 | Cérémonie finale",
@@ -12,9 +13,26 @@ export const metadata: Metadata = {
 
 export const revalidate = 60;
 
+async function getScorerRace(admin: ReturnType<typeof createAdminClient>) {
+  const [{ data: bets }, { data: events }, { data: footballMatches }] = await Promise.all([
+    admin.from("bonus_predictions").select("predicted_value").eq("prediction_type", "top_scorer"),
+    admin.from("match_events").select("match_id, player_name, type, detail, minute").in("type", ["goal", "penalty"]),
+    admin.from("matches").select("id, pen_a, pen_b"),
+  ]);
+  const shootouts = new Set((footballMatches ?? []).filter((m) => hasShootout(m)).map((m) => m.id));
+  const count = (values: string[]) => Object.entries(values.reduce<Record<string, number>>((acc, value) => {
+    acc[value] = (acc[value] ?? 0) + 1;
+    return acc;
+  }, {})).sort(([, a], [, b]) => b - a).slice(0, 8).map(([name, count], index) => ({ name, count, rank: index + 1 }));
+  return {
+    bets: count((bets ?? []).map((b) => (b.predicted_value ?? "").trim()).filter(Boolean)),
+    scorers: count((events ?? []).filter((e) => e.player_name && (e.type !== "goal" || isCountedGoal(e, shootouts.has(e.match_id))) && !(e.detail ?? "").toLowerCase().includes("own")).map((e) => e.player_name!.trim())),
+  };
+}
+
 export default async function FinaleTvPage() {
   const admin = createAdminClient();
-  const [teams, individuals, services, tournament, counts] = await Promise.all([
+  const [teams, individuals, services, tournament, counts, scorerRace] = await Promise.all([
     getLeaderboard(),
     getIndividualLeaderboard(),
     getServiceLeaderboard(),
@@ -26,6 +44,7 @@ export default async function FinaleTvPage() {
       admin.from("users").select("id", { count: "exact", head: true }),
       admin.from("services").select("id", { count: "exact", head: true }).eq("is_active", true),
     ]),
+    getScorerRace(admin),
   ]);
 
   const [entries, matches, awards] = tournament
@@ -51,6 +70,7 @@ export default async function FinaleTvPage() {
     babyfoot: entries.filter((entry) => entry.final_rank).sort((a, b) => (a.final_rank ?? 99) - (b.final_rank ?? 99)).map((entry) => ({
       name: entry.label, points: pointsByEntry.get(entry.id) ?? 0, rank: entry.final_rank ?? 99,
     })),
+    scorerRace,
     bracket: matches.filter((match) => ["semi", "third", "final"].includes(match.phase ?? "")).map((match) => ({
       phase: match.phase ?? "final", a: labelByEntry.get(match.entry_a_id ?? "") ?? "À venir", b: labelByEntry.get(match.entry_b_id ?? "") ?? "À venir",
       scoreA: match.score_a ?? null, scoreB: match.score_b ?? null,
