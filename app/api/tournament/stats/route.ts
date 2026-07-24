@@ -8,6 +8,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { selectAll } from "@/lib/data/select-all";
+import { hasShootout, isCountedGoal } from "@/lib/football/goals";
 
 // Données vivantes (buts/notes mis à jour à chaque match) → JAMAIS de cache de
 // route. Sans ça, Next.js fige la réponse au build (le Cache-Control no-store de
@@ -53,9 +54,11 @@ export async function GET() {
   const supabase = createAdminClient();
 
   // Récupère stats joueurs + lineups + matchs en parallèle.
+  // pen_a/pen_b : nécessaires pour distinguer un penalty de séance d'un penalty
+  // marqué dans le jeu (cf. lib/football/goals.ts).
   const { data: matchesRaw } = await supabase
     .from("matches")
-    .select("id, team_a, team_b, phase, stage, status")
+    .select("id, team_a, team_b, phase, stage, status, pen_a, pen_b")
     .eq("status", "finished");
 
   const matches = (matchesRaw ?? []).filter((m) =>
@@ -80,8 +83,8 @@ export async function GET() {
       supabase, "player_match_stats", "match_id, team_side, player_name, player_id, rating, goals, assists, yellow_cards, red_cards, is_motm", inMatches),
     selectAll<{ match_id: string; team_side: string; player_name: string; position: string | null; is_starting: boolean | null }>(
       supabase, "match_lineups", "match_id, team_side, player_name, position, is_starting", inMatches),
-    selectAll<{ match_id: string; team_side: string; player_name: string | null; assist_player_name: string | null; type: string }>(
-      supabase, "match_events", "match_id, team_side, player_name, assist_player_name, type", inMatches),
+    selectAll<{ match_id: string; team_side: string; player_name: string | null; assist_player_name: string | null; type: string; detail: string | null; minute: number | null }>(
+      supabase, "match_events", "match_id, team_side, player_name, assist_player_name, type, detail, minute", inMatches),
   ]);
 
   const stats = statsAll.filter((r) => r.rating != null);
@@ -97,8 +100,10 @@ export async function GET() {
 
   // Résout matchId → { teamHome, teamAway }
   const matchTeams = new Map<string, { home: string; away: string }>();
+  const shootoutMatches = new Set<string>();
   for (const m of matches) {
     matchTeams.set(m.id, { home: m.team_a ?? "", away: m.team_b ?? "" });
+    if (hasShootout(m)) shootoutMatches.add(m.id);
   }
 
   // Position la plus fréquente par (player_name, team_side, match_id)
@@ -216,11 +221,15 @@ export async function GET() {
       return byPlayer.get(key)!;
     };
 
-    if (e.type === "goal" && e.player_name) {
+    // Exclut penaltys manqués et tirs au but (cf. lib/football/goals.ts) — sans
+    // ça Suisse 0-0 Colombie remontait 10 buts et Messi passait à 9 au lieu de 8.
+    if (!isCountedGoal(e, shootoutMatches.has(e.match_id))) continue;
+
+    if (e.player_name) {
       ensurePlayer(e.player_name).goals += 1;
       if (teamName) teamGoals.set(teamName, (teamGoals.get(teamName) ?? 0) + 1);
     }
-    if (e.type === "goal" && e.assist_player_name) {
+    if (e.assist_player_name) {
       ensurePlayer(e.assist_player_name).assists += 1;
     }
   }

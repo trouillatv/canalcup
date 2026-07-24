@@ -7,6 +7,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getWCTeamBySlug } from "@/lib/football/wc-teams";
+import { hasShootout, isCountedGoal } from "@/lib/football/goals";
 
 interface Agg {
   player_name: string;
@@ -49,7 +50,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   // Matchs où la sélection joue, avec son côté (team_a = home, team_b = away).
   const { data: matches } = await supabase
     .from("matches")
-    .select("id, team_a, team_b, flag_a, flag_b, score_a, score_b, phase, stage, status, starts_at")
+    .select("id, team_a, team_b, flag_a, flag_b, score_a, score_b, phase, stage, status, starts_at, pen_a, pen_b")
     .eq("status", "finished")
     .or(`team_a.ilike.${team.name},team_b.ilike.${team.name}`);
 
@@ -57,8 +58,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   const officialMatches = (matches ?? []).filter((m) =>
     m.phase === "Groupe" ? Boolean(m.stage) : m.phase !== "Groupe"
   );
+  const shootoutMatches = new Set<string>();
   for (const m of officialMatches) {
     sideByMatch.set(m.id, m.team_a?.toLowerCase() === team.name.toLowerCase() ? "home" : "away");
+    if (hasShootout(m)) shootoutMatches.add(m.id);
   }
 
   // Résultats réels (poules + phase finale) du point de vue de la sélection,
@@ -102,7 +105,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
       .in("match_id", [...sideByMatch.keys()]),
     supabase
       .from("match_events")
-      .select("match_id, team_side, player_name, assist_player_name, type")
+      .select("match_id, team_side, player_name, assist_player_name, type, detail, minute")
       .in("match_id", [...sideByMatch.keys()]),
   ]);
   const rows = statsRes.data ?? [];
@@ -156,8 +159,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
       }
       return a;
     };
-    if (e.type === "goal" && e.player_name) ensurePlayer(e.player_name).goals += 1;
-    if (e.type === "goal" && e.assist_player_name) ensurePlayer(e.assist_player_name).assists += 1;
+    // Exclut penaltys manqués et tirs au but (cf. lib/football/goals.ts).
+    if (!isCountedGoal(e, shootoutMatches.has(e.match_id))) continue;
+    if (e.player_name) ensurePlayer(e.player_name).goals += 1;
+    if (e.assist_player_name) ensurePlayer(e.assist_player_name).assists += 1;
   }
 
   const players = [...byPlayer.values()]

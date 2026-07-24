@@ -1,0 +1,88 @@
+{
+  "source": {
+    "provider": "sofascore",
+    "image": "public/Matchs/France Angleterre.png",
+    "captured_at": "2026-07-20",
+    "transcribed_by": "claude",
+    "validated_by": null,
+    "method": "lecture des zones recadrées et agrandies ×3",
+    "notes": "Match pour la 3e place. 10 buts : quatre des six buteurs sont entrés en cours de jeu et n'ont donc pas de ligne de composition."
+  },
+
+  "match": {
+    "id": "54a9a503-ffc9-4a6c-afc0-ad9f2fee0d14",
+    "team_a": "France",
+    "team_b": "Angleterre",
+    "phase": "3ème place",
+    "score_final": { "a": 4, "b": 6 }
+  },
+
+  "referee": { "name": "Jesús Valenzuela", "confidence": 1.0 },
+  "venue": { "name": "Hard Rock Stadium", "confidence": 1.0 },
+  "managers": {
+    "a": { "name": null, "confidence": 0, "note": "Zone coupée sur la capture." },
+    "b": { "name": null, "confidence": 0, "note": "Zone coupée sur la capture." }
+  },
+  "formations": {
+    "a": { "value": "4-2-3-1", "confidence": 1.0 },
+    "b": { "value": "4-1-4-1", "confidence": 1.0 }
+  },
+  "team_ratings": {
+    "a": { "value": 6.71, "confidence": 1.0 },
+    "b": { "value": 7.33, "confidence": 1.0 }
+  },
+
+  "motm": {
+    "team_side": "a",
+    "player_name": "K. Mbappé",
+    "rating": 9.9,
+    "confidence": 0.9,
+    "note": "Badge « homme du match » malgré la défaite. Meilleure note du match devant Rice (9.6) et Saka (9.5)."
+  },
+
+  "lineups": [
+    { "team_side": "a", "number": 16, "player_name": "M. Maignan",     "rating": 6.5, "confidence": 1.0, "started": true },
+    { "team_side": "a", "number": 19, "player_name": "T. Hernández",   "rating": 5.8, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "a", "number": 26, "player_name": "M. Lacroix",     "rating": 7.2, "confidence": 1.0, "started": true },
+    { "team_side": "a", "number": 15, "player_name": "I. Konaté",      "rating": 5.5, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "a", "number": 2,  "player_name": "M. Gusto",       "rating": 5.5, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "a", "number": 14, "player_name": "A. Rabiot",      "rating": 6.1, "confidence": 1.0, "started": true },
+    { "team_side": "a", "number": 18, "player_name": "W. Zaïre-Emery", "rating": 6.6, "confidence": 1.0, "started": true },
+    { "team_side": "a", "number": 20, "player_name": "D. Doué",        "rating": 5.8, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "a", "number": 24, "player_name": "R. Cherki",      "rating": 6.4, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "a", "number": 10, "player_name": "K. Mbappé",      "rating": 9.9, "confidence": 1.0, "started": true, "captain": true, "assists": 1 },
+    { "team_side": "a", "number": 11, "player_name": "M. Olise",       "rating": 6.9, "confidence": 1.0, "started": true, "assists": 2 },
+
+    { "team_side": "b", "number": 13, "player_name": "D. Henderson",   "rating": 7.4, "confidence": 1.0, "started": true },
+    { "team_side": "b", "number": 26, "player_name": "J. Quansah",     "rating": 6.2, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "b", "number": 2,  "player_name": "E. Konsa",       "rating": 7.3, "confidence": 1.0, "started": true },
+    { "team_side": "b", "number": 6,  "player_name": "M. Guéhi",       "rating": 7.3, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "b", "number": 25, "player_name": "D. Spence",      "rating": 6.9, "confidence": 1.0, "started": true },
+    { "team_side": "b", "number": 4,  "player_name": "D. Rice",        "rating": 9.6, "confidence": 1.0, "started": true, "captain": true, "assists": 1 },
+    { "team_side": "b", "number": 17, "player_name": "M. Rogers",      "rating": 6.5, "confidence": 1.0, "started": true },
+    { "team_side": "b", "number": 21, "player_name": "E. Eze",         "rating": 7.5, "confidence": 1.0, "started": true, "subbed_off": true, "assists": 1 },
+    { "team_side": "b", "number": 11, "player_name": "M. Rashford",    "rating": 6.9, "confidence": 1.0, "started": true, "subbed_off": true, "assists": 1 },
+    { "team_side": "b", "number": 7,  "player_name": "B. Saka",        "rating": 9.5, "confidence": 1.0, "started": true },
+    { "team_side": "b", "number": 22, "player_name": "I. Toney",       "rating": 6.9, "confidence": 1.0, "started": true, "subbed_off": true }
+  ],
+
+  "events": [
+    { "type": "goal", "detail": "Normal Goal", "team_side": "away", "player_name": "Declan Rice",      "lineup_player_name": "D. Rice",  "minute": 3,  "confidence": 1.0 },
+    { "type": "goal", "detail": "Normal Goal", "team_side": "away", "player_name": "Ezri Konsa",       "lineup_player_name": "E. Konsa", "minute": 18, "confidence": 1.0 },
+    { "type": "goal", "detail": "Normal Goal", "team_side": "away", "player_name": "Bukayo Saka",      "lineup_player_name": "B. Saka",  "minute": 37, "confidence": 1.0 },
+    { "type": "goal", "detail": "Normal Goal", "team_side": "away", "player_name": "Bukayo Saka",      "lineup_player_name": "B. Saka",  "minute": 45, "extra_minute": 1, "confidence": 1.0 },
+    { "type": "goal", "detail": "Normal Goal", "team_side": "home", "player_name": "Kylian Mbappé",    "lineup_player_name": "K. Mbappé","minute": 48, "confidence": 1.0 },
+    { "type": "goal", "detail": "Normal Goal", "team_side": "home", "player_name": "Bradley Barcola",  "lineup_player_name": null,       "minute": 54, "confidence": 1.0, "note": "Entré en cours de jeu." },
+    { "type": "goal", "detail": "Normal Goal", "team_side": "home", "player_name": "Kylian Mbappé",    "lineup_player_name": "K. Mbappé","minute": 66, "confidence": 1.0 },
+    { "type": "penalty", "detail": "Penalty",  "team_side": "away", "player_name": "Bukayo Saka",      "lineup_player_name": "B. Saka",  "minute": 87, "confidence": 1.0, "note": "Penalty en cours de jeu — compte comme un but. Triplé de Saka." },
+    { "type": "goal", "detail": "Normal Goal", "team_side": "home", "player_name": "Ousmane Dembélé",  "lineup_player_name": null,       "minute": 90, "extra_minute": 6, "confidence": 1.0, "note": "Entré en cours de jeu." },
+    { "type": "goal", "detail": "Normal Goal", "team_side": "away", "player_name": "Jude Bellingham",  "lineup_player_name": null,       "minute": 90, "extra_minute": 8, "confidence": 1.0, "note": "Entré en cours de jeu." }
+  ],
+
+  "absent_from_capture": [
+    "statistiques d'équipe — onglet Statistics non capturé",
+    "minutes des cartons",
+    "remplaçants entrés en jeu et minutes des remplacements",
+    "entraîneurs (zone coupée)"
+  ]
+}

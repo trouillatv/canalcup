@@ -1,0 +1,165 @@
+{
+  "match": {
+    "id": "4e83cce3-333b-4e84-a931-824c7f50ef9b",
+    "team_a": "Espagne",
+    "team_b": "Argentine",
+    "phase": "Finale",
+    "status": "finished",
+    "score_a": 1,
+    "score_b": 0,
+    "score_reg_a": 0,
+    "score_reg_b": 0
+  },
+  "predictions": [
+    {
+      "id": "5a5e584f-498f-45ac-bf20-37eadb487c69",
+      "user_id": "08140802-e120-4820-8be8-a66a8cc55237",
+      "predicted_score_a": 1,
+      "predicted_score_b": 1,
+      "points_awarded": -20
+    },
+    {
+      "id": "6b228f9b-d516-4ae0-a69f-425d4f4ad5d7",
+      "user_id": "1426706c-5ef2-4198-ab0c-d1d18606e11d",
+      "predicted_score_a": 2,
+      "predicted_score_b": 1,
+      "points_awarded": 15
+    },
+    {
+      "id": "60336c32-9a6f-4515-bebd-6f4ad1307c75",
+      "user_id": "1444902f-8821-4e9f-a1c3-0dce78e1360b",
+      "predicted_score_a": 1,
+      "predicted_score_b": 3,
+      "points_awarded": 0
+    },
+    {
+      "id": "2c9c5ccc-58ef-4c37-a281-d43a02ab4283",
+      "user_id": "1a4345e9-f7d8-451d-b53d-9d580d108be1",
+      "predicted_score_a": 2,
+      "predicted_score_b": 1,
+      "points_awarded": 15
+    },
+    {
+      "id": "52bfc641-3807-461b-b5b6-7fc484f6d260",
+      "user_id": "1ca62bd0-a40e-4605-bf22-96bbbab1b75c",
+      "predicted_score_a": 2,
+      "predicted_score_b": 1,
+      "points_awarded": 15
+    },
+    {
+      "id": "60400743-d742-484d-a503-e2c52e1be90e",
+      "user_id": "32b4d909-ab3e-4b4b-a483-bdb94f913f4d",
+      "predicted_score_a": 1,
+      "predicted_score_b": 1,
+      "points_awarded": 0
+    },
+    {
+      "id": "47117c09-76c8-41b5-bdda-65697c7312c2",
+      "user_id": "5fca3741-b905-4d16-a691-030140222399",
+      "predicted_score_a": 3,
+      "predicted_score_b": 1,
+      "points_awarded": 15
+    },
+    {
+      "id": "8b351ac9-41cb-44f9-85d4-19df1ad141fa",
+      "user_id": "77cf2f78-92a4-4ff1-b578-bed9974dbb06",
+      "predicted_score_a": 1,
+      "predicted_score_b": 2,
+      "points_awarded": 0
+    },
+    {
+      "id": "2c6f7f3e-51d6-4fa9-aa97-bdc53ae174e4",
+      "user_id": "7f737336-28b2-4d04-95ee-69c1bc620701",
+      "predicted_score_a": 1,
+      "predicted_score_b": 1,
+      "points_awarded": 0
+    },
+    {
+      "id": "d6c3f5d2-db72-44b9-a86a-305e70a3bba5",
+      "user_id": "853a8636-9f99-4129-aade-f591440275e2",
+      "predicted_score_a": 3,
+      "predicted_score_b": 2,
+      "points_awarded": 15
+    },
+    {
+      "id": "3294cdd8-c917-4990-a47f-8337e7e12dc5",
+      "user_id": "99a1c1e7-e5ca-470d-93be-e2d3e2daceb6",
+      "predicted_score_a": 0,
+      "predicted_score_b": 0,
+      "points_awarded": 0
+    },
+    {
+      "id": "476aa03b-8a2b-440a-8493-0e021773ddb3",
+      "user_id": "9a235310-d216-4337-9b40-342ebfe61f45",
+      "predicted_score_a": 1,
+      "predicted_score_b": 2,
+      "points_awarded": 0
+    },
+    {
+      "id": "f2bf5092-0886-4382-b738-9dea5a5815cf",
+      "user_id": "a4aeb679-8565-4406-bef0-a6ef4326e3c8",
+      "predicted_score_a": 2,
+      "predicted_score_b": 0,
+      "points_awarded": 15
+    },
+    {
+      "id": "01c303c8-3db4-4a70-bbca-22490283b807",
+      "user_id": "b6a10b5c-2962-49c7-8467-3d2800b19246",
+      "predicted_score_a": 3,
+      "predicted_score_b": 3,
+      "points_awarded": 0
+    },
+    {
+      "id": "1f68d552-0413-4af3-b3e6-a5c0813b1345",
+      "user_id": "b83dea6e-6bd7-414b-b6c0-3cb82648b4df",
+      "predicted_score_a": 1,
+      "predicted_score_b": 2,
+      "points_awarded": 0
+    },
+    {
+      "id": "11c8b077-10a0-4f79-b03f-8771f2abdab5",
+      "user_id": "b8aaf438-daae-4009-be38-3c4f0c225833",
+      "predicted_score_a": 1,
+      "predicted_score_b": 2,
+      "points_awarded": 0
+    },
+    {
+      "id": "15001cf3-2e18-464b-ba13-f15f5375dd0f",
+      "user_id": "c4e64b2a-0c38-491a-ad9c-50ca39cd643c",
+      "predicted_score_a": 0,
+      "predicted_score_b": 0,
+      "points_awarded": -20
+    },
+    {
+      "id": "1914447a-ed8e-44c0-9d0f-d8e17d8ba871",
+      "user_id": "e26f42e7-1c58-4d35-9236-f49d5775be8c",
+      "predicted_score_a": 3,
+      "predicted_score_b": 0,
+      "points_awarded": 15
+    }
+  ],
+  "kamikazes": [
+    {
+      "id": "b76948ff-9bca-49a8-8696-09a348791972",
+      "played_by_user_id": "c4e64b2a-0c38-491a-ad9c-50ca39cd643c",
+      "metadata": {
+        "tier": "miss",
+        "stake": 20,
+        "points": -20,
+        "match_id": "4e83cce3-333b-4e84-a931-824c7f50ef9b",
+        "resolved": true
+      }
+    },
+    {
+      "id": "f742e0d4-6988-4a2f-a389-6d9915ef7ec4",
+      "played_by_user_id": "08140802-e120-4820-8be8-a66a8cc55237",
+      "metadata": {
+        "tier": "miss",
+        "stake": 20,
+        "points": -20,
+        "match_id": "4e83cce3-333b-4e84-a931-824c7f50ef9b",
+        "resolved": true
+      }
+    }
+  ]
+}

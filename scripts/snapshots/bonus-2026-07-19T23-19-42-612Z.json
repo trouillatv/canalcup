@@ -1,0 +1,58 @@
+[
+  {
+    "id": "ced4c55b-3d82-41fd-b5db-cccc3ae64607",
+    "user": "Anaïs",
+    "type": "winner",
+    "valeur": "Espagne",
+    "avant": 0,
+    "apres": 20
+  },
+  {
+    "id": "0093310f-6483-431c-a4fa-c66feef5a7ab",
+    "user": "Kriss",
+    "type": "winner",
+    "valeur": "Espagne",
+    "avant": 0,
+    "apres": 20
+  },
+  {
+    "id": "e0756fdf-e7e6-4e1f-b466-c9407259618b",
+    "user": "Agathe",
+    "type": "top_scorer",
+    "valeur": "Kylian Mbappé",
+    "avant": 0,
+    "apres": 10
+  },
+  {
+    "id": "0e45d76f-7402-438d-93a8-fcb19ae4ae15",
+    "user": "AimePi",
+    "type": "top_scorer",
+    "valeur": "Kylian Mbappé",
+    "avant": 0,
+    "apres": 10
+  },
+  {
+    "id": "ff825920-dc24-4b45-b996-2bcef0a7ed2a",
+    "user": "El Valentinho",
+    "type": "top_scorer",
+    "valeur": "Mbappé",
+    "avant": 0,
+    "apres": 10
+  },
+  {
+    "id": "bc89c98f-00ed-41b6-87d4-2de9f6a02efe",
+    "user": "Kriss",
+    "type": "top_scorer",
+    "valeur": "Kylian Mbappé",
+    "avant": 0,
+    "apres": 10
+  },
+  {
+    "id": "148f534a-3208-447e-bb40-a09e6a2892fe",
+    "user": "Tonton D",
+    "type": "top_scorer",
+    "valeur": "Kylian Mbappé",
+    "avant": 0,
+    "apres": 10
+  }
+]

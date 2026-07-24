@@ -5,6 +5,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getActiveOfficialTournament, buildPublicState, getChampionsHistory } from "@/lib/data/babyfoot";
 
 export const revalidate = 15;
+// La route lit Supabase à chaque requête : elle ne doit pas être pré-rendue
+// pendant le build (où les variables d’environnement peuvent être absentes).
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   const admin = createAdminClient();

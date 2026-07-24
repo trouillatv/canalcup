@@ -2,7 +2,9 @@
 //
 // Barème CUMULATIF (valeur faciale) : Participation 5 · +5 par match de
 // championnat DISPUTÉ (max 15) · +5 par victoire de championnat (max 15) ·
-// Qualif en demie 10 · Victoire de demie 15 · Champion 20.
+// Qualif en demie 10 · Victoire de demie 15 · Petite finale gagnée 10 ·
+// Champion 20. (Les deux derniers s'excluent : le champion ne joue pas la
+// petite finale.)
 // → max 80 (cf. championMaxPoints()). Plusieurs lignes par binôme (1 par
 // palier). recomputeAwards réécrit intégralement le registre (delete + insert).
 
@@ -62,6 +64,11 @@ export async function recomputeAwards(admin: DbClient, tournamentId: string): Pr
   const championEntryId: string | null = finalMatch ? winnerOf(finalMatch) : null;
   const finalistEntryId: string | null = finalMatch ? loserOf(finalMatch) : null;
 
+  // Petite finale : le vainqueur (3e) touche `thirdWin`. Le perdant (4e) ne
+  // touche rien de plus — sans ce palier les deux étaient à égalité parfaite.
+  const thirdMatch = matches.find((m) => m.phase === "third");
+  const thirdWinnerEntryId: string | null = thirdMatch ? winnerOf(thirdMatch) : null;
+
   // Construction du registre (cumulatif).
   type Row = { tournament_id: string; entry_id: string; team_id: string | null; stage: string; points: number; label: string };
   const rows: Row[] = [];
@@ -87,9 +94,20 @@ export async function recomputeAwards(admin: DbClient, tournamentId: string): Pr
     if (phase1Pts > 0) push(e, "phase1", phase1Pts, `${played} match(s) joué(s), ${wins} gagné(s)`);
     if (qualified.has(e.id)) push(e, "qualified", b.qualified, BABYFOOT.stageLabel.qualified);
     if (semiWinners.has(e.id)) push(e, "semi_win", b.semiWin, BABYFOOT.stageLabel.semi_win);
+    if (thirdWinnerEntryId === e.id) push(e, "third_win", b.thirdWin, BABYFOOT.stageLabel.third_win);
     if (championEntryId === e.id) push(e, "champion", b.champion, BABYFOOT.stageLabel.champion);
   }
-  if (rows.length) await admin.from("babyfoot_awards").insert(rows);
+  // L'insert DOIT être vérifié : le registre vient d'être vidé juste au-dessus
+  // (delete + insert, sans transaction). Un insert qui échoue — typiquement un
+  // stage refusé par le check constraint parce que la migration correspondante
+  // n'a pas été appliquée — laisserait le tournoi avec ZÉRO point tout en
+  // renvoyant ok:true. On remonte l'erreur pour que l'admin la voie.
+  if (rows.length) {
+    const { error: insErr } = await admin.from("babyfoot_awards").insert(rows);
+    if (insErr) {
+      return { ok: false, error: `Insertion du registre impossible (${insErr.message}) — les points sont vides, corrigez puis relancez « Recalculer ».` };
+    }
+  }
 
   // Rang final (podium) : 1 champion, 2 finaliste, 3/4 petite finale.
   const finalRank = new Map<string, number>();

@@ -1,0 +1,97 @@
+{
+  "source": {
+    "provider": "sofascore",
+    "image": "public/Matchs/France Espagne.png",
+    "captured_at": "2026-07-20",
+    "transcribed_by": "claude",
+    "validated_by": null,
+    "method": "lecture des zones recadrées et agrandies ×3",
+    "notes": "Onglet Lineups uniquement. Deux événements existaient déjà en base (Oyarzabal 22', Porro 58') et concordent avec la capture : ils sont conservés, pas dupliqués."
+  },
+
+  "match": {
+    "id": "8d9a9bd4-c05c-43f8-9cc6-6ba40a1fb52d",
+    "team_a": "France",
+    "team_b": "Espagne",
+    "phase": "Demis",
+    "score_final": { "a": 0, "b": 2 }
+  },
+
+  "referee": { "name": "Iván Barton", "confidence": 1.0 },
+  "venue": { "name": "AT&T Stadium", "confidence": 1.0 },
+  "managers": {
+    "a": { "name": null, "confidence": 0, "note": "Zone coupée sur la capture — non observé, donc non renseigné." },
+    "b": { "name": null, "confidence": 0, "note": "Zone coupée sur la capture. Connu par ailleurs (capture de la finale), mais non observé ICI : on n'importe que ce qui est observé." }
+  },
+  "formations": {
+    "a": { "value": "4-2-3-1", "confidence": 1.0 },
+    "b": { "value": "4-2-3-1", "confidence": 1.0 }
+  },
+  "team_ratings": {
+    "a": { "value": 6.41, "confidence": 1.0 },
+    "b": { "value": 6.96, "confidence": 1.0 }
+  },
+
+  "motm": {
+    "team_side": "b",
+    "player_name": "P. Porro",
+    "rating": 8.1,
+    "confidence": 0.9,
+    "note": "Badge « homme du match » sur l'avatar. Badge petit — confiance légèrement réduite."
+  },
+
+  "lineups": [
+    { "team_side": "a", "number": 16, "player_name": "M. Maignan",     "rating": 5.9, "confidence": 1.0, "started": true },
+    { "team_side": "a", "number": 3,  "player_name": "L. Digne",       "rating": 5.6, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "a", "number": 17, "player_name": "W. Saliba",      "rating": 6.1, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "a", "number": 4,  "player_name": "D. Upamecano",   "rating": 6.5, "confidence": 1.0, "started": true },
+    { "team_side": "a", "number": 5,  "player_name": "J. Koundé",      "rating": 6.3, "confidence": 1.0, "started": true },
+    { "team_side": "a", "number": 14, "player_name": "A. Rabiot",      "rating": 6.5, "confidence": 1.0, "started": true, "subbed_off": true, "yellow_cards": 1 },
+    { "team_side": "a", "number": 8,  "player_name": "A. Tchouaméni",  "rating": 6.8, "confidence": 1.0, "started": true },
+    { "team_side": "a", "number": 12, "player_name": "B. Barcola",     "rating": 6.4, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "a", "number": 11, "player_name": "M. Olise",       "rating": 6.4, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "a", "number": 10, "player_name": "K. Mbappé",      "rating": 6.3, "confidence": 1.0, "started": true, "captain": true, "yellow_cards": 1 },
+    { "team_side": "a", "number": 7,  "player_name": "O. Dembélé",     "rating": 6.8, "confidence": 1.0, "started": true },
+
+    { "team_side": "b", "number": 23, "player_name": "U. Simón",       "rating": 7.0, "confidence": 1.0, "started": true },
+    { "team_side": "b", "number": 12, "player_name": "P. Porro",       "rating": 8.1, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "b", "number": 22, "player_name": "P. Cubarsí",     "rating": 7.4, "confidence": 1.0, "started": true },
+    { "team_side": "b", "number": 14, "player_name": "A. Laporte",     "rating": 7.2, "confidence": 1.0, "started": true },
+    { "team_side": "b", "number": 24, "player_name": "M. Cucurella",   "rating": 7.1, "confidence": 1.0, "started": true, "yellow_cards": 1 },
+    { "team_side": "b", "number": 16, "player_name": "Rodri",          "rating": 7.5, "confidence": 1.0, "started": true, "captain": true },
+    { "team_side": "b", "number": 8,  "player_name": "F. Ruiz",        "rating": 6.9, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "b", "number": 19, "player_name": "L. Yamal",       "rating": 6.5, "confidence": 1.0, "started": true },
+    { "team_side": "b", "number": 10, "player_name": "D. Olmo",        "rating": 6.8, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "b", "number": 21, "player_name": "M. Oyarzabal",   "rating": 7.0, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "b", "number": 15, "player_name": "A. Baena",       "rating": 6.7, "confidence": 1.0, "started": true, "subbed_off": true }
+  ],
+
+  "events": [
+    {
+      "type": "penalty",
+      "detail": "Penalty",
+      "team_side": "away",
+      "player_name": "M. Oyarzabal",
+      "lineup_player_name": "M. Oyarzabal",
+      "minute": 22,
+      "confidence": 1.0,
+      "note": "Penalty EN COURS DE JEU — compte comme un but. À ne pas confondre avec un tir de séance (cf. lib/football/goals.ts)."
+    },
+    {
+      "type": "goal",
+      "detail": "Normal Goal",
+      "team_side": "away",
+      "player_name": "P. Porro",
+      "lineup_player_name": "P. Porro",
+      "minute": 58,
+      "confidence": 1.0
+    }
+  ],
+
+  "absent_from_capture": [
+    "statistiques d'équipe — onglet Statistics non capturé",
+    "minutes des cartons",
+    "remplaçants entrés en jeu et minutes des remplacements",
+    "entraîneurs (zone coupée sur cette capture)"
+  ]
+}

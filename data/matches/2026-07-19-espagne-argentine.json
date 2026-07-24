@@ -1,0 +1,90 @@
+{
+  "source": {
+    "provider": "sofascore",
+    "image": "public/Matchs/Espagne Argentine.png",
+    "captured_at": "2026-07-20",
+    "transcribed_by": "claude",
+    "validated_by": null,
+    "method": "lecture des zones recadrées et agrandies ×3 (les notes sont illisibles sur la capture à l'échelle 1)",
+    "notes": "Onglet Lineups uniquement. L'onglet Statistics n'a pas été capturé : aucune statistique d'équipe disponible. Les minutes des cartons et des remplacements ne sont pas lisibles (seule la présence d'un carton / d'un remplacement l'est)."
+  },
+
+  "match": {
+    "id": "4e83cce3-333b-4e84-a931-824c7f50ef9b",
+    "team_a": "Espagne",
+    "team_b": "Argentine",
+    "phase": "Finale",
+    "score_final": { "a": 1, "b": 0 },
+    "score_regulation": { "a": 0, "b": 0 },
+    "note": "1-0 après prolongation. Ferran Torres 106'. 0-0 au temps réglementaire — c'est ce score qui juge les pronos."
+  },
+
+  "referee": { "name": "Slavko Vinčić", "confidence": 1.0 },
+  "venue": { "name": "MetLife Stadium", "confidence": 1.0 },
+  "managers": {
+    "a": { "name": "Luis De La Fuente", "confidence": 1.0 },
+    "b": { "name": "Lionel Scaloni", "confidence": 1.0 }
+  },
+  "formations": {
+    "a": { "value": "4-2-3-1", "confidence": 1.0 },
+    "b": { "value": "4-4-2", "confidence": 1.0 }
+  },
+  "team_ratings": {
+    "a": { "value": 7.08, "confidence": 1.0 },
+    "b": { "value": 6.71, "confidence": 1.0 }
+  },
+
+  "motm": {
+    "team_side": "b",
+    "player_name": "E. Martínez",
+    "rating": 9.6,
+    "confidence": 1.0,
+    "note": "Explicitement désigné « Player of the match » dans la capture."
+  },
+
+  "lineups": [
+    { "team_side": "a", "number": 23, "player_name": "U. Simón",     "rating": 6.4, "confidence": 1.0, "started": true },
+    { "team_side": "a", "number": 24, "player_name": "M. Cucurella", "rating": 6.9, "confidence": 1.0, "started": true },
+    { "team_side": "a", "number": 14, "player_name": "A. Laporte",   "rating": 7.0, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "a", "number": 22, "player_name": "P. Cubarsí",   "rating": 8.2, "confidence": 1.0, "started": true },
+    { "team_side": "a", "number": 12, "player_name": "P. Porro",     "rating": 7.1, "confidence": 1.0, "started": true },
+    { "team_side": "a", "number": 8,  "player_name": "F. Ruiz",      "rating": 6.6, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "a", "number": 16, "player_name": "Rodri",        "rating": 8.5, "confidence": 1.0, "started": true, "subbed_off": true, "captain": true },
+    { "team_side": "a", "number": 15, "player_name": "A. Baena",     "rating": 6.6, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "a", "number": 10, "player_name": "D. Olmo",      "rating": 7.0, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "a", "number": 21, "player_name": "M. Oyarzabal", "rating": 6.7, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "a", "number": 19, "player_name": "L. Yamal",     "rating": 7.3, "confidence": 1.0, "started": true },
+
+    { "team_side": "b", "number": 23, "player_name": "E. Martínez",    "rating": 9.6, "confidence": 1.0, "started": true },
+    { "team_side": "b", "number": 4,  "player_name": "G. Montiel",     "rating": 6.7, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "b", "number": 13, "player_name": "C. Romero",      "rating": 6.9, "confidence": 1.0, "started": true, "yellow_cards": 1 },
+    { "team_side": "b", "number": 6,  "player_name": "L. Martínez",    "rating": 6.7, "confidence": 1.0, "started": true, "yellow_cards": 1 },
+    { "team_side": "b", "number": 3,  "player_name": "N. Tagliafico",  "rating": 6.7, "confidence": 1.0, "started": true },
+    { "team_side": "b", "number": 7,  "player_name": "R. De Paul",     "rating": 6.4, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "b", "number": 24, "player_name": "E. Fernández",   "rating": 5.9, "confidence": 1.0, "started": true, "red_cards": 1 },
+    { "team_side": "b", "number": 20, "player_name": "A. Mac Allister","rating": 6.6, "confidence": 1.0, "started": true, "yellow_cards": 1 },
+    { "team_side": "b", "number": 15, "player_name": "N. González",    "rating": 6.6, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "b", "number": 10, "player_name": "L. Messi",       "rating": 7.2, "confidence": 1.0, "started": true, "captain": true },
+    { "team_side": "b", "number": 9,  "player_name": "J. Álvarez",     "rating": 6.4, "confidence": 1.0, "started": true, "subbed_off": true }
+  ],
+
+  "events": [
+    {
+      "type": "goal",
+      "detail": "Normal Goal",
+      "team_side": "home",
+      "player_name": "Ferran Torres",
+      "lineup_player_name": null,
+      "minute": 106,
+      "confidence": 1.0,
+      "note": "Prolongation. Entré en cours de jeu — absent du onze de départ, donc aucun lien vers une ligne de composition."
+    }
+  ],
+
+  "absent_from_capture": [
+    "statistiques d'équipe (possession, tirs, corners) — onglet Statistics non capturé",
+    "minutes des cartons",
+    "remplaçants entrés en jeu et minutes des remplacements",
+    "passes décisives"
+  ]
+}

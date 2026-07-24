@@ -376,7 +376,12 @@ function TopPlayers({ players, teamA, teamB, playersCtx }: { players: PlayerMatc
     </p>
   );
 
-  const estimated = players.some((p) => p.source !== "api-football");
+  // Le bandeau « Notes estimées » ne concerne que les notes fabriquées par
+  // l'IA faute de données provider. Les notes 'sofascore' sont de VRAIES notes,
+  // transcrites depuis une capture (cf. scripts/import-match-captures.js) :
+  // les annoncer comme estimées serait faux.
+  const REAL_RATING_SOURCES = ["api-football", "sofascore"];
+  const estimated = players.some((p) => !REAL_RATING_SOURCES.includes(p.source ?? ""));
   const motm = players.find((p) => p.is_motm) ?? null;
   const sortByRating = (arr: PlayerMatchStat[]) =>
     [...arr].sort((x, y) => (y.rating ?? 0) - (x.rating ?? 0));

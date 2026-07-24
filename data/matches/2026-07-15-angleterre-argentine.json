@@ -1,0 +1,94 @@
+{
+  "source": {
+    "provider": "sofascore",
+    "image": "public/Matchs/Argentine Angleterre.png",
+    "captured_at": "2026-07-20",
+    "transcribed_by": "claude",
+    "validated_by": null,
+    "method": "lecture des zones recadrées et agrandies ×3",
+    "notes": "Le nom du fichier suggère Argentine-Angleterre, mais l'équipe à domicile est l'ANGLETERRE. L'ordre retenu suit la capture et la base, pas le nom de fichier."
+  },
+
+  "match": {
+    "id": "6346de58-170b-4080-93ea-309698f1cbd5",
+    "team_a": "Angleterre",
+    "team_b": "Argentine",
+    "phase": "Demis",
+    "score_final": { "a": 1, "b": 2 }
+  },
+
+  "referee": { "name": "Ismail Elfath", "confidence": 1.0 },
+  "venue": { "name": "Mercedes-Benz Stadium", "confidence": 1.0 },
+  "managers": {
+    "a": { "name": null, "confidence": 0, "note": "Zone coupée sur la capture." },
+    "b": { "name": null, "confidence": 0, "note": "Zone coupée sur la capture. Connu par ailleurs (capture de la finale), mais non observé ICI : on n'importe que ce qui est observé." }
+  },
+  "formations": {
+    "a": { "value": "4-2-3-1", "confidence": 1.0 },
+    "b": { "value": "4-1-4-1", "confidence": 1.0 }
+  },
+  "team_ratings": {
+    "a": { "value": 6.60, "confidence": 1.0 },
+    "b": { "value": 6.79, "confidence": 1.0 }
+  },
+
+  "motm": {
+    "team_side": "b",
+    "player_name": "L. Messi",
+    "rating": 8.1,
+    "confidence": 0.9,
+    "note": "Badge « homme du match » sur l'avatar, avec 2 passes décisives."
+  },
+
+  "lineups": [
+    { "team_side": "a", "number": 1,  "player_name": "J. Pickford",   "rating": 6.3, "confidence": 1.0, "started": true },
+    { "team_side": "a", "number": 25, "player_name": "D. Spence",     "rating": 6.5, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "a", "number": 6,  "player_name": "M. Guéhi",      "rating": 6.4, "confidence": 1.0, "started": true },
+    { "team_side": "a", "number": 5,  "player_name": "J. Stones",     "rating": 6.7, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "a", "number": 24, "player_name": "R. James",      "rating": 6.8, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "a", "number": 8,  "player_name": "E. Anderson",   "rating": 7.3, "confidence": 1.0, "started": true, "yellow_cards": 1 },
+    { "team_side": "a", "number": 4,  "player_name": "D. Rice",       "rating": 7.1, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "a", "number": 18, "player_name": "A. Gordon",     "rating": 7.0, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "a", "number": 10, "player_name": "J. Bellingham", "rating": 6.6, "confidence": 1.0, "started": true },
+    { "team_side": "a", "number": 9,  "player_name": "H. Kane",       "rating": 6.5, "confidence": 1.0, "started": true, "captain": true },
+    { "team_side": "a", "number": 17, "player_name": "M. Rogers",     "rating": 7.1, "confidence": 1.0, "started": true, "assists": 1 },
+
+    { "team_side": "b", "number": 23, "player_name": "E. Martínez",     "rating": 6.7, "confidence": 1.0, "started": true },
+    { "team_side": "b", "number": 26, "player_name": "N. Molina",       "rating": 6.1, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "b", "number": 13, "player_name": "C. Romero",       "rating": 7.0, "confidence": 1.0, "started": true, "yellow_cards": 1 },
+    { "team_side": "b", "number": 6,  "player_name": "L. Martínez",     "rating": 6.4, "confidence": 1.0, "started": true, "subbed_off": true, "yellow_cards": 1, "note": "Lisandro Martínez, défenseur. À NE PAS confondre avec Lautaro Martínez, buteur à la 90'+2 et entré en cours de jeu." },
+    { "team_side": "b", "number": 3,  "player_name": "N. Tagliafico",   "rating": 6.3, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "b", "number": 5,  "player_name": "L. Paredes",      "rating": 7.3, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "b", "number": 24, "player_name": "E. Fernández",    "rating": 7.5, "confidence": 1.0, "started": true },
+    { "team_side": "b", "number": 20, "player_name": "A. Mac Allister", "rating": 6.1, "confidence": 1.0, "started": true },
+    { "team_side": "b", "number": 17, "player_name": "G. Simeone",      "rating": 6.1, "confidence": 1.0, "started": true, "subbed_off": true },
+    { "team_side": "b", "number": 10, "player_name": "L. Messi",        "rating": 8.1, "confidence": 1.0, "started": true, "captain": true, "assists": 2 },
+    { "team_side": "b", "number": 9,  "player_name": "J. Álvarez",      "rating": 6.6, "confidence": 1.0, "started": true }
+  ],
+
+  "events": [
+    {
+      "type": "goal", "detail": "Normal Goal", "team_side": "home",
+      "player_name": "Anthony Gordon", "lineup_player_name": "A. Gordon",
+      "minute": 55, "confidence": 1.0
+    },
+    {
+      "type": "goal", "detail": "Normal Goal", "team_side": "away",
+      "player_name": "Enzo Fernández", "lineup_player_name": "E. Fernández",
+      "minute": 85, "confidence": 1.0
+    },
+    {
+      "type": "goal", "detail": "Normal Goal", "team_side": "away",
+      "player_name": "Lautaro Martínez", "lineup_player_name": null,
+      "minute": 90, "extra_minute": 2, "confidence": 1.0,
+      "note": "Entré en cours de jeu. lineup_player_name volontairement null : « L. Martínez » du onze est Lisandro, un autre joueur."
+    }
+  ],
+
+  "absent_from_capture": [
+    "statistiques d'équipe — onglet Statistics non capturé",
+    "minutes des cartons",
+    "remplaçants entrés en jeu et minutes des remplacements",
+    "entraîneur anglais"
+  ]
+}

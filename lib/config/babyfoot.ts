@@ -2,15 +2,17 @@
 //
 // FORMAT : Phase 1 = mini-championnat (chaque binôme joue 3 matchs), classement
 // unique, Top 4 → demies 1v4/2v3, petite finale, finale. Matchs AU TEMPS : 8 min
-// MAX, puis 5 min de prolongation si pas de vainqueur (but en or). Barème max 90
-// (+5 participation, +5 par match joué, +5 par victoire, +10/+15/+20 phases finales).
+// MAX, puis 5 min de prolongation si pas de vainqueur (but en or). Barème max 80
+// pour le champion, cf. championMaxPoints() (+5 participation, +5 par match de
+// championnat joué, +5 par victoire, +10 qualif, +15 demie, +10 petite finale,
+// +20 champion — ces deux derniers étant exclusifs l'un de l'autre).
 //
 // UNE SEULE TABLE → disponibilités par CRÉNEAUX DE 30 MIN (jeu 11-14h, ven 11-14h
 // = 12 créneaux). Un créneau accueille au plus 3 matchs (1 table). Un binôme
 // doit cocher au moins 3 créneaux ; un créneau se ferme à l'inscription au-delà
 // de 8 binômes (souplesse pour le tirage).
 
-export type BabyfootStage = "participation" | "phase1" | "qualified" | "semi_win" | "champion";
+export type BabyfootStage = "participation" | "phase1" | "qualified" | "semi_win" | "third_win" | "champion";
 
 export interface BabyfootSlot {
   key: string; // stocké dans babyfoot_entry_availability.slot_key
@@ -77,6 +79,11 @@ export const BABYFOOT = {
     matchWin: 5, // par victoire de championnat (max 3 → 15)
     qualified: 10, // top 4
     semiWin: 15,
+    // Petite finale gagnée = 3e place. Aligné sur `qualified` : porte le 3e à
+    // 50 pts, donc l'ordre reste strict (champion 80 > finaliste 55 > 3e 50 >
+    // 4e 40). Sans ce palier, 3e et 4e étaient à égalité parfaite et le match
+    // n'avait aucun enjeu de score.
+    thirdWin: 10,
     champion: 20,
   },
 
@@ -85,6 +92,7 @@ export const BABYFOOT = {
     phase1: "Matchs joués & victoires",
     qualified: "Qualifié en demi-finale",
     semi_win: "Vainqueur de demi-finale",
+    third_win: "3e place 🥉",
     champion: "Champion 🏆",
   } as Record<BabyfootStage, string>,
 };
@@ -107,6 +115,9 @@ export function slotStartISO(slotKey: string): string | null {
  * disputés » les paierait deux fois.
  *
  * → 5 + (3×5 + 3×5) + 10 + 15 + 20 = 80.
+ *
+ * `thirdWin` n'entre pas dans ce total : le champion gagne sa demie, il ne joue
+ * donc jamais la petite finale. Les deux paliers sont mutuellement exclusifs.
  */
 export function championMaxPoints(): number {
   const b = BABYFOOT.bareme;

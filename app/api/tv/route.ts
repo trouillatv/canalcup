@@ -9,6 +9,7 @@ import { getAdminEmails } from "@/lib/data/roles";
 import { getHallOfShame, getVisionnaire, getDrama, getFantomes } from "@/lib/data/tv-stories";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getWCTeamByName, type WCPlayer } from "@/lib/football/wc-teams";
+import { hasShootout, isCountedGoal } from "@/lib/football/goals";
 import { AMBIANCE_STATES } from "@/lib/tv/hype";
 import { NextResponse } from "next/server";
 import type { Match } from "@/lib/supabase/types";
@@ -289,16 +290,19 @@ async function getTopScorerBets(
 // Compte les buts marqués (goal + penalty) ; les buts contre son camp (detail
 // "own") ne créditent PAS le joueur, on les ignore.
 async function getTopScorers(
-  supabase: ReturnType<typeof createAdminClient>
+  supabase: ReturnType<typeof createAdminClient>,
+  shootoutMatchIds: Set<string>
 ): Promise<{ name: string; count: number }[]> {
   try {
     const { data } = await supabase
       .from("match_events")
-      .select("player_name, type, detail")
+      .select("match_id, player_name, type, detail, minute")
       .in("type", ["goal", "penalty"]);
     const counts: Record<string, number> = {};
     for (const e of data ?? []) {
       if ((e.detail ?? "").toLowerCase().includes("own")) continue; // csc → pas au buteur
+      // Écarte penaltys manqués et tirs au but (cf. lib/football/goals.ts).
+      if (e.type === "goal" && !isCountedGoal(e, shootoutMatchIds.has(e.match_id))) continue;
       const v = (e.player_name ?? "").trim();
       if (v) counts[v] = (counts[v] ?? 0) + 1;
     }
@@ -384,6 +388,12 @@ export async function GET() {
     }
   } catch {}
 
+  // Matchs allés aux tirs au but : leurs événements de séance ne comptent ni
+  // aux buteurs ni aux buteurs affichés sous les scores (cf. lib/football/goals.ts).
+  const shootoutMatchIds = new Set(
+    matches.filter((m) => hasShootout(m as { pen_a?: number | null; pen_b?: number | null })).map((m) => m.id)
+  );
+
   // Goalscorer events for the results slide (finished / live / halftime matches)
   let matchEvents: Array<{ match_id: string; team_side: string; player_name: string | null; type: string; minute: number | null; extra_minute: number | null; detail: string | null }> = [];
   try {
@@ -397,12 +407,16 @@ export async function GET() {
         .in("match_id", scorableIds)
         .in("type", ["goal", "penalty"])
         .order("minute", { ascending: true });
-      matchEvents = evts ?? [];
+      // Les tirs au but ne figurent pas sous le score (Sofascore non plus) :
+      // la finale n'affiche que « Ferran Torres 106' », pas la séance.
+      matchEvents = (evts ?? []).filter(
+        (e) => e.type !== "goal" || isCountedGoal(e, shootoutMatchIds.has(e.match_id))
+      );
     }
   } catch {}
 
   // Meilleurs buteurs réels (tournoi entier) — affichés face aux buteurs pariés.
-  const topScorers = await getTopScorers(supabase);
+  const topScorers = await getTopScorers(supabase, shootoutMatchIds);
 
   return NextResponse.json({
     matches,
