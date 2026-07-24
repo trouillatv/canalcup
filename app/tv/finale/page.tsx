@@ -30,6 +30,27 @@ async function getScorerRace(admin: ReturnType<typeof createAdminClient>) {
   };
 }
 
+async function getTeamRaceHistory(admin: ReturnType<typeof createAdminClient>, finalTeams: { team: { id: string; name: string }; total: number }[]) {
+  const { data: events } = await admin.from("score_events").select("team_id, raw_points, created_at").order("created_at", { ascending: true });
+  const byId = new Map(finalTeams.map((t) => [t.team.id, t]));
+  const days = [...new Set((events ?? []).map((e) => (e.created_at ?? "").slice(0, 10)).filter(Boolean))].sort();
+  const frames = days.map((day) => {
+    const totals = new Map<string, number>();
+    for (const e of events ?? []) {
+      if ((e.created_at ?? "").slice(0, 10) > day || !e.team_id) continue;
+      totals.set(e.team_id, (totals.get(e.team_id) ?? 0) + (e.raw_points ?? 0));
+    }
+    return {
+      label: new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "short" }).format(new Date(`${day}T12:00:00`)),
+      items: finalTeams.map((t) => ({ name: t.team.name, points: totals.get(t.team.id) ?? 0, rank: 0 }))
+        .sort((a, b) => b.points - a.points || (byId.get(finalTeams.find((x) => x.team.name === a.name)?.team.id ?? "")?.total ?? 0) - (byId.get(finalTeams.find((x) => x.team.name === b.name)?.team.id ?? "")?.total ?? 0))
+        .map((x, i) => ({ ...x, rank: i + 1 })).slice(0, 10),
+    };
+  });
+  const finalFrame = { label: "CLASSEMENT FINAL", items: finalTeams.slice(0, 10).map((t, i) => ({ name: t.team.name, points: t.total, rank: i + 1 })) };
+  return [...frames, finalFrame].filter((frame, i, all) => i === 0 || JSON.stringify(frame.items) !== JSON.stringify(all[i - 1].items));
+}
+
 export default async function FinaleTvPage() {
   const admin = createAdminClient();
   const [teams, individuals, services, tournament, counts, scorerRace] = await Promise.all([
@@ -57,6 +78,7 @@ export default async function FinaleTvPage() {
 
   const data: CeremonyTvData = {
     teams: teams.map((row) => ({ name: row.team.name, points: row.total, rank: row.rank })),
+    teamRaceHistory: await getTeamRaceHistory(admin, teams.map((row) => ({ team: { id: row.team.id, name: row.team.name }, total: row.total }))),
     players: individuals.filter((row) => row.total > 0).sort((a, b) => b.total - a.total).map((row, index) => ({
       name: row.display_name ?? "Joueur", points: row.total, rank: index + 1,
     })),
