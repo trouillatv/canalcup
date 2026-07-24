@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 type Item = { name: string; points: number; rank: number };
 export type CeremonyTvData = { teams: Item[]; players: Item[]; pronostics: Item[]; quiz: Item[]; services: Item[]; babyfoot: Item[]; bracket: { phase: string; a: string; b: string; scoreA: number | null; scoreB: number | null }[]; stats: Record<string, number> };
 const slides = ["opening","numbers","team-race","teams","player-race","pronostics","quiz","services","bracket","babyfoot","hall","moments","thanks","rewards"];
-const durations = [24000,26000,38000,36000,38000,30000,30000,30000,34000,32000,32000,26000,24000,48000];
+// Rotation courte pour une diffusion vivante : environ 8 à 12 secondes par écran.
+const durations = [10000,9000,11000,11000,11000,9000,9000,9000,11000,11000,10000,9000,9000,12000];
 const titles: Record<string,string> = { opening:"OUVERTURE", numbers:"LA COMPÉTITION EN CHIFFRES", "team-race":"LA COURSE DES ÉQUIPES", teams:"CLASSEMENT FINAL", "player-race":"LA COURSE INDIVIDUELLE", pronostics:"PRONOSTICS", quiz:"QUIZ", services:"LES SERVICES", bracket:"LE DERNIER ACTE", babyfoot:"CLASSEMENT BABY-FOOT", hall:"HALL OF FAME", moments:"MOMENTS FORTS", thanks:"MERCI", rewards:"RÉCOMPENSES" };
 
 function Rows({ items, unit, limit = 8 }: { items: Item[]; unit: string; limit?: number }) { return <div className="tv-ranking"><div className="tv-ranking-head"><span>{unit}</span><span>POINTS</span></div>{items.slice(0,limit).map((x,i)=><div className={`tv-rank-row ${i===0?"is-winner":""}`} key={`${x.name}-${x.rank}`}><b>{String(x.rank).padStart(2,"0")}</b><span>{x.name}</span><strong>{Math.round(x.points)}</strong></div>)}</div>; }
