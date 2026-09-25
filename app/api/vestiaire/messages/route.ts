@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentSocialUser } from "@/lib/social/profile";
 import { competitionLock } from "@/lib/event/status";
+import { featureGuardResponse } from "@/lib/features/flags";
 
 async function canAccessChannel(channelId: string, teamId: string | null) {
   const admin = createAdminClient();
@@ -71,6 +72,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const blocked = featureGuardResponse("social");
+  if (blocked) return blocked;
   // 🔒 Canal Cup terminée → plus aucune écriture de jeu (403).
   const locked = await competitionLock();
   if (locked) return locked;

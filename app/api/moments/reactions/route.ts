@@ -5,8 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { MOMENT_REACTIONS } from "@/lib/moments/categories";
 import { competitionLock } from "@/lib/event/status";
+import { featureGuardResponse } from "@/lib/features/flags";
 
 export async function POST(req: Request) {
+  const blocked = featureGuardResponse("social");
+  if (blocked) return blocked;
   // 🔒 Canal Cup terminée → plus aucune écriture de jeu (403).
   const locked = await competitionLock();
   if (locked) return locked;

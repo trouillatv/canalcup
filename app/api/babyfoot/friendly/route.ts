@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveUserBinome } from "@/lib/data/babyfoot";
 import { competitionLock } from "@/lib/event/status";
+import { featureGuardResponse } from "@/lib/features/flags";
 
 export async function GET() {
   const admin = createAdminClient();
@@ -20,6 +21,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const blocked = featureGuardResponse("babyfoot");
+  if (blocked) return blocked;
   // 🔒 Canal Cup terminée → plus aucune écriture de jeu (403).
   const locked = await competitionLock();
   if (locked) return locked;

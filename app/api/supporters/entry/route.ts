@@ -9,6 +9,7 @@ import { awardToTeam, revokeAward, PARTICIPATION_POINTS, PARTICIPATION_LABEL, po
 import { sendPushToAll } from "@/lib/push";
 import { SUPPORTERS_PUSH_ENABLED, publishOpen } from "@/lib/supporters/access";
 import { competitionLock } from "@/lib/event/status";
+import { featureGuardResponse } from "@/lib/features/flags";
 
 const BUCKET = "supporter-photos";
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 Mo
@@ -17,6 +18,8 @@ const ALLOWED_IMAGE = ["image/jpeg", "image/png", "image/webp"];
 const ALLOWED_VIDEO = ["video/mp4", "video/webm", "video/quicktime"];
 
 export async function POST(req: Request) {
+  const blocked = featureGuardResponse("social");
+  if (blocked) return blocked;
   // 🔒 Canal Cup terminée → plus aucune écriture de jeu (403).
   const locked = await competitionLock();
   if (locked) return locked;
@@ -174,6 +177,8 @@ export async function POST(req: Request) {
 // Retire photo principale + bonus + votes + réactions + commentaires + points de
 // participation. Le binôme peut ensuite republier. Modération orga = séparée.
 export async function DELETE(req: Request) {
+  const blocked = featureGuardResponse("social");
+  if (blocked) return blocked;
   // 🔒 Canal Cup terminée → plus aucune écriture de jeu (403).
   const locked = await competitionLock();
   if (locked) return locked;
@@ -220,6 +225,8 @@ export async function DELETE(req: Request) {
 // l'ordre d'affichage/le visuel voté change. Permet de « mettre en principal »
 // une 2e photo sans rien perdre.
 export async function PATCH(req: Request) {
+  const blocked = featureGuardResponse("social");
+  if (blocked) return blocked;
   // 🔒 Canal Cup terminée → plus aucune écriture de jeu (403).
   const locked = await competitionLock();
   if (locked) return locked;

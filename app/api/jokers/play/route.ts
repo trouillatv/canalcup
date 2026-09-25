@@ -7,8 +7,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { playJoker } from "@/lib/jokers/service";
 import { isJokerType } from "@/lib/jokers/catalog";
 import { competitionLock } from "@/lib/event/status";
+import { featureGuardResponse } from "@/lib/features/flags";
 
 export async function POST(req: Request) {
+  const blocked = featureGuardResponse("jokers");
+  if (blocked) return blocked;
   // 🔒 Canal Cup terminée → plus aucune écriture de jeu (403).
   const locked = await competitionLock();
   if (locked) return locked;

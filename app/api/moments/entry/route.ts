@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { MOMENT_CATEGORY_KEYS } from "@/lib/moments/categories";
 import { competitionLock } from "@/lib/event/status";
+import { featureGuardResponse } from "@/lib/features/flags";
 
 const BUCKET = "canalcup-moments";
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 Mo
@@ -14,6 +15,8 @@ const ALLOWED_IMAGE = ["image/jpeg", "image/png", "image/webp"];
 const ALLOWED_VIDEO = ["video/mp4", "video/webm", "video/quicktime"];
 
 export async function POST(req: Request) {
+  const blocked = featureGuardResponse("social");
+  if (blocked) return blocked;
   // 🔒 Canal Cup terminée → plus aucune écriture de jeu (403).
   const locked = await competitionLock();
   if (locked) return locked;

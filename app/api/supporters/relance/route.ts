@@ -9,8 +9,11 @@ import { getCurrentUserRole } from "@/lib/auth/session";
 import { isSupportersOrganizer } from "@/lib/supporters/access";
 import { sendPushToUser } from "@/lib/push";
 import { competitionLock } from "@/lib/event/status";
+import { featureGuardResponse } from "@/lib/features/flags";
 
 export async function POST(req: Request) {
+  const blocked = featureGuardResponse("social");
+  if (blocked) return blocked;
   // 🔒 Canal Cup terminée → plus aucune écriture de jeu (403).
   const locked = await competitionLock();
   if (locked) return locked;

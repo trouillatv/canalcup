@@ -16,6 +16,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getActiveOfficialTournament, getRealParticipants } from "@/lib/data/babyfoot";
 import { competitionLock } from "@/lib/event/status";
+import { featureGuardResponse } from "@/lib/features/flags";
 
 const no = { headers: { "Cache-Control": "no-store" } };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -113,6 +114,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const blocked = featureGuardResponse("babyfoot");
+  if (blocked) return blocked;
   // 🔒 Canal Cup terminée → plus aucune écriture de jeu (403).
   const locked = await competitionLock();
   if (locked) return locked;
