@@ -57,8 +57,13 @@ export async function POST(req: Request) {
   if (!serviceId) {
     return NextResponse.json({ error: "Service requis." }, { status: 400 });
   }
-  if (!["expert", "amateur", "ambiance"].includes(footballLevel)) {
-    return NextResponse.json({ error: "Niveau foot requis." }, { status: 400 });
+  // football_level n'est plus requis pour compléter le profil (voir
+  // middleware.ts) : c'est une préférence foot facultative, pas une
+  // condition structurelle. Toujours validé s'il est fourni (flux
+  // Canal Cup existant), simplement optionnel pour un onboarding
+  // sport-neutre (CANAL Sports).
+  if (footballLevel && !["expert", "amateur", "ambiance"].includes(footballLevel)) {
+    return NextResponse.json({ error: "Niveau foot invalide." }, { status: 400 });
   }
 
   const admin = createAdminClient();
@@ -78,7 +83,9 @@ export async function POST(req: Request) {
     display_name: displayName,
     user_slug: slug,
     service_id: serviceId,
-    football_level: footballLevel,
+    // Absent (onboarding sport-neutre) → ne touche pas la colonne plutôt
+    // que d'écraser une valeur existante avec une chaîne vide.
+    ...(footballLevel ? { football_level: footballLevel } : {}),
     timezone,
     onboarding_step: 1,
     profile_completed: true,

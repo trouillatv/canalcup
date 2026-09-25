@@ -113,14 +113,18 @@ export async function middleware(request: NextRequest) {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("profile_completed, service_id, football_level, display_name, name")
+    .select("profile_completed, service_id, display_name, name")
     .eq("auth_id", user.id)
     .single();
 
+  // football_level n'est plus une condition structurelle de complétude du
+  // profil (dette identifiée dans AUDIT-CANAL-SPORTS.md) : c'était une
+  // préférence spécifique au foot, pas un champ générique multi-sport. Le
+  // MVP CANAL Sports ne requiert que service + nom ; les préférences sport
+  // viendront plus tard (cf. docs/adr/0001-multi-sport-data-model.md).
   const incomplete =
     !profile?.profile_completed ||
     !profile.service_id ||
-    !profile.football_level ||
     !((profile.display_name ?? "").trim() || (profile.name ?? "").trim());
 
   if (incomplete) {
