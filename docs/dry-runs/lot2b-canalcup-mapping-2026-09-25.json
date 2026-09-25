@@ -1,0 +1,763 @@
+{
+  "generated_at_note": "voir created_at des lignes source, ce script ne timestampe pas lui-même",
+  "unexpected_columns": {
+    "services": [],
+    "users": [
+      "avatar_url",
+      "last_login_at"
+    ]
+  },
+  "organizations": [
+    {
+      "legacy_id": "45c2b5ef-c899-4efd-9c94-d2814f720ab8",
+      "proposed_slug": "si",
+      "name": "SI",
+      "type": "service",
+      "parent_id": null,
+      "is_active": true,
+      "sort_order": 1,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "8e614c8a-00d2-47e8-933b-6cec654685aa",
+      "proposed_slug": "crc",
+      "name": "CRC",
+      "type": "service",
+      "parent_id": null,
+      "is_active": true,
+      "sort_order": 2,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "4dbd27ce-d6ac-4e57-8df8-8b7708388d67",
+      "proposed_slug": "boutique",
+      "name": "Boutique",
+      "type": "service",
+      "parent_id": null,
+      "is_active": true,
+      "sort_order": 3,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "01a92cc1-4539-4524-841b-9619a757abf3",
+      "proposed_slug": "ventes-directes",
+      "name": "Ventes Directes",
+      "type": "service",
+      "parent_id": null,
+      "is_active": true,
+      "sort_order": 4,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "a5062f05-b233-43eb-866c-ac6155c572f2",
+      "proposed_slug": "marketing",
+      "name": "Marketing",
+      "type": "service",
+      "parent_id": null,
+      "is_active": true,
+      "sort_order": 5,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "12d8914c-8865-4324-943a-4d6be78ebdb3",
+      "proposed_slug": "comptabilite",
+      "name": "Comptabilité",
+      "type": "service",
+      "parent_id": null,
+      "is_active": true,
+      "sort_order": 6,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "06d47a88-48bd-4aa6-816a-a5f29d3367c8",
+      "proposed_slug": "technique",
+      "name": "Technique",
+      "type": "service",
+      "parent_id": null,
+      "is_active": true,
+      "sort_order": 7,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "71576dae-fac6-48da-a53b-40422ceb96f2",
+      "proposed_slug": "direction",
+      "name": "Direction",
+      "type": "service",
+      "parent_id": null,
+      "is_active": true,
+      "sort_order": 8,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "de0fb34d-584e-4461-b124-f9ea93a4e37d",
+      "proposed_slug": "commerce",
+      "name": "Commerce",
+      "type": "service",
+      "parent_id": null,
+      "is_active": true,
+      "sort_order": 9,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "8e7c7ac9-74cf-4527-a049-f50ffc2c02f5",
+      "proposed_slug": "autre",
+      "name": "Autre",
+      "type": "service",
+      "parent_id": null,
+      "is_active": true,
+      "sort_order": 10,
+      "status": "CREATE_READY",
+      "reasons": []
+    }
+  ],
+  "users": [
+    {
+      "legacy_id": "d6c77233-96c5-43fe-bbd3-e7ea26754ab5",
+      "source_identity": "Vincent",
+      "email_raw": "trouillatv@gmail.com",
+      "email_normalized": "trouillatv@gmail.com",
+      "proposed_organization_slug": "si",
+      "proposed_organization_name": "SI",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "NEEDS_DECISION",
+      "reasons": [
+        "domaine email \"gmail.com\" différent du domaine requis \"canal-plus.com\" (lib/auth/email-domain.ts) — possible coquille source ou collaborateur externe légitime, non corrigé automatiquement"
+      ]
+    },
+    {
+      "legacy_id": "8a6489bc-9a62-4429-99be-cf504220a755",
+      "source_identity": "LaVARe",
+      "email_raw": "vincent.trouillat@canal-plus.com",
+      "email_normalized": "vincent.trouillat@canal-plus.com",
+      "proposed_organization_slug": "si",
+      "proposed_organization_name": "SI",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "9a235310-d216-4337-9b40-342ebfe61f45",
+      "source_identity": "Lili C+",
+      "email_raw": "aurelie.decooman@canal-plus.com",
+      "email_normalized": "aurelie.decooman@canal-plus.com",
+      "proposed_organization_slug": "commerce",
+      "proposed_organization_name": "Commerce",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "4e9d27c7-5600-4748-a2dd-d1f9a0b731b0",
+      "source_identity": "Rina",
+      "email_raw": "rina.kumar@canal-plus.com",
+      "email_normalized": "rina.kumar@canal-plus.com",
+      "proposed_organization_slug": "ventes-directes",
+      "proposed_organization_name": "Ventes Directes",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "99a1c1e7-e5ca-470d-93be-e2d3e2daceb6",
+      "source_identity": "Mo'",
+      "email_raw": "mohea.mens@canal-plus.com",
+      "email_normalized": "mohea.mens@canal-plus.com",
+      "proposed_organization_slug": "crc",
+      "proposed_organization_name": "CRC",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "dd2c3065-2798-4504-925d-3d82a954b811",
+      "source_identity": "sylvie.tambunan",
+      "email_raw": "sylvie.tambunan@canal-plus.cim",
+      "email_normalized": "sylvie.tambunan@canal-plus.cim",
+      "proposed_organization_slug": null,
+      "proposed_organization_name": null,
+      "proposed_role": "member",
+      "is_primary": false,
+      "status": "NEEDS_DECISION",
+      "reasons": [
+        "domaine email \"canal-plus.cim\" différent du domaine requis \"canal-plus.com\" (lib/auth/email-domain.ts) — possible coquille source ou collaborateur externe légitime, non corrigé automatiquement",
+        "service_id absent en source — aucune organisation proposée, utilisateur importable sans membership"
+      ]
+    },
+    {
+      "legacy_id": "650140e6-03ad-465d-b60b-0f76d88a1fca",
+      "source_identity": "Killian",
+      "email_raw": "killian.henriot@canal-plus.com",
+      "email_normalized": "killian.henriot@canal-plus.com",
+      "proposed_organization_slug": "crc",
+      "proposed_organization_name": "CRC",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "1a4345e9-f7d8-451d-b53d-9d580d108be1",
+      "source_identity": "Pegase",
+      "email_raw": "julijos.soekidjan@canal-plus.com",
+      "email_normalized": "julijos.soekidjan@canal-plus.com",
+      "proposed_organization_slug": "si",
+      "proposed_organization_name": "SI",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "c4e64b2a-0c38-491a-ad9c-50ca39cd643c",
+      "source_identity": "Kriss",
+      "email_raw": "christel.sakiman@canal-plus.com",
+      "email_normalized": "christel.sakiman@canal-plus.com",
+      "proposed_organization_slug": "si",
+      "proposed_organization_name": "SI",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "77cf2f78-92a4-4ff1-b578-bed9974dbb06",
+      "source_identity": "Agathe",
+      "email_raw": "agathe.delacheisserie@canal-plus.com",
+      "email_normalized": "agathe.delacheisserie@canal-plus.com",
+      "proposed_organization_slug": "direction",
+      "proposed_organization_name": "Direction",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "e26f42e7-1c58-4d35-9236-f49d5775be8c",
+      "source_identity": "Tonton D",
+      "email_raw": "david.wiria@canal-plus.com",
+      "email_normalized": "david.wiria@canal-plus.com",
+      "proposed_organization_slug": "si",
+      "proposed_organization_name": "SI",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "b4330eef-b847-43c7-86bb-7ec12775e55a",
+      "source_identity": "gabrielle.milin",
+      "email_raw": "gabrielle.milin@canal-plus.com",
+      "email_normalized": "gabrielle.milin@canal-plus.com",
+      "proposed_organization_slug": null,
+      "proposed_organization_name": null,
+      "proposed_role": "member",
+      "is_primary": false,
+      "status": "CREATE_WITH_WARNING",
+      "reasons": [
+        "service_id absent en source — aucune organisation proposée, utilisateur importable sans membership"
+      ]
+    },
+    {
+      "legacy_id": "cbce6d7d-4218-481b-8449-d82dddb73206",
+      "source_identity": "Selmouche",
+      "email_raw": "selma.uygun@canal-plus.com",
+      "email_normalized": "selma.uygun@canal-plus.com",
+      "proposed_organization_slug": "marketing",
+      "proposed_organization_name": "Marketing",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "5fca3741-b905-4d16-a691-030140222399",
+      "source_identity": "El Valentinho",
+      "email_raw": "valentin.sevin@canal-plus.com",
+      "email_normalized": "valentin.sevin@canal-plus.com",
+      "proposed_organization_slug": "commerce",
+      "proposed_organization_name": "Commerce",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "e63065b7-fb2d-48d6-8b4f-d7529cdc3cbc",
+      "source_identity": "CAROALLÉLESBLEUS",
+      "email_raw": "caroline.qenegei@canal-plus.com",
+      "email_normalized": "caroline.qenegei@canal-plus.com",
+      "proposed_organization_slug": "marketing",
+      "proposed_organization_name": "Marketing",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "2b578a33-d895-4d09-b092-75509b6a5c15",
+      "source_identity": "Océane",
+      "email_raw": "oceane.hermantmelas@canal-plus.com",
+      "email_normalized": "oceane.hermantmelas@canal-plus.com",
+      "proposed_organization_slug": "technique",
+      "proposed_organization_name": "Technique",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "21e9ced7-39f6-48d1-bf1d-6c57680e289d",
+      "source_identity": "Soy",
+      "email_raw": "soraya.nguyen@canal-plus.com",
+      "email_normalized": "soraya.nguyen@canal-plus.com",
+      "proposed_organization_slug": "marketing",
+      "proposed_organization_name": "Marketing",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "32b4d909-ab3e-4b4b-a483-bdb94f913f4d",
+      "source_identity": "Marylolo",
+      "email_raw": "marie-loane.diemene@canal-plus.com",
+      "email_normalized": "marie-loane.diemene@canal-plus.com",
+      "proposed_organization_slug": "marketing",
+      "proposed_organization_name": "Marketing",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "7f737336-28b2-4d04-95ee-69c1bc620701",
+      "source_identity": "Je m'en FOOT (ou pas)",
+      "email_raw": "leila.wohler@canal-plus.com",
+      "email_normalized": "leila.wohler@canal-plus.com",
+      "proposed_organization_slug": "marketing",
+      "proposed_organization_name": "Marketing",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "678985f3-04fe-46c2-86c8-62949396caf1",
+      "source_identity": "AimePi",
+      "email_raw": "matthieu.petit@canal-plus.com",
+      "email_normalized": "matthieu.petit@canal-plus.com",
+      "proposed_organization_slug": "direction",
+      "proposed_organization_name": "Direction",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "b6a10b5c-2962-49c7-8467-3d2800b19246",
+      "source_identity": "Foutix",
+      "email_raw": "veronique.petitjean@canal-plus.com",
+      "email_normalized": "veronique.petitjean@canal-plus.com",
+      "proposed_organization_slug": "boutique",
+      "proposed_organization_name": "Boutique",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "d49bc99e-c49e-4c7c-aedb-e9363ddcc352",
+      "source_identity": "MAWI",
+      "email_raw": "marie.lucas@canal-plus.com",
+      "email_normalized": "marie.lucas@canal-plus.com",
+      "proposed_organization_slug": "marketing",
+      "proposed_organization_name": "Marketing",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "33021903-14a1-44c2-ab37-b836e2ccf527",
+      "source_identity": "SOFOUFOOT",
+      "email_raw": "sophie.barbier@canal-plus.com",
+      "email_normalized": "sophie.barbier@canal-plus.com",
+      "proposed_organization_slug": "marketing",
+      "proposed_organization_name": "Marketing",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "aaf58bf3-82e4-4abf-a691-12addcd0c7ae",
+      "source_identity": "NATOCHE",
+      "email_raw": "nathalie.costeseque@canal-plus.com",
+      "email_normalized": "nathalie.costeseque@canal-plus.com",
+      "proposed_organization_slug": "autre",
+      "proposed_organization_name": "Autre",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "77cd243c-90d2-4029-b318-13c803302ec6",
+      "source_identity": "🏃‍♀️💨⚽⚡🥅🎯Mbappé TROL 🔥",
+      "email_raw": "alain.celaries@canal-plus.com",
+      "email_normalized": "alain.celaries@canal-plus.com",
+      "proposed_organization_slug": "si",
+      "proposed_organization_name": "SI",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "a8956e28-9cea-4179-91c0-52a1bf3c5969",
+      "source_identity": "Erve",
+      "email_raw": "eric.veyret@canal-plus.com",
+      "email_normalized": "eric.veyret@canal-plus.com",
+      "proposed_organization_slug": "autre",
+      "proposed_organization_name": "Autre",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "5cdeb6cb-1610-4bb4-b161-4a8d1d3a0041",
+      "source_identity": "Manonito",
+      "email_raw": "manon.mitton@canal-plus.com",
+      "email_normalized": "manon.mitton@canal-plus.com",
+      "proposed_organization_slug": "ventes-directes",
+      "proposed_organization_name": "Ventes Directes",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "a4aeb679-8565-4406-bef0-a6ef4326e3c8",
+      "source_identity": "Les lions de PARIS",
+      "email_raw": "rodolphe.picard@canal-plus.com",
+      "email_normalized": "rodolphe.picard@canal-plus.com",
+      "proposed_organization_slug": "commerce",
+      "proposed_organization_name": "Commerce",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "1444902f-8821-4e9f-a1c3-0dce78e1360b",
+      "source_identity": "JULIE",
+      "email_raw": "julie.decooman@canal-plus.com",
+      "email_normalized": "julie.decooman@canal-plus.com",
+      "proposed_organization_slug": "crc",
+      "proposed_organization_name": "CRC",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "6559c0ce-b921-4de9-9c3e-2ec9ef84ebe2",
+      "source_identity": "Sacha",
+      "email_raw": "sacha.lehe@canal-plus.com",
+      "email_normalized": "sacha.lehe@canal-plus.com",
+      "proposed_organization_slug": "ventes-directes",
+      "proposed_organization_name": "Ventes Directes",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "91e3a3ae-542e-46b4-bcc5-3e40c85f7352",
+      "source_identity": "Miguelito",
+      "email_raw": "miguel.rainal@canal-plus.com",
+      "email_normalized": "miguel.rainal@canal-plus.com",
+      "proposed_organization_slug": "ventes-directes",
+      "proposed_organization_name": "Ventes Directes",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "2cf5ec17-ea6e-431f-b64b-69e91486aedc",
+      "source_identity": "Laurya",
+      "email_raw": "marie-marthe.hnalep@canal-plus.com",
+      "email_normalized": "marie-marthe.hnalep@canal-plus.com",
+      "proposed_organization_slug": "commerce",
+      "proposed_organization_name": "Commerce",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "71e3f383-655d-4145-8d93-a3b711ff4953",
+      "source_identity": "wendykumar",
+      "email_raw": "wendykumar@canal-plus.com",
+      "email_normalized": "wendykumar@canal-plus.com",
+      "proposed_organization_slug": null,
+      "proposed_organization_name": null,
+      "proposed_role": "member",
+      "is_primary": false,
+      "status": "CREATE_WITH_WARNING",
+      "reasons": [
+        "service_id absent en source — aucune organisation proposée, utilisateur importable sans membership"
+      ]
+    },
+    {
+      "legacy_id": "f97b012d-8943-48db-8209-25a4aa225f2d",
+      "source_identity": "wendy",
+      "email_raw": "wendykumar@hotmail.fr",
+      "email_normalized": "wendykumar@hotmail.fr",
+      "proposed_organization_slug": "ventes-directes",
+      "proposed_organization_name": "Ventes Directes",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "NEEDS_DECISION",
+      "reasons": [
+        "domaine email \"hotmail.fr\" différent du domaine requis \"canal-plus.com\" (lib/auth/email-domain.ts) — possible coquille source ou collaborateur externe légitime, non corrigé automatiquement"
+      ]
+    },
+    {
+      "legacy_id": "21ecb4f7-ae1d-47f7-8222-d4681381c29b",
+      "source_identity": "Anaïs",
+      "email_raw": "anais.morel@canal-plus.com",
+      "email_normalized": "anais.morel@canal-plus.com",
+      "proposed_organization_slug": "marketing",
+      "proposed_organization_name": "Marketing",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "b8aaf438-daae-4009-be38-3c4f0c225833",
+      "source_identity": "FC Roberta",
+      "email_raw": "capucine.albisetti@canal-plus.com",
+      "email_normalized": "capucine.albisetti@canal-plus.com",
+      "proposed_organization_slug": "comptabilite",
+      "proposed_organization_name": "Comptabilité",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "1ca62bd0-a40e-4605-bf22-96bbbab1b75c",
+      "source_identity": "Jpréfèrlehockey",
+      "email_raw": "sylvie.tambunan@canal-plus.com",
+      "email_normalized": "sylvie.tambunan@canal-plus.com",
+      "proposed_organization_slug": "technique",
+      "proposed_organization_name": "Technique",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "b83dea6e-6bd7-414b-b6c0-3cb82648b4df",
+      "source_identity": "Léty de Koné",
+      "email_raw": "laetitia.puccianti@canal-plus.com",
+      "email_normalized": "laetitia.puccianti@canal-plus.com",
+      "proposed_organization_slug": "commerce",
+      "proposed_organization_name": "Commerce",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "f8e70b4c-ce21-464d-a127-7ce7c1771e8f",
+      "source_identity": "Coco deschamps",
+      "email_raw": "justine.levos@canal-plus.com",
+      "email_normalized": "justine.levos@canal-plus.com",
+      "proposed_organization_slug": "commerce",
+      "proposed_organization_name": "Commerce",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "853a8636-9f99-4129-aade-f591440275e2",
+      "source_identity": "ValyFoot",
+      "email_raw": "valerie.tanzilli@canal-plus.com",
+      "email_normalized": "valerie.tanzilli@canal-plus.com",
+      "proposed_organization_slug": "comptabilite",
+      "proposed_organization_name": "Comptabilité",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "1426706c-5ef2-4198-ab0c-d1d18606e11d",
+      "source_identity": "JEFF",
+      "email_raw": "jean-frederic.schmitt@canal-plus.com",
+      "email_normalized": "jean-frederic.schmitt@canal-plus.com",
+      "proposed_organization_slug": "technique",
+      "proposed_organization_name": "Technique",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "d95a56cf-aec6-43bf-add0-241868759fe9",
+      "source_identity": "Tahitian boy 🌺",
+      "email_raw": "tuhiti.tuahine@canal-plus.com",
+      "email_normalized": "tuhiti.tuahine@canal-plus.com",
+      "proposed_organization_slug": "commerce",
+      "proposed_organization_name": "Commerce",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "15fc7b78-55b1-405a-a2d2-860fe9c6d21c",
+      "source_identity": "Christian",
+      "email_raw": "christian.helme@canal-plus.com",
+      "email_normalized": "christian.helme@canal-plus.com",
+      "proposed_organization_slug": "commerce",
+      "proposed_organization_name": "Commerce",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "08140802-e120-4820-8be8-a66a8cc55237",
+      "source_identity": "Helene",
+      "email_raw": "helene.adrey@canal-plus.com",
+      "email_normalized": "helene.adrey@canal-plus.com",
+      "proposed_organization_slug": "marketing",
+      "proposed_organization_name": "Marketing",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "17751d7e-c62d-4294-b097-6e1950efafa5",
+      "source_identity": "Karl",
+      "email_raw": "karl.michelon@canal-plus.com",
+      "email_normalized": "karl.michelon@canal-plus.com",
+      "proposed_organization_slug": "commerce",
+      "proposed_organization_name": "Commerce",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "9fbb4e88-860d-4a78-8b3e-a773c21ddd32",
+      "source_identity": "Oh oh",
+      "email_raw": "audrey.tanghmelen@canal-plus.com",
+      "email_normalized": "audrey.tanghmelen@canal-plus.com",
+      "proposed_organization_slug": "boutique",
+      "proposed_organization_name": "Boutique",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "08a64dff-10b9-49f9-82e0-d91b11c920c6",
+      "source_identity": "NICOLAS",
+      "email_raw": "nicolas.gorget@canal-plus.com",
+      "email_normalized": "nicolas.gorget@canal-plus.com",
+      "proposed_organization_slug": "commerce",
+      "proposed_organization_name": "Commerce",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "a5bb91c7-8ac8-48e3-b25c-9e11bbbb9561",
+      "source_identity": "La Joconde",
+      "email_raw": "monalisa.tufele@canal-plus.com",
+      "email_normalized": "monalisa.tufele@canal-plus.com",
+      "proposed_organization_slug": "crc",
+      "proposed_organization_name": "CRC",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    },
+    {
+      "legacy_id": "ab63c483-dae8-4e5c-9dd7-8b3ab17fad0a",
+      "source_identity": "Foulques",
+      "email_raw": "foulques.lauzin@canal-plus.com",
+      "email_normalized": "foulques.lauzin@canal-plus.com",
+      "proposed_organization_slug": "comptabilite",
+      "proposed_organization_name": "Comptabilité",
+      "proposed_role": "member",
+      "is_primary": true,
+      "status": "CREATE_READY",
+      "reasons": []
+    }
+  ],
+  "duplicate_email_groups": [],
+  "possible_same_person_different_email": [],
+  "users_without_exploitable_service": [
+    {
+      "id": "dd2c3065-2798-4504-925d-3d82a954b811",
+      "identity": "sylvie.tambunan"
+    },
+    {
+      "id": "b4330eef-b847-43c7-86bb-7ec12775e55a",
+      "identity": "gabrielle.milin"
+    },
+    {
+      "id": "71e3f383-655d-4145-8d93-a3b711ff4953",
+      "identity": "wendykumar"
+    }
+  ],
+  "multi_org_candidates_note": "Aucun proposé : service_id est une FK simple (une seule valeur par utilisateur) côté Canal Cup, aucun signal source ne permet d'attribuer plusieurs organisations à une même personne sans deviner.",
+  "unrepresentable_in_new_model": [
+    "team_id / team_role (concept binôme babyfoot, aucun équivalent organizations/memberships)",
+    "football_level (couplé au jeu WC2026 ; la colonne existe encore côté CANAL Sports users mais pour un usage futur distinct, pas repris depuis Canal Cup dans ce lot)",
+    "user_slug (généré à l'origine pour Canal Cup, à régénérer proprement côté CANAL Sports plutôt que copié)",
+    "onboarding_step / profile_completed (état d'un onboarding Canal Cup qui n'existe plus dans sa forme actuelle)",
+    "allowlist_users.role (user/admin/super_admin) : mécanisme d'accès global Canal Cup, explicitement hors de ce lot — pas mappé vers memberships.role (member/manager), qui est un rôle organisationnel, pas un rôle d'administration applicative"
+  ],
+  "tally": {
+    "users": {
+      "CREATE_READY": 44,
+      "CREATE_WITH_WARNING": 2,
+      "REJECT": 0,
+      "NEEDS_DECISION": 3,
+      "total": 49
+    },
+    "organizations": {
+      "CREATE_READY": 10,
+      "CREATE_WITH_WARNING": 0,
+      "REJECT": 0,
+      "NEEDS_DECISION": 0,
+      "total": 10
+    }
+  }
+}

@@ -1,8 +1,10 @@
 # Stratégie Supabase — bootstrap CANAL Sports (P1)
 
-Statut : document de préparation. **Aucune migration exécutée, aucun
-nouveau projet Supabase créé.** Objectif : documenter ce qu'il faudra
-recréer, pas migrer la base Canal Cup.
+Statut : **historique (P1)**. La question "combien de bases Supabase ?"
+et le bootstrap effectif sont maintenant tranchés et exécutés — voir
+`docs/supabase-architecture-p2.md`. Ce document reste la référence pour
+*quelles tables* recréer (tableau ci-dessous, toujours valable) ; il ne
+décrit plus l'état d'exécution réel.
 
 ## Décisions actées
 
@@ -44,11 +46,10 @@ pas une copie.
 
 ## Ce qui reste à faire (hors P1)
 
-- Écrire la première migration CLI (`supabase/migrations/<timestamp>_bootstrap.sql`)
-  recréant `users` (sans `football_level` obligatoire), `push_subscriptions`,
-  `app_settings` (vide), `cron_runs`, `feedback`, `inbox_events` sur le
-  nouveau projet Supabase — dès que ce projet existe (voir
-  `docs/repo-strategy.md`).
+- ~~Écrire la première migration... sur le nouveau projet Supabase~~ —
+  **fait en P2**, voir `docs/supabase-architecture-p2.md` (bootstrap
+  appliqué au projet `yfhuqsuboqfznnpceosl`, organisation
+  `vjasdstjdszsekbwazbi`).
 - Décider si `allowlist_users` (contrôle d'accès par email/domaine) est
   repris tel quel — probable, car indépendant du jeu — à confirmer en P2.
 - Le modèle Sport/Competition/Season/Event (voir
