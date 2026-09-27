@@ -13,7 +13,10 @@ import { MessageSquarePlus, X, Send } from "lucide-react";
 
 type Status = "idle" | "sending" | "sent" | "error";
 
-const HIDDEN_PREFIXES = ["/tv", "/quiz-show"];
+// "/cs" masqué : cette bulle référence Canal Cup dans son texte d'intro
+// (ligne ~96) et n'a pas encore d'équivalent CANAL Sports (hors périmètre
+// du sweep de rebranding, voir AUDIT-CANAL-SPORTS.md).
+const HIDDEN_PREFIXES = ["/tv", "/quiz-show", "/cs"];
 
 export function FloatingFeedback() {
   const pathname = usePathname() || "/";

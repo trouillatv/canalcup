@@ -10,12 +10,9 @@
 // déjà présente dans les cookies du navigateur.
 
 import { createClient } from "@/lib/supabase/server";
+import { isAdminEmail } from "./admin-emails.ts";
 
-// Admins (co-organisateurs). trouillatv = Vincent (super_admin) ;
-// marie.lucas = Marie (co-organisatrice). Le rôle event_admin en base
-// (allowlist_users) ouvre les pages /admin/* ; cette liste autorise les
-// ACTIONS d'API (isAdminRequest). Les deux sont nécessaires.
-const DEFAULT_ADMIN_EMAILS = ["trouillatv@gmail.com", "vincent.trouillat@canal-plus.com", "marie.lucas@canal-plus.com"];
+export { isAdminEmail };
 
 export async function isAdminRequest(req: Request): Promise<boolean> {
   // 1. Voie legacy : secret partagé (scripts, cron, automation externe).
@@ -39,12 +36,7 @@ export async function isAdminUser(): Promise<boolean> {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user?.email) return false;
-    const allowEnv = (process.env.ADMIN_EMAILS ?? "").trim();
-    const allow = (allowEnv.length > 0 ? allowEnv.split(",") : DEFAULT_ADMIN_EMAILS).map((s) =>
-      s.trim().toLowerCase()
-    );
-    return allow.includes(user.email.toLowerCase());
+    return isAdminEmail(user?.email);
   } catch {
     return false;
   }

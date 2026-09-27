@@ -1,0 +1,2073 @@
+{
+  "config": {
+    "baseSeed": 42,
+    "replications": 300,
+    "usersPerProfile": 30,
+    "absenceRates": [
+      0,
+      0.05,
+      0.1,
+      0.2
+    ],
+    "schemes": [
+      {
+        "key": "baseline_0_3_2",
+        "label": "Référence Vincent = 3 + 2 (bon 1N2 = 3, exact = +2, max 5)",
+        "correctOutcomePoints": 3,
+        "exactScorePoints": 2,
+        "correctDiffPoints": 0
+      },
+      {
+        "key": "scheme_2_3",
+        "label": "2 + 3 (bon résultat 2, exact +3)",
+        "correctOutcomePoints": 2,
+        "exactScorePoints": 3,
+        "correctDiffPoints": 0
+      },
+      {
+        "key": "scheme_3_1",
+        "label": "3 + 1 (bon résultat 3, exact +1)",
+        "correctOutcomePoints": 3,
+        "exactScorePoints": 1,
+        "correctDiffPoints": 0
+      },
+      {
+        "key": "scheme_1_3",
+        "label": "1 + 3 (bon résultat 1, exact +3)",
+        "correctOutcomePoints": 1,
+        "exactScorePoints": 3,
+        "correctDiffPoints": 0
+      },
+      {
+        "key": "scheme_4_1",
+        "label": "4 + 1 (bon résultat 4, exact +1, socle généreux)",
+        "correctOutcomePoints": 4,
+        "exactScorePoints": 1,
+        "correctDiffPoints": 0
+      },
+      {
+        "key": "diff_bonus_hypothesis",
+        "label": "HYPOTHÈSE : 3 + 2 + bonus bonne différence (+1, non exclusif à l'exact)",
+        "correctOutcomePoints": 3,
+        "exactScorePoints": 2,
+        "correctDiffPoints": 1
+      }
+    ]
+  },
+  "matchdays": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "perScheme": [
+    {
+      "scheme": {
+        "key": "baseline_0_3_2",
+        "label": "Référence Vincent = 3 + 2 (bon 1N2 = 3, exact = +2, max 5)",
+        "correctOutcomePoints": 3,
+        "exactScorePoints": 2,
+        "correctDiffPoints": 0
+      },
+      "perProfile": [
+        {
+          "profile": "aleatoire",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 164.92422222222223,
+                "median": 165,
+                "variance": 373.8942459779484,
+                "stdDev": 19.33634520735365,
+                "min": 98,
+                "max": 245
+              },
+              "survivalAboveOverallMedian": 0.09811111111111111
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 156.73822222222222,
+                "median": 157,
+                "variance": 524.3230638466091,
+                "stdDev": 22.898101752036325,
+                "min": 53,
+                "max": 245
+              },
+              "survivalAboveOverallMedian": 0.06966666666666667
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 148.529,
+                "median": 149,
+                "variance": 655.3830904545001,
+                "stdDev": 25.600450981467105,
+                "min": 48,
+                "max": 230
+              },
+              "survivalAboveOverallMedian": 0.04677777777777778
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 132.02255555555556,
+                "median": 133,
+                "variance": 839.9558196713128,
+                "stdDev": 28.981991299276054,
+                "min": 17,
+                "max": 235
+              },
+              "survivalAboveOverallMedian": 0.01877777777777778
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.9218657996467065,
+            "exactShare": 0.07813420035329356,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.044743827160493826
+        },
+        {
+          "profile": "favori",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 278.77444444444444,
+                "median": 278,
+                "variance": 266.43028361176056,
+                "stdDev": 16.322692290543266,
+                "min": 228,
+                "max": 338
+              },
+              "survivalAboveOverallMedian": 1
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 264.65633333333335,
+                "median": 268,
+                "variance": 724.4438314257064,
+                "stdDev": 26.915494263076546,
+                "min": 128,
+                "max": 338
+              },
+              "survivalAboveOverallMedian": 0.99
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 251.1508888888889,
+                "median": 254,
+                "variance": 1112.4157231791237,
+                "stdDev": 33.35289677343069,
+                "min": 102,
+                "max": 338
+              },
+              "survivalAboveOverallMedian": 0.9523333333333334
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 222.98988888888888,
+                "median": 226,
+                "variance": 1791.4221668950825,
+                "stdDev": 42.32519541473001,
+                "min": 59,
+                "max": 330
+              },
+              "survivalAboveOverallMedian": 0.784
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.9459977600369873,
+            "exactShare": 0.05400223996301271,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.052272376543209875
+        },
+        {
+          "profile": "prudent",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 186.5621111111111,
+                "median": 186,
+                "variance": 390.2455028213006,
+                "stdDev": 19.754632439539353,
+                "min": 121,
+                "max": 275
+              },
+              "survivalAboveOverallMedian": 0.42077777777777775
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 177.01844444444444,
+                "median": 178,
+                "variance": 584.2861360398048,
+                "stdDev": 24.17201141899045,
+                "min": 77,
+                "max": 275
+              },
+              "survivalAboveOverallMedian": 0.29455555555555557
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 167.8431111111111,
+                "median": 169,
+                "variance": 745.8340341025528,
+                "stdDev": 27.309962176878837,
+                "min": 66,
+                "max": 265
+              },
+              "survivalAboveOverallMedian": 0.20633333333333334
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 149.2937777777778,
+                "median": 150,
+                "variance": 1015.0291422997657,
+                "stdDev": 31.85952200362971,
+                "min": 27,
+                "max": 275
+              },
+              "survivalAboveOverallMedian": 0.09722222222222222
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.9157361355378221,
+            "exactShare": 0.08426386446217793,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.05458487654320988
+        },
+        {
+          "profile": "contrarian",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 104.57488888888889,
+                "median": 104,
+                "variance": 208.80292531268924,
+                "stdDev": 14.450014716694556,
+                "min": 63,
+                "max": 152
+              },
+              "survivalAboveOverallMedian": 0
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 99.31888888888889,
+                "median": 99,
+                "variance": 265.0510933313612,
+                "stdDev": 16.28038983966174,
+                "min": 33,
+                "max": 152
+              },
+              "survivalAboveOverallMedian": 0
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 94.17955555555555,
+                "median": 94,
+                "variance": 315.8675228605632,
+                "stdDev": 17.772662233344874,
+                "min": 20,
+                "max": 150
+              },
+              "survivalAboveOverallMedian": 0
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 83.83544444444445,
+                "median": 84,
+                "variance": 397.4874200713671,
+                "stdDev": 19.937086549226972,
+                "min": 14,
+                "max": 149
+              },
+              "survivalAboveOverallMedian": 0
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.9285211873681168,
+            "exactShare": 0.07147881263188316,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.025954475308641974
+        },
+        {
+          "profile": "expert_simule",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 282.9408888888889,
+                "median": 284,
+                "variance": 288.7330317689649,
+                "stdDev": 16.992146179013552,
+                "min": 223,
+                "max": 340
+              },
+              "survivalAboveOverallMedian": 1
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 268.78144444444445,
+                "median": 273,
+                "variance": 750.2430382511624,
+                "stdDev": 27.3905647669259,
+                "min": 136,
+                "max": 339
+              },
+              "survivalAboveOverallMedian": 0.9902222222222222
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 254.49266666666668,
+                "median": 257,
+                "variance": 1160.3113141460137,
+                "stdDev": 34.06334267428864,
+                "min": 103,
+                "max": 335
+              },
+              "survivalAboveOverallMedian": 0.9558888888888889
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 225.8438888888889,
+                "median": 228,
+                "variance": 1853.2260988875382,
+                "stdDev": 43.04911263763213,
+                "min": 36,
+                "max": 333
+              },
+              "survivalAboveOverallMedian": 0.7915555555555556
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.9458512732145073,
+            "exactShare": 0.05414872678549269,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.05319753086419753
+        }
+      ],
+      "overallMedianAtZeroAbsence": 191,
+      "discriminationExpertVsAleatoire": {
+        "meanA": 282.9408888888889,
+        "meanB": 164.92422222222223,
+        "gap": 118.01666666666665,
+        "cohensD": 6.483711568626931
+      },
+      "tieRateAtZeroAbsence": 0.7644666666666666
+    },
+    {
+      "scheme": {
+        "key": "scheme_2_3",
+        "label": "2 + 3 (bon résultat 2, exact +3)",
+        "correctOutcomePoints": 2,
+        "exactScorePoints": 3,
+        "correctDiffPoints": 0
+      },
+      "perProfile": [
+        {
+          "profile": "aleatoire",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 120.688,
+                "median": 121,
+                "variance": 239.05610667852042,
+                "stdDev": 15.461439346921114,
+                "min": 67,
+                "max": 190
+              },
+              "survivalAboveOverallMedian": 0.10377777777777777
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 114.69733333333333,
+                "median": 115,
+                "variance": 319.2712008000882,
+                "stdDev": 17.868161651386753,
+                "min": 37,
+                "max": 190
+              },
+              "survivalAboveOverallMedian": 0.07522222222222222
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 108.68155555555556,
+                "median": 109,
+                "variance": 385.0358193379547,
+                "stdDev": 19.622329610368762,
+                "min": 32,
+                "max": 171
+              },
+              "survivalAboveOverallMedian": 0.050666666666666665
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 96.61188888888888,
+                "median": 97,
+                "variance": 480.45064205899456,
+                "stdDev": 21.91918433835973,
+                "min": 13,
+                "max": 183
+              },
+              "survivalAboveOverallMedian": 0.020444444444444446
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.839840470193115,
+            "exactShare": 0.16015952980688497,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.044743827160493826
+        },
+        {
+          "profile": "favori",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 198.395,
+                "median": 198,
+                "variance": 185.53559006556387,
+                "stdDev": 13.621144961623596,
+                "min": 157,
+                "max": 257
+              },
+              "survivalAboveOverallMedian": 1
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 188.33533333333332,
+                "median": 190,
+                "variance": 414.59139504389503,
+                "stdDev": 20.361517503464594,
+                "min": 87,
+                "max": 257
+              },
+              "survivalAboveOverallMedian": 0.9795555555555555
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 178.743,
+                "median": 181,
+                "variance": 608.7136969663273,
+                "stdDev": 24.6721238843827,
+                "min": 73,
+                "max": 257
+              },
+              "survivalAboveOverallMedian": 0.9282222222222222
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 158.70288888888888,
+                "median": 160,
+                "variance": 950.755142225746,
+                "stdDev": 30.834317605968614,
+                "min": 41,
+                "max": 245
+              },
+              "survivalAboveOverallMedian": 0.731
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.8861782470996413,
+            "exactShare": 0.11382175290035872,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.052272376543209875
+        },
+        {
+          "profile": "prudent",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 137.47511111111112,
+                "median": 137,
+                "variance": 257.03749582052126,
+                "stdDev": 16.032388961739958,
+                "min": 85,
+                "max": 210
+              },
+              "survivalAboveOverallMedian": 0.4211111111111111
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 130.456,
+                "median": 131,
+                "variance": 360.9708385376155,
+                "stdDev": 18.9992325775968,
+                "min": 53,
+                "max": 210
+              },
+              "survivalAboveOverallMedian": 0.3008888888888889
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 123.67077777777777,
+                "median": 124,
+                "variance": 447.48455545677683,
+                "stdDev": 21.153830751350377,
+                "min": 49,
+                "max": 196
+              },
+              "survivalAboveOverallMedian": 0.21444444444444444
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 110.04511111111111,
+                "median": 110,
+                "variance": 587.2194338136337,
+                "stdDev": 24.23261095741921,
+                "min": 18,
+                "max": 210
+              },
+              "survivalAboveOverallMedian": 0.10166666666666667
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.8284731943398239,
+            "exactShare": 0.17152680566017606,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.05458487654320988
+        },
+        {
+          "profile": "contrarian",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 75.94566666666667,
+                "median": 76,
+                "variance": 129.187735415034,
+                "stdDev": 11.366078277710127,
+                "min": 42,
+                "max": 118
+              },
+              "survivalAboveOverallMedian": 0
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 72.14166666666667,
+                "median": 72,
+                "variance": 158.03582342482395,
+                "stdDev": 12.571229988542248,
+                "min": 22,
+                "max": 118
+              },
+              "survivalAboveOverallMedian": 0
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 68.39655555555555,
+                "median": 69,
+                "variance": 184.15776122038272,
+                "stdDev": 13.570473876043634,
+                "min": 15,
+                "max": 116
+              },
+              "survivalAboveOverallMedian": 0
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 60.89288888888889,
+                "median": 61,
+                "variance": 225.42890819967337,
+                "stdDev": 15.014290133059017,
+                "min": 11,
+                "max": 116
+              },
+              "survivalAboveOverallMedian": 0
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.8523637512783262,
+            "exactShare": 0.14763624872167383,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.025954475308641974
+        },
+        {
+          "profile": "expert_simule",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 201.39466666666667,
+                "median": 202,
+                "variance": 197.97556884098435,
+                "stdDev": 14.070379129255343,
+                "min": 152,
+                "max": 255
+              },
+              "survivalAboveOverallMedian": 1
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 191.318,
+                "median": 194,
+                "variance": 428.49448649849916,
+                "stdDev": 20.700108369245296,
+                "min": 94,
+                "max": 251
+              },
+              "survivalAboveOverallMedian": 0.9836666666666667
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 181.13677777777778,
+                "median": 183,
+                "variance": 633.1228610462675,
+                "stdDev": 25.161932776443617,
+                "min": 77,
+                "max": 246
+              },
+              "survivalAboveOverallMedian": 0.9342222222222222
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 160.76388888888889,
+                "median": 163,
+                "variance": 975.0793714733659,
+                "stdDev": 31.22626092687637,
+                "min": 29,
+                "max": 244
+              },
+              "survivalAboveOverallMedian": 0.7482222222222222
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.8858890669067702,
+            "exactShare": 0.11411093309322988,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.05319753086419753
+        }
+      ],
+      "overallMedianAtZeroAbsence": 141,
+      "discriminationExpertVsAleatoire": {
+        "meanA": 201.39466666666667,
+        "meanB": 120.688,
+        "gap": 80.70666666666666,
+        "cohensD": 5.459689578509893
+      },
+      "tieRateAtZeroAbsence": 0.7955555555555551
+    },
+    {
+      "scheme": {
+        "key": "scheme_3_1",
+        "label": "3 + 1 (bon résultat 3, exact +1)",
+        "correctOutcomePoints": 3,
+        "exactScorePoints": 1,
+        "correctDiffPoints": 0
+      },
+      "perProfile": [
+        {
+          "profile": "aleatoire",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 158.48111111111112,
+                "median": 158,
+                "variance": 330.01120000988027,
+                "stdDev": 18.166210392095547,
+                "min": 97,
+                "max": 229
+              },
+              "survivalAboveOverallMedian": 0.09733333333333333
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 150.6151111111111,
+                "median": 151,
+                "variance": 468.4688015211579,
+                "stdDev": 21.644140119698864,
+                "min": 52,
+                "max": 229
+              },
+              "survivalAboveOverallMedian": 0.06788888888888889
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 142.73166666666665,
+                "median": 144,
+                "variance": 592.2072424713889,
+                "stdDev": 24.33530855508902,
+                "min": 48,
+                "max": 223
+              },
+              "survivalAboveOverallMedian": 0.04622222222222222
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 126.86444444444444,
+                "median": 128,
+                "variance": 763.7375955353052,
+                "stdDev": 27.63580278434671,
+                "min": 16,
+                "max": 224
+              },
+              "survivalAboveOverallMedian": 0.018333333333333333
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.9593446116957506,
+            "exactShare": 0.04065538830424937,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.044743827160493826
+        },
+        {
+          "profile": "favori",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 271.2472222222222,
+                "median": 271,
+                "variance": 230.479267758146,
+                "stdDev": 15.181543655312064,
+                "min": 225,
+                "max": 319
+              },
+              "survivalAboveOverallMedian": 1
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 257.5176666666667,
+                "median": 262,
+                "variance": 665.5587499722159,
+                "stdDev": 25.79842533900501,
+                "min": 127,
+                "max": 319
+              },
+              "survivalAboveOverallMedian": 0.9923333333333333
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 244.36544444444445,
+                "median": 247,
+                "variance": 1033.9672244940848,
+                "stdDev": 32.15536074271419,
+                "min": 99,
+                "max": 319
+              },
+              "survivalAboveOverallMedian": 0.9594444444444444
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 216.96411111111112,
+                "median": 220,
+                "variance": 1675.9437057327398,
+                "stdDev": 40.93829143641366,
+                "min": 57,
+                "max": 315
+              },
+              "survivalAboveOverallMedian": 0.7998888888888889
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.972249587809399,
+            "exactShare": 0.02775041219060103,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.052272376543209875
+        },
+        {
+          "profile": "prudent",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 178.7018888888889,
+                "median": 179,
+                "variance": 340.3715043770315,
+                "stdDev": 18.4491599910953,
+                "min": 116,
+                "max": 259
+              },
+              "survivalAboveOverallMedian": 0.42044444444444445
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 169.5522222222222,
+                "median": 171,
+                "variance": 518.7044622241955,
+                "stdDev": 22.77508424186825,
+                "min": 76,
+                "max": 259
+              },
+              "survivalAboveOverallMedian": 0.2931111111111111
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 160.7778888888889,
+                "median": 162,
+                "variance": 666.9099899865416,
+                "stdDev": 25.824600480676203,
+                "min": 63,
+                "max": 257
+              },
+              "survivalAboveOverallMedian": 0.2061111111111111
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 142.98422222222223,
+                "median": 144,
+                "variance": 917.223220308427,
+                "stdDev": 30.28569332718713,
+                "min": 27,
+                "max": 259
+              },
+              "survivalAboveOverallMedian": 0.09288888888888888
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.956014890099402,
+            "exactShare": 0.04398510990059795,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.05458487654320988
+        },
+        {
+          "profile": "contrarian",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 100.83744444444444,
+                "median": 101,
+                "variance": 187.43473510636952,
+                "stdDev": 13.690680593249173,
+                "min": 63,
+                "max": 142
+              },
+              "survivalAboveOverallMedian": 0
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 95.76144444444445,
+                "median": 96,
+                "variance": 240.02742762776072,
+                "stdDev": 15.492818582419428,
+                "min": 33,
+                "max": 142
+              },
+              "survivalAboveOverallMedian": 0
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 90.81344444444444,
+                "median": 91,
+                "variance": 287.37768343394856,
+                "stdDev": 16.952217655337858,
+                "min": 19,
+                "max": 141
+              },
+              "survivalAboveOverallMedian": 0
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 80.8338888888889,
+                "median": 81,
+                "variance": 363.6658144114789,
+                "stdDev": 19.070023975115472,
+                "min": 13,
+                "max": 140
+              },
+              "survivalAboveOverallMedian": 0
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.9629359464132041,
+            "exactShare": 0.03706405358679591,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.025954475308641974
+        },
+        {
+          "profile": "expert_simule",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 275.28044444444447,
+                "median": 276,
+                "variance": 250.8583351730463,
+                "stdDev": 15.838507984436106,
+                "min": 221,
+                "max": 324
+              },
+              "survivalAboveOverallMedian": 1
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 261.50322222222223,
+                "median": 266,
+                "variance": 689.5399384993428,
+                "stdDev": 26.25909249192254,
+                "min": 134,
+                "max": 324
+              },
+              "survivalAboveOverallMedian": 0.9917777777777778
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 247.60766666666666,
+                "median": 250,
+                "variance": 1079.180094566049,
+                "stdDev": 32.850876617923745,
+                "min": 98,
+                "max": 322
+              },
+              "survivalAboveOverallMedian": 0.9617777777777777
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 219.7231111111111,
+                "median": 222,
+                "variance": 1740.5811748959495,
+                "stdDev": 41.72027294848333,
+                "min": 33,
+                "max": 321
+              },
+              "survivalAboveOverallMedian": 0.8077777777777778
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.9721722171006214,
+            "exactShare": 0.027827782899378574,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.05319753086419753
+        }
+      ],
+      "overallMedianAtZeroAbsence": 183,
+      "discriminationExpertVsAleatoire": {
+        "meanA": 275.28044444444447,
+        "meanB": 158.48111111111112,
+        "gap": 116.79933333333335,
+        "cohensD": 6.853557518090918
+      },
+      "tieRateAtZeroAbsence": 0.7768222222222217
+    },
+    {
+      "scheme": {
+        "key": "scheme_1_3",
+        "label": "1 + 3 (bon résultat 1, exact +3)",
+        "correctOutcomePoints": 1,
+        "exactScorePoints": 3,
+        "correctDiffPoints": 0
+      },
+      "perProfile": [
+        {
+          "profile": "aleatoire",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 70.00866666666667,
+                "median": 70,
+                "variance": 114.27017713079316,
+                "stdDev": 10.689722967916108,
+                "min": 34,
+                "max": 119
+              },
+              "survivalAboveOverallMedian": 0.12144444444444444
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 66.53333333333333,
+                "median": 66,
+                "variance": 140.38582064673884,
+                "stdDev": 11.848452246886039,
+                "min": 20,
+                "max": 119
+              },
+              "survivalAboveOverallMedian": 0.08966666666666667
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 63.03677777777778,
+                "median": 63,
+                "variance": 159.6516086849156,
+                "stdDev": 12.635331759986185,
+                "min": 16,
+                "max": 109
+              },
+              "survivalAboveOverallMedian": 0.06155555555555556
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 56.04311111111111,
+                "median": 56,
+                "variance": 188.52931135558322,
+                "stdDev": 13.730597632863008,
+                "min": 8,
+                "max": 117
+              },
+              "survivalAboveOverallMedian": 0.028333333333333332
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.7239008503709065,
+            "exactShare": 0.27609914962909354,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.044743827160493826
+        },
+        {
+          "profile": "favori",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 110.48833333333333,
+                "median": 110,
+                "variance": 101.04775808423292,
+                "stdDev": 10.052251393803923,
+                "min": 81,
+                "max": 157
+              },
+              "survivalAboveOverallMedian": 0.9995555555555555
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 104.87566666666666,
+                "median": 106,
+                "variance": 169.7948517613061,
+                "stdDev": 13.030535359735074,
+                "min": 45,
+                "max": 157
+              },
+              "survivalAboveOverallMedian": 0.9498888888888889
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 99.54966666666667,
+                "median": 100,
+                "variance": 228.0439825536189,
+                "stdDev": 15.101125208196205,
+                "min": 40,
+                "max": 157
+              },
+              "survivalAboveOverallMedian": 0.8684444444444445
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 88.39011111111111,
+                "median": 89,
+                "variance": 330.8764662616835,
+                "stdDev": 18.19001006766306,
+                "min": 21,
+                "max": 146
+              },
+              "survivalAboveOverallMedian": 0.635
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.7956194470004374,
+            "exactShare": 0.20438055299956254,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.052272376543209875
+        },
+        {
+          "profile": "prudent",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 80.5278888888889,
+                "median": 80,
+                "variance": 127.23869317578361,
+                "stdDev": 11.280012995372994,
+                "min": 44,
+                "max": 129
+              },
+              "survivalAboveOverallMedian": 0.42533333333333334
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 76.42733333333334,
+                "median": 76,
+                "variance": 161.3999862206915,
+                "stdDev": 12.70432942821822,
+                "min": 28,
+                "max": 129
+              },
+              "survivalAboveOverallMedian": 0.3158888888888889
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 72.43322222222223,
+                "median": 72,
+                "variance": 189.550824153301,
+                "stdDev": 13.767745790553406,
+                "min": 27,
+                "max": 122
+              },
+              "survivalAboveOverallMedian": 0.23366666666666666
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 64.48688888888888,
+                "median": 64,
+                "variance": 232.72768673062433,
+                "stdDev": 15.255414996997766,
+                "min": 9,
+                "max": 129
+              },
+              "survivalAboveOverallMedian": 0.12133333333333333
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.707173912143619,
+            "exactShare": 0.29282608785638103,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.05458487654320988
+        },
+        {
+          "profile": "contrarian",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 43.579,
+                "median": 43,
+                "variance": 60.05043127014095,
+                "stdDev": 7.749221333149605,
+                "min": 21,
+                "max": 74
+              },
+              "survivalAboveOverallMedian": 0
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 41.407,
+                "median": 41,
+                "variance": 68.80299577730824,
+                "stdDev": 8.294757125878265,
+                "min": 11,
+                "max": 74
+              },
+              "survivalAboveOverallMedian": 0
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 39.24744444444445,
+                "median": 39,
+                "variance": 76.64206480967059,
+                "stdDev": 8.754545379953809,
+                "min": 9,
+                "max": 73
+              },
+              "survivalAboveOverallMedian": 0
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 34.94877777777778,
+                "median": 35,
+                "variance": 88.37219541677572,
+                "stdDev": 9.400648670000157,
+                "min": 6,
+                "max": 73
+              },
+              "survivalAboveOverallMedian": 0
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.7427124685437175,
+            "exactShare": 0.25728753145628247,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.025954475308641974
+        },
+        {
+          "profile": "expert_simule",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 112.188,
+                "median": 112,
+                "variance": 105.64639448827599,
+                "stdDev": 10.278443193804984,
+                "min": 76,
+                "max": 154
+              },
+              "survivalAboveOverallMedian": 0.9981111111111111
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 106.57633333333334,
+                "median": 107,
+                "variance": 174.74225569507806,
+                "stdDev": 13.219011146643233,
+                "min": 50,
+                "max": 154
+              },
+              "survivalAboveOverallMedian": 0.9598888888888889
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 100.89588888888889,
+                "median": 102,
+                "variance": 235.67856960650053,
+                "stdDev": 15.351826262907633,
+                "min": 45,
+                "max": 149
+              },
+              "survivalAboveOverallMedian": 0.8766666666666667
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 89.56311111111111,
+                "median": 90,
+                "variance": 335.54641103332375,
+                "stdDev": 18.31792594791571,
+                "min": 19,
+                "max": 152
+              },
+              "survivalAboveOverallMedian": 0.6616666666666666
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.7951533735039993,
+            "exactShare": 0.20484662649600077,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.05319753086419753
+        }
+      ],
+      "overallMedianAtZeroAbsence": 83,
+      "discriminationExpertVsAleatoire": {
+        "meanA": 112.188,
+        "meanB": 70.00866666666667,
+        "gap": 42.17933333333333,
+        "cohensD": 4.022404397509103
+      },
+      "tieRateAtZeroAbsence": 0.8625111111111115
+    },
+    {
+      "scheme": {
+        "key": "scheme_4_1",
+        "label": "4 + 1 (bon résultat 4, exact +1, socle généreux)",
+        "correctOutcomePoints": 4,
+        "exactScorePoints": 1,
+        "correctDiffPoints": 0
+      },
+      "perProfile": [
+        {
+          "profile": "aleatoire",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 209.16044444444444,
+                "median": 209,
+                "variance": 570.6289941351406,
+                "stdDev": 23.887841973169962,
+                "min": 129,
+                "max": 300
+              },
+              "survivalAboveOverallMedian": 0.09911111111111111
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 198.77911111111112,
+                "median": 199,
+                "variance": 811.463370695509,
+                "stdDev": 28.486196142965614,
+                "min": 69,
+                "max": 300
+              },
+              "survivalAboveOverallMedian": 0.069
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 188.37644444444445,
+                "median": 189,
+                "variance": 1028.1003007247762,
+                "stdDev": 32.064003192439586,
+                "min": 64,
+                "max": 295
+              },
+              "survivalAboveOverallMedian": 0.047
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 167.4332222222222,
+                "median": 168,
+                "variance": 1327.088106073516,
+                "stdDev": 36.42922049774763,
+                "min": 21,
+                "max": 295
+              },
+              "survivalAboveOverallMedian": 0.01911111111111111
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.9691953651742097,
+            "exactShare": 0.0308046348257903,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.044743827160493826
+        },
+        {
+          "profile": "favori",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 359.1538888888889,
+                "median": 359,
+                "variance": 397.6450565494791,
+                "stdDev": 19.941039505238415,
+                "min": 299,
+                "max": 419
+              },
+              "survivalAboveOverallMedian": 1
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 340.9773333333333,
+                "median": 347,
+                "variance": 1160.928478275373,
+                "stdDev": 34.07240053584973,
+                "min": 169,
+                "max": 419
+              },
+              "survivalAboveOverallMedian": 0.9927777777777778
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 323.5587777777778,
+                "median": 328,
+                "variance": 1807.1753424331066,
+                "stdDev": 42.51088498764883,
+                "min": 131,
+                "max": 419
+              },
+              "survivalAboveOverallMedian": 0.9613333333333334
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 287.2768888888889,
+                "median": 291.5,
+                "variance": 2931.8828750848943,
+                "stdDev": 54.14686394506052,
+                "min": 75,
+                "max": 415
+              },
+              "survivalAboveOverallMedian": 0.805
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.9790417911232727,
+            "exactShare": 0.020958208876727245,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.052272376543209875
+        },
+        {
+          "profile": "prudent",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 235.64911111111113,
+                "median": 236,
+                "variance": 586.9643174673699,
+                "stdDev": 24.227346480111475,
+                "min": 153,
+                "max": 340
+              },
+              "survivalAboveOverallMedian": 0.4235555555555556
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 223.5808888888889,
+                "median": 225,
+                "variance": 897.0537962983531,
+                "stdDev": 29.9508563533391,
+                "min": 101,
+                "max": 340
+              },
+              "survivalAboveOverallMedian": 0.295
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 212.01544444444446,
+                "median": 213,
+                "variance": 1154.584604202936,
+                "stdDev": 33.979178980707225,
+                "min": 83,
+                "max": 340
+              },
+              "survivalAboveOverallMedian": 0.20666666666666667
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 188.54244444444444,
+                "median": 189,
+                "variance": 1591.0672059364622,
+                "stdDev": 39.888183788391046,
+                "min": 36,
+                "max": 340
+              },
+              "survivalAboveOverallMedian": 0.09366666666666666
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.966644379920805,
+            "exactShare": 0.03335562007919496,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.05458487654320988
+        },
+        {
+          "profile": "contrarian",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 133.2041111111111,
+                "median": 133,
+                "variance": 325.5266193898046,
+                "stdDev": 18.042356259363814,
+                "min": 84,
+                "max": 186
+              },
+              "survivalAboveOverallMedian": 0
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 126.4961111111111,
+                "median": 127,
+                "variance": 417.3696926201662,
+                "stdDev": 20.42962781403925,
+                "min": 44,
+                "max": 186
+              },
+              "survivalAboveOverallMedian": 0
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 119.96255555555555,
+                "median": 120,
+                "variance": 499.96248263387236,
+                "stdDev": 22.359840845450407,
+                "min": 25,
+                "max": 185
+              },
+              "survivalAboveOverallMedian": 0
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 106.778,
+                "median": 107,
+                "variance": 633.0835030558911,
+                "stdDev": 25.161150670346757,
+                "min": 17,
+                "max": 184
+              },
+              "survivalAboveOverallMedian": 0
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.9719419737629053,
+            "exactShare": 0.028058026237094785,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.025954475308641974
+        },
+        {
+          "profile": "expert_simule",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 364.4871111111111,
+                "median": 366,
+                "variance": 433.0752866861748,
+                "stdDev": 20.810460991678557,
+                "min": 294,
+                "max": 427
+              },
+              "survivalAboveOverallMedian": 1
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 346.2448888888889,
+                "median": 352,
+                "variance": 1202.8132309021996,
+                "stdDev": 34.68159787123713,
+                "min": 178,
+                "max": 427
+              },
+              "survivalAboveOverallMedian": 0.992
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 327.84855555555555,
+                "median": 331,
+                "variance": 1886.3816625427462,
+                "stdDev": 43.43249546759599,
+                "min": 129,
+                "max": 425
+              },
+              "survivalAboveOverallMedian": 0.9627777777777777
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 290.9238888888889,
+                "median": 294,
+                "variance": 3048.0538797520603,
+                "stdDev": 55.209182929582106,
+                "min": 43,
+                "max": 424
+              },
+              "survivalAboveOverallMedian": 0.8124444444444444
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.9789829483377556,
+            "exactShare": 0.02101705166224442,
+            "diffShare": 0
+          },
+          "exactFrequency": 0.05319753086419753
+        }
+      ],
+      "overallMedianAtZeroAbsence": 241,
+      "discriminationExpertVsAleatoire": {
+        "meanA": 364.4871111111111,
+        "meanB": 209.16044444444444,
+        "gap": 155.32666666666668,
+        "cohensD": 6.933589596819733
+      },
+      "tieRateAtZeroAbsence": 0.7386000000000003
+    },
+    {
+      "scheme": {
+        "key": "diff_bonus_hypothesis",
+        "label": "HYPOTHÈSE : 3 + 2 + bonus bonne différence (+1, non exclusif à l'exact)",
+        "correctOutcomePoints": 3,
+        "exactScorePoints": 2,
+        "correctDiffPoints": 1
+      },
+      "perProfile": [
+        {
+          "profile": "aleatoire",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 178.06655555555557,
+                "median": 178,
+                "variance": 435.8192169376825,
+                "stdDev": 20.876283599761777,
+                "min": 107,
+                "max": 265
+              },
+              "survivalAboveOverallMedian": 0.09166666666666666
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 169.23433333333332,
+                "median": 170,
+                "variance": 609.3184566062909,
+                "stdDev": 24.684376771680725,
+                "min": 58,
+                "max": 265
+              },
+              "survivalAboveOverallMedian": 0.06388888888888888
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 160.37233333333333,
+                "median": 161,
+                "variance": 765.2700645627289,
+                "stdDev": 27.663515043514064,
+                "min": 56,
+                "max": 250
+              },
+              "survivalAboveOverallMedian": 0.043444444444444445
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 142.54011111111112,
+                "median": 143,
+                "variance": 978.7955906088399,
+                "stdDev": 31.285709047564193,
+                "min": 18,
+                "max": 248
+              },
+              "survivalAboveOverallMedian": 0.018111111111111113
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.8538268150672751,
+            "exactShare": 0.0723674481264496,
+            "diffShare": 0.07380573680627531
+          },
+          "exactFrequency": 0.044743827160493826
+        },
+        {
+          "profile": "favori",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 294.9526666666667,
+                "median": 294,
+                "variance": 306.8000706745183,
+                "stdDev": 17.515709254110103,
+                "min": 237,
+                "max": 352
+              },
+              "survivalAboveOverallMedian": 1
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 280.02366666666666,
+                "median": 284.5,
+                "variance": 817.9746592954659,
+                "stdDev": 28.60025628024102,
+                "min": 133,
+                "max": 352
+              },
+              "survivalAboveOverallMedian": 0.9855555555555555
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 265.7092222222222,
+                "median": 269,
+                "variance": 1250.8774346655746,
+                "stdDev": 35.36774568255057,
+                "min": 105,
+                "max": 352
+              },
+              "survivalAboveOverallMedian": 0.9404444444444444
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 235.91266666666667,
+                "median": 239,
+                "variance": 2009.1478337593078,
+                "stdDev": 44.82351875700198,
+                "min": 61,
+                "max": 346
+              },
+              "survivalAboveOverallMedian": 0.7573333333333333
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.8941095633423668,
+            "exactShare": 0.051040204567663214,
+            "diffShare": 0.05485023208996999
+          },
+          "exactFrequency": 0.052272376543209875
+        },
+        {
+          "profile": "prudent",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 202.33133333333333,
+                "median": 202,
+                "variance": 459.90309634403826,
+                "stdDev": 21.445351392412256,
+                "min": 133,
+                "max": 292
+              },
+              "survivalAboveOverallMedian": 0.42233333333333334
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 191.9717777777778,
+                "median": 193,
+                "variance": 689.4920359546111,
+                "stdDev": 26.258180362595787,
+                "min": 87,
+                "max": 292
+              },
+              "survivalAboveOverallMedian": 0.29777777777777775
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 182.03977777777777,
+                "median": 183,
+                "variance": 877.7437225864778,
+                "stdDev": 29.626739992555336,
+                "min": 67,
+                "max": 288
+              },
+              "survivalAboveOverallMedian": 0.2088888888888889
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 161.90822222222224,
+                "median": 162.5,
+                "variance": 1194.1180343988835,
+                "stdDev": 34.556012999171124,
+                "min": 31,
+                "max": 292
+              },
+              "survivalAboveOverallMedian": 0.096
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.8443658421664794,
+            "exactShare": 0.07769653955942453,
+            "diffShare": 0.07793761827409607
+          },
+          "exactFrequency": 0.05458487654320988
+        },
+        {
+          "profile": "contrarian",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 116.606,
+                "median": 116,
+                "variance": 263.6218330925631,
+                "stdDev": 16.236435356708167,
+                "min": 68,
+                "max": 167
+              },
+              "survivalAboveOverallMedian": 0
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 110.74177777777778,
+                "median": 111,
+                "variance": 333.4925982393072,
+                "stdDev": 18.261779711717782,
+                "min": 33,
+                "max": 167
+              },
+              "survivalAboveOverallMedian": 0
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 105.01011111111112,
+                "median": 105,
+                "variance": 395.47283919200896,
+                "stdDev": 19.886498917406477,
+                "min": 22,
+                "max": 167
+              },
+              "survivalAboveOverallMedian": 0
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 93.47933333333333,
+                "median": 94,
+                "variance": 496.605640182245,
+                "stdDev": 22.284650326676545,
+                "min": 15,
+                "max": 167
+              },
+              "survivalAboveOverallMedian": 0
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.8327187280242869,
+            "exactShare": 0.0641038101717655,
+            "diffShare": 0.10317746180394757
+          },
+          "exactFrequency": 0.025954475308641974
+        },
+        {
+          "profile": "expert_simule",
+          "perAbsenceRate": [
+            {
+              "absenceRate": 0,
+              "summary": {
+                "n": 9000,
+                "mean": 299.45022222222224,
+                "median": 300,
+                "variance": 338.71582393105166,
+                "stdDev": 18.40423385884486,
+                "min": 231,
+                "max": 363
+              },
+              "survivalAboveOverallMedian": 1
+            },
+            {
+              "absenceRate": 0.05,
+              "summary": {
+                "n": 9000,
+                "mean": 284.4611111111111,
+                "median": 289,
+                "variance": 852.6387808522004,
+                "stdDev": 29.19997912417405,
+                "min": 143,
+                "max": 355
+              },
+              "survivalAboveOverallMedian": 0.9868888888888889
+            },
+            {
+              "absenceRate": 0.1,
+              "summary": {
+                "n": 9000,
+                "mean": 269.3426666666667,
+                "median": 272.5,
+                "variance": 1314.3886227358537,
+                "stdDev": 36.254497965574615,
+                "min": 108,
+                "max": 355
+              },
+              "survivalAboveOverallMedian": 0.9448888888888889
+            },
+            {
+              "absenceRate": 0.2,
+              "summary": {
+                "n": 9000,
+                "mean": 239.00677777777778,
+                "median": 242,
+                "variance": 2087.191753145411,
+                "stdDev": 45.68579377821306,
+                "min": 39,
+                "max": 353
+              },
+              "survivalAboveOverallMedian": 0.7673333333333333
+            }
+          ],
+          "pointShare": {
+            "outcomeShare": 0.8937044628452439,
+            "exactShare": 0.05116339128150403,
+            "diffShare": 0.055132145873252165
+          },
+          "exactFrequency": 0.05319753086419753
+        }
+      ],
+      "overallMedianAtZeroAbsence": 207,
+      "discriminationExpertVsAleatoire": {
+        "meanA": 299.45022222222224,
+        "meanB": 178.06655555555557,
+        "gap": 121.38366666666667,
+        "cohensD": 6.168146992029826
+      },
+      "tieRateAtZeroAbsence": 0.7156444444444441
+    }
+  ]
+}

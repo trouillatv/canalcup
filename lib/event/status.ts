@@ -9,14 +9,18 @@
 // La logique pure (interprétation de la valeur + cache) vit dans ./status-core.ts,
 // testée par `npm test`.
 
-import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+// Extension explicite requise : le package "next" n'a pas de champ "exports",
+// donc la résolution ESM stricte de node --test (lib/**/*.test.ts importe ce
+// fichier) exige le chemin de fichier réel, contrairement au bundler Next
+// (webpack/turbopack) qui résout "next/server" sans extension dans les deux cas.
+import { NextResponse } from "next/server.js";
+import { createAdminClient } from "../supabase/admin.ts";
 import {
   EVENT_STATUS_KEY,
   createEventStatusCache,
   parseEventStatus,
   type EventStatus,
-} from "@/lib/event/status-core";
+} from "./status-core.ts";
 
 export type { EventStatus };
 export { EVENT_STATUS_KEY };

@@ -1,12 +1,15 @@
 // /auth/callback — point d'entrée APRÈS clic sur lien email
-// (confirmation signup OU magic link). Échange le code Supabase
-// contre une session, applique l'allowlist (avec auto-allowlist par
-// domaine via le helper unique), puis route vers /onboarding ou
-// /home selon que le profil est complété.
+// (confirmation signup OU magic link), PARTAGÉ par Canal Cup et CANAL
+// Sports (aucun paramètre ne les distingue à ce stade). Échange le code
+// Supabase contre une session, puis fork sur l'email authentifié
+// (Lot 3D-10) : email déjà connu dans public.users -> identité CANAL
+// Sports (ensureCanalSportsUser, /cs/onboarding ou /cs) ; sinon,
+// comportement Canal Cup inchangé (ensureAllowlisted, /onboarding).
 
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { ensureAllowlisted } from "@/lib/auth/allowlist";
+import { ensureCanalSportsUser } from "@/lib/auth/cs-guard";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -28,8 +31,35 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/?error=auth_failed`);
   }
 
-  // Allowlist : voie unique partagée avec /api/auth/self-allowlist.
-  // Auto-insertion si l'email est sur un domaine autorisé.
+  // Fork CANAL Sports (Lot 3D-10) : l'email authentifié existe déjà dans
+  // public.users -> identité CANAL Sports, jamais ensureAllowlisted.
+  const { data: csUser } = await supabase
+    .from("users")
+    .select("id")
+    .ilike("email", user.email)
+    .maybeSingle();
+
+  if (csUser) {
+    const allow = await ensureCanalSportsUser(user.id, user.email);
+    if (!allow.ok) {
+      await supabase.auth.signOut();
+      return NextResponse.redirect(`${origin}/cs?error=${allow.error}`);
+    }
+
+    const { data: csProfile } = await supabase
+      .from("users")
+      .select("profile_completed")
+      .eq("auth_id", user.id)
+      .maybeSingle();
+
+    if (!csProfile?.profile_completed) {
+      return NextResponse.redirect(`${origin}/cs/onboarding`);
+    }
+
+    return NextResponse.redirect(`${origin}${redirectTo === "/" ? "/cs" : redirectTo}`);
+  }
+
+  // Canal Cup — comportement inchangé.
   const allow = await ensureAllowlisted(user.email);
   if (!allow.ok) {
     await supabase.auth.signOut();

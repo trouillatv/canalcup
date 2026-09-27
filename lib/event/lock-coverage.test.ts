@@ -29,6 +29,10 @@ const EXEMPTS: Record<string, string> = {
   "app/api/track": "analytics de navigation (pages vues)",
   "app/api/push/subscribe": "abonnement aux notifications, pas une action de jeu",
   "app/api/push/send": "envoi piloté par l'orga",
+  "app/api/cs/admin/settle": "settlement CANAL Sports : opération serveur de finalisation qui doit " +
+    "pouvoir solder les predictions des events déjà terminés même compétition fermée — sinon fermer " +
+    "la compétition empêcherait de régler les derniers pronostics. Protégée par requireCsAdmin() " +
+    "(session Supabase + allowlist admin), pas par le verrou de clôture.",
 };
 
 function walk(dir: string): string[] {

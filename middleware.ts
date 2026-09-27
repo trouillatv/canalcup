@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { ensureAllowlisted } from "@/lib/auth/allowlist";
+import { ensureCanalSportsUser } from "@/lib/auth/cs-guard";
 
 // Public paths
 const PUBLIC_PATHS = [
@@ -20,7 +21,7 @@ const PUBLIC_PATHS = [
 ];
 
 // Auth required but not profile_completed (onboarding in progress)
-const ONBOARDING_PATHS = ["/onboarding"];
+const ONBOARDING_PATHS = ["/onboarding", "/cs/onboarding"];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
@@ -32,6 +33,14 @@ function isOnboarding(pathname: string): boolean {
 
 function isApiRoute(pathname: string): boolean {
   return pathname.startsWith("/api/");
+}
+
+// CANAL Sports (Lot 3D-10) — n'a jamais dépendu, et ne dépend plus, de
+// ensureAllowlisted()/allowlist_users (reliquat Canal Cup, voir
+// docs/supabase-architecture-p2.md). Tout le reste de ce middleware
+// (routes Canal Cup) reste inchangé.
+function isCsPath(pathname: string): boolean {
+  return pathname === "/cs" || pathname.startsWith("/cs/") || pathname.startsWith("/api/cs/");
 }
 
 const ASSET_EXT_RE = /\.(jpe?g|png|gif|webp|svg|ico|css|woff2?|ttf|map|txt|xml|mp4|webm|mp3|pdf|json)$/i;
@@ -83,31 +92,58 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
-  // Allowlist = serveur, pas UI.
-  const allow = await ensureAllowlisted(user.email ?? "");
+  const isCs = isCsPath(pathname);
+
+  // Autorisation = serveur, pas UI. CANAL Sports (isCs) utilise son propre
+  // guard natif (public.users.auth_id) ; Canal Cup garde ensureAllowlisted.
+  const allow = isCs
+    ? await ensureCanalSportsUser(user.id, user.email ?? "")
+    : await ensureAllowlisted(user.email ?? "");
   if (!allow.ok) {
     if (isApiRoute(pathname)) {
       return NextResponse.json({ error: allow.reason }, { status: 403 });
     }
-    return NextResponse.redirect(new URL(`/?error=${allow.error}`, request.url));
+    const errorTarget = isCs ? "/cs" : "/";
+    return NextResponse.redirect(new URL(`${errorTarget}?error=${allow.error}`, request.url));
   }
 
-  // Trace "dernière connexion" réelle (1x/jour/user).
-  const todayKey = new Date().toISOString().slice(0, 10);
-  if (request.cookies.get("cc-llg")?.value !== todayKey) {
-    await supabase
-      .from("users")
-      .update({ last_login_at: new Date().toISOString() })
-      .eq("auth_id", user.id);
-    supabaseResponse.cookies.set("cc-llg", todayKey, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-    });
+  // Trace "dernière connexion" réelle (1x/jour/user) — colonne
+  // last_login_at absente du users CANAL Sports, non applicable pour isCs.
+  if (!isCs) {
+    const todayKey = new Date().toISOString().slice(0, 10);
+    if (request.cookies.get("cc-llg")?.value !== todayKey) {
+      await supabase
+        .from("users")
+        .update({ last_login_at: new Date().toISOString() })
+        .eq("auth_id", user.id);
+      supabaseResponse.cookies.set("cc-llg", todayKey, {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7,
+      });
+    }
   }
 
   if (isOnboarding(pathname) || isApiRoute(pathname)) {
+    return supabaseResponse;
+  }
+
+  if (isCs) {
+    const { data: csProfile } = await supabase
+      .from("users")
+      .select("profile_completed, display_name, name")
+      .eq("auth_id", user.id)
+      .single();
+
+    const csIncomplete =
+      !csProfile?.profile_completed ||
+      !((csProfile.display_name ?? "").trim() || (csProfile.name ?? "").trim());
+
+    if (csIncomplete) {
+      return NextResponse.redirect(new URL("/cs/onboarding?incomplete=1", request.url));
+    }
+
     return supabaseResponse;
   }
 

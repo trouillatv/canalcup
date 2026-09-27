@@ -1,0 +1,61 @@
+{
+  "lot": "3A — Ingestion Champions League réelle (football-data.org)",
+  "generated_at": "2026-09-25T08:26:02.178Z",
+  "source_provider": "football-data.org",
+  "target_project": "CANAL Sports (yfhuqsuboqfznnpceosl)",
+  "baseline_read_at": "2026-09-25T00:00:00Z",
+  "baseline": {
+    "competition": {
+      "id": "529a6fb7-db4f-439d-8f83-f7f5993cf96f",
+      "slug": "uefa-champions-league",
+      "name": "UEFA Champions League",
+      "source": null,
+      "external_id": null
+    },
+    "seasons": [
+      {
+        "id": "7577d2b7-7fa3-408d-a327-3aac947c4d0c",
+        "label": "2025-2026",
+        "source": null,
+        "external_id": null,
+        "starts_at": "2025-09-16T18:45:00+00:00",
+        "ends_at": "2026-05-30T20:00:00+00:00",
+        "note": "placeholder seedé au Lot 1, laissé tel quel — devient une ligne orpheline sans event"
+      }
+    ],
+    "existing_participants_count": 0,
+    "existing_events_count": 0,
+    "existing_event_participants_count": 0
+  },
+  "fetched_from_provider": {
+    "competition": { "external_id": "2001", "code": "CL", "name": "UEFA Champions League" },
+    "season": { "external_id": "2557", "label": "2026-2027", "starts_at": "2026-09-08", "ends_at": "2027-01-27" },
+    "seasons_total_returned_by_provider": 47,
+    "participants_count": 36,
+    "events_count": 144,
+    "events_finished": 18,
+    "events_scheduled": 126,
+    "events_stages_observed": ["LEAGUE_STAGE"],
+    "events_matchday_range": [1, 8]
+  },
+  "plan": {
+    "competitions": { "action": "update (backfill source/external_id)", "count": 1, "slug": "uefa-champions-league" },
+    "seasons": { "action": "create", "count": 1, "label": "2026-2027", "external_id": "2557" },
+    "participants": { "action": "create", "count": 36 },
+    "events": { "action": "create", "count": 144, "finished": 18, "scheduled": 126 },
+    "event_participants": { "action": "create", "count": 288 }
+  },
+  "stage_order_map": { "LEAGUE_STAGE": 1 },
+  "stage_order_algorithm": "computeStageOrder() — ordre chronologique de première apparition du stage dans le calendrier fetché, jamais une constante métier codée en dur (voir lib/ingestion/football-stage-order.ts et ADR 0001 addendum P2)",
+  "idempotence": {
+    "mechanism": "ON CONFLICT (source, external_id) DO UPDATE pour seasons/participants/events ; ON CONFLICT (sport_id, slug) DO UPDATE pour competitions ; ON CONFLICT (event_id, participant_id) DO UPDATE pour event_participants",
+    "guards": "DO $guard$ pré-écriture (cible doit être 0/0/0/0 pour cette source), DO $post$ post-écriture (totaux exacts 36/144/288), transaction begin/commit — rollback automatique sur tout écart"
+  },
+  "warnings": [
+    "leg non renseigné (NULL) pour les 144 events — football-data.org ne l'expose pas sur les données observées (phase de championnat uniquement, aucun tour aller/retour publié) ; à revérifier quand les 8es de finale seront publiés.",
+    "standings (classement CL) non ingéré dans ce lot — pas de table dédiée dans le schéma actuel (hors scope Lot 1), périmètre volontairement limité à participants/events/event_participants.",
+    "saison seedée 2025-2026 (Lot 1, placeholder sans source/external_id) laissée telle quelle, non supprimée — devient une ligne orpheline sans event."
+  ],
+  "sql_file": "lot3a-import.tmp.sql (racine du repo, non commité — sera archivé sous docs/dry-runs/lot3a-import-applied-2026-09-25.sql après application)",
+  "traceability_plan": "réutilisation de public.cron_runs + lib/monitoring/cron-log.ts (runCron()) pour la future synchro automatisée en production — aucune nouvelle table de log créée. Ce backfill initial ponctuel est appliqué via apply_migration (MCP), pas via cron, faute de SUPABASE_SERVICE_ROLE_KEY local exploitable (tâche #16 toujours en attente)."
+}

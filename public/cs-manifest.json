@@ -1,0 +1,55 @@
+{
+  "name": "CANAL Sports",
+  "short_name": "CANAL Sports",
+  "description": "Pronostics, programme et briefs pour toutes les compétitions CANAL+",
+  "start_url": "/cs",
+  "display": "standalone",
+  "background_color": "#0D0B08",
+  "theme_color": "#0D0B08",
+  "orientation": "any",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["sports"],
+  "shortcuts": [
+    {
+      "name": "Pronostics",
+      "short_name": "Pronos",
+      "description": "Faire un pronostic",
+      "url": "/cs/pronostics",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Classement",
+      "short_name": "Classement",
+      "description": "Voir le classement",
+      "url": "/cs/classements",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Programme",
+      "short_name": "Programme",
+      "description": "Voir le programme des matchs",
+      "url": "/cs/programme",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}

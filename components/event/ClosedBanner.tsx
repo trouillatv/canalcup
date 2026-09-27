@@ -1,13 +1,21 @@
-// Bandeau global affiché sur TOUTES les pages quand la Canal Cup est terminée.
+"use client";
+
+// Bandeau global affiché sur TOUTES les pages Canal Cup quand la Canal Cup
+// est terminée.
 //
 // Rôle : expliquer, partout, pourquoi les boutons de jeu ont disparu. Sans lui,
 // un joueur qui arrive sur /pronostics croit à un bug. Discret mais permanent,
-// et il ramène toujours au palmarès.
+// et il ramène toujours au palmarès. Masqué sur /cs/* : ce statut de clôture
+// est propre à Canal Cup, sans rapport avec CANAL Sports.
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Trophy, ChevronRight } from "lucide-react";
 
 export function ClosedBanner() {
+  const pathname = usePathname() || "/";
+  if (pathname === "/cs" || pathname.startsWith("/cs/")) return null;
+
   return (
     <Link
       href="/final"

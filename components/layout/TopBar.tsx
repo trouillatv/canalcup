@@ -119,7 +119,9 @@ export function TopBar() {
     pathname === "/tv" ||
     pathname === "/quiz-show" ||
     pathname === "/quiz-control" ||
-    pathname.startsWith("/p/")
+    pathname.startsWith("/p/") ||
+    pathname === "/cs" ||
+    pathname.startsWith("/cs/")
   )
     return null;
 

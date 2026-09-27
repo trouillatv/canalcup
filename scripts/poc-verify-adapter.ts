@@ -31,10 +31,10 @@ const seasons = await footballDataOrg.getSeasons(competitionExternalId);
 console.log(`\ngetSeasons(${competitionExternalId}):`, JSON.stringify(seasons, null, 2));
 
 const seasonExternalId = seasons[seasons.length - 1]?.external_id;
-const participants = await footballDataOrg.getParticipants(seasonExternalId);
+const participants = await footballDataOrg.getParticipants();
 console.log(`\ngetParticipants(): ${participants.length} participants. Exemple:`, JSON.stringify(participants[0], null, 2));
 
-const events = await footballDataOrg.getEvents(seasonExternalId);
+const events = await footballDataOrg.getEvents();
 console.log(`\ngetEvents(): ${events.length} events.`);
 const finishedEvent = events.find((e) => e.status === "finished");
 console.log("Exemple event FINISHED:", JSON.stringify(finishedEvent, null, 2));
@@ -48,7 +48,7 @@ const orphanRefs = events
 console.log(`\nCohérence participant_external_id: ${orphanRefs.length} référence(s) d'event pointant vers un participant absent de getParticipants().`);
 if (orphanRefs.length > 0) console.log("Exemples orphelins:", [...new Set(orphanRefs)].slice(0, 5));
 
-const standings = await footballDataOrg.getStandings(seasonExternalId);
+const standings = await footballDataOrg.getStandings();
 console.log(`\ngetStandings(): ${standings.length} groupe(s). Exemple ligne:`, JSON.stringify(standings[0]?.rows?.[0], null, 2));
 
 const standingsRefs = standings.flatMap((s) => s.rows.map((r) => r.participant_external_id));
