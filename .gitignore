@@ -63,3 +63,6 @@ docs/script/_*.html
 *.bak
 
 .env*
+
+# Local AI evidence artifacts (screenshots/videos/logs for review, not source)
+.ai-evidence/
