@@ -105,27 +105,29 @@ Recommended labels:
 - `FIX-REQUIRED`
 - `DONE`
 
-Daily command concept:
+Daily command:
 
 ```text
-/work-next
+$work-next
 ```
 
 In Codex this maps to the project skill `.codex/skills/work-next/SKILL.md`.
 
 Work-next rules:
 
-1. Find one `AI-READY` issue.
-2. Verify no issue is already `AI-WORKING`.
-3. Read its Delivery Contract.
-4. Inspect the repo.
-5. Mark the issue `AI-WORKING`.
-6. Work according to FAST/STANDARD/PRODUCT.
-7. Produce required evidence.
-8. Run tests/types/build as appropriate.
-9. Commit and push only scoped changes.
-10. Comment with SHA, summary, tests, evidence, deviations, and `REVIEW_READY`.
-11. Stop. Never take a second issue automatically.
+1. If an issue is already `AI-WORKING`, report it and stop.
+2. Otherwise, prefer one `FIX-REQUIRED` issue. Fix review feedback before starting new work.
+3. If there is no `FIX-REQUIRED` issue, take one `AI-READY` issue.
+4. If neither exists, report that there is no eligible issue and stop.
+5. Read its Delivery Contract and latest review comments.
+6. Inspect the repo.
+7. Mark the selected issue `AI-WORKING`.
+8. Work according to FAST/STANDARD/PRODUCT.
+9. Produce required evidence.
+10. Run tests/types/build as appropriate.
+11. Commit and push only scoped changes.
+12. Comment with SHA, summary, tests, evidence, deviations, and `REVIEW_READY`.
+13. Stop. Never take a second issue automatically.
 
 ## Technical vs product acceptance
 
@@ -159,17 +161,14 @@ A slice can be `TECH PASS` and `PRODUCT FAIL`.
 
 For important PRODUCT UI, "tested visually" is not enough.
 
-Minimum evidence depends on the slice, but can include:
+Evidence is an acceptance gate, not decoration:
 
-- desktop screenshot;
-- mobile screenshot;
-- above the fold;
-- after scroll;
-- main interaction state;
-- empty/loading/error states when affected;
-- console state;
-- network state when architecture-sensitive;
-- short video only when motion or scroll is part of acceptance.
+- If the PRODUCT slice is essentially static, provide at least desktop and mobile screenshots.
+- If it contains interaction, scroll, sticky UI, drawer, or sheet behavior, provide screenshots plus a real browser scenario and before/after interaction states.
+- If it contains significant motion, provide screenshots plus a short video or frame sequence, validate the Motion Contract, and validate `prefers-reduced-motion`.
+- Include above-the-fold, after-scroll, empty/loading/error, console, or network evidence when those states are affected or architecture-sensitive.
+
+A PRODUCT issue cannot reach `REVIEW-READY` when the evidence pack is weaker than the slice's interaction or motion scope.
 
 Local evidence artifacts should go under `.ai-evidence/`, which is ignored by Git. Long-term evidence belongs in GitHub issue comments, PR attachments, or CI artifacts.
 
@@ -243,7 +242,7 @@ No mass swap of the 119 routes and no 21-route adaptation without product decisi
 This version is controlled, not fully autonomous:
 
 - Vincent starts Codex.
-- Codex handles one issue through `/work-next`.
+- Codex handles one issue through `$work-next`.
 - Codex reaches `REVIEW_READY`.
 - Codex stops.
 

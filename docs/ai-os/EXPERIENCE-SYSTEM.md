@@ -73,4 +73,10 @@ Use motion to explain state change, not to decorate.
 
 ## Evidence
 
-For important PRODUCT UI, Product Acceptance requires real screenshots or equivalent evidence. A claim that the UI was checked is not enough.
+For important PRODUCT UI, Product Acceptance requires real evidence. A claim that the UI was checked is not enough.
+
+- Static surface: desktop screenshot and mobile screenshot.
+- Interaction, scroll, sticky UI, drawer, or sheet: screenshots plus a real browser scenario and before/after states.
+- Significant motion: screenshots plus short video or frame sequence, Motion Contract validation, and `prefers-reduced-motion` validation.
+
+Screenshots alone are insufficient when interaction or motion is part of acceptance.
