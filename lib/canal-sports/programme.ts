@@ -55,27 +55,27 @@ export type RawProgramEvent = {
 export function statusLabel(status: ProgramStatus): string {
   switch (status) {
     case "scheduled":
-      return "A venir";
+      return "À venir";
     case "live":
       return "En direct";
     case "finished":
-      return "Termine";
+      return "Terminé";
     case "postponed":
-      return "Reporte";
+      return "Reporté";
     case "cancelled":
-      return "Annule";
+      return "Annulé";
     default:
       return status;
   }
 }
 
 export function matchdayLabel(matchday: number | null): string | null {
-  return matchday ? `Journee ${matchday}` : null;
+  return matchday ? `Journée ${matchday}` : null;
 }
 
 export function stageLabel(stage: string | null, matchday: number | null): string {
   const base = stage === "LEAGUE_STAGE" ? "Phase de ligue" : stage ?? "Champions League";
-  return matchday ? `${base} - Journee ${matchday}` : base;
+  return matchday ? `${base} - Journée ${matchday}` : base;
 }
 
 export function shouldUseShortName(name: string, shortName: string): boolean {
@@ -113,7 +113,7 @@ function one<T>(value: T | T[] | null | undefined): T | null {
 function teamFrom(raw: RawEventParticipant | undefined): ProgramTeam {
   const participant = one(raw?.participants);
   const logo = participant?.metadata?.logo_url;
-  const name = participant?.name?.trim() || "Equipe a confirmer";
+  const name = participant?.name?.trim() || "Équipe à confirmer";
   return {
     id: participant?.id ?? null,
     name,
@@ -182,7 +182,7 @@ export function groupByDay(matches: ProgramMatch[]): { key: string; label: strin
 export function meaningfulBadge(match: ProgramMatch, now: Date = new Date()): string | null {
   if (match.status === "live") return "En direct";
   if (match.prediction) return match.prediction.status === "settled" ? `${match.prediction.points ?? 0} pts` : "Prono fait";
-  if (match.status === "finished") return "Termine";
+  if (match.status === "finished") return "Terminé";
   const start = new Date(match.startsAt);
   const diffMs = start.getTime() - now.getTime();
   if (diffMs < 0) return null;

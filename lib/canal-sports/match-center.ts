@@ -203,14 +203,14 @@ function dateLabel(value: string): string {
 
 function predictionStatusLabel(prediction: RawPrediction, eventStatus: MatchCenterStatus): string {
   if (prediction.status === "settled") return `${prediction.points_awarded ?? 0} pts`;
-  if (prediction.status === "void") return "Annule";
-  if (eventStatus === "scheduled") return "Enregistre";
-  return "Verrouille";
+  if (prediction.status === "void") return "Annulé";
+  if (eventStatus === "scheduled") return "Enregistré";
+  return "Verrouillé";
 }
 
 function teamFrom(raw: RawEventParticipant | undefined): Omit<MatchCenterTeam, "standing" | "recentForm" | "squad" | "squadStatus" | "seasonScorers"> {
   const participant = one(raw?.participants);
-  const name = participant?.name?.trim() || "Equipe a confirmer";
+  const name = participant?.name?.trim() || "Équipe à confirmer";
   return {
     id: participant?.id ?? null,
     name,

@@ -127,7 +127,7 @@ test("match center: scheduled sans score et CTA pronostic possible", () => {
   const match = normalizeMatchCenter(rawEvent({ starts_at: "2099-10-14T19:00:00Z", status: "scheduled", result: {} }));
 
   assert.equal(match.score, null);
-  assert.equal(match.statusLabel, "A venir");
+  assert.equal(match.statusLabel, "À venir");
   assert.equal(match.canPredict, true);
 });
 
@@ -264,7 +264,9 @@ test("match center page: UX sans titre redondant, dette technique masquee, effec
   assert.equal(page.includes("missingData.join"), false);
   assert.equal(page.includes("Phase de ligue"), true);
   assert.equal(page.includes("Contexte du match"), true);
-  assert.equal(page.includes("Forme recente"), true);
+  assert.equal(page.includes("Forme récente"), true);
+  assert.equal(page.includes("function positionLabel"), true);
+  assert.equal(page.includes("{player.position}</span>"), false);
   assert.equal(page.includes("slice(0, 6)"), true);
   assert.equal(page.includes("lg:hidden"), true);
   assert.equal(page.includes("lg:block"), true);

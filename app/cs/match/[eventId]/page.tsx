@@ -141,7 +141,7 @@ function PredictionPanel({ match }: { match: MatchCenterViewModel }) {
               Ton pronostic
             </p>
             <p className="mt-2 text-3xl font-black text-foreground tabular-nums">
-              {hasExactScore ? `${payload!.home}-${payload!.away}` : "Enregistre"}
+              {hasExactScore ? `${payload!.home}-${payload!.away}` : "Enregistré"}
             </p>
             <p className="mt-1 text-xs font-bold text-muted-foreground">
               {prediction.statusLabel}
@@ -154,7 +154,7 @@ function PredictionPanel({ match }: { match: MatchCenterViewModel }) {
             </Link>
           ) : (
             <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-black text-muted-foreground">
-              Verrouille
+              Verrouillé
             </span>
           )}
         </div>
@@ -165,7 +165,7 @@ function PredictionPanel({ match }: { match: MatchCenterViewModel }) {
               <Target size={14} />
               Ton pronostic
             </p>
-            <p className="mt-2 text-sm font-bold text-foreground">A pronostiquer avant le coup d'envoi.</p>
+            <p className="mt-2 text-sm font-bold text-foreground">À pronostiquer avant le coup d'envoi.</p>
           </div>
           <Link href="/cs/pronostics" className="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-black text-primary-foreground">
             Pronostiquer
@@ -200,7 +200,7 @@ function ContextPanel({ match }: { match: MatchCenterViewModel }) {
           <Trophy size={16} className="text-primary" />
           <h2 className="text-sm font-black uppercase tracking-widest text-primary">Contexte du match</h2>
         </div>
-        <p className="text-sm text-muted-foreground">Contexte sportif non disponible de facon fiable pour ces deux clubs.</p>
+        <p className="text-sm text-muted-foreground">Contexte sportif non disponible de façon fiable pour ces deux clubs.</p>
       </section>
     );
   }
@@ -257,12 +257,12 @@ function formTone(result: RecentFormResult): string {
 
 function RecentFormLine({ team }: { team: MatchCenterTeam }) {
   if (team.recentForm.length === 0) {
-    return <p className="mt-3 text-xs text-muted-foreground">Forme recente indisponible</p>;
+    return <p className="mt-3 text-xs text-muted-foreground">Forme récente indisponible</p>;
   }
 
   return (
     <div className="mt-3">
-      <p className="mb-2 text-[11px] font-black uppercase tracking-widest text-muted-foreground">Forme recente</p>
+      <p className="mb-2 text-[11px] font-black uppercase tracking-widest text-muted-foreground">Forme récente</p>
       <div className="flex flex-wrap gap-1.5">
         {team.recentForm.map((entry) => (
           <span
@@ -280,10 +280,20 @@ function RecentFormLine({ team }: { team: MatchCenterTeam }) {
 function positionGroup(position: string | null): string {
   const value = (position ?? "").toLowerCase();
   if (value.includes("goal")) return "Gardiens";
-  if (value.includes("def")) return "Defenseurs";
+  if (value.includes("def")) return "Défenseurs";
   if (value.includes("mid")) return "Milieux";
   if (value.includes("attack") || value.includes("forward") || value.includes("offence")) return "Attaquants";
   return "Autres";
+}
+
+function positionLabel(position: string | null): string | null {
+  const value = (position ?? "").toLowerCase();
+  if (!value) return null;
+  if (value.includes("goal")) return "Gardien";
+  if (value.includes("def")) return "Défenseur";
+  if (value.includes("mid")) return "Milieu";
+  if (value.includes("attack") || value.includes("forward") || value.includes("offence")) return "Attaquant";
+  return null;
 }
 
 function groupPlayers(players: SquadPlayer[]) {
@@ -293,7 +303,7 @@ function groupPlayers(players: SquadPlayer[]) {
     if (!groups.has(group)) groups.set(group, []);
     groups.get(group)!.push(player);
   }
-  const order = ["Gardiens", "Defenseurs", "Milieux", "Attaquants", "Autres"];
+  const order = ["Gardiens", "Défenseurs", "Milieux", "Attaquants", "Autres"];
   return order
     .filter((label) => groups.has(label))
     .map((label) => ({ label, players: groups.get(label)! }));
@@ -309,7 +319,7 @@ function SquadList({ team }: { team: MatchCenterTeam }) {
           <TeamLogo team={team} />
           <div className="min-w-0">
             <p className="truncate text-sm font-black text-foreground">{teamDisplayName(team)}</p>
-            <p className="text-xs text-muted-foreground">{team.squad.length} joueurs references</p>
+            <p className="text-xs text-muted-foreground">{team.squad.length} joueurs référencés</p>
           </div>
         </div>
         <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs font-black text-primary">
@@ -336,7 +346,7 @@ function SquadList({ team }: { team: MatchCenterTeam }) {
           </div>
         </>
       ) : (
-        <p className="text-sm text-muted-foreground">Aucune donnee d'effectif exploitable pour ce club.</p>
+        <p className="text-sm text-muted-foreground">Aucune donnée d'effectif exploitable pour ce club.</p>
       )}
     </div>
   );
@@ -357,11 +367,12 @@ function SquadGroups({ groups }: { groups: { label: string; players: SquadPlayer
   );
 }
 function PlayerRow({ player }: { player: SquadPlayer }) {
+  const displayPosition = positionLabel(player.position);
   return (
     <div className="flex items-center gap-2 rounded-md bg-secondary/55 px-2 py-2">
       <Shirt size={14} className="shrink-0 text-primary" />
       <span className="min-w-0 flex-1 truncate text-sm font-bold text-foreground">{player.name}</span>
-      {player.position ? <span className="shrink-0 text-[11px] text-muted-foreground">{player.position}</span> : null}
+      {displayPosition ? <span className="shrink-0 text-[11px] text-muted-foreground">{displayPosition}</span> : null}
     </div>
   );
 }
@@ -388,7 +399,7 @@ function ScorersPanel({ match }: { match: MatchCenterViewModel }) {
     <section className="rounded-lg border border-white/10 bg-card/70 p-4">
       <div className="mb-3 flex items-center gap-2">
         <Shield size={16} className="text-primary" />
-        <h2 className="text-sm font-black uppercase tracking-widest text-primary">Buteurs de la competition</h2>
+        <h2 className="text-sm font-black uppercase tracking-widest text-primary">Buteurs de la compétition</h2>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {[match.home, match.away].map((team) => (
@@ -404,7 +415,7 @@ function ScorersPanel({ match }: { match: MatchCenterViewModel }) {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">Aucun buteur reference.</p>
+              <p className="text-sm text-muted-foreground">Aucun buteur référencé.</p>
             )}
           </div>
         ))}
