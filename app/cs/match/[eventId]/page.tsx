@@ -214,7 +214,7 @@ function ContextPanel({ match }: { match: MatchCenterViewModel }) {
           <h2 className="text-sm font-black uppercase tracking-widest text-primary">Contexte du match</h2>
         </div>
         <p className="max-w-sm text-xs font-bold text-muted-foreground">
-          Classement et forme Champions League calculés depuis les matchs TARGET terminés.
+          Classement et forme en Champions League sur les matchs terminés.
         </p>
       </div>
       <div className="grid gap-3 md:grid-cols-2">
