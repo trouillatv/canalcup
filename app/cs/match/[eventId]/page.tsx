@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarDays, ChevronRight, MapPin, Shield, Shirt, Target, Trophy, Users } from "lucide-react";
+import type { CSSProperties } from "react";
+import { CalendarDays, ChevronDown, ChevronRight, MapPin, Shield, Shirt, Target, Trophy, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageShell, EmptyState } from "@/components/canal-sports/ui";
 import {
@@ -19,7 +20,7 @@ function TeamLogo({ team, large = false }: { team: MatchCenterTeam; large?: bool
   return (
     <div
       className={cn(
-        "grid shrink-0 place-items-center border border-white/10 bg-white shadow-sm",
+        "grid shrink-0 place-items-center border border-white/10 bg-white shadow-sm transition-transform duration-150 ease-out",
         large ? "h-20 w-20 rounded-2xl md:h-28 md:w-28" : "h-10 w-10 rounded-lg"
       )}
     >
@@ -35,7 +36,7 @@ function TeamLogo({ team, large = false }: { team: MatchCenterTeam; large?: bool
 
 function HeroTeam({ team, align = "left" }: { team: MatchCenterTeam; align?: "left" | "right" }) {
   return (
-    <div className={cn("flex min-w-0 items-center gap-4", align === "right" && "flex-row-reverse text-right md:justify-start")}>
+    <div className={cn("cs-match-team flex min-w-0 items-center gap-4", align === "right" && "flex-row-reverse text-right md:justify-start")}>
       <TeamLogo team={team} large />
       <div className="min-w-0 flex-1">
         <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">{team.country ?? "Club"}</p>
@@ -53,7 +54,7 @@ function HeroTeam({ team, align = "left" }: { team: MatchCenterTeam; align?: "le
 function ScoreBlock({ match }: { match: MatchCenterViewModel }) {
   if (match.score) {
     return (
-      <div className="text-center">
+      <div className="cs-match-score text-center">
         <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">{match.statusLabel}</p>
         <div className="mt-1 font-black tabular-nums text-primary text-6xl md:text-7xl">
           {match.score.home}-{match.score.away}
@@ -63,7 +64,7 @@ function ScoreBlock({ match }: { match: MatchCenterViewModel }) {
   }
 
   return (
-    <div className="text-center">
+    <div className="cs-match-score text-center">
       <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">{match.dateLabel}</p>
       <div className="mt-1 font-black tabular-nums text-primary text-5xl md:text-6xl">{match.timeLabel}</div>
       <p className="mt-1 text-xs font-bold text-muted-foreground">{match.statusLabel} / heure NC</p>
@@ -73,9 +74,9 @@ function ScoreBlock({ match }: { match: MatchCenterViewModel }) {
 
 function Hero({ match }: { match: MatchCenterViewModel }) {
   return (
-    <section className="overflow-hidden rounded-lg border border-primary/25 bg-[radial-gradient(circle_at_50%_0%,rgba(255,215,0,0.18),transparent_42%),linear-gradient(135deg,hsl(var(--card)),hsl(var(--secondary)),#0b0906)] shadow-[0_24px_90px_rgba(0,0,0,0.42)]">
+    <section className="cs-match-hero overflow-hidden rounded-lg border border-primary/25 bg-[radial-gradient(circle_at_50%_0%,rgba(255,215,0,0.18),transparent_42%),linear-gradient(135deg,hsl(var(--card)),hsl(var(--secondary)),#0b0906)] shadow-[0_24px_90px_rgba(0,0,0,0.42)]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3 md:px-6">
-        <div>
+        <div className="cs-match-kicker">
           <p className="text-xs font-black uppercase tracking-[0.22em] text-primary">{match.competitionName}</p>
           <p className="mt-1 text-xs text-muted-foreground">
             {match.stageLabel}
@@ -87,7 +88,7 @@ function Hero({ match }: { match: MatchCenterViewModel }) {
         </span>
       </div>
 
-      <div className="grid gap-7 px-4 py-7 md:grid-cols-[minmax(0,1fr)_minmax(150px,auto)_minmax(0,1fr)] md:items-center md:px-8 md:py-10">
+      <div className="grid gap-7 px-4 py-7 md:px-8 md:py-10 lg:grid-cols-[minmax(0,1fr)_minmax(150px,auto)_minmax(0,1fr)] lg:items-center">
         <HeroTeam team={match.home} />
         <ScoreBlock match={match} />
         <HeroTeam team={match.away} align="right" />
@@ -109,7 +110,7 @@ function Hero({ match }: { match: MatchCenterViewModel }) {
         {match.canPredict ? (
           <Link
             href="/cs/pronostics"
-            className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-black text-primary-foreground transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
+            className="cs-match-cta inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-black text-primary-foreground transition hover:-translate-y-0.5 hover:opacity-95 active:scale-[0.985] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
           >
             Pronostiquer
           </Link>
@@ -132,7 +133,7 @@ function PredictionPanel({ match }: { match: MatchCenterViewModel }) {
   const hasExactScore = typeof payload?.home === "number" && typeof payload?.away === "number";
 
   return (
-    <section className="rounded-lg border border-primary/20 bg-[linear-gradient(135deg,hsl(var(--card)),hsl(var(--secondary)))] p-4 shadow-[0_14px_45px_rgba(0,0,0,0.24)]">
+    <section className="cs-match-panel rounded-lg border border-primary/20 bg-[linear-gradient(135deg,hsl(var(--card)),hsl(var(--secondary)))] p-4 shadow-[0_14px_45px_rgba(0,0,0,0.24)]">
       {prediction ? (
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -149,7 +150,7 @@ function PredictionPanel({ match }: { match: MatchCenterViewModel }) {
             </p>
           </div>
           {match.canPredict ? (
-            <Link href="/cs/pronostics" className="rounded-lg bg-primary px-4 py-2 text-sm font-black text-primary-foreground">
+            <Link href="/cs/pronostics" className="cs-match-cta rounded-lg bg-primary px-4 py-2 text-sm font-black text-primary-foreground">
               Modifier
             </Link>
           ) : (
@@ -167,7 +168,7 @@ function PredictionPanel({ match }: { match: MatchCenterViewModel }) {
             </p>
             <p className="mt-2 text-sm font-bold text-foreground">À pronostiquer avant le coup d'envoi.</p>
           </div>
-          <Link href="/cs/pronostics" className="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-black text-primary-foreground">
+          <Link href="/cs/pronostics" className="cs-match-cta shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-black text-primary-foreground">
             Pronostiquer
           </Link>
         </div>
@@ -195,7 +196,7 @@ function ContextPanel({ match }: { match: MatchCenterViewModel }) {
 
   if (!hasContext) {
     return (
-      <section className="rounded-lg border border-white/10 bg-card/70 p-4">
+      <section className="cs-match-panel rounded-lg border border-white/10 bg-card/70 p-4">
         <div className="mb-3 flex items-center gap-2">
           <Trophy size={16} className="text-primary" />
           <h2 className="text-sm font-black uppercase tracking-widest text-primary">Contexte du match</h2>
@@ -206,27 +207,36 @@ function ContextPanel({ match }: { match: MatchCenterViewModel }) {
   }
 
   return (
-    <section className="rounded-lg border border-white/10 bg-card/70 p-4">
-      <div className="mb-3 flex items-center gap-2">
-        <Trophy size={16} className="text-primary" />
-        <h2 className="text-sm font-black uppercase tracking-widest text-primary">Contexte du match</h2>
+    <section className="cs-match-panel rounded-lg border border-white/10 bg-card/70 p-4 md:p-5">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Trophy size={16} className="text-primary" />
+          <h2 className="text-sm font-black uppercase tracking-widest text-primary">Contexte du match</h2>
+        </div>
+        <p className="max-w-sm text-xs font-bold text-muted-foreground">
+          Classement et forme Champions League calculés depuis les matchs TARGET terminés.
+        </p>
       </div>
-      <div className="grid gap-3 lg:grid-cols-2">
-        {teams.map((team) => (
-          <div key={team.id ?? team.name} className="rounded-lg bg-secondary/65 p-3">
-            <div className="mb-3 flex items-center gap-2">
-              <TeamLogo team={team} />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-black text-foreground">{teamDisplayName(team)}</p>
-                <p className="text-xs text-muted-foreground">{team.country ?? groupLabelFr(team.standing?.groupLabel)}</p>
-              </div>
-            </div>
-            <StandingLine team={team} />
-            <RecentFormLine team={team} />
-          </div>
-        ))}
+      <div className="grid gap-3 md:grid-cols-2">
+        {teams.map((team) => <TeamContextCard key={team.id ?? team.name} team={team} />)}
       </div>
     </section>
+  );
+}
+
+function TeamContextCard({ team }: { team: MatchCenterTeam }) {
+  return (
+    <div className="rounded-lg border border-white/10 bg-secondary/60 p-4">
+      <div className="flex items-center gap-3">
+        <TeamLogo team={team} />
+        <div className="min-w-0">
+          <p className="truncate text-base font-black text-foreground">{teamDisplayName(team)}</p>
+          <p className="text-xs text-muted-foreground">{team.country ?? groupLabelFr(team.standing?.groupLabel)}</p>
+        </div>
+      </div>
+      <StandingLine team={team} />
+      <RecentFormLine team={team} />
+    </div>
   );
 }
 
@@ -235,17 +245,12 @@ function StandingLine({ team }: { team: MatchCenterTeam }) {
   if (!standing) return <p className="text-sm text-muted-foreground">Classement indisponible</p>;
 
   return (
-    <p className="text-sm font-black text-foreground">
-      {standing.position}e
-      <span className="mx-2 text-muted-foreground">/</span>
-      {standing.points ?? 0} pts
-      {standing.goalDifference !== null ? (
-        <>
-          <span className="mx-2 text-muted-foreground">/</span>
-          diff. {standing.goalDifference > 0 ? "+" : ""}{standing.goalDifference}
-        </>
-      ) : null}
-    </p>
+    <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-black text-foreground">
+      <span>{standing.position}e</span>
+      <span>{standing.points ?? 0} pts</span>
+      {standing.goalDifference !== null ? <span>diff. {standing.goalDifference > 0 ? "+" : ""}{standing.goalDifference}</span> : null}
+      {standing.played !== null ? <span className="text-muted-foreground">{standing.played} match{standing.played > 1 ? "s" : ""} joué{standing.played > 1 ? "s" : ""}</span> : null}
+    </div>
   );
 }
 
@@ -261,13 +266,14 @@ function RecentFormLine({ team }: { team: MatchCenterTeam }) {
   }
 
   return (
-    <div className="mt-3">
+    <div className="mt-4">
       <p className="mb-2 text-[11px] font-black uppercase tracking-widest text-muted-foreground">Forme récente</p>
       <div className="flex flex-wrap gap-1.5">
-        {team.recentForm.map((entry) => (
+        {team.recentForm.map((entry, index) => (
           <span
             key={`${entry.eventId}-${entry.result}`}
-            className={cn("grid h-7 w-7 place-items-center rounded-full border text-xs font-black", formTone(entry.result))}
+            className={cn("cs-form-pill grid h-7 w-7 place-items-center rounded-full border text-xs font-black", formTone(entry.result))}
+            style={{ animationDelay: `${index * 35}ms` } as CSSProperties}
             title={`${entry.goalsFor}-${entry.goalsAgainst}`}
           >
             {entry.result}
@@ -331,11 +337,12 @@ function SquadList({ team }: { team: MatchCenterTeam }) {
           <div className="space-y-2 lg:hidden">
             {visible.map((player) => <PlayerRow key={player.id} player={player} />)}
             {team.squad.length > visible.length ? (
-              <details className="group pt-1">
-                <summary className="cursor-pointer list-none text-xs font-black text-primary outline-none transition-colors hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-primary">
-                  Voir l'effectif complet
+              <details className="cs-squad-details group pt-1">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-md py-1 text-xs font-black text-primary outline-none transition-colors hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-primary">
+                  <span>Voir l'effectif complet</span>
+                  <ChevronDown size={14} className="transition-transform duration-200 group-open:rotate-180" />
                 </summary>
-                <div className="mt-3 space-y-4">
+                <div className="cs-squad-details-content mt-3 space-y-4">
                   <SquadGroups groups={groups} />
                 </div>
               </details>
@@ -369,7 +376,7 @@ function SquadGroups({ groups }: { groups: { label: string; players: SquadPlayer
 function PlayerRow({ player }: { player: SquadPlayer }) {
   const displayPosition = positionLabel(player.position);
   return (
-    <div className="flex items-center gap-2 rounded-md bg-secondary/55 px-2 py-2">
+    <div className="flex items-center gap-2 rounded-md bg-secondary/55 px-2 py-2 transition-colors duration-150 hover:bg-secondary/80">
       <Shirt size={14} className="shrink-0 text-primary" />
       <span className="min-w-0 flex-1 truncate text-sm font-bold text-foreground">{player.name}</span>
       {displayPosition ? <span className="shrink-0 text-[11px] text-muted-foreground">{displayPosition}</span> : null}
@@ -379,7 +386,7 @@ function PlayerRow({ player }: { player: SquadPlayer }) {
 
 function SquadsPanel({ match }: { match: MatchCenterViewModel }) {
   return (
-    <section>
+    <section className="cs-match-panel">
       <div className="mb-3 flex items-center gap-2">
         <Users size={16} className="text-primary" />
         <h2 className="text-sm font-black uppercase tracking-widest text-primary">Effectifs</h2>
@@ -396,7 +403,7 @@ function SquadsPanel({ match }: { match: MatchCenterViewModel }) {
 function ScorersPanel({ match }: { match: MatchCenterViewModel }) {
   if (!match.hasSeasonScorers) return null;
   return (
-    <section className="rounded-lg border border-white/10 bg-card/70 p-4">
+    <section className="cs-match-panel rounded-lg border border-white/10 bg-card/70 p-4">
       <div className="mb-3 flex items-center gap-2">
         <Shield size={16} className="text-primary" />
         <h2 className="text-sm font-black uppercase tracking-widest text-primary">Buteurs de la compétition</h2>
@@ -454,15 +461,11 @@ export default async function MatchCenterPage({ params }: { params: Promise<{ ev
 
       <Hero match={match} />
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(330px,0.8fr)]">
-        <div className="space-y-5">
-          <PredictionPanel match={match} />
-          <SquadsPanel match={match} />
-        </div>
-        <aside className="space-y-5 lg:sticky lg:top-20 lg:self-start">
-          <ContextPanel match={match} />
-          <ScorersPanel match={match} />
-        </aside>
+      <div className="space-y-5">
+        <PredictionPanel match={match} />
+        <ContextPanel match={match} />
+        <SquadsPanel match={match} />
+        <ScorersPanel match={match} />
       </div>
     </PageShell>
   );
