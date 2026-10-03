@@ -5,6 +5,7 @@ import { CalendarDays, ChevronRight, MapPin, Shield, Shirt, Target, Trophy, User
 import { createClient } from "@/lib/supabase/server";
 import { PageShell, EmptyState } from "@/components/canal-sports/ui";
 import { SquadDisclosure } from "./SquadDisclosure";
+import { MobileMatchCenter } from "./MobileMatchCenter";
 import {
   getCanalSportsMatchCenter,
   teamDisplayName,
@@ -439,17 +440,21 @@ export default async function MatchCenterPage({ params }: { params: Promise<{ ev
   const { match } = result;
 
   return (
-    <PageShell className="max-w-7xl px-3 sm:px-5 lg:px-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <PageShell className="max-w-7xl space-y-0 px-3 py-3 sm:px-5 lg:space-y-6 lg:px-8 lg:py-4">
+      <MobileMatchCenter match={match} />
+
+      <div className="hidden flex-wrap items-center justify-between gap-3 lg:flex">
         <Link href="/cs/programme" className="inline-flex items-center gap-1 text-xs font-black uppercase tracking-widest text-muted-foreground transition-colors hover:text-primary">
           Programme
         </Link>
         <p className="text-xs font-black uppercase tracking-[0.22em] text-primary">Match Center</p>
       </div>
 
-      <Hero match={match} />
+      <div className="hidden lg:block">
+        <Hero match={match} />
+      </div>
 
-      <div className="space-y-5">
+      <div className="hidden space-y-5 lg:block">
         <PredictionPanel match={match} />
         <ContextPanel match={match} />
         <SquadsPanel match={match} />

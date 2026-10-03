@@ -33,9 +33,9 @@ export const metadata: Metadata = {
 
 export default function CanalSportsLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="-mt-14 min-h-screen bg-background text-foreground">
       <CanalSportsTopBar />
-      <main className="min-h-screen pt-14 pb-16">{children}</main>
+      <main className="min-h-screen pt-14 pb-16 lg:pb-0">{children}</main>
       <CanalSportsBottomNav />
     </div>
   );

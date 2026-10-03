@@ -8,23 +8,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, CalendarDays, Target, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { isFeatureEnabled, type FeatureKey } from "@/lib/features/flags";
-
-const NAV_ITEMS: { href: string; icon: typeof Home; label: string; feature?: FeatureKey }[] = [
-  { href: "/cs", icon: Home, label: "Accueil" },
-  { href: "/cs/programme", icon: CalendarDays, label: "Programme", feature: "program" },
-  { href: "/cs/pronostics", icon: Target, label: "Pronostics", feature: "predictions" },
-  { href: "/cs/classements", icon: Trophy, label: "Classements", feature: "rankings" },
-];
+import { isFeatureEnabled } from "@/lib/features/flags";
+import { CANAL_SPORTS_NAV_ITEMS } from "./items";
 
 export function CanalSportsBottomNav() {
   const pathname = usePathname();
-  const items = NAV_ITEMS.filter((item) => !item.feature || isFeatureEnabled(item.feature));
+  const items = CANAL_SPORTS_NAV_ITEMS.filter((item) => !item.feature || isFeatureEnabled(item.feature));
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t border-border safe-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-sm lg:hidden">
       <div className="flex items-center justify-around px-2 pt-2 pb-1">
         {items.map(({ href, icon: Icon, label }) => {
           const isActive = pathname === href;
@@ -33,12 +26,17 @@ export function CanalSportsBottomNav() {
               key={href}
               href={href}
               className={cn(
-                "flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all duration-150 min-w-0",
+                "relative flex min-w-0 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 transition-all duration-150 active:scale-95",
                 isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
+              <Icon
+                size={22}
+                strokeWidth={isActive ? 2.5 : 1.8}
+                className={cn("transition-transform duration-150", isActive && "scale-110")}
+              />
               <span className="text-[10px] font-semibold">{label}</span>
+              {isActive && <span className="absolute bottom-0 h-1 w-1 rounded-full bg-primary motion-safe:animate-[cs-mobile-dot_160ms_ease-out]" />}
             </Link>
           );
         })}

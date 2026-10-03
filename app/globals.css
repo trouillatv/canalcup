@@ -142,6 +142,10 @@
     animation: cs-form-pill 140ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
 
+  .cs-mobile-score {
+    animation: cs-match-score 160ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
   .cs-squad-details-content {
     animation: cs-squad-open 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
@@ -237,6 +241,21 @@
 }
 
 @keyframes cs-squad-open {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cs-tab-snap {
+  from { opacity: 0; transform: scaleX(0.92); }
+  to { opacity: 1; transform: scaleX(1); }
+}
+
+@keyframes cs-mobile-dot {
+  from { opacity: 0; transform: translateY(3px) scale(0.7); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes cs-mobile-panel {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
@@ -337,7 +356,8 @@ body.tv-ceremony-active > main { padding: 0 !important; }
   .cs-match-cta,
   .cs-form-pill,
   .cs-squad-details-content,
-  .cs-squad-group {
+  .cs-squad-group,
+  .cs-mobile-score {
     animation: none;
   }
 
