@@ -1,3 +1,8 @@
+---
+name: work-next
+description: Execute exactly one GitHub AI-READY CANAL Sports issue through the project delivery workflow, produce evidence, mark it REVIEW-READY, and stop.
+---
+
 # work-next
 
 Use this skill when Vincent asks Codex to work the next GitHub issue.

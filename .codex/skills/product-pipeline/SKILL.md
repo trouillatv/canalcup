@@ -1,3 +1,8 @@
+---
+name: product-pipeline
+description: Classify CANAL Sports work as FAST, STANDARD, or PRODUCT and select the lightest safe delivery workflow before implementation.
+---
+
 # product-pipeline
 
 Use this skill when classifying a CANAL Sports request before work.

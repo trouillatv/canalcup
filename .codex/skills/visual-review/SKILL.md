@@ -1,3 +1,8 @@
+---
+name: visual-review
+description: Review a CANAL Sports UI slice in the real application across responsive states and interactions, producing visual evidence and product acceptance findings.
+---
+
 # visual-review
 
 Use this skill for PRODUCT UI slices or when Vincent asks for a visual review.
