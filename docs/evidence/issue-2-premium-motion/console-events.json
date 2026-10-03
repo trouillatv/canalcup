@@ -1,0 +1,567 @@
+[
+  {
+    "method": "Runtime.consoleAPICalled",
+    "params": {
+      "type": "info",
+      "args": [
+        {
+          "type": "string",
+          "value": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools"
+        },
+        {
+          "type": "string",
+          "value": "font-weight:bold"
+        }
+      ],
+      "executionContextId": 2,
+      "timestamp": 1791018202184.896,
+      "stackTrace": {
+        "callFrames": [
+          {
+            "functionName": "",
+            "scriptId": "131",
+            "url": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_1e674e59._.js",
+            "lineNumber": 14537,
+            "columnNumber": 53
+          },
+          {
+            "functionName": "__TURBOPACK__module__evaluation__",
+            "scriptId": "131",
+            "url": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_1e674e59._.js",
+            "lineNumber": 14573,
+            "columnNumber": 1
+          },
+          {
+            "functionName": "",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 841,
+            "columnNumber": 12
+          },
+          {
+            "functionName": "runModuleExecutionHooks",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 866,
+            "columnNumber": 12
+          },
+          {
+            "functionName": "instantiateModule",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 839,
+            "columnNumber": 8
+          },
+          {
+            "functionName": "getOrInstantiateModuleFromParent",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 792,
+            "columnNumber": 11
+          },
+          {
+            "functionName": "commonJsRequire",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 245,
+            "columnNumber": 11
+          },
+          {
+            "functionName": "__TURBOPACK__module__evaluation__",
+            "scriptId": "131",
+            "url": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_1e674e59._.js",
+            "lineNumber": 14606,
+            "columnNumber": 43
+          },
+          {
+            "functionName": "",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 841,
+            "columnNumber": 12
+          },
+          {
+            "functionName": "runModuleExecutionHooks",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 866,
+            "columnNumber": 12
+          },
+          {
+            "functionName": "instantiateModule",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 839,
+            "columnNumber": 8
+          },
+          {
+            "functionName": "getOrInstantiateModuleFromParent",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 792,
+            "columnNumber": 11
+          },
+          {
+            "functionName": "commonJsRequire",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 245,
+            "columnNumber": 11
+          },
+          {
+            "functionName": "__TURBOPACK__module__evaluation__",
+            "scriptId": "160",
+            "url": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_cf1d9188._.js",
+            "lineNumber": 9766,
+            "columnNumber": 79
+          },
+          {
+            "functionName": "",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 841,
+            "columnNumber": 12
+          },
+          {
+            "functionName": "runModuleExecutionHooks",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 866,
+            "columnNumber": 12
+          },
+          {
+            "functionName": "instantiateModule",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 839,
+            "columnNumber": 8
+          },
+          {
+            "functionName": "getOrInstantiateModuleFromParent",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 792,
+            "columnNumber": 11
+          },
+          {
+            "functionName": "commonJsRequire",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 245,
+            "columnNumber": 11
+          },
+          {
+            "functionName": "",
+            "scriptId": "160",
+            "url": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_cf1d9188._.js",
+            "lineNumber": 10004,
+            "columnNumber": 46
+          },
+          {
+            "functionName": "",
+            "scriptId": "160",
+            "url": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_cf1d9188._.js",
+            "lineNumber": 134,
+            "columnNumber": 8
+          },
+          {
+            "functionName": "loadScriptsInSequence",
+            "scriptId": "160",
+            "url": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_cf1d9188._.js",
+            "lineNumber": 98,
+            "columnNumber": 15
+          },
+          {
+            "functionName": "appBootstrap",
+            "scriptId": "160",
+            "url": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_cf1d9188._.js",
+            "lineNumber": 127,
+            "columnNumber": 4
+          },
+          {
+            "functionName": "__TURBOPACK__module__evaluation__",
+            "scriptId": "160",
+            "url": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_cf1d9188._.js",
+            "lineNumber": 10003,
+            "columnNumber": 31
+          },
+          {
+            "functionName": "",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 841,
+            "columnNumber": 12
+          },
+          {
+            "functionName": "runModuleExecutionHooks",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 866,
+            "columnNumber": 12
+          },
+          {
+            "functionName": "instantiateModule",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 839,
+            "columnNumber": 8
+          },
+          {
+            "functionName": "getOrInstantiateRuntimeModule",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 770,
+            "columnNumber": 11
+          },
+          {
+            "functionName": "registerChunk",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 1588,
+            "columnNumber": 20
+          }
+        ]
+      }
+    }
+  },
+  {
+    "method": "Log.entryAdded",
+    "params": {
+      "entry": {
+        "source": "other",
+        "level": "info",
+        "text": "Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.",
+        "timestamp": 1791018203307.182,
+        "url": "http://localhost:3000/cs/match/ed8e8047-ba6c-4413-9294-3d39335151a3"
+      }
+    }
+  },
+  {
+    "method": "Log.entryAdded",
+    "params": {
+      "entry": {
+        "source": "network",
+        "level": "error",
+        "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+        "timestamp": 1791018204189.326,
+        "url": "http://localhost:3000/api/me/badge",
+        "networkRequestId": "14420.126"
+      }
+    }
+  },
+  {
+    "method": "Log.entryAdded",
+    "params": {
+      "entry": {
+        "source": "network",
+        "level": "error",
+        "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+        "timestamp": 1791018204191.883,
+        "url": "http://localhost:3000/api/track",
+        "networkRequestId": "14420.127"
+      }
+    }
+  },
+  {
+    "method": "Log.entryAdded",
+    "params": {
+      "entry": {
+        "source": "network",
+        "level": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 ()",
+        "timestamp": 1791018204269.652,
+        "url": "https://yfhuqsuboqfznnpceosl.supabase.co/rest/v1/allowlist_users?select=role&email=eq.trouillatv%40gmail.com",
+        "networkRequestId": "14420.135"
+      }
+    }
+  },
+  {
+    "method": "Log.entryAdded",
+    "params": {
+      "entry": {
+        "source": "network",
+        "level": "error",
+        "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+        "timestamp": 1791018204419.009,
+        "url": "http://localhost:3000/api/inbox/unread",
+        "networkRequestId": "14420.124"
+      }
+    }
+  },
+  {
+    "method": "Runtime.consoleAPICalled",
+    "params": {
+      "type": "info",
+      "args": [
+        {
+          "type": "string",
+          "value": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools"
+        },
+        {
+          "type": "string",
+          "value": "font-weight:bold"
+        }
+      ],
+      "executionContextId": 3,
+      "timestamp": 1791018222925.508,
+      "stackTrace": {
+        "callFrames": [
+          {
+            "functionName": "",
+            "scriptId": "131",
+            "url": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_1e674e59._.js",
+            "lineNumber": 14537,
+            "columnNumber": 53
+          },
+          {
+            "functionName": "__TURBOPACK__module__evaluation__",
+            "scriptId": "131",
+            "url": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_1e674e59._.js",
+            "lineNumber": 14573,
+            "columnNumber": 1
+          },
+          {
+            "functionName": "",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 841,
+            "columnNumber": 12
+          },
+          {
+            "functionName": "runModuleExecutionHooks",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 866,
+            "columnNumber": 12
+          },
+          {
+            "functionName": "instantiateModule",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 839,
+            "columnNumber": 8
+          },
+          {
+            "functionName": "getOrInstantiateModuleFromParent",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 792,
+            "columnNumber": 11
+          },
+          {
+            "functionName": "commonJsRequire",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 245,
+            "columnNumber": 11
+          },
+          {
+            "functionName": "__TURBOPACK__module__evaluation__",
+            "scriptId": "131",
+            "url": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_1e674e59._.js",
+            "lineNumber": 14606,
+            "columnNumber": 43
+          },
+          {
+            "functionName": "",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 841,
+            "columnNumber": 12
+          },
+          {
+            "functionName": "runModuleExecutionHooks",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 866,
+            "columnNumber": 12
+          },
+          {
+            "functionName": "instantiateModule",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 839,
+            "columnNumber": 8
+          },
+          {
+            "functionName": "getOrInstantiateModuleFromParent",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 792,
+            "columnNumber": 11
+          },
+          {
+            "functionName": "commonJsRequire",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 245,
+            "columnNumber": 11
+          },
+          {
+            "functionName": "__TURBOPACK__module__evaluation__",
+            "scriptId": "160",
+            "url": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_cf1d9188._.js",
+            "lineNumber": 9766,
+            "columnNumber": 79
+          },
+          {
+            "functionName": "",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 841,
+            "columnNumber": 12
+          },
+          {
+            "functionName": "runModuleExecutionHooks",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 866,
+            "columnNumber": 12
+          },
+          {
+            "functionName": "instantiateModule",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 839,
+            "columnNumber": 8
+          },
+          {
+            "functionName": "getOrInstantiateModuleFromParent",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 792,
+            "columnNumber": 11
+          },
+          {
+            "functionName": "commonJsRequire",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 245,
+            "columnNumber": 11
+          },
+          {
+            "functionName": "",
+            "scriptId": "160",
+            "url": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_cf1d9188._.js",
+            "lineNumber": 10004,
+            "columnNumber": 46
+          },
+          {
+            "functionName": "",
+            "scriptId": "160",
+            "url": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_cf1d9188._.js",
+            "lineNumber": 134,
+            "columnNumber": 8
+          },
+          {
+            "functionName": "loadScriptsInSequence",
+            "scriptId": "160",
+            "url": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_cf1d9188._.js",
+            "lineNumber": 98,
+            "columnNumber": 15
+          },
+          {
+            "functionName": "appBootstrap",
+            "scriptId": "160",
+            "url": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_cf1d9188._.js",
+            "lineNumber": 127,
+            "columnNumber": 4
+          },
+          {
+            "functionName": "__TURBOPACK__module__evaluation__",
+            "scriptId": "160",
+            "url": "http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_cf1d9188._.js",
+            "lineNumber": 10003,
+            "columnNumber": 31
+          },
+          {
+            "functionName": "",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 841,
+            "columnNumber": 12
+          },
+          {
+            "functionName": "runModuleExecutionHooks",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 866,
+            "columnNumber": 12
+          },
+          {
+            "functionName": "instantiateModule",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 839,
+            "columnNumber": 8
+          },
+          {
+            "functionName": "getOrInstantiateRuntimeModule",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 770,
+            "columnNumber": 11
+          },
+          {
+            "functionName": "registerChunk",
+            "scriptId": "164",
+            "url": "http://localhost:3000/_next/static/chunks/turbopack-_cdba956c._.js",
+            "lineNumber": 1588,
+            "columnNumber": 20
+          }
+        ]
+      }
+    }
+  },
+  {
+    "method": "Log.entryAdded",
+    "params": {
+      "entry": {
+        "source": "other",
+        "level": "info",
+        "text": "Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.",
+        "timestamp": 1791018223632.338,
+        "url": "http://localhost:3000/cs/match/ed8e8047-ba6c-4413-9294-3d39335151a3"
+      }
+    }
+  },
+  {
+    "method": "Log.entryAdded",
+    "params": {
+      "entry": {
+        "source": "network",
+        "level": "error",
+        "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+        "timestamp": 1791018224269.929,
+        "url": "http://localhost:3000/api/track",
+        "networkRequestId": "14420.293"
+      }
+    }
+  },
+  {
+    "method": "Log.entryAdded",
+    "params": {
+      "entry": {
+        "source": "network",
+        "level": "error",
+        "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+        "timestamp": 1791018224273.136,
+        "url": "http://localhost:3000/api/inbox/unread",
+        "networkRequestId": "14420.290"
+      }
+    }
+  },
+  {
+    "method": "Log.entryAdded",
+    "params": {
+      "entry": {
+        "source": "network",
+        "level": "error",
+        "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+        "timestamp": 1791018224275.572,
+        "url": "http://localhost:3000/api/me/badge",
+        "networkRequestId": "14420.292"
+      }
+    }
+  }
+]

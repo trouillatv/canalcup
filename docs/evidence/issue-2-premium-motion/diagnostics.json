@@ -1,0 +1,14 @@
+{
+  "url": "http://localhost:3000/cs/match/ed8e8047-ba6c-4413-9294-3d39335151a3",
+  "authenticated": true,
+  "hasRawEnglishPosition": false,
+  "hasTargetCopy": false,
+  "hasContext": true,
+  "hasMotionClasses": true,
+  "openAccordion": {
+    "jeanClairVisibleCount": 1,
+    "hasReduceLabel": true,
+    "hasSeeFullLabel": true
+  },
+  "reducedMotion": true
+}

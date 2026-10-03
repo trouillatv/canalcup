@@ -258,6 +258,7 @@ test("match center page: TARGET only, aucune SOURCE, aucune mutation, pas de SOU
 
 test("match center page: UX sans titre redondant, dette technique masquee, effectifs replies", () => {
   const page = readFileSync("app/cs/match/[eventId]/page.tsx", "utf8");
+  const disclosure = readFileSync("app/cs/match/[eventId]/SquadDisclosure.tsx", "utf8");
 
   assert.equal(page.includes("<h1"), false);
   assert.equal(page.includes("Non affiche"), false);
@@ -268,8 +269,11 @@ test("match center page: UX sans titre redondant, dette technique masquee, effec
   assert.equal(page.includes("function positionLabel"), true);
   assert.equal(page.includes("{player.position}</span>"), false);
   assert.equal(page.includes("slice(0, 6)"), true);
-  assert.equal(page.includes("lg:hidden"), true);
+  assert.equal(disclosure.includes("lg:hidden"), true);
   assert.equal(page.includes("lg:block"), true);
-  assert.equal(page.includes("<details"), true);
+  assert.equal(page.includes("<details"), false);
+  assert.equal(page.includes("SquadDisclosure"), true);
+  assert.equal(disclosure.includes("open ?"), true);
+  assert.equal(disclosure.includes("Réduire l'effectif"), true);
   assert.equal(page.includes("Effectif de saison / pas la composition du match."), true);
 });

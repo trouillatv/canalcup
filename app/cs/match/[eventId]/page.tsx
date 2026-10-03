@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { CSSProperties } from "react";
-import { CalendarDays, ChevronDown, ChevronRight, MapPin, Shield, Shirt, Target, Trophy, Users } from "lucide-react";
+import { CalendarDays, ChevronRight, MapPin, Shield, Shirt, Target, Trophy, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageShell, EmptyState } from "@/components/canal-sports/ui";
+import { SquadDisclosure } from "./SquadDisclosure";
 import {
   getCanalSportsMatchCenter,
   teamDisplayName,
@@ -334,20 +335,7 @@ function SquadList({ team }: { team: MatchCenterTeam }) {
       </div>
       {visible.length > 0 ? (
         <>
-          <div className="space-y-2 lg:hidden">
-            {visible.map((player) => <PlayerRow key={player.id} player={player} />)}
-            {team.squad.length > visible.length ? (
-              <details className="cs-squad-details group pt-1">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-md py-1 text-xs font-black text-primary outline-none transition-colors hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-primary">
-                  <span>Voir l'effectif complet</span>
-                  <ChevronDown size={14} className="transition-transform duration-200 group-open:rotate-180" />
-                </summary>
-                <div className="cs-squad-details-content mt-3 space-y-4">
-                  <SquadGroups groups={groups} />
-                </div>
-              </details>
-            ) : null}
-          </div>
+          <SquadDisclosure preview={visible} groups={groups} total={team.squad.length} />
           <div className="hidden space-y-4 lg:block">
             <SquadGroups groups={groups} />
           </div>
